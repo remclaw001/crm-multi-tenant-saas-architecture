@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — Request Flow Complete</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
+  --gn:#10b981;--gnd:rgba(16,185,129,.08);
+  --am:#f59e0b;--amd:rgba(245,158,11,.08);
+  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
+  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
+  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
+  --or:#f97316;--pk:#ec4899;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(1.8rem,4vw,3rem);font-weight:800;line-height:1.1;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--bl)}
+.hero p{font-size:1rem;color:var(--td);max-width:640px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--bl)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
+.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.kw{color:#c792ea}.fn{color:#82aaff}.st{color:#c3e88d}.cm{color:#3e4460;font-style:italic}.nu{color:#f78c6c}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.pk{color:#ec4899}.or{color:#f97316}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
+.nt strong{color:inherit}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+.pnl.on .sec:nth-child(2){animation-delay:.04s}
+.pnl.on .sec:nth-child(3){animation-delay:.08s}
+.pnl.on .sec:nth-child(4){animation-delay:.12s}
+.pnl.on .sec:nth-child(5){animation-delay:.16s}
+.pnl.on .sec:nth-child(6){animation-delay:.2s}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Request Flow Deep Dive</div>
+    <h1>Luồng xử lý <span>1 Request</span></h1>
+    <p>Trace từ byte đầu tiên đến byte cuối cùng — mọi thành phần, mọi plugin, mọi quyết định.</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('full')">Luồng đầy đủ</button>
+    <button onclick="go('gw')">① Gateway</button>
+    <button onclick="go('ctx')">② Build Context</button>
+    <button onclick="go('exec')">③ Sandbox & Plugin</button>
+    <button onclick="go('side')">④ Events & Async</button>
+    <button onclick="go('end')">⑤ Response & Cleanup</button>
+    <button onclick="go('err')">Khi lỗi xảy ra</button>
+    <button onclick="go('time')">Timeline</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════ -->
+<!-- FULL FLOW -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl on" id="p-full">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ toàn bộ luồng</h2></div>
+
+    <div class="nt bl"><strong>Request mẫu:</strong> POST https://acme.crm.com/api/v1/sales — User tạo sales opportunity mới. Tenant ACME (Premium), enabled: customer-data, customer-care, analytics.</div>
+
+    <div class="dg"><div class="dg-label">complete request map</div><pre>
+<span class="hi">CLIENT</span>
+  │
+  │  POST https://acme.crm.com/api/v1/sales
+  │  Headers: Authorization: Bearer eyJhbG...
+  │  Body: { customerId: "cust-99", title: "Enterprise deal", amount: 50000 }
+  │
+  ▼
+<span class="ty">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+<span class="ty">  ① API GATEWAY                                              ~6ms total</span>
+<span class="ty">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+  │
+  ├──▶ <span class="fn">Load Balancer</span>         chọn instance (round-robin)          ~0.5ms
+  ├──▶ <span class="fn">TLS Termination</span>      decrypt HTTPS                         ~0.5ms
+  ├──▶ <span class="fn">Tenant Resolver</span>      acme.crm.com → tenant_id: ACME       ~1ms
+  ├──▶ <span class="fn">Auth Middleware</span>       validate JWT → user_id, roles         ~1.5ms
+  ├──▶ <span class="fn">Rate Limiter</span>         check ACME quota (Redis counter)      ~1ms
+  ├──▶ <span class="fn">Request Logger</span>       log incoming request (structured)     ~0.2ms
+  └──▶ <span class="fn">Route Matcher</span>        POST /sales → plugin: customer-care   ~0.3ms
+  │
+  │  <span class="rd">Fail tại bất kỳ bước nào → trả lỗi ngay, không đi tiếp</span>
+  │
+  ▼
+<span class="ty">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+<span class="ty">  ② BUILD CONTEXT                                            ~4ms total</span>
+<span class="ty">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+  │
+  ├──▶ <span class="fn">Tenant Context Mgr</span>  LRU lookup → ACME context (cached)    ~0.1ms
+  ├──▶ <span class="fn">Permission Check</span>    user roles ∩ plugin perms → OK?        ~0.1ms
+  ├──▶ <span class="fn">Pool Manager</span>        acquire DB connection (shared pool)    ~2ms
+  ├──▶ <span class="fn">Query Interceptor</span>   bind tenant_id = ACME on connection   ~0.1ms
+  ├──▶ <span class="fn">Cache Wrapper</span>       create scoped cache (prefix: t:ACME)  ~0.1ms
+  ├──▶ <span class="fn">Logger Wrapper</span>      bind requestId + tenantId              ~0.1ms
+  ├──▶ <span class="fn">EventBus Wrapper</span>    bind enabledPlugins filter             ~0.1ms
+  └──▶ <span class="fn">Config Resolver</span>     get ACME's customer-care config        ~0.1ms
+  │
+  │  → Execution Context assembled (~15KB)
+  │
+  ▼
+<span class="ty">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+<span class="ty">  ③ SANDBOX EXECUTION                                       ~65ms total</span>
+<span class="ty">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+  │
+  ├──▶ <span class="fn">Sandbox Engine</span>      wrap execution (timeout 5s, mem 50MB)
+  │     │
+  │     ▼
+  │    <span class="gn">CustomerCareCore.createSale(ctx, body)</span>
+  │     │
+  │     ├──▶ Validate input                                      ~1ms
+  │     ├──▶ ctx.db → query customers (verify customerId)        ~8ms
+  │     │    <span class="cm">Query Interceptor auto-injects tenant_id</span>
+  │     │    <span class="cm">PostgreSQL RLS double-checks</span>
+  │     │
+  │     ├──▶ <span class="am">HOOK "before:saleCreate"</span>                            ~0ms
+  │     │    <span class="cm">No enabled plugin registered → skip</span>
+  │     │
+  │     ├──▶ ctx.db → INSERT INTO sales                          ~10ms
+  │     │    <span class="cm">Query Interceptor auto-injects tenant_id</span>
+  │     │
+  │     ├──▶ <span class="am">HOOK "after:saleCreate"</span>                             ~0ms
+  │     │    <span class="cm">No enabled plugin registered → skip</span>
+  │     │
+  │     ├──▶ ctx.db → UPDATE customers SET lastActivity          ~6ms
+  │     │
+  │     ├──▶ ctx.cache → invalidate related cache keys           ~2ms
+  │     │    <span class="cm">delete t:ACME:sales:list:*</span>
+  │     │    <span class="cm">delete t:ACME:customers:cust-99</span>
+  │     │
+  │     ├──▶ <span class="gn">EMIT SYNC "sales.created"</span>                          ~8ms
+  │     │    ├── analytics.onSaleCreated → increment counter     ~3ms
+  │     │    ├── <span class="rd">automation: NOT in enabledPlugins → SKIP</span>
+  │     │    └── <span class="rd">marketing: NOT in enabledPlugins → SKIP</span>
+  │     │
+  │     ├──▶ <span class="cy">PUBLISH ASYNC → Message Queue</span>                      ~2ms
+  │     │    <span class="cm">Queue: "sales.lifecycle"</span>
+  │     │    <span class="cm">Message: { type: "sales.created", tenantId, sale }</span>
+  │     │    <span class="cm">→ Workers xử lý SAU response</span>
+  │     │
+  │     └──▶ Return { id: "sale-42", status: "new" }
+  │
+  ▼
+<span class="ty">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+<span class="ty">  ④ RESPONSE & CLEANUP                                       ~3ms total</span>
+<span class="ty">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+  │
+  ├──▶ <span class="fn">Response Formatter</span>  serialize JSON, set headers            ~0.5ms
+  ├──▶ <span class="fn">Audit Logger</span>        log: ACME/user-5/sales.created         ~0.5ms
+  ├──▶ <span class="fn">Metrics Emitter</span>     duration=78ms, plugin=care, 201        ~0.2ms
+  ├──▶ <span class="fn">Trace Closer</span>        close OpenTelemetry span → Jaeger      ~0.3ms
+  ├──▶ <span class="fn">DB Release</span>          return connection to shared pool        ~0.1ms
+  └──▶ <span class="fn">Context GC</span>          execution context → garbage collected  ~0.1ms
+  │
+  ▼
+<span class="hi">CLIENT</span>
+  201 Created
+  { id: "sale-42", customerId: "cust-99", title: "Enterprise deal",
+    amount: 50000, status: "new", createdAt: "2026-02-10T..." }
+
+
+<span class="ty">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+<span class="ty">  ⑤ ASYNC (sau khi client đã nhận response)                  ~200-500ms</span>
+<span class="ty">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+  │
+  │  Message Queue consumers (trên worker instances):
+  │
+  ├──▶ <span class="fn">Notification Worker</span>    notify assigned sales manager
+  ├──▶ <span class="fn">Search Index Worker</span>    update Elasticsearch index
+  └──▶ <span class="fn">Webhook Worker</span>         call external webhook (if configured)</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- GATEWAY DETAIL -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-gw">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">①</span><h2 class="sec-t">API Gateway — Chi tiết từng thành phần</h2></div>
+
+    <div class="dg"><div class="dg-label">gateway pipeline</div><pre>
+<span class="hi">REQUEST VÀO</span>
+│
+│
+▼
+┌─ <span class="ty">LOAD BALANCER</span> ─────────────────────────────────────────────────────────┐
+│                                                                          │
+│  Thành phần: Nginx / K8s Ingress Controller / AWS ALB                    │
+│                                                                          │
+│  Quyết định:                                                             │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │  Request từ acme.crm.com                                     │        │
+│  │     │                                                        │        │
+│  │     ├── ACME tier = VIP?                                     │        │
+│  │     │   YES → route to <span class="vi">VIP instance pool</span> (2-4 instances)     │        │
+│  │     │   NO  → route to <span class="gn">shared instance pool</span> (3-10 instances)  │        │
+│  │     │                                                        │        │
+│  │     └── ACME tier = premium → <span class="gn">shared pool</span>                    │        │
+│  │         Algorithm: least-connections                         │        │
+│  │         → chọn Instance #3 (đang ít request nhất)            │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│  Health check: ping /health mỗi 10s, loại instance fail                 │
+│                                                                          │
+└──────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─ <span class="ty">TLS TERMINATION</span> ───────────────────────────────────────────────────────┐
+│                                                                          │
+│  HTTPS → HTTP (within cluster, internal traffic is plain HTTP)           │
+│  Certificate: acme.crm.com (wildcard *.crm.com hoặc per-tenant)         │
+│  Custom domain: nếu tenant có custom domain → SNI routing               │
+│                                                                          │
+└──────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─ <span class="ty">TENANT RESOLVER</span> ───────────────────────────────────────────────────────┐
+│                                                                          │
+│  Input: HTTP Host header = "acme.crm.com"                                │
+│                                                                          │
+│  Strategy (ordered):                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │  <span class="nu">1.</span> Extract subdomain: "acme" from "acme.crm.com"             │        │
+│  │  <span class="nu">2.</span> Check Redis: GET domain-map:acme                          │        │
+│  │     │                                                        │        │
+│  │     ├── <span class="gn">HIT</span> → tenant_id = "acme-123", tier = "premium"      │        │
+│  │     │        status = "active"                               │        │
+│  │     │        → <span class="gn">skip DB query</span> (~1ms saved)                     │        │
+│  │     │                                                        │        │
+│  │     └── <span class="am">MISS</span> → Query Metadata DB:                           │        │
+│  │              SELECT id, tier, status, config                 │        │
+│  │              FROM tenants WHERE subdomain = 'acme'           │        │
+│  │              → Cache in Redis (TTL 5min)                     │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│  Output: { tenantId: "acme-123", tier: "premium", status: "active" }     │
+│                                                                          │
+│  <span class="rd">Guards:</span>                                                               │
+│  ├── Tenant not found?        → <span class="rd">404 Tenant Not Found</span>                   │
+│  ├── Tenant status=suspended? → <span class="rd">403 Account Suspended</span>                  │
+│  └── Tenant status=deleted?   → <span class="rd">410 Gone</span>                               │
+│                                                                          │
+└──────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─ <span class="ty">AUTH MIDDLEWARE</span> ────────────────────────────────────────────────────────┐
+│                                                                          │
+│  Input: Header "Authorization: Bearer eyJhbG..."                         │
+│                                                                          │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │  <span class="nu">1.</span> Decode JWT header → get signing algorithm                 │        │
+│  │  <span class="nu">2.</span> Validate signature using public key                       │        │
+│  │  <span class="nu">3.</span> Check expiration: exp > now()?                             │        │
+│  │  <span class="nu">4.</span> Check tenant claim: jwt.tenantId == resolved tenantId?     │        │
+│  │     <span class="cm">↑ Prevent: user of Tenant A using token on Tenant B URL</span>    │        │
+│  │  <span class="nu">5.</span> Check blacklist: Redis GET blacklist:{jti}                 │        │
+│  │     <span class="cm">↑ Token revoked on logout?</span>                                  │        │
+│  │  <span class="nu">6.</span> Extract claims:                                            │        │
+│  │     userId: "user-5"                                         │        │
+│  │     roles:  ["sales_manager"]                                │        │
+│  │     permissions: ["sales:read", "sales:write", ...]          │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│  <span class="rd">Guards:</span>                                                               │
+│  ├── Invalid signature?  → <span class="rd">401 Unauthorized</span>                           │
+│  ├── Token expired?      → <span class="rd">401 Token Expired</span> + hint: use refresh      │
+│  ├── Tenant mismatch?    → <span class="rd">403 Forbidden</span>                               │
+│  └── Token blacklisted?  → <span class="rd">401 Token Revoked</span>                           │
+│                                                                          │
+└──────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─ <span class="ty">RATE LIMITER</span> ──────────────────────────────────────────────────────────┐
+│                                                                          │
+│  Algorithm: Sliding Window Counter (Redis)                               │
+│                                                                          │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │  Key: rate-limit:acme-123                                    │        │
+│  │  Window: 60 seconds                                          │        │
+│  │  Limit: 500 (premium tier)                                   │        │
+│  │                                                              │        │
+│  │  INCR rate-limit:acme-123   → current: 147                   │        │
+│  │  147 < 500                  → <span class="gn">PASS</span>                           │        │
+│  │                                                              │        │
+│  │  Response headers:                                           │        │
+│  │    X-RateLimit-Limit: 500                                    │        │
+│  │    X-RateLimit-Remaining: 353                                │        │
+│  │    X-RateLimit-Reset: 1707567600                             │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│  <span class="rd">Guard:</span> current >= limit? → <span class="rd">429 Too Many Requests</span>                     │
+│         + Retry-After: 23  (seconds until window resets)                 │
+│                                                                          │
+└──────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─ <span class="ty">ROUTE MATCHER</span> ─────────────────────────────────────────────────────────┐
+│                                                                          │
+│  Input: POST /api/v1/sales                                               │
+│                                                                          │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │  Route Registry (built at bootstrap from all loaded plugins):│        │
+│  │                                                              │        │
+│  │  GET  /api/v1/customers       → customer-data.getCustomers   │        │
+│  │  POST /api/v1/customers       → customer-data.createCustomer │        │
+│  │  GET  /api/v1/sales           → customer-care.getSales       │        │
+│  │  <span class="hi">POST /api/v1/sales           → customer-care.createSale</span>    ◀── match │
+│  │  GET  /api/v1/calls           → customer-care.getCalls       │        │
+│  │  GET  /api/v1/reports         → analytics.getReports         │        │
+│  │  ...                                                         │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│  Output: { plugin: "customer-care", method: "createSale",                │
+│            requiredPermission: "sales:write" }                           │
+│                                                                          │
+│  <span class="rd">Guard:</span> No route match? → <span class="rd">404 Not Found</span>                               │
+│                                                                          │
+└──────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+                          Tiếp tục: ② Build Context</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- CONTEXT BUILD -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-ctx">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">②</span><h2 class="sec-t">Build Context — Chi tiết từng thành phần</h2></div>
+
+    <div class="dg"><div class="dg-label">context build pipeline</div><pre>
+<span class="hi">TỪ GATEWAY</span>: tenantId=ACME, userId=user-5, route=customer-care.createSale
+│
+│
+▼
+┌─ <span class="ty">TENANT CONTEXT MANAGER</span> ────────────────────────────────────────────────┐
+│                                                                          │
+│  LRU Cache lookup: tenantContexts.get("acme-123")                        │
+│                                                                          │
+│  ┌─ <span class="gn">CACHE HIT</span> ─────────────────────────────────────────────────────┐    │
+│  │                                                                 │    │
+│  │  Tenant Context đã có sẵn (~10KB):                              │    │
+│  │                                                                 │    │
+│  │  ┌───────────────────────────────────────────────────────┐      │    │
+│  │  │  tenantId:  "acme-123"                                │      │    │
+│  │  │  tier:      "premium"                                 │      │    │
+│  │  │  dbPool:    "shared"                                  │      │    │
+│  │  │                                                       │      │    │
+│  │  │  enabledPlugins:                                      │      │    │
+│  │  │    "customer-data" → { core: ──▶ DataCore singleton,  │      │    │
+│  │  │                        config: { customFields: [...] },│      │    │
+│  │  │                        version: "2.1.0" }             │      │    │
+│  │  │    "customer-care" → { core: ──▶ CareCore singleton,  │      │    │
+│  │  │                        config: { twilio: "xxx" },     │      │    │
+│  │  │                        version: "1.5.0" }             │      │    │
+│  │  │    "analytics"     → { core: ──▶ AnalyticsCore,       │      │    │
+│  │  │                        config: { theme: "dark" },     │      │    │
+│  │  │                        version: "1.2.0" }             │      │    │
+│  │  │                                                       │      │    │
+│  │  │  aggregatedPermissions:                               │      │    │
+│  │  │    Set { customers:read, customers:write, sales:read, │      │    │
+│  │  │          sales:write, calls:*, reports:read, ... }    │      │    │
+│  │  └───────────────────────────────────────────────────────┘      │    │
+│  │                                                                 │    │
+│  │  Cost: <span class="gn">~0.1ms</span>                                                  │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                                                          │
+└──────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─ <span class="ty">PERMISSION CHECK</span> ──────────────────────────────────────────────────────┐
+│                                                                          │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │  Route requires:  "sales:write"                              │        │
+│  │                                                              │        │
+│  │  Check 1: plugin "customer-care" enabled for ACME?           │        │
+│  │     enabledPlugins.has("customer-care") → <span class="gn">YES</span>                │        │
+│  │                                                              │        │
+│  │  Check 2: user has "sales:write" permission?                 │        │
+│  │     user roles = ["sales_manager"]                           │        │
+│  │     role "sales_manager" grants: sales:read, sales:write,    │        │
+│  │                                   calls:read, calls:write    │        │
+│  │     "sales:write" ∈ role permissions → <span class="gn">YES</span>                   │        │
+│  │                                                              │        │
+│  │  Check 3: tenant-level permission?                           │        │
+│  │     "sales:write" ∈ aggregatedPermissions → <span class="gn">YES</span>              │        │
+│  │                                                              │        │
+│  │  All checks pass → <span class="gn">PROCEED</span>                                   │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│  <span class="rd">Guards:</span>                                                               │
+│  ├── Plugin not enabled?    → <span class="rd">403 Plugin Not Available</span>                │
+│  ├── User lacks permission? → <span class="rd">403 Forbidden</span>                           │
+│  └── Tenant lacks feature?  → <span class="rd">403 Feature Not Included In Your Plan</span>   │
+│                                                                          │
+└──────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─ <span class="ty">RESOURCE ACQUISITION</span> ─────────────────────────────────────────────────┐
+│                                                                          │
+│  <span class="nu">1.</span> <span class="fn">DB Connection</span>                                                     │
+│  │                                                                       │
+│  │  tenantCtx.dbPool = "shared"                                          │
+│  │  → SharedPool.acquire()                                               │
+│  │                                                                       │
+│  │  ┌────────────────────────────────────────────────────────┐           │
+│  │  │  Shared Pool: 200 max connections                      │           │
+│  │  │  Currently in use: 87                                  │           │
+│  │  │  Available: 113                                        │           │
+│  │  │  → Borrow connection #88                               │           │
+│  │  │                                                        │           │
+│  │  │  <span class="am">Circuit Breaker: state = CLOSED</span> (healthy)             │           │
+│  │  │  If pool exhausted → Circuit Breaker → OPEN            │           │
+│  │  │  → fallback: 503 + Retry-After                         │           │
+│  │  └────────────────────────────────────────────────────────┘           │
+│  │                                                                       │
+│  │  On connection #88:                                                   │
+│  │  SET app.current_tenant = 'acme-123'   ← for PostgreSQL RLS          │
+│  │                                                                       │
+│  │  Wrap in <span class="gn">TenantScopedDB</span>:                                            │
+│  │    → Query Interceptor attached                                       │
+│  │    → Every query auto-gets: AND tenant_id = 'acme-123'               │
+│  │    → Query counter: 0/50 (maxDBQueries from manifest)                │
+│  │                                                                       │
+│  │                                                                       │
+│  <span class="nu">2.</span> <span class="fn">Scoped Cache</span>                                                      │
+│  │                                                                       │
+│  │  Wrap Redis client:                                                   │
+│  │    prefix = "t:acme-123:"                                             │
+│  │    ctx.cache.get("sales:list") → Redis GET "t:acme-123:sales:list"   │
+│  │                                                                       │
+│  │                                                                       │
+│  <span class="nu">3.</span> <span class="fn">Scoped Logger</span>                                                     │
+│  │                                                                       │
+│  │  Bind context:                                                        │
+│  │    { requestId: "req-789", tenantId: "acme-123",                      │
+│  │      userId: "user-5", plugin: "customer-care" }                      │
+│  │  → Every log line auto-includes these fields                          │
+│  │                                                                       │
+│  │                                                                       │
+│  <span class="nu">4.</span> <span class="fn">Scoped Event Bus</span>                                                  │
+│  │                                                                       │
+│  │  Wrap system Event Bus:                                               │
+│  │    enabledPlugins = Set { "customer-data", "customer-care",           │
+│  │                           "analytics" }                               │
+│  │    emitWhitelist = [ "sales.created", "sales.updated",                │
+│  │                      "call.logged", ... ]  (from care manifest)       │
+│  │                                                                       │
+│  │                                                                       │
+│  <span class="nu">5.</span> <span class="fn">Plugin Config</span>                                                     │
+│  │                                                                       │
+│  │  ctx.pluginConfig = tenantCtx.enabledPlugins                          │
+│  │                       .get("customer-care").config                     │
+│  │  → { twilio_sid: "xxx", sla_hours: 24, ... }                         │
+│  │                                                                       │
+│                                                                          │
+│  → <span class="hi">Execution Context assembled</span>                                        │
+│                                                                          │
+└──────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+                          Tiếp tục: ③ Sandbox Execution</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SANDBOX & PLUGIN -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-exec">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">③</span><h2 class="sec-t">Sandbox & Plugin Execution — Từng bước bên trong</h2></div>
+
+    <div class="dg"><div class="dg-label">sandbox execution detail</div><pre>
+<span class="hi">EXECUTION CONTEXT SẴN SÀNG</span> → Truyền vào Sandbox Engine
+│
+│
+▼
+┌─ <span class="ty">SANDBOX ENGINE</span> ────────────────────────────────────────────────────────┐
+│                                                                          │
+│  Set limits cho request này:                                             │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │  timeout:     5000ms  (premium tier)                         │        │
+│  │  maxMemory:   50MB                                           │        │
+│  │  maxQueries:  50      (from plugin manifest)                 │        │
+│  │  allowed:     [ctx.db, ctx.cache, ctx.eventBus, ctx.logger]  │        │
+│  │  blocked:     process, fs, net, child_process, eval          │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│  Start execution timer...                                                │
+│                                                                          │
+└──────────────────────────────────┬───────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─ <span class="gn">CustomerCareCore.createSale(ctx, body)</span> ─────────────────────────────────┐
+│                                                                          │
+│  <span class="nu">Step 1</span>  <span class="ty">VALIDATE INPUT</span>                                        <span class="cm">~1ms</span>  │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │  body = { customerId: "cust-99", title: "Enterprise", amt: 50k }     │
+│  │                                                              │        │
+│  │  ☐ customerId: required, UUID format   → <span class="gn">OK</span>                 │        │
+│  │  ☐ title: required, string, max 200    → <span class="gn">OK</span>                 │        │
+│  │  ☐ amount: required, number, >= 0      → <span class="gn">OK</span>                 │        │
+│  │                                                              │        │
+│  │  <span class="rd">Fail? → throw PluginValidation("Invalid input")</span>             │        │
+│  │  <span class="rd">       → Sandbox catches → 400 Bad Request</span>                   │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│                                                                          │
+│  <span class="nu">Step 2</span>  <span class="ty">VERIFY CUSTOMER EXISTS</span>  (cross-plugin data read)      <span class="cm">~8ms</span>  │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │                                                              │        │
+│  │  ctx.db.query('customers').where({ id: "cust-99" }).first() │        │
+│  │                                                              │        │
+│  │      │ ctx.db (TenantScopedDB)                               │        │
+│  │      ▼                                                       │        │
+│  │  ┌─ Query Interceptor ──────────────────────────────────┐    │        │
+│  │  │                                                      │    │        │
+│  │  │  Original:  SELECT * FROM customers WHERE id=$1      │    │        │
+│  │  │  Injected:  SELECT * FROM customers                  │    │        │
+│  │  │             WHERE id=$1 <span class="rd">AND tenant_id='acme-123'</span>    │    │        │
+│  │  │                                                      │    │        │
+│  │  │  Query counter: 0 → 1 (of max 50)                    │    │        │
+│  │  └──────────────────────────────────────────────────────┘    │        │
+│  │      │                                                       │        │
+│  │      ▼                                                       │        │
+│  │  ┌─ PostgreSQL ─────────────────────────────────────────┐    │        │
+│  │  │                                                      │    │        │
+│  │  │  Connection #88 (shared pool)                        │    │        │
+│  │  │  app.current_tenant = 'acme-123' (RLS active)        │    │        │
+│  │  │                                                      │    │        │
+│  │  │  Execute query → found: { id:"cust-99", name:"Alice" │    │        │
+│  │  │                           email: "<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="17767b7e747257726f3974787a">[email&#160;protected]</a>" }    │    │        │
+│  │  │                                                      │    │        │
+│  │  │  <span class="cm">Dù Query Interceptor bị bypass (impossible nhưng</span>    │    │        │
+│  │  │  <span class="cm">giả sử), RLS vẫn chặn cross-tenant access</span>           │    │        │
+│  │  └──────────────────────────────────────────────────────┘    │        │
+│  │                                                              │        │
+│  │  Result: customer found → proceed                            │        │
+│  │  <span class="rd">Not found? → throw BusinessError("Customer not found") → 400</span> │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│                                                                          │
+│  <span class="nu">Step 3</span>  <span class="ty">HOOK: before:saleCreate</span>                                <span class="cm">~0ms</span>  │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │                                                              │        │
+│  │  Hook Registry checks "before:saleCreate":                   │        │
+│  │                                                              │        │
+│  │  Registered consumers (system-wide):                         │        │
+│  │    ├── automation.beforeSaleCreate   (auto-assign rep)       │        │
+│  │    └── marketing.addCampaignTag      (add lead source)       │        │
+│  │                                                              │        │
+│  │  Filter by ctx.enabledPlugins for ACME:                      │        │
+│  │    ├── automation ∈ { data, care, analytics }?  <span class="rd">NO → SKIP</span>    │        │
+│  │    └── marketing  ∈ { data, care, analytics }?  <span class="rd">NO → SKIP</span>    │        │
+│  │                                                              │        │
+│  │  Result: <span class="am">no enabled handlers → data passes through unchanged</span> │        │
+│  │                                                              │        │
+│  │  <span class="cm">Nếu ACME upgrade Enterprise và enable automation:</span>           │        │
+│  │  <span class="cm">→ automation.beforeSaleCreate SẼ chạy ở bước này</span>             │        │
+│  │  <span class="cm">→ auto-assign sales rep dựa trên territory rules</span>             │        │
+│  │  <span class="cm">→ data được enrich TRƯỚC khi insert DB</span>                       │        │
+│  │                                                              │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│                                                                          │
+│  <span class="nu">Step 4</span>  <span class="ty">INSERT TO DATABASE</span>                                    <span class="cm">~10ms</span>  │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │                                                              │        │
+│  │  ctx.db.insert('sales', {                                    │        │
+│  │    id: "sale-42",                    ← generated UUID        │        │
+│  │    customerId: "cust-99",                                    │        │
+│  │    title: "Enterprise deal",                                 │        │
+│  │    amount: 50000,                                            │        │
+│  │    status: "new",                                            │        │
+│  │    assignedTo: null                  ← no hook enriched it   │        │
+│  │  })                                                          │        │
+│  │                                                              │        │
+│  │  Query Interceptor:                                          │        │
+│  │    INSERT INTO sales (id, <span class="rd">tenant_id</span>, customer_id, ...)       │        │
+│  │    VALUES ('sale-42', <span class="rd">'acme-123'</span>, 'cust-99', ...)            │        │
+│  │                       <span class="cm">↑ auto-injected</span>                        │        │
+│  │                                                              │        │
+│  │  Query counter: 1 → 2 (of max 50)                           │        │
+│  │                                                              │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│                                                                          │
+│  <span class="nu">Step 5</span>  <span class="ty">HOOK: after:saleCreate</span>                                 <span class="cm">~0ms</span>  │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │  (same filtering as before: no enabled handlers → skip)      │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│                                                                          │
+│  <span class="nu">Step 6</span>  <span class="ty">UPDATE CUSTOMER LAST ACTIVITY</span>                          <span class="cm">~6ms</span>  │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │                                                              │        │
+│  │  ctx.db.query('customers')                                   │        │
+│  │    .where({ id: "cust-99" })                                 │        │
+│  │    .update({ lastActivity: now(), lastActivityType: "sale" })│        │
+│  │                                                              │        │
+│  │  <span class="cm">care WRITE vào customers table (owned by data plugin)</span>        │        │
+│  │  <span class="cm">OK: care has db:write, only updates auxiliary fields</span>          │        │
+│  │  <span class="cm">Interceptor ensures: AND tenant_id = 'acme-123'</span>              │        │
+│  │                                                              │        │
+│  │  Query counter: 2 → 3 (of max 50)                           │        │
+│  │                                                              │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│                                                                          │
+│  <span class="nu">Step 7</span>  <span class="ty">INVALIDATE CACHE</span>                                      <span class="cm">~2ms</span>  │
+│  ┌──────────────────────────────────────────────────────────────┐        │
+│  │                                                              │        │
+│  │  ctx.cache.delete("sales:list:*")                            │        │
+│  │  → Redis DEL t:acme-123:sales:list:*                        │        │
+│  │                                                              │        │
+│  │  ctx.cache.delete("customers:cust-99")                       │        │
+│  │  → Redis DEL t:acme-123:customers:cust-99                   │        │
+│  │  <span class="cm">(vì lastActivity đã thay đổi)</span>                              │        │
+│  │                                                              │        │
+│  │  Publish Pub/Sub: "cache:invalidate"                         │        │
+│  │  → All instances clear L1 cache for these keys               │        │
+│  │                                                              │        │
+│  └──────────────────────────────────────────────────────────────┘        │
+│                                                                          │
+│  → Tiếp tục: Events & Async (Step 8, 9)                                 │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- EVENTS & ASYNC -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-side">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">④</span><h2 class="sec-t">Events & Async — Side effects</h2></div>
+
+    <div class="dg"><div class="dg-label">sync events + async messaging</div><pre>
+<span class="hi">VẪN TRONG SANDBOX, SAU KHI INSERT VÀ CACHE INVALIDATE</span>
+│
+│
+│  <span class="nu">Step 8</span>  <span class="ty">SYNC EVENT: "sales.created"</span>                            <span class="cm">~8ms</span>
+│
+│  ctx.eventBus.emit("sales.created", {
+│    sale: { id: "sale-42", customerId: "cust-99", amount: 50000 }
+│  })
+│
+│       │
+│       ▼
+│  ┌─ <span class="fn">Scoped Event Bus</span> ─────────────────────────────────────────────────┐
+│  │                                                                    │
+│  │  <span class="nu">Check 1:</span> "sales.created" ∈ emitWhitelist?                        │
+│  │           emitWhitelist = care manifest emits                      │
+│  │           ["sales.created", "sales.updated", "call.logged", ...]  │
+│  │           → <span class="gn">YES, allowed to emit</span>                                    │
+│  │                                                                    │
+│  │  <span class="nu">Check 2:</span> Lookup sync handlers registered for "sales.created"     │
+│  │                                                                    │
+│  │  System-wide handlers:                                             │
+│  │  ┌────────────────────────────────────────────────────────────┐   │
+│  │  │  ① analytics.onSaleCreated                                 │   │
+│  │  │  ② automation.onSaleCreated                                │   │
+│  │  │  ③ marketing.onSaleCreated                                 │   │
+│  │  └────────────────────────────────────────────────────────────┘   │
+│  │                                                                    │
+│  │  <span class="nu">Check 3:</span> Filter by ctx.enabledPlugins { data, care, analytics }  │
+│  │                                                                    │
+│  │  ① analytics   ∈ enabledPlugins?  <span class="gn">YES</span>                             │
+│  │  ② automation  ∈ enabledPlugins?  <span class="rd">NO</span>                              │
+│  │  ③ marketing   ∈ enabledPlugins?  <span class="rd">NO</span>                              │
+│  │                                                                    │
+│  │  → Chỉ gọi handler ①                                              │
+│  │                                                                    │
+│  └────────────────────────────────┬───────────────────────────────────┘
+│                                   │
+│                                   ▼
+│  ┌─ <span class="am">analytics.onSaleCreated(ctx, event)</span> ──────────────────────────────┐
+│  │                                                                    │
+│  │  <span class="cm">Chạy ĐỒNG BỘ, cùng Execution Context, cùng request</span>              │
+│  │                                                                    │
+│  │  ┌────────────────────────────────────────────────────────────┐   │
+│  │  │                                                            │   │
+│  │  │  <span class="nu">1.</span> Increment sales counter in Redis                        │   │
+│  │  │     ctx.cache.incr("metrics:sales:count")                  │   │
+│  │  │     → Redis INCR t:acme-123:metrics:sales:count            │   │
+│  │  │                                                    <span class="cm">~1ms</span>   │   │
+│  │  │                                                            │   │
+│  │  │  <span class="nu">2.</span> Add to daily revenue                                    │   │
+│  │  │     ctx.cache.incrBy("metrics:revenue:2026-02-10", 50000)  │   │
+│  │  │                                                    <span class="cm">~1ms</span>   │   │
+│  │  │                                                            │   │
+│  │  │  <span class="nu">3.</span> Update pipeline stage counters                          │   │
+│  │  │     ctx.cache.incr("metrics:pipeline:new")                 │   │
+│  │  │                                                    <span class="cm">~1ms</span>   │   │
+│  │  │                                                            │   │
+│  │  │  Total: <span class="am">~3ms</span>                                               │   │
+│  │  │  DB queries used: 0 (only cache ops)                       │   │
+│  │  │                                                            │   │
+│  │  └────────────────────────────────────────────────────────────┘   │
+│  │                                                                    │
+│  │  <span class="cm">Handler chạy nhanh — chỉ update cache counters</span>                   │
+│  │  <span class="cm">Nếu handler chậm (>100ms) → nên chuyển sang async</span>               │
+│  │                                                                    │
+│  └────────────────────────────────────────────────────────────────────┘
+│
+│
+│  <span class="nu">Step 9</span>  <span class="ty">ASYNC: PUBLISH TO MESSAGE QUEUE</span>                        <span class="cm">~2ms</span>
+│
+│  ctx.services.mq.publish("sales.lifecycle", {
+│    type:     "sales.created",
+│    tenantId: "acme-123",
+│    sale:     { id: "sale-42", customerId: "cust-99", amount: 50000 },
+│    userId:   "user-5",
+│    traceId:  "trace-xyz-789"     ← for distributed tracing
+│  })
+│
+│       │
+│       ▼
+│  ┌─ <span class="fn">RabbitMQ</span> ─────────────────────────────────────────────────────────┐
+│  │                                                                    │
+│  │  Exchange: crm.events (topic)                                      │
+│  │  Routing key: sales.created                                        │
+│  │  Priority: normal (premium tier)                                   │
+│  │                                                                    │
+│  │  Message queued. Publisher returns immediately.                     │
+│  │  <span class="cm">Client sẽ nhận response TRƯỚC khi workers xử lý.</span>                │
+│  │                                                                    │
+│  └────────────────────────────────┬───────────────────────────────────┘
+│                                   │
+│                                   │  <span class="cm">(processed AFTER response sent)</span>
+│                                   │
+│              ┌────────────────────┼──────────────────────┐
+│              │                    │                      │
+│              ▼                    ▼                      ▼
+│  ┌───────────────────┐ ┌─────────────────┐ ┌────────────────────┐
+│  │ <span class="vi">Notification</span>      │ │ <span class="cy">Search Index</span>    │ │ <span class="or">Webhook</span>            │
+│  │ <span class="vi">Worker</span>            │ │ <span class="cy">Worker</span>          │ │ <span class="or">Worker</span>             │
+│  │                   │ │                 │ │                    │
+│  │ Build new         │ │ Index sale in   │ │ POST to tenant's  │
+│  │ Execution Context │ │ Elasticsearch:  │ │ configured webhook │
+│  │ for ACME          │ │                 │ │ URL:               │
+│  │                   │ │ {               │ │                    │
+│  │ Push notification │ │   index:        │ │ https://acme.com/  │
+│  │ to sales manager: │ │     "acme-123-  │ │   hooks/new-sale   │
+│  │                   │ │      sales"     │ │                    │
+│  │ "New $50k deal    │ │   doc: {        │ │ { event: "sales.   │
+│  │  from Alice"      │ │     sale-42,    │ │   created",        │
+│  │                   │ │     "Alice",    │ │   sale: {...} }    │
+│  │ via: WebSocket    │ │     50000       │ │                    │
+│  │  + Push notif     │ │   }             │ │ Retry: 3x with    │
+│  │                   │ │ }               │ │ exponential backoff│
+│  │ <span class="cm">~100ms</span>            │ │ <span class="cm">~50ms</span>           │ │ <span class="cm">~200-500ms</span>         │
+│  └───────────────────┘ └─────────────────┘ └────────────────────┘
+│
+│  <span class="cm">Mỗi worker tạo Execution Context RIÊNG cho tenant ACME</span>
+│  <span class="cm">→ tenant-scoped DB, cache, logger</span>
+│  <span class="cm">→ Nếu worker fail → message vào DLQ → retry hoặc alert</span>
+│
+│
+│  <span class="nu">Step 10</span>  Plugin core return result
+│
+│  return { id: "sale-42", status: "new", customerId: "cust-99",
+│           title: "Enterprise deal", amount: 50000 }
+│
+└── Sandbox: execution completed in 65ms (< 5000ms timeout) ✓</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- RESPONSE & CLEANUP -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-end">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">⑤</span><h2 class="sec-t">Response & Cleanup</h2></div>
+
+    <div class="dg"><div class="dg-label">response and cleanup</div><pre>
+<span class="hi">SANDBOX TRẢ KẾT QUẢ</span>
+│
+│
+▼
+┌─ <span class="ty">RESPONSE PIPELINE</span> ────────────────────────────────────────────────────┐
+│                                                                          │
+│  <span class="nu">1.</span> <span class="fn">Response Formatter</span>                                                │
+│  │                                                                       │
+│  │  Plugin trả:  { id: "sale-42", status: "new", ... }                   │
+│  │  Formatter:                                                           │
+│  │    ├── Set HTTP status: 201 Created                                   │
+│  │    ├── Set Content-Type: application/json                             │
+│  │    ├── Set headers:                                                   │
+│  │    │     X-Request-Id: req-789                                        │
+│  │    │     X-RateLimit-Remaining: 353                                   │
+│  │    └── Serialize body to JSON                                         │
+│  │                                                                       │
+│  <span class="nu">2.</span> <span class="fn">Send to Client</span>                                                    │
+│  │                                                                       │
+│  │  HTTP/2 response → client receives 201 + JSON body                    │
+│  │  <span class="gn">Client done. Total wait: ~78ms.</span>                                    │
+│  │                                                                       │
+│  │                                                                       │
+│  <span class="cm">────── everything below happens AFTER client receives response ──────</span>  │
+│                                                                          │
+│                                                                          │
+│  <span class="nu">3.</span> <span class="fn">Audit Logger</span>                                                      │
+│  │                                                                       │
+│  │  INSERT INTO audit_log {                                              │
+│  │    tenant_id:  "acme-123",                                            │
+│  │    user_id:    "user-5",                                              │
+│  │    action:     "sales.created",                                       │
+│  │    resource:   "sale-42",                                             │
+│  │    before:     null,                                                  │
+│  │    after:      { id: "sale-42", amount: 50000, status: "new" },       │
+│  │    ip:         "203.0.113.42",                                        │
+│  │    created_at: "2026-02-10T14:30:00Z"                                 │
+│  │  }                                                                    │
+│  │                                                                       │
+│  │  <span class="cm">Append-only, immutable. Tenant cannot delete.</span>                     │
+│  │                                                                       │
+│  │                                                                       │
+│  <span class="nu">4.</span> <span class="fn">Metrics Emitter</span>                                                   │
+│  │                                                                       │
+│  │  Prometheus metrics:                                                  │
+│  │  ┌──────────────────────────────────────────────────────────┐         │
+│  │  │  request_duration_seconds                                 │         │
+│  │  │    { method="POST", route="/sales", plugin="care",        │         │
+│  │  │      tenant="acme-123", status="201" }                    │         │
+│  │  │    = 0.078                                                │         │
+│  │  │                                                           │         │
+│  │  │  request_total                                            │         │
+│  │  │    { plugin="care", status="2xx" }                        │         │
+│  │  │    += 1                                                   │         │
+│  │  │                                                           │         │
+│  │  │  db_queries_per_request                                   │         │
+│  │  │    { plugin="care" }                                      │         │
+│  │  │    = 3                                                    │         │
+│  │  └──────────────────────────────────────────────────────────┘         │
+│  │                                                                       │
+│  │                                                                       │
+│  <span class="nu">5.</span> <span class="fn">Trace Span Closer</span>                                                │
+│  │                                                                       │
+│  │  OpenTelemetry span:                                                  │
+│  │  ┌──────────────────────────────────────────────────────────┐         │
+│  │  │  Trace ID:  trace-xyz-789                                 │         │
+│  │  │  Span:      POST /api/v1/sales                            │         │
+│  │  │  Duration:  78ms                                          │         │
+│  │  │  Children:                                                │         │
+│  │  │    ├── gateway.resolve    (6ms)                           │         │
+│  │  │    ├── context.build      (4ms)                           │         │
+│  │  │    ├── db.query.customers (8ms)                           │         │
+│  │  │    ├── db.insert.sales    (10ms)                          │         │
+│  │  │    ├── db.update.customer (6ms)                           │         │
+│  │  │    ├── cache.invalidate   (2ms)                           │         │
+│  │  │    ├── event.sync.analytics (3ms)                         │         │
+│  │  │    └── mq.publish         (2ms)                           │         │
+│  │  │  → Ship to Jaeger / Grafana Tempo                         │         │
+│  │  └──────────────────────────────────────────────────────────┘         │
+│  │                                                                       │
+│  │                                                                       │
+│  <span class="nu">6.</span> <span class="fn">Resource Release</span>                                                  │
+│  │                                                                       │
+│  │  ┌──────────────────────────────────────────────────────────┐         │
+│  │  │  DB Connection #88:                                       │         │
+│  │  │    RESET app.current_tenant                               │         │
+│  │  │    → Return to Shared Pool                                │         │
+│  │  │    Pool: 87 in use → 86 in use                            │         │
+│  │  │                                                           │         │
+│  │  │  Scoped wrappers (DB, Cache, Logger, EventBus):           │         │
+│  │  │    → References cleared                                   │         │
+│  │  │    → Eligible for GC                                      │         │
+│  │  │                                                           │         │
+│  │  │  Execution Context object:                                │         │
+│  │  │    → No more references                                   │         │
+│  │  │    → GC will collect (~15KB freed)                        │         │
+│  │  │                                                           │         │
+│  │  │  Tenant Context:                                          │         │
+│  │  │    → STAYS in LRU cache (long-lived)                      │         │
+│  │  │    → lastAccessed updated                                 │         │
+│  │  │    → Available for next request                            │         │
+│  │  └──────────────────────────────────────────────────────────┘         │
+│                                                                          │
+│  <span class="gn">✓ Request fully processed. All resources released.</span>                    │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- ERROR FLOWS -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-err">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">ERR</span><h2 class="sec-t">Khi lỗi xảy ra — tại từng điểm</h2></div>
+
+    <div class="dg"><div class="dg-label">error handling at each stage</div><pre>
+<span class="ty">GATEWAY ERRORS</span> (trước khi plugin code chạy)
+─────────────────────────────────────────────────────────────────
+
+  Tenant not found          → <span class="rd">404</span>  Client sai URL
+  Tenant suspended          → <span class="rd">403</span>  Billing issue
+  JWT invalid/expired       → <span class="rd">401</span>  Re-login required
+  Token tenant ≠ URL tenant → <span class="rd">403</span>  Token theft attempt → alert
+  Rate limit exceeded       → <span class="rd">429</span>  + Retry-After header
+  Route not found           → <span class="rd">404</span>  Wrong endpoint
+
+  <span class="cm">→ Nhanh, rẻ. Không tốn DB connection, không tạo context.</span>
+  <span class="cm">→ Vẫn log structured (request_id, tenant_id nếu có).</span>
+
+
+<span class="ty">CONTEXT BUILD ERRORS</span>
+─────────────────────────────────────────────────────────────────
+
+  Plugin not enabled        → <span class="rd">403</span>  "Plugin Not Available"
+  User lacks permission     → <span class="rd">403</span>  "Forbidden"
+  DB Pool exhausted         → <span class="rd">503</span>  + Retry-After
+                                   Circuit Breaker → OPEN
+                                   Subsequent requests get fast-fail
+                                   30s later → HALF-OPEN → try again
+
+  <span class="cm">→ DB connection acquired? → must release before returning error.</span>
+  <span class="cm">→ try/finally ensures cleanup.</span>
+
+
+<span class="ty">PLUGIN EXECUTION ERRORS</span>
+─────────────────────────────────────────────────────────────────
+
+  ┌────────────────────────────────────────────────────────────┐
+  │                                                            │
+  │  <span class="am">Validation Error</span> (BusinessError — permanent)               │
+  │  Plugin throws: "Customer not found"                       │
+  │  → Sandbox catches → <span class="rd">400 Bad Request</span>                      │
+  │  → No retry (permanent error)                              │
+  │                                                            │
+  │  <span class="am">DB Timeout</span> (SystemError — transient)                       │
+  │  Query takes > 5s                                          │
+  │  → Sandbox catches → <span class="rd">504 Gateway Timeout</span>                  │
+  │  → Retry policy: client can retry                          │
+  │  → If repeated → Circuit Breaker opens for DB              │
+  │                                                            │
+  │  <span class="am">Plugin Crash</span> (PluginError — may be transient)              │
+  │  Unhandled exception in plugin code                        │
+  │  → Sandbox error boundary catches                          │
+  │  → <span class="rd">500 Internal Server Error</span>                               │
+  │  → Log full stack trace with context                       │
+  │  → If crash rate > 5% in 5min → auto-disable plugin       │
+  │                                                            │
+  │  <span class="am">Timeout</span> (PluginError)                                      │
+  │  Plugin execution > 5000ms (premium) / 10000ms (VIP)       │
+  │  → Sandbox kills execution                                 │
+  │  → <span class="rd">504 Plugin Timeout</span>                                      │
+  │  → Log: which method, which queries, total time            │
+  │                                                            │
+  │  <span class="am">Memory Limit</span> (PluginError)                                  │
+  │  Plugin allocates > 50MB                                   │
+  │  → Sandbox kills execution                                 │
+  │  → <span class="rd">500 Resource Limit Exceeded</span>                             │
+  │  → Alert ops: possible memory leak                         │
+  │                                                            │
+  │  <span class="am">Query Limit</span> (PluginError)                                   │
+  │  Plugin issues > 50 DB queries                             │
+  │  → Query Interceptor blocks further queries                │
+  │  → <span class="rd">500 Query Limit Exceeded</span>                                │
+  │  → Log: query list for debugging                           │
+  │                                                            │
+  └────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">SYNC EVENT HANDLER ERRORS</span>
+─────────────────────────────────────────────────────────────────
+
+  analytics.onSaleCreated throws error?
+  ┌────────────────────────────────────────────────────────────┐
+  │                                                            │
+  │  Event handler crash ≠ request fail                        │
+  │                                                            │
+  │  Main plugin (care) đã insert sale thành công              │
+  │  analytics handler crash:                                  │
+  │    → Error caught by Event Bus                             │
+  │    → Log error with full context                           │
+  │    → <span class="gn">Request vẫn thành công (201)</span>                         │
+  │    → Sale đã tạo, chỉ analytics counter chưa update       │
+  │    → Analytics sẽ tự reconcile khi chạy next batch job     │
+  │                                                            │
+  │  <span class="am">Nguyên tắc:</span> Sync event handler fail                       │
+  │  → log + continue                                          │
+  │  → KHÔNG rollback main operation                           │
+  │  → KHÔNG crash request                                     │
+  │                                                            │
+  └────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">ASYNC WORKER ERRORS</span>
+─────────────────────────────────────────────────────────────────
+
+  Notification worker fails to send push?
+  ┌────────────────────────────────────────────────────────────┐
+  │                                                            │
+  │  Message stays in queue → retry (max 3):                   │
+  │    Attempt 1: fail → wait 100ms                            │
+  │    Attempt 2: fail → wait 200ms                            │
+  │    Attempt 3: fail → move to Dead Letter Queue (DLQ)       │
+  │                                                            │
+  │  DLQ processing:                                           │
+  │    → Alert ops team                                        │
+  │    → Manual review or automated re-queue                   │
+  │                                                            │
+  │  <span class="gn">Client NEVER knows.</span> Response was sent long ago.           │
+  │                                                            │
+  └────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">CLEANUP GUARANTEE</span>
+─────────────────────────────────────────────────────────────────
+
+  ┌────────────────────────────────────────────────────────────┐
+  │                                                            │
+  │  try {                                                     │
+  │    // acquire resources                                    │
+  │    // execute plugin                                       │
+  │    // send response                                        │
+  │  } catch (error) {                                         │
+  │    // format error response                                │
+  │    // send error to client                                 │
+  │  } <span class="hi">finally {</span>                                                │
+  │    <span class="hi">// ALWAYS runs:</span>                                           │
+  │    <span class="hi">// release DB connection → pool</span>                            │
+  │    <span class="hi">// emit metrics</span>                                            │
+  │    <span class="hi">// close trace span</span>                                        │
+  │    <span class="hi">// GC execution context</span>                                    │
+  │  <span class="hi">}</span>                                                             │
+  │                                                            │
+  │  <span class="gn">DB connection NEVER leaks, regardless of error type.</span>       │
+  │                                                            │
+  └────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- TIMELINE -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-time">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">TIME</span><h2 class="sec-t">Timeline — Tổng hợp thời gian</h2></div>
+
+    <div class="dg"><div class="dg-label">timeline visualization</div><pre>
+<span class="ty">POST /api/v1/sales — Total: 78ms (sync) + ~300ms (async)</span>
+
+
+  0ms                                                              78ms
+  │                                                                  │
+  ▼                                                                  ▼
+  ┌──────┬────┬──────────────────────────────────────────────┬───────┐
+  │  GW  │ CTX│              SANDBOX EXECUTION               │ CLEAN │
+  │ 6ms  │4ms │                  65ms                        │ 3ms   │
+  └──────┴────┴──────────────────────────────────────────────┴───────┘
+
+
+  <span class="ty">Chi tiết Sandbox 65ms:</span>
+
+  10ms       18ms                28ms                34ms   42ms  50ms
+  │           │                   │                   │      │     │
+  ├─ validate ├── query customer ─┤                   │      │     │
+  │  1ms      │   8ms             │                   │      │     │
+  │           │                   ├── insert sale ────┤      │     │
+  │           │                   │   10ms            │      │     │
+  │           │                   │                   ├ upd ─┤     │
+  │           │                   │                   │ 6ms  │     │
+  │           │                   │                   │      ├cache┤
+  │           │                   │                   │      │ 2ms │
+  50ms        58ms              60ms                         65ms
+  │            │                  │                            │
+  ├─ sync evt ─┤                  ├── publish MQ ──────────────┤
+  │ analytics  │                  │   2ms                      │
+  │ 8ms        │                  │                            │
+
+
+  <span class="ty">Thành phần tham gia (và thời gian):</span>
+
+  ┌────────────────────────────┬─────────┬──────────────────────────────┐
+  │ Thành phần                 │ Thời gian│ Vai trò                     │
+  ├────────────────────────────┼─────────┼──────────────────────────────┤
+  │ Load Balancer              │   0.5ms │ Chọn instance                │
+  │ TLS Termination            │   0.5ms │ Decrypt HTTPS                │
+  │ Tenant Resolver            │   1.0ms │ URL → tenantId (Redis)       │
+  │ Auth Middleware             │   1.5ms │ JWT validate                 │
+  │ Rate Limiter               │   1.0ms │ Quota check (Redis)          │
+  │ Route Matcher              │   0.3ms │ URL → plugin + method        │
+  │ Request Logger             │   0.2ms │ Structured log               │
+  ├────────────────────────────┼─────────┼──────────────────────────────┤
+  │ Tenant Context Mgr         │   0.1ms │ LRU lookup (cached)          │
+  │ Permission Check           │   0.1ms │ RBAC verify                  │
+  │ Pool Manager               │   2.0ms │ Acquire DB connection        │
+  │ Query Interceptor          │   0.1ms │ Bind tenant_id               │
+  │ Wrappers (cache,log,event) │   0.5ms │ Create scoped resources      │
+  ├────────────────────────────┼─────────┼──────────────────────────────┤
+  │ Sandbox Engine             │   0.2ms │ Set limits, start timer      │
+  │ <span class="gn">CustomerCareCore</span>           │  37.0ms │ Validate, INSERT, UPDATE     │
+  │ <span class="fn">Query Interceptor</span> (×3)     │   0.3ms │ Auto-inject tenant_id        │
+  │ <span class="fn">PostgreSQL</span> (×3 queries)    │  24.0ms │ SELECT + INSERT + UPDATE     │
+  │ <span class="fn">Redis</span> (cache invalidate)   │   2.0ms │ Delete stale keys            │
+  │ <span class="am">Hook Registry</span> (×2 checks)  │   0.1ms │ Filter: no handlers → skip   │
+  │ <span class="gn">Event Bus</span> (sync dispatch)  │   0.2ms │ Filter + route to analytics  │
+  │ <span class="am">AnalyticsCore</span> (handler)    │   3.0ms │ Update counters (Redis)      │
+  │ <span class="cy">MQ Publisher</span>               │   2.0ms │ Enqueue async message        │
+  ├────────────────────────────┼─────────┼──────────────────────────────┤
+  │ Response Formatter         │   0.5ms │ JSON serialize + headers     │
+  │ Audit Logger               │   0.5ms │ Append to audit_log          │
+  │ Metrics Emitter            │   0.2ms │ Prometheus counters          │
+  │ Trace Closer               │   0.3ms │ OpenTelemetry → Jaeger       │
+  │ Resource Release           │   0.2ms │ DB conn → pool, GC context   │
+  ├────────────────────────────┼─────────┼──────────────────────────────┤
+  │ <span class="hi">TOTAL (sync — client waits)</span>│  <span class="hi">78ms</span>   │                              │
+  ├────────────────────────────┼─────────┼──────────────────────────────┤
+  │ Notification Worker        │ ~100ms  │ Push notification (async)    │
+  │ Search Index Worker        │  ~50ms  │ Elasticsearch index (async)  │
+  │ Webhook Worker             │~200-500 │ External HTTP call (async)   │
+  ├────────────────────────────┼─────────┼──────────────────────────────┤
+  │ <span class="cm">TOTAL (async — background)</span> │<span class="cm">~300ms</span>   │ <span class="cm">Client doesn't wait</span>          │
+  └────────────────────────────┴─────────┴──────────────────────────────┘
+
+
+  <span class="ty">Plugins tham gia trong 1 request:</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  <span class="gn">customer-care</span>     Route handler (chính)            37ms        │
+  │  <span class="hi">customer-data</span>     Không chạy code — chỉ bị READ table  0ms     │
+  │  <span class="am">analytics</span>         Sync event handler               3ms         │
+  │  <span class="rd">automation</span>        SKIP (not enabled for ACME)      0ms         │
+  │  <span class="rd">marketing</span>         SKIP (not enabled for ACME)      0ms         │
+  │                                                                  │
+  │  Tổng plugins chạy code:  <span class="hi">2</span> (care + analytics)                  │
+  │  Plugins gọi trực tiếp nhau: <span class="hi">0</span>                                  │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['full','gw','ctx','exec','side','end','err','time'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

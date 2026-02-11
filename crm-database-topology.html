@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — Database Topology</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
+  --gn:#10b981;--gnd:rgba(16,185,129,.08);
+  --am:#f59e0b;--amd:rgba(245,158,11,.08);
+  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
+  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
+  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
+  --or:#f97316;--pk:#ec4899;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(1.8rem,4vw,3rem);font-weight:800;line-height:1.1;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--bl)}
+.hero p{font-size:1rem;color:var(--td);max-width:660px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--bl)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
+.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.kw{color:#c792ea}.fn{color:#82aaff}.st{color:#c3e88d}.cm{color:#3e4460;font-style:italic}.nu{color:#f78c6c}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.pk{color:#ec4899}.or{color:#f97316}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
+.nt strong{color:inherit}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+.pnl.on .sec:nth-child(2){animation-delay:.04s}
+.pnl.on .sec:nth-child(3){animation-delay:.08s}
+.pnl.on .sec:nth-child(4){animation-delay:.12s}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Database Topology</div>
+    <h1>Phân bố <span>Database</span></h1>
+    <p>Metadata DB, Shared Data DB, VIP Dedicated DBs — kết nối, schema, pool, và mối liên hệ tới từng tầng trong hệ thống.</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('topo')">Topology tổng quan</button>
+    <button onclick="go('meta')">Metadata DB</button>
+    <button onclick="go('data')">Tenant Data DB</button>
+    <button onclick="go('pool')">Connection Pool</button>
+    <button onclick="go('layer')">Liên hệ các tầng</button>
+    <button onclick="go('flow')">Luồng Query</button>
+    <button onclick="go('scale')">Scaling & Replicas</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════ -->
+<!-- TOPOLOGY -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl on" id="p-topo">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Database Topology — Bức tranh toàn cảnh</h2></div>
+
+    <div class="dg"><div class="dg-label">full topology</div><pre>
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│                             <span class="ty">APPLICATION LAYER</span>                                │
+│                                                                                 │
+│   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐   │
+│   │Instance 1│  │Instance 2│  │Instance 3│  │Instance 4│  │VIP Instance  │   │
+│   │ (shared) │  │ (shared) │  │ (shared) │  │ (shared) │  │(INITECH only)│   │
+│   └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └──────┬───────┘   │
+│        │              │              │              │               │            │
+│        └──────────────┴──────┬───────┴──────────────┘               │            │
+│                              │                                      │            │
+└──────────────────────────────┼──────────────────────────────────────┼────────────┘
+                               │                                      │
+                               │                                      │
+┌──────────────────────────────┼──────────────────────────────────────┼────────────┐
+│                              │                                      │            │
+│                        <span class="ty">DATA ACCESS LAYER</span>                                     │
+│                              │                                      │            │
+│            ┌─────────────────┴──────────────────┐                   │            │
+│            │     <span class="hi">Tenant-Aware Pool Manager</span>       │                   │            │
+│            │                                    │                   │            │
+│            │  ┌─────────────────────────┐       │    ┌──────────────┴─────┐     │
+│            │  │  <span class="gn">Shared Pool</span>            │       │    │ <span class="vi">VIP Pool: INITECH</span>  │     │
+│            │  │  max 200 connections    │       │    │ max 30 connections │     │
+│            │  │  all standard tenants   │       │    │ INITECH only       │     │
+│            │  └───────────┬─────────────┘       │    └──────────┬─────────┘     │
+│            │              │                     │               │               │
+│            │  ┌───────────┴─────────────┐       │               │               │
+│            │  │  <span class="am">Metadata Pool</span>         │       │               │               │
+│            │  │  max 20 connections     │       │               │               │
+│            │  │  system operations only │       │               │               │
+│            │  └───────────┬─────────────┘       │               │               │
+│            │              │                     │               │               │
+│            └──────────────┼─────────────────────┘               │               │
+│                           │                                      │               │
+└───────────────────────────┼──────────────────────────────────────┼───────────────┘
+                            │                                      │
+                            │                                      │
+┌───────────────────────────┼──────────────────────────────────────┼───────────────┐
+│                           │          <span class="ty">INFRASTRUCTURE LAYER</span>       │               │
+│                           │                                      │               │
+│                           ▼                                      ▼               │
+│   ┌───────────────────────────────────┐    ┌─────────────────────────────────┐  │
+│   │                                   │    │                                 │  │
+│   │       <span class="am">METADATA DATABASE</span>           │    │    <span class="vi">VIP DATABASE: INITECH</span>        │  │
+│   │       PostgreSQL Instance #1      │    │    PostgreSQL Instance #3       │  │
+│   │                                   │    │                                 │  │
+│   │  Chứa:                            │    │  Chứa:                          │  │
+│   │  • tenants                        │    │  • customers (INITECH only)     │  │
+│   │  • plugin_registry                │    │  • sales (INITECH only)         │  │
+│   │  • tenant_plugins                 │    │  • call_logs                    │  │
+│   │  • audit_log                      │    │  • tickets                      │  │
+│   │  • webhooks                       │    │  • ... all plugin tables        │  │
+│   │  • system config                  │    │                                 │  │
+│   │                                   │    │  Không cần RLS                  │  │
+│   │  <span class="cm">KHÔNG chứa business data</span>        │    │  (single tenant DB)             │  │
+│   │                                   │    │  Custom pg configs              │  │
+│   │                                   │    │  Own backup schedule            │  │
+│   └───────────────────────────────────┘    └─────────────────────────────────┘  │
+│                                                                                 │
+│                           ▼                                                     │
+│   ┌───────────────────────────────────┐                                         │
+│   │                                   │                                         │
+│   │       <span class="gn">SHARED DATA DATABASE</span>        │                                         │
+│   │       PostgreSQL Instance #2      │                                         │
+│   │                                   │                                         │
+│   │  Chứa business data của:         │                                         │
+│   │  • ACME (tenant_id = acme-123)    │     ┌─────────────────────────────────┐ │
+│   │  • GLOBEX (tenant_id = globex-456)│     │                                 │ │
+│   │  • WAYNE (tenant_id = wayne-789)  │     │    <span class="vi">VIP DATABASE: STARK</span>          │ │
+│   │  • ... tất cả Basic/Premium/Ent   │     │    PostgreSQL Instance #4       │ │
+│   │                                   │     │                                 │ │
+│   │  Row Level Security (RLS)         │     │    (same structure,             │ │
+│   │  tenant_id trên mọi table         │     │     STARK tenant only)          │ │
+│   │  Query Interceptor enforce        │     │                                 │ │
+│   │                                   │     └─────────────────────────────────┘ │
+│   │  ┌─ Read Replica ──────────────┐ │                                         │
+│   │  │  Reporting / Analytics      │ │                                         │
+│   │  │  queries route here         │ │                                         │
+│   │  └─────────────────────────────┘ │                                         │
+│   │                                   │                                         │
+│   └───────────────────────────────────┘                                         │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">TÓM TẮT: 3 LOẠI DATABASE</span>
+
+  ┌─────────────────┬──────────────────────────────────────────────────────────┐
+  │ <span class="am">Metadata DB</span>     │ 1 instance. Tenants, plugins, config, audit.              │
+  │                 │ Mọi app instance đều kết nối. Ít write, nhiều read.     │
+  ├─────────────────┼──────────────────────────────────────────────────────────┤
+  │ <span class="gn">Shared Data DB</span>  │ 1 instance + replicas. Business data tất cả standard      │
+  │                 │ tenants. RLS + Query Interceptor isolation. Heavy I/O.   │
+  ├─────────────────┼──────────────────────────────────────────────────────────┤
+  │ <span class="vi">VIP Data DB(s)</span>  │ 1 instance PER VIP tenant. Dedicated resources.           │
+  │                 │ Same schema, no RLS needed. Custom tuning.              │
+  └─────────────────┴──────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- METADATA DB -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-meta">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Metadata Database — Schema chi tiết</h2></div>
+
+    <div class="nt am"><strong>Metadata DB là "bộ não" của hệ thống.</strong> Chứa thông tin về tenants, plugins, configs — nhưng KHÔNG chứa business data (customers, sales...). Mọi app instance, mọi worker đều đọc DB này để biết "tenant nào dùng gì".</div>
+
+    <div class="dg"><div class="dg-label">metadata db schema</div><pre>
+┌─ <span class="am">METADATA DATABASE</span> ── PostgreSQL Instance #1 ──────────────────────────────┐
+│                                                                            │
+│                                                                            │
+│  ┌─ <span class="ty">tenants</span> ──────────────────────────────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  id              UUID        PK                                    │  │
+│  │  name            TEXT        "ACME Corporation"                    │  │
+│  │  subdomain       TEXT        UNIQUE  "acme"                       │  │
+│  │  custom_domain   TEXT        UNIQUE  "crm.acme.com" (nullable)    │  │
+│  │  tier            TEXT        CHECK (basic|premium|enterprise|vip)  │  │
+│  │  status          TEXT        CHECK (active|suspended|deleted)      │  │
+│  │  <span class="vi">db_host</span>         TEXT        NULL = shared DB, set = VIP host     │  │
+│  │  <span class="vi">db_port</span>         INT         5432 (default)                        │  │
+│  │  <span class="vi">db_name</span>         TEXT        NULL = shared, set = dedicated       │  │
+│  │  config          JSONB       { branding, locale, timezone }       │  │
+│  │  created_at      TIMESTAMPTZ                                      │  │
+│  │  updated_at      TIMESTAMPTZ                                      │  │
+│  │                                                                    │  │
+│  │  <span class="cm">db_host/db_port/db_name: chỉ set cho VIP tenants</span>                │  │
+│  │  <span class="cm">Pool Manager dùng fields này để route connections</span>                │  │
+│  │                                                                    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│       │                                                                  │
+│       │ 1:N                                                              │
+│       ▼                                                                  │
+│  ┌─ <span class="ty">tenant_plugins</span> ─────────────────────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  tenant_id       UUID        FK → tenants.id                      │  │
+│  │  plugin_name     TEXT        FK → plugin_registry.name            │  │
+│  │  enabled         BOOLEAN     true/false                           │  │
+│  │  version         TEXT        "1.5.0"                              │  │
+│  │  config          JSONB       tenant-specific plugin config        │  │
+│  │  enabled_at      TIMESTAMPTZ                                      │  │
+│  │  PK: (tenant_id, plugin_name)                                     │  │
+│  │                                                                    │  │
+│  │  <span class="cm">Đọc khi: build Tenant Context (cache miss)</span>                     │  │
+│  │  <span class="cm">Write khi: Tenant Admin enable/disable/config plugin</span>            │  │
+│  │                                                                    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│                                                                          │
+│  ┌─ <span class="ty">plugin_registry</span> ────────────────────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  name            TEXT        PK  "customer-care"                  │  │
+│  │  version         TEXT        "1.5.0"                              │  │
+│  │  manifest        JSONB       full manifest (deps, perms, events)  │  │
+│  │  artifact_url    TEXT        "registry/customer-care-1.5.0.tgz"   │  │
+│  │  checksum        TEXT        "sha256:a1b2c3..."                   │  │
+│  │  status          TEXT        CHECK (active|deprecated|disabled)    │  │
+│  │  min_tier        TEXT[]      ["premium", "enterprise", "vip"]     │  │
+│  │  deployed_at     TIMESTAMPTZ                                      │  │
+│  │  deployed_by     UUID        system admin who approved            │  │
+│  │                                                                    │  │
+│  │  <span class="cm">Đọc khi: bootstrap scan (load all active plugins)</span>              │  │
+│  │  <span class="cm">Write khi: System Admin deploy/undeploy plugin version</span>          │  │
+│  │                                                                    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│                                                                          │
+│  ┌─ <span class="ty">audit_log</span> ─── <span class="cm">PARTITION BY RANGE (created_at) — monthly</span> ───────┐  │
+│  │                                                                    │  │
+│  │  id              BIGSERIAL                                        │  │
+│  │  tenant_id       UUID                                             │  │
+│  │  user_id         UUID                                             │  │
+│  │  action          TEXT        "sales.created", "plugin.enabled"    │  │
+│  │  resource_type   TEXT        "sale", "customer", "plugin"         │  │
+│  │  resource_id     TEXT        "sale-42"                            │  │
+│  │  before_data     JSONB       state before change (nullable)       │  │
+│  │  after_data      JSONB       state after change                   │  │
+│  │  ip_address      INET                                             │  │
+│  │  request_id      TEXT        for trace correlation                │  │
+│  │  created_at      TIMESTAMPTZ                                      │  │
+│  │                                                                    │  │
+│  │  <span class="rd">APPEND-ONLY. No UPDATE, no DELETE.</span>                               │  │
+│  │  Partitioned monthly: audit_log_2026_01, audit_log_2026_02...    │  │
+│  │  Old partitions → archive to S3 after 12 months                  │  │
+│  │                                                                    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│                                                                          │
+│  ┌─ <span class="ty">webhooks</span> ──────────────────────────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  id              UUID        PK                                   │  │
+│  │  tenant_id       UUID        FK → tenants.id                     │  │
+│  │  event           TEXT        "sales.created", "customer.*"        │  │
+│  │  url             TEXT        "https://acme.com/hooks/crm"         │  │
+│  │  secret          TEXT        HMAC secret (encrypted at rest)      │  │
+│  │  active          BOOLEAN                                          │  │
+│  │  created_at      TIMESTAMPTZ                                      │  │
+│  │                                                                    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│                                                                          │
+│  ┌─ <span class="ty">system_config</span> ──────────────────────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  key             TEXT        PK  "tier.premium.rate_limit"        │  │
+│  │  value           JSONB       500                                  │  │
+│  │  scope           TEXT        "global" | "tier:premium" | etc      │  │
+│  │  version         INT         auto-increment on update             │  │
+│  │  updated_at      TIMESTAMPTZ                                      │  │
+│  │                                                                    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│                                                                          │
+│  <span class="ty">RELATIONSHIPS:</span>                                                       │
+│                                                                          │
+│  tenants ──1:N──▶ tenant_plugins ◀──N:1── plugin_registry              │
+│  tenants ──1:N──▶ audit_log                                             │
+│  tenants ──1:N──▶ webhooks                                              │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Ai đọc/ghi Metadata DB?</h2></div>
+
+    <div class="dg"><div class="dg-label">metadata access patterns</div><pre>
+<span class="ty">THÀNH PHẦN</span>                     <span class="ty">TABLE</span>              <span class="ty">ĐỌC/GHI</span>   <span class="ty">KHI NÀO</span>
+
+<span class="hi">━━━ Gateway Layer ━━━</span>
+
+Tenant Resolver               tenants            READ      Mỗi request (cache miss)
+                                                           subdomain → tenant_id
+
+<span class="hi">━━━ Business Layer ━━━</span>
+
+Tenant Context Manager        tenants            READ      Build tenant context (miss)
+                              tenant_plugins     READ      Lấy enabled plugins + config
+
+Plugin Manager (bootstrap)    plugin_registry    READ      Load all active plugins
+Plugin Manager (deploy)       plugin_registry    WRITE     Deploy new plugin version
+
+<span class="hi">━━━ Admin Operations ━━━</span>
+
+System Admin Console          tenants            R/W       CRUD tenants
+                              plugin_registry    R/W       Deploy/undeploy plugins
+                              system_config      R/W       System settings
+
+Tenant Admin Console          tenant_plugins     R/W       Enable/disable plugins
+                              webhooks           R/W       Manage webhooks
+
+<span class="hi">━━━ Cross-cutting ━━━</span>
+
+Audit Logger                  audit_log          WRITE     Mỗi write operation
+                                                           (append-only, heavy writes)
+
+Config Manager                system_config      READ      Hot reload configs
+
+
+<span class="ty">TRAFFIC PATTERN:</span>
+
+  ┌────────────────────────────────────────────────────────────┐
+  │  tenants:          <span class="gn">LOW</span> read (cached in Redis + LRU)         │
+  │  tenant_plugins:   <span class="gn">LOW</span> read (cached in Tenant Context LRU)  │
+  │  plugin_registry:  <span class="gn">VERY LOW</span> (only bootstrap + deploy)       │
+  │  audit_log:        <span class="rd">HIGH</span> write (every mutation = 1 insert)   │
+  │  webhooks:         <span class="gn">LOW</span> read (by webhook worker per event)   │
+  │  system_config:    <span class="gn">VERY LOW</span> (cached, hot reload interval)   │
+  │                                                            │
+  │  <span class="am">Metadata DB chủ yếu chịu write load từ audit_log</span>         │
+  │  <span class="am">→ Partition + archive giải quyết vấn đề này</span>               │
+  └────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- TENANT DATA DB -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-data">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Tenant Data Database — Schema & Isolation</h2></div>
+
+    <div class="dg"><div class="dg-label">shared data db schema</div><pre>
+┌─ <span class="gn">SHARED DATA DATABASE</span> ── PostgreSQL Instance #2 ──────────────────────────┐
+│                                                                            │
+│  <span class="rd">RLS ENABLED trên MỌI table. Query Interceptor auto-inject tenant_id.</span>    │
+│                                                                            │
+│                                                                            │
+│  ┌─ <span class="ty">Plugin: customer-data</span> ── tables ──────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  ┌─ <span class="fn">customers</span> ──────────────────────────────────────────────────┐ │  │
+│  │  │  id              UUID        PK                              │ │  │
+│  │  │  <span class="rd">tenant_id</span>       UUID        NOT NULL  (isolation key)       │ │  │
+│  │  │  name            TEXT                                        │ │  │
+│  │  │  email           TEXT                                        │ │  │
+│  │  │  phone           TEXT                                        │ │  │
+│  │  │  company_id      UUID        FK → companies.id              │ │  │
+│  │  │  tags            JSONB       ["vip", "lead"]                │ │  │
+│  │  │  custom_fields   JSONB       { industry: "tech" }           │ │  │
+│  │  │  last_activity   TIMESTAMPTZ                                 │ │  │
+│  │  │  created_at      TIMESTAMPTZ                                 │ │  │
+│  │  │  deleted_at      TIMESTAMPTZ (soft delete)                  │ │  │
+│  │  │                                                              │ │  │
+│  │  │  INDEX: (tenant_id, created_at DESC)                        │ │  │
+│  │  │  RLS: USING (tenant_id = current_setting('app.tenant_id'))  │ │  │
+│  │  └──────────────────────────────────────────────────────────────┘ │  │
+│  │                                                                    │  │
+│  │  ┌─ <span class="fn">companies</span> ────────────┐  ┌─ <span class="fn">contacts</span> ──────────────────┐  │  │
+│  │  │  id          UUID  PK  │  │  id          UUID  PK       │  │  │
+│  │  │  tenant_id   UUID      │  │  tenant_id   UUID           │  │  │
+│  │  │  name        TEXT      │  │  customer_id UUID FK→cust   │  │  │
+│  │  │  domain      TEXT      │  │  name        TEXT           │  │  │
+│  │  │  industry    TEXT      │  │  email       TEXT           │  │  │
+│  │  │  size        TEXT      │  │  role        TEXT           │  │  │
+│  │  │  created_at  TIMESTAMP │  │  created_at  TIMESTAMP      │  │  │
+│  │  └────────────────────────┘  └─────────────────────────────┘  │  │
+│  │                                                                    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│                                                                          │
+│  ┌─ <span class="ty">Plugin: customer-care</span> ── tables ──────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  ┌─ <span class="fn">sales</span> ──────────────────────────────────────────────────────┐ │  │
+│  │  │  id              UUID        PK                              │ │  │
+│  │  │  <span class="rd">tenant_id</span>       UUID        NOT NULL                        │ │  │
+│  │  │  customer_id     UUID        FK → customers.id              │ │  │
+│  │  │  title           TEXT                                        │ │  │
+│  │  │  amount          DECIMAL                                     │ │  │
+│  │  │  status          TEXT        (new|negotiation|won|lost)      │ │  │
+│  │  │  assigned_to     UUID                                        │ │  │
+│  │  │  won_at          TIMESTAMPTZ                                 │ │  │
+│  │  │  created_at      TIMESTAMPTZ                                 │ │  │
+│  │  │                                                              │ │  │
+│  │  │  INDEX: (tenant_id, customer_id)                            │ │  │
+│  │  │  INDEX: (tenant_id, status, created_at DESC)                │ │  │
+│  │  │  RLS: same policy                                           │ │  │
+│  │  └──────────────────────────────────────────────────────────────┘ │  │
+│  │                                                                    │  │
+│  │  ┌─ <span class="fn">call_logs</span> ─────────────┐  ┌─ <span class="fn">tickets</span> ───────────────────┐  │  │
+│  │  │  id          UUID  PK  │  │  id          UUID  PK       │  │  │
+│  │  │  tenant_id   UUID      │  │  tenant_id   UUID           │  │  │
+│  │  │  customer_id UUID FK   │  │  customer_id UUID FK        │  │  │
+│  │  │  direction   TEXT      │  │  subject     TEXT           │  │  │
+│  │  │  duration    INT       │  │  status      TEXT           │  │  │
+│  │  │  notes       TEXT      │  │  priority    TEXT           │  │  │
+│  │  │  called_at   TIMESTAMP │  │  sla_due     TIMESTAMP      │  │  │
+│  │  │  created_at  TIMESTAMP │  │  created_at  TIMESTAMP      │  │  │
+│  │  └────────────────────────┘  └─────────────────────────────┘  │  │
+│  │                                                                    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│                                                                          │
+│  ┌─ <span class="ty">Plugin: analytics</span> ── tables ──────────────────────────────────────┐  │
+│  │                                                                    │  │
+│  │  ┌─ <span class="fn">report_snapshots</span> ─────┐  ┌─ <span class="fn">dashboard_configs</span> ────────┐  │  │
+│  │  │  id          UUID  PK  │  │  id          UUID  PK       │  │  │
+│  │  │  tenant_id   UUID      │  │  tenant_id   UUID           │  │  │
+│  │  │  report_type TEXT      │  │  layout      JSONB          │  │  │
+│  │  │  data        JSONB     │  │  widgets     JSONB          │  │  │
+│  │  │  period      TEXT      │  │  created_at  TIMESTAMP      │  │  │
+│  │  │  created_at  TIMESTAMP │  │                              │  │  │
+│  │  └────────────────────────┘  └─────────────────────────────┘  │  │
+│  │                                                                    │  │
+│  └────────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│                                                                          │
+│  <span class="ty">DATA RELATIONSHIPS (cross-plugin):</span>                                     │
+│                                                                          │
+│  companies ──1:N──▶ customers ──1:N──▶ sales                            │
+│  <span class="cm">(data plugin)</span>        <span class="cm">(data plugin)</span>        <span class="cm">(care plugin)</span>                   │
+│                          │                                               │
+│                          ├──1:N──▶ call_logs  <span class="cm">(care plugin)</span>              │
+│                          ├──1:N──▶ tickets    <span class="cm">(care plugin)</span>              │
+│                          └──1:N──▶ contacts   <span class="cm">(data plugin)</span>              │
+│                                                                          │
+│  <span class="am">FK giữa tables thuộc plugins KHÁC NHAU: cho phép.</span>                     │
+│  <span class="am">Cả 2 plugins cùng nằm trong 1 DB → FK constraint hoạt động.</span>           │
+│  <span class="am">Query Interceptor đảm bảo mọi JOIN đều scoped by tenant_id.</span>           │
+│                                                                          │
+│                                                                          │
+│  <span class="ty">ROW LEVEL SECURITY (mọi table):</span>                                       │
+│                                                                          │
+│  ┌────────────────────────────────────────────────────────────────┐      │
+│  │  ALTER TABLE customers ENABLE ROW LEVEL SECURITY;              │      │
+│  │  CREATE POLICY tenant_isolation ON customers                   │      │
+│  │    USING (tenant_id = current_setting('app.tenant_id')::UUID); │      │
+│  │                                                                │      │
+│  │  <span class="cm">Áp dụng CÙNG policy cho TOÀN BỘ tables.</span>                      │      │
+│  │  <span class="cm">Double safety: Interceptor (L4) + RLS (L5).</span>                   │      │
+│  └────────────────────────────────────────────────────────────────┘      │
+│                                                                          │
+│  <span class="ty">DATA CÙNG TABLE NHƯNG KHÁC TENANT:</span>                                    │
+│                                                                          │
+│  ┌──────────────────────────────────────────────────────────────────┐    │
+│  │  customers table chứa:                                           │    │
+│  │                                                                  │    │
+│  │  id       │ tenant_id    │ name          │ email                 │    │
+│  │  ─────────┼──────────────┼───────────────┼───────────────────    │    │
+│  │  cust-99  │ <span class="gn">acme-123</span>     │ Alice Nguyen  │ alice@acme.com        │    │
+│  │  cust-100 │ <span class="gn">acme-123</span>     │ Bob Tran      │ bob@acme.com          │    │
+│  │  cust-201 │ <span class="cy">globex-456</span>   │ Carol Le      │ carol@globex.com      │    │
+│  │  cust-202 │ <span class="cy">globex-456</span>   │ Dan Pham      │ dan@globex.com        │    │
+│  │  cust-305 │ <span class="am">wayne-789</span>    │ Eve Vo        │ eve@wayne.com         │    │
+│  │                                                                  │    │
+│  │  ACME query: SELECT * FROM customers                            │    │
+│  │  → Interceptor: WHERE tenant_id = 'acme-123'                    │    │
+│  │  → RLS: USING (tenant_id = 'acme-123')                          │    │
+│  │  → Result: chỉ cust-99, cust-100                                │    │
+│  │                                                                  │    │
+│  │  <span class="rd">ACME KHÔNG BAO GIỜ thấy data của GLOBEX hay WAYNE.</span>              │    │
+│  └──────────────────────────────────────────────────────────────────┘    │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- CONNECTION POOL -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-pool">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Connection Pool — Quản lý kết nối</h2></div>
+
+    <div class="dg"><div class="dg-label">pool architecture</div><pre>
+<span class="ty">TENANT-AWARE POOL MANAGER</span>
+
+  Quản lý 3 loại pool, route connection dựa trên tenant tier:
+
+
+  ┌─ <span class="hi">Tenant-Aware Pool Manager</span> ─────────────────────────────────────────────┐
+  │                                                                        │
+  │  Request đến, tenant = ACME (premium):                                 │
+  │  ├── Lookup tenantCtx.dbPool → "shared"                                │
+  │  └── Route to Shared Pool                                              │
+  │                                                                        │
+  │  Request đến, tenant = INITECH (vip):                                  │
+  │  ├── Lookup tenantCtx.dbPool → "vip-initech"                           │
+  │  └── Route to VIP Pool: INITECH                                        │
+  │                                                                        │
+  │  System operation (bootstrap, deploy):                                 │
+  │  └── Route to Metadata Pool                                            │
+  │                                                                        │
+  │                                                                        │
+  │  ┌─ <span class="am">Metadata Pool</span> ────────────────────────────────────────────────┐    │
+  │  │                                                                │    │
+  │  │  Target: Metadata DB (Instance #1)                             │    │
+  │  │  Connections: min 5, max 20                                    │    │
+  │  │  Used by: Tenant Resolver, Context Manager,                    │    │
+  │  │           Plugin Manager, Audit Logger, Config Manager         │    │
+  │  │                                                                │    │
+  │  │  Traffic: LOW (most reads cached in Redis/LRU)                │    │
+  │  │  Exception: audit_log writes = HIGH (but async/batched)       │    │
+  │  │                                                                │    │
+  │  └────────────────────────────────────────────────────────────────┘    │
+  │                                                                        │
+  │  ┌─ <span class="gn">Shared Data Pool</span> ─────────────────────────────────────────────┐    │
+  │  │                                                                │    │
+  │  │  Target: Shared Data DB (Instance #2)                          │    │
+  │  │  Connections: min 20, max 200                                  │    │
+  │  │  Used by: ALL standard tenant requests (Basic/Premium/Ent)    │    │
+  │  │                                                                │    │
+  │  │  Per-tenant limit: max 10% of pool (20 connections)           │    │
+  │  │  → prevent 1 tenant monopolizing pool                          │    │
+  │  │                                                                │    │
+  │  │  Connection lifecycle per request:                              │    │
+  │  │  ┌──────────────────────────────────────────────────────────┐  │    │
+  │  │  │  1. Pool.acquire()           → get idle connection       │  │    │
+  │  │  │  2. SET app.tenant_id = X    → configure for tenant      │  │    │
+  │  │  │  3. Plugin executes queries  → interceptor active        │  │    │
+  │  │  │  4. RESET app.tenant_id      → clear tenant context      │  │    │
+  │  │  │  5. Pool.release()           → return to idle pool       │  │    │
+  │  │  └──────────────────────────────────────────────────────────┘  │    │
+  │  │                                                                │    │
+  │  │  Health check: every 30s, ping each idle connection           │    │
+  │  │  Dead connections: auto-remove + replace                       │    │
+  │  │                                                                │    │
+  │  │  Traffic: <span class="rd">HIGH</span> (all business queries)                         │    │
+  │  │                                                                │    │
+  │  └────────────────────────────────────────────────────────────────┘    │
+  │                                                                        │
+  │  ┌─ <span class="vi">VIP Pool: INITECH</span> ─────────────────────────────────────────────┐    │
+  │  │                                                                │    │
+  │  │  Target: VIP DB INITECH (Instance #3)                          │    │
+  │  │  Connections: min 5, max 30                                    │    │
+  │  │  Used by: ONLY INITECH requests                               │    │
+  │  │  No per-tenant limit (single tenant)                           │    │
+  │  │                                                                │    │
+  │  └────────────────────────────────────────────────────────────────┘    │
+  │                                                                        │
+  │  ┌─ <span class="vi">VIP Pool: STARK</span> ──────────────────────────────────────────────┐    │
+  │  │                                                                │    │
+  │  │  Target: VIP DB STARK (Instance #4)                            │    │
+  │  │  Connections: min 5, max 30                                    │    │
+  │  │                                                                │    │
+  │  └────────────────────────────────────────────────────────────────┘    │
+  │                                                                        │
+  │                                                                        │
+  │  <span class="ty">VIP POOL LIFECYCLE:</span>                                                  │
+  │                                                                        │
+  │  ┌────────────────────────────────────────────────────────────────┐    │
+  │  │                                                                │    │
+  │  │  Tenant upgrade Premium → VIP:                                 │    │
+  │  │  <span class="nu">1.</span> Provision new PostgreSQL instance (RDS/Cloud SQL)         │    │
+  │  │  <span class="nu">2.</span> Migrate data from Shared DB → VIP DB (background job)     │    │
+  │  │  <span class="nu">3.</span> Update tenants.db_host = "vip-initech.db.internal"        │    │
+  │  │  <span class="nu">4.</span> Pool Manager creates VIP Pool (min 5, max 30)             │    │
+  │  │  <span class="nu">5.</span> Invalidate tenant context cache                           │    │
+  │  │  <span class="nu">6.</span> Next request → tenantCtx.dbPool = "vip-initech"           │    │
+  │  │  <span class="nu">7.</span> Remove migrated data from Shared DB (after verification) │    │
+  │  │                                                                │    │
+  │  │  Tenant downgrade VIP → Enterprise:                            │    │
+  │  │  <span class="nu">1.</span> Migrate data VIP DB → Shared DB                          │    │
+  │  │  <span class="nu">2.</span> Update tenants.db_host = NULL                            │    │
+  │  │  <span class="nu">3.</span> Drain VIP Pool (wait active connections to finish)        │    │
+  │  │  <span class="nu">4.</span> Destroy VIP Pool + decommission VIP DB instance           │    │
+  │  │  <span class="nu">5.</span> Invalidate context cache                                 │    │
+  │  │                                                                │    │
+  │  └────────────────────────────────────────────────────────────────┘    │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- LAYER RELATIONSHIPS -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-layer">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Mối liên hệ Database ↔ Các tầng</h2></div>
+
+    <div class="dg"><div class="dg-label">layer-db relationship map</div><pre>
+<span class="ty">TẦNG NÀO TRUY CẬP DATABASE NÀO, QUA THÀNH PHẦN NÀO?</span>
+
+
+<span class="hi">L2 API GATEWAY</span>
+│
+├── Tenant Resolver ──────────────────────▶ <span class="am">Metadata DB</span>
+│   │                                        table: tenants
+│   │                                        READ subdomain → tenant_id
+│   │
+│   └── <span class="cm">Nhưng: cache Redis TTL 5min</span>
+│       <span class="cm">→ chỉ query DB khi cache miss</span>
+│       <span class="cm">→ thực tế ~1% requests hit DB</span>
+│
+├── Rate Limiter ────────────────────────▶ <span class="rd">Redis</span> (không DB)
+│
+└── Auth Guard ──────────────────────────▶ <span class="rd">Redis</span> (token blacklist)
+
+
+<span class="hi">L3 BUSINESS LOGIC</span>
+│
+├── Tenant Context Manager ───────────────▶ <span class="am">Metadata DB</span>
+│   │                                        tables: tenants, tenant_plugins
+│   │                                        READ tenant info + enabled plugins
+│   │
+│   └── <span class="cm">Cache: LRU in-memory (max 1000)</span>
+│       <span class="cm">→ chỉ query DB khi LRU miss / invalidated</span>
+│
+├── Plugin Manager ───────────────────────▶ <span class="am">Metadata DB</span>
+│   │                                        table: plugin_registry
+│   │                                        READ at bootstrap, WRITE at deploy
+│   │
+│   └── <span class="cm">Rất ít traffic: chỉ bootstrap + admin deploy</span>
+│
+├── Plugin Cores (business logic) ────────▶ <span class="gn">Shared Data DB</span>  (standard tenants)
+│   │                                   ──▶ <span class="vi">VIP Data DB</span>     (VIP tenants)
+│   │
+│   │   <span class="cm">Plugin KHÔNG biết mình đang dùng DB nào.</span>
+│   │   <span class="cm">Plugin chỉ gọi ctx.db.query()</span>
+│   │   <span class="cm">→ Pool Manager route tới đúng DB dựa trên tenant tier.</span>
+│   │
+│   │   tables: customers, sales, call_logs, ... (plugin-owned)
+│   │   READ + WRITE business data
+│   │
+│   └── <span class="rd">Luôn qua Query Interceptor (L4) — không bao giờ trực tiếp</span>
+│
+└── Shared Services
+    ├── Email Service ────────────────────▶ (không DB — dùng MQ)
+    ├── Search Service ───────────────────▶ (Elasticsearch — không PostgreSQL)
+    └── Storage Service ──────────────────▶ (S3 — không PostgreSQL)
+
+
+<span class="hi">L4 DATA ACCESS</span>
+│
+├── <span class="rd">Query Interceptor</span> ─── <span class="cm">TRUNG GIAN bắt buộc giữa L3 và L5</span>
+│   │
+│   │  Mọi query từ plugin cores đều ĐI QUA đây.
+│   │  Auto-inject: WHERE tenant_id = $current
+│   │  Auto-inject: INSERT tenant_id = $current
+│   │  Validate: query không bypass tenant filter
+│   │
+│   └──▶ Forward query tới Pool Manager
+│
+├── Pool Manager ─────────────────────────▶ <span class="am">Metadata DB</span> (metadata pool)
+│   │                                   ──▶ <span class="gn">Shared Data DB</span> (shared pool)
+│   │                                   ──▶ <span class="vi">VIP Data DBs</span> (vip pools)
+│   │
+│   └── <span class="cm">Route dựa trên tenantCtx.dbPool</span>
+│
+├── Cache Manager ────────────────────────▶ <span class="rd">Redis</span> (L2 cache)
+│   │                                   ──▶ In-memory (L1 cache)
+│   │
+│   └── <span class="cm">Cache invalidation → bypass DB reads</span>
+│
+└── Migration Engine ─────────────────────▶ <span class="gn">Shared Data DB</span> / <span class="vi">VIP Data DB</span>
+    │                                        CREATE TABLE, ALTER TABLE
+    └── <span class="cm">Chạy khi plugin enable cho tenant</span>
+
+
+<span class="hi">L6 CROSS-CUTTING</span>
+│
+├── Audit Logger ─────────────────────────▶ <span class="am">Metadata DB</span>
+│   │                                        table: audit_log
+│   │                                        WRITE ONLY (append)
+│   │
+│   └── <span class="cm">Async batched writes để giảm load</span>
+│
+└── Config Manager ───────────────────────▶ <span class="am">Metadata DB</span>
+                                             table: system_config
+                                             READ (cached, periodic refresh)
+
+
+<span class="hi">L7 OBSERVABILITY</span>
+│
+├── Logging ──────────────────────────────▶ (ELK/Loki — không PostgreSQL)
+├── Tracing ──────────────────────────────▶ (Jaeger/Tempo — không PostgreSQL)
+└── Metrics ──────────────────────────────▶ (Prometheus — không PostgreSQL)</pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Tổng hợp: Request path qua database</h2></div>
+
+    <div class="dg"><div class="dg-label">request database path</div><pre>
+<span class="hi">POST /api/v1/sales — ACME (Premium, shared DB)</span>
+
+  ┌─ Gateway ─┐
+  │            │
+  │ Tenant     │──── Redis GET domain-map:acme ────── <span class="rd">Redis</span>
+  │ Resolver   │     (<span class="gn">HIT</span>: no DB needed)
+  │            │
+  │ Auth       │──── Redis GET blacklist:jti ───────── <span class="rd">Redis</span>
+  │ Guard      │     (<span class="gn">not found</span>: token valid)
+  │            │
+  │ Rate       │──── Redis ZINCRBY rl:acme-123 ────── <span class="rd">Redis</span>
+  │ Limiter    │
+  └────────────┘
+        │
+  ┌─ Context ──┐
+  │             │
+  │ Tenant Ctx  │──── LRU.get("acme-123") ──── <span class="gn">In-memory</span>
+  │ Manager     │     (<span class="gn">HIT</span>: no DB needed)
+  │             │
+  │ Exec Ctx    │──── SharedPool.acquire() ──── connection #14
+  │ Builder     │     SET app.tenant_id = 'acme-123'
+  │             │     → <span class="gn">Shared Data DB</span>
+  └─────────────┘
+        │
+  ┌─ Plugin ────┐
+  │              │
+  │ CustomerCare │──── ctx.db.query('customers') ──── <span class="gn">Shared Data DB</span>
+  │ Core         │     (via Interceptor → pool #14)
+  │              │
+  │              │──── ctx.db.insert('sales') ──────── <span class="gn">Shared Data DB</span>
+  │              │     (via Interceptor → pool #14)
+  │              │
+  │              │──── ctx.db.update('customers') ──── <span class="gn">Shared Data DB</span>
+  │              │     (via Interceptor → pool #14)
+  └──────────────┘
+        │
+  ┌─ Events ────┐
+  │              │
+  │ Analytics    │──── ctx.cache.incr() ──────────── <span class="rd">Redis</span>
+  │ (sync)       │
+  │              │
+  │ MQ publish   │──── publish to RabbitMQ ────────── <span class="or">RabbitMQ</span>
+  └──────────────┘
+        │
+  ┌─ Cleanup ───┐
+  │              │
+  │ Audit Logger │──── INSERT audit_log ──────────── <span class="am">Metadata DB</span>
+  │              │     (async/batched)
+  │              │
+  │ Pool release │──── RESET + return conn #14 ───── <span class="gn">Shared Data DB</span>
+  └──────────────┘
+
+
+<span class="ty">TỔNG DB INTERACTIONS TRONG 1 REQUEST:</span>
+
+  ┌───────────────────┬─────┬──────────────────────────────────┐
+  │ Target            │ Ops │ Purpose                          │
+  ├───────────────────┼─────┼──────────────────────────────────┤
+  │ <span class="rd">Redis</span>             │  3  │ domain, blacklist, rate limit    │
+  │ <span class="gn">In-memory LRU</span>     │  1  │ tenant context                   │
+  │ <span class="gn">Shared Data DB</span>    │  3  │ read cust, insert sale, upd cust │
+  │ <span class="am">Metadata DB</span>       │  1  │ audit log (async)                │
+  │ <span class="or">RabbitMQ</span>          │  1  │ async event                      │
+  ├───────────────────┼─────┼──────────────────────────────────┤
+  │ <span class="hi">Total</span>             │ <span class="hi"> 9</span>  │                                  │
+  │ PostgreSQL only   │  4  │ 3 data + 1 metadata              │
+  └───────────────────┴─────┴──────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- QUERY FLOW -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-flow">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Luồng Query — Từ plugin code đến disk</h2></div>
+
+    <div class="dg"><div class="dg-label">query flow through layers</div><pre>
+<span class="ty">Plugin code gọi:</span>  ctx.db.query('sales').where({ status: 'new' }).limit(10)
+
+
+  <span class="hi">L3 BUSINESS LOGIC</span> ── Plugin Core
+  │
+  │  ctx.db là <span class="fn">TenantScopedDB</span> wrapper
+  │  Plugin không biết DB connection thật bên dưới
+  │
+  ▼
+  <span class="hi">L4 DATA ACCESS</span> ── TenantScopedDB
+  │
+  ├── <span class="rd">Query Interceptor</span>
+  │   │
+  │   │  Input:   SELECT * FROM sales WHERE status = 'new' LIMIT 10
+  │   │
+  │   │  Step 1: Inject tenant_id
+  │   │  Output:  SELECT * FROM sales
+  │   │           WHERE status = 'new'
+  │   │           <span class="gn">AND tenant_id = 'acme-123'</span>
+  │   │           LIMIT 10
+  │   │
+  │   │  Step 2: Count query (for sandbox tracking)
+  │   │  queryCount++  → [4/50]
+  │   │
+  │   │  Step 3: Check query safety
+  │   │  ├── Has tenant_id filter? ✓
+  │   │  ├── No raw SQL bypass? ✓
+  │   │  └── Within allowed tables? ✓
+  │   │
+  │   └── Forward to pool connection
+  │
+  ├── <span class="am">Cache Manager</span> (optional — if caching enabled for this query)
+  │   │
+  │   │  Cache key: t:acme-123:sales:status=new:limit=10
+  │   │
+  │   │  L1 (in-memory): check → <span class="am">MISS</span>
+  │   │  L2 (Redis):     check → <span class="am">MISS</span>
+  │   │  → proceed to DB
+  │   │
+  │   └── (after DB response: store in L2 Redis, TTL 5min → store in L1, TTL 60s)
+  │
+  ▼
+  <span class="hi">L4 DATA ACCESS</span> ── Pool Manager
+  │
+  │  tenantCtx.dbPool = "shared"
+  │  → Use existing connection #14 (already acquired for this request)
+  │  → Connection already has: SET app.tenant_id = 'acme-123'
+  │
+  ▼
+  <span class="hi">L5 INFRASTRUCTURE</span> ── PostgreSQL (Shared Data DB)
+  │
+  │  ┌── <span class="gn">PostgreSQL execution</span> ──────────────────────────────────────┐
+  │  │                                                              │
+  │  │  Receive: SELECT * FROM sales                                │
+  │  │           WHERE status = 'new'                               │
+  │  │           AND tenant_id = 'acme-123'                         │
+  │  │           LIMIT 10                                           │
+  │  │                                                              │
+  │  │  <span class="nu">1.</span> RLS check (backup enforcement):                         │
+  │  │     Policy: tenant_id = current_setting('app.tenant_id')    │
+  │  │     'acme-123' = 'acme-123' → <span class="gn">PASS</span>                         │
+  │  │                                                              │
+  │  │  <span class="nu">2.</span> Query plan:                                              │
+  │  │     Use index: idx_sales_tenant_status                      │
+  │  │     (tenant_id, status, created_at DESC)                    │
+  │  │     → Index scan, very efficient                            │
+  │  │                                                              │
+  │  │  <span class="nu">3.</span> Execute:                                                 │
+  │  │     Read from disk/buffer cache                             │
+  │  │     → 4 rows match                                          │
+  │  │                                                              │
+  │  │  <span class="nu">4.</span> Return result set → connection #14                      │
+  │  │                                                              │
+  │  └──────────────────────────────────────────────────────────────┘
+  │
+  ▼
+  Result bubbles back up:
+
+  PostgreSQL → Pool conn #14 → Cache Manager (store) → TenantScopedDB → Plugin Core
+
+  Plugin receives: [{ id: "sale-42", title: "Enterprise deal", ... }, ...]
+  Plugin does not know about tenant_id injection, RLS, or caching.</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- SCALING -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-scale">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">09</span><h2 class="sec-t">Scaling & Read Replicas</h2></div>
+
+    <div class="dg"><div class="dg-label">scaling architecture</div><pre>
+<span class="ty">SHARED DATA DB — SCALING STRATEGY</span>
+
+
+  <span class="hi">Phase 1: Single Primary + Read Replicas</span>
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                                                                 │
+  │           ┌────────────────────┐                                │
+  │           │  <span class="gn">Primary</span>            │                                │
+  │           │  (Read + Write)    │                                │
+  │           │                    │                                │
+  │           │  All INSERT/UPDATE │                                │
+  │           │  /DELETE go here   │                                │
+  │           └─────────┬──────────┘                                │
+  │                     │                                           │
+  │               streaming                                        │
+  │              replication                                        │
+  │                     │                                           │
+  │          ┌──────────┼──────────┐                                │
+  │          │          │          │                                │
+  │    ┌─────▼────┐ ┌───▼──────┐ ┌▼─────────┐                     │
+  │    │ <span class="cy">Replica 1</span>│ │<span class="cy">Replica 2</span> │ │<span class="cy">Replica 3</span> │                     │
+  │    │ (Read)   │ │(Read)    │ │(Read)     │                     │
+  │    │          │ │          │ │           │                     │
+  │    │ Report   │ │ Analytics│ │ Search    │                     │
+  │    │ queries  │ │ queries  │ │ indexing  │                     │
+  │    └──────────┘ └──────────┘ └───────────┘                     │
+  │                                                                 │
+  │  <span class="cm">Routing logic (in Pool Manager):</span>                              │
+  │  ├── SELECT (non-critical) → random replica                    │
+  │  ├── SELECT (after INSERT, same request) → primary             │
+  │  │   <span class="cm">(read-your-writes consistency)</span>                            │
+  │  └── INSERT/UPDATE/DELETE → always primary                      │
+  │                                                                 │
+  └─────────────────────────────────────────────────────────────────┘
+
+
+  <span class="hi">Phase 2: PgBouncer (khi connections > 200)</span>
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                                                                 │
+  │  App instances (10+)                                            │
+  │  ├── Each wants 20 connections                                  │
+  │  └── Total: 200+ app connections                                │
+  │                                                                 │
+  │         │                                                       │
+  │         ▼                                                       │
+  │  ┌──────────────────────┐                                       │
+  │  │  <span class="am">PgBouncer</span>            │                                       │
+  │  │                      │                                       │
+  │  │  200 client conns    │                                       │
+  │  │  → multiplexed to   │                                       │
+  │  │  50 DB connections   │                                       │
+  │  │                      │                                       │
+  │  │  Mode: transaction   │                                       │
+  │  │  (share conn between │                                       │
+  │  │   transactions)      │                                       │
+  │  └──────────┬───────────┘                                       │
+  │             │                                                   │
+  │             ▼                                                   │
+  │  ┌────────────────────┐                                         │
+  │  │  PostgreSQL Primary │                                        │
+  │  │  50 actual conns    │                                        │
+  │  │  (much less load)   │                                        │
+  │  └────────────────────┘                                         │
+  │                                                                 │
+  │  <span class="cm">⚠ PgBouncer in transaction mode:</span>                             │
+  │  <span class="cm">  SET app.tenant_id phải nằm TRONG transaction</span>               │
+  │  <span class="cm">  (connection shared giữa requests → RESET sau mỗi txn)</span>       │
+  │                                                                 │
+  └─────────────────────────────────────────────────────────────────┘
+
+
+  <span class="hi">Phase 3: Partition (khi data > 100M rows per table)</span>
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                                                                 │
+  │  customers table → PARTITION BY HASH(tenant_id)                │
+  │                                                                 │
+  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐            │
+  │  │ customers_p0 │ │ customers_p1 │ │ customers_p2 │ ...        │
+  │  │ hash mod 0   │ │ hash mod 1   │ │ hash mod 2   │            │
+  │  │              │ │              │ │              │            │
+  │  │ tenants A-G  │ │ tenants H-N  │ │ tenants O-Z  │            │
+  │  └──────────────┘ └──────────────┘ └──────────────┘            │
+  │                                                                 │
+  │  Query: WHERE tenant_id = 'acme-123'                           │
+  │  → PostgreSQL calculates hash → routes to correct partition    │
+  │  → Scans ONLY that partition (partition pruning)               │
+  │  → Much faster for large datasets                               │
+  │                                                                 │
+  └─────────────────────────────────────────────────────────────────┘
+
+
+  <span class="hi">Phase 4: Shard (khi write throughput > 10K QPS)</span>
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                                                                 │
+  │  Shard by tenant groups:                                        │
+  │                                                                 │
+  │  ┌─────────────────┐  ┌─────────────────┐  ┌────────────────┐ │
+  │  │  <span class="gn">Shard 1</span>         │  │  <span class="gn">Shard 2</span>         │  │  <span class="gn">Shard 3</span>        │ │
+  │  │  DB Instance     │  │  DB Instance     │  │  DB Instance    │ │
+  │  │                  │  │                  │  │                 │ │
+  │  │  Tenants A-G     │  │  Tenants H-N     │  │  Tenants O-Z    │ │
+  │  │  (full schema)   │  │  (full schema)   │  │  (full schema)  │ │
+  │  │  + own replicas  │  │  + own replicas  │  │  + own replicas │ │
+  │  └─────────────────┘  └─────────────────┘  └────────────────┘ │
+  │                                                                 │
+  │  Pool Manager routing:                                          │
+  │    tenant_id → hash → shard number → correct DB instance       │
+  │                                                                 │
+  │  <span class="rd">Trade-off: cross-shard queries not possible</span>                   │
+  │  <span class="gn">Benefit: near-linear write scalability</span>                        │
+  │                                                                 │
+  │  <span class="cm">Thường không cần đến Phase 4 cho đa số SaaS.</span>                 │
+  │  <span class="cm">VIP tenants đã tách DB riêng → giảm load Shared DB đáng kể.</span>   │
+  │                                                                 │
+  └─────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['topo','meta','data','pool','layer','flow','scale'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

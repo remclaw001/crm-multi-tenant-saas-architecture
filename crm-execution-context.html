@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — Execution Context Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;--sf3:#171a28;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
+  --gn:#10b981;--gnd:rgba(16,185,129,.08);
+  --am:#f59e0b;--amd:rgba(245,158,11,.08);
+  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
+  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
+  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
+  --or:#f97316;--ord:rgba(249,115,22,.08);
+  --pk:#ec4899;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(2rem,4.5vw,3.2rem);font-weight:800;line-height:1.1;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--bl)}
+.hero p{font-size:1rem;color:var(--td);max-width:640px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1280px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--bl)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
+.wrap{max-width:1280px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.25) 23px,rgba(28,32,56,.25) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.25) 23px,rgba(28,32,56,.25) 24px);pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.dg .kw{color:#c792ea}.dg .fn{color:#82aaff}.dg .st{color:#c3e88d}.dg .cm{color:#3e4460;font-style:italic}.dg .nu{color:#f78c6c}.dg .ty{color:#ffcb6b}.dg .hi{color:#3b82f6;font-weight:600}.dg .gn{color:#10b981}.dg .rd{color:#ef4444}.dg .am{color:#f59e0b}.dg .cy{color:#06b6d4}.dg .vi{color:#8b5cf6}.dg .pk{color:#ec4899}.dg .or{color:#f97316}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+.c{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:22px;margin-bottom:12px;transition:border-color .15s}
+.c:hover{border-color:var(--bda)}
+.c-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.bl{background:var(--bl)}.dot.gn{background:var(--gn)}.dot.am{background:var(--am)}.dot.rd{background:var(--rd)}.dot.cy{background:var(--cy)}.dot.vi{background:var(--vi)}.dot.or{background:var(--or)}.dot.pk{background:var(--pk)}
+.c h3{font-family:var(--head);font-size:.88rem;font-weight:600}
+.c p,.c li{font-size:.88rem;color:var(--td);line-height:1.75}
+.c ul{padding-left:16px}.c li{margin-bottom:4px}
+.c li strong{color:var(--tx)}
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
+.nt strong{color:inherit}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:960px){.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+.pnl.on .sec:nth-child(2){animation-delay:.04s}
+.pnl.on .sec:nth-child(3){animation-delay:.08s}
+.pnl.on .sec:nth-child(4){animation-delay:.12s}
+.pnl.on .sec:nth-child(5){animation-delay:.16s}
+.pnl.on .sec:nth-child(6){animation-delay:.2s}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Context System Deep Dive</div>
+    <h1>Execution <span>Context</span></h1>
+    <p>Hai loại context, quá trình build, vòng đời, cơ chế cache, và cách context điều khiển toàn bộ event/hook filtering.</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('map')">Bản đồ tổng quan</button>
+    <button onclick="go('tenant')">Tenant Context</button>
+    <button onclick="go('exec')">Execution Context</button>
+    <button onclick="go('build')">Quá trình Build</button>
+    <button onclick="go('filter')">Cơ chế Filtering</button>
+    <button onclick="go('lifecycle')">Vòng đời & Cache</button>
+    <button onclick="go('multi')">Multi-tenant Song song</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 1. MAP -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl on" id="p-map">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Hai loại Context trong hệ thống</h2></div>
+
+    <div class="nt bl"><strong>Tại sao cần 2 loại?</strong> Tenant Context giữ thông tin "tenant này là ai, dùng gì" — tồn tại lâu dài, dùng chung cho mọi request. Execution Context giữ thông tin "request này cần gì để chạy" — chỉ sống trong 1 request rồi bị hủy.</div>
+
+    <div class="dg"><div class="dg-label">context overview</div><pre>
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│                        <span class="hi">HỆ THỐNG CÓ 2 LOẠI CONTEXT</span>                      │
+│                                                                         │
+│  ┌───────────────────────────────┐   ┌────────────────────────────────┐ │
+│  │                               │   │                                │ │
+│  │     <span class="ty">TENANT CONTEXT</span>            │   │     <span class="cy">EXECUTION CONTEXT</span>          │ │
+│  │                               │   │                                │ │
+│  │  "Tenant này là ai?"          │   │  "Request này cần gì?"        │ │
+│  │                               │   │                                │ │
+│  │  • Tenant identity            │   │  • Request identity            │ │
+│  │  • Enabled plugins (refs)     │   │  • DB connection (from pool)   │ │
+│  │  • Plugin configs             │   │  • Cache client (scoped)       │ │
+│  │  • Permissions, quotas        │   │  • Logger (scoped)             │ │
+│  │  • Infrastructure routing     │   │  • Scoped Event Bus            │ │
+│  │                               │   │  • Scoped Services             │ │
+│  │                               │   │  • Plugin config snapshot      │ │
+│  ├───────────────────────────────┤   ├────────────────────────────────┤ │
+│  │                               │   │                                │ │
+│  │  <span class="gn">Vòng đời:</span>  LONG-LIVED         │   │  <span class="gn">Vòng đời:</span>  EPHEMERAL          │ │
+│  │  Cached trong LRU             │   │  Tạo mới mỗi request          │ │
+│  │  Dùng chung nhiều requests    │   │  GC ngay sau response          │ │
+│  │                               │   │                                │ │
+│  │  <span class="am">Kích thước:</span>  ~10 KB           │   │  <span class="am">Kích thước:</span>  ~15 KB            │ │
+│  │  <span class="cm">(chủ yếu là references)</span>      │   │  <span class="cm">(chủ yếu là pool resources)</span>   │ │
+│  │                               │   │                                │ │
+│  │  <span class="vi">Invalidate khi:</span>              │   │  <span class="vi">Hủy khi:</span>                    │ │
+│  │  Plugin enable/disable        │   │  Response đã gửi              │ │
+│  │  Config thay đổi              │   │  DB conn trả về pool          │ │
+│  │  Tier upgrade/downgrade       │   │  Cache client release          │ │
+│  │                               │   │                                │ │
+│  └───────────────────────────────┘   └────────────────────────────────┘ │
+│                                                                         │
+│                                                                         │
+│  <span class="ty">Mối quan hệ:</span>                                                          │
+│                                                                         │
+│                     ┌──────────────────┐                                │
+│                     │  Tenant Context  │ ◀── cached, long-lived        │
+│                     └────────┬─────────┘                                │
+│                              │                                          │
+│                              │  <span class="hi">provides input to build</span>                │
+│                              │                                          │
+│              ┌───────────────┼───────────────┐                          │
+│              │               │               │                          │
+│              ▼               ▼               ▼                          │
+│  ┌──────────────────┐ ┌─────────────┐ ┌─────────────┐                  │
+│  │ Exec Context     │ │ Exec Context│ │ Exec Context│                  │
+│  │ (Request #1)     │ │ (Req #2)    │ │ (Req #3)    │                  │
+│  │                  │ │             │ │             │                  │
+│  │ <span class="cm">lives ~80ms</span>      │ │ <span class="cm">lives ~45ms</span> │ │ <span class="cm">lives ~120ms</span>│                  │
+│  │ then GC          │ │ then GC     │ │ then GC     │                  │
+│  └──────────────────┘ └─────────────┘ └─────────────┘                  │
+│                                                                         │
+│  <span class="cm">1 Tenant Context → sinh ra hàng nghìn Execution Contexts</span>               │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 2. TENANT CONTEXT -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-tenant">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Tenant Context — Cấu trúc chi tiết</h2></div>
+
+    <div class="dg"><div class="dg-label">tenant context anatomy</div><pre>
+┌─ <span class="ty">TENANT CONTEXT</span> ──────────────────────────────────────────────────────────┐
+│                                                                          │
+│  ┌─ <span class="hi">Identity</span> ───────────────────────────────────────────────────────────┐ │
+│  │                                                                     │ │
+│  │  tenantId:     "acme-corp-uuid-123"                                 │ │
+│  │  name:         "ACME Corporation"                                   │ │
+│  │  subdomain:    "acme"                                               │ │
+│  │  tier:         "premium"                                            │ │
+│  │  status:       "active"                                             │ │
+│  │                                                                     │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│  ┌─ <span class="hi">Enabled Plugins</span> ─── <span class="cm">Map&lt;pluginName, PluginRef&gt;</span> ─────────────────────┐ │
+│  │                                                                     │ │
+│  │  "customer-data" ──┬── core:    ──▶ <span class="gn">CustomerDataCore (singleton)</span>   │ │
+│  │                    ├── config:  { customFields: [...] }             │ │
+│  │                    └── version: "2.1.0"                             │ │
+│  │                                                                     │ │
+│  │  "customer-care" ──┬── core:    ──▶ <span class="gn">CustomerCareCore (singleton)</span>   │ │
+│  │                    ├── config:  { twilio_sid: "xxx", sla: 24h }    │ │
+│  │                    └── version: "1.5.0"                             │ │
+│  │                                                                     │ │
+│  │  "analytics"     ──┬── core:    ──▶ <span class="gn">AnalyticsCore (singleton)</span>      │ │
+│  │                    ├── config:  { dashboardTheme: "dark" }         │ │
+│  │                    └── version: "1.2.0"                             │ │
+│  │                                                                     │ │
+│  │  <span class="cm">Lưu ý: "core" là REFERENCE, không phải copy.</span>                     │ │
+│  │  <span class="cm">3 tenants enable cùng plugin → cùng 1 singleton instance.</span>         │ │
+│  │  <span class="cm">"config" là DỮ LIỆU RIÊNG của mỗi tenant.</span>                       │ │
+│  │                                                                     │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│  ┌─ <span class="hi">Aggregated Permissions</span> ─── <span class="cm">Set&lt;string&gt;</span> ─────────────────────────────┐ │
+│  │                                                                     │ │
+│  │  Gộp permissions từ TẤT CẢ plugins đã enable:                      │ │
+│  │                                                                     │ │
+│  │  customer-data  cung cấp:  customers:read, customers:write,        │ │
+│  │                            customers:delete, contacts:read          │ │
+│  │  customer-care  cung cấp:  sales:read, sales:write,                │ │
+│  │                            calls:read, calls:write                  │ │
+│  │  analytics      cung cấp:  reports:read, dashboards:read           │ │
+│  │                                                                     │ │
+│  │  → Aggregated Set:                                                  │ │
+│  │    { customers:read, customers:write, customers:delete,             │ │
+│  │      contacts:read, sales:read, sales:write, calls:read,           │ │
+│  │      calls:write, reports:read, dashboards:read }                   │ │
+│  │                                                                     │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│  ┌─ <span class="hi">Quotas & Limits</span> ────────────────────────────────────────────────────┐ │
+│  │                                                                     │ │
+│  │  Lấy từ tier config:                                                │ │
+│  │  rateLimit:      500 req/min                                        │ │
+│  │  maxStorage:     50 GB                                              │ │
+│  │  maxUsers:       100                                                │ │
+│  │  maxRecords:     500,000                                            │ │
+│  │                                                                     │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│  ┌─ <span class="hi">Infrastructure Routing</span> ──────────────────────────────────────────────┐ │
+│  │                                                                     │ │
+│  │  dbPool:       "shared"         <span class="cm">← hoặc "vip-acme" nếu VIP</span>        │ │
+│  │  cachePrefix:  "t:acme-123"     <span class="cm">← prefix cho Redis keys</span>          │ │
+│  │  mqPriority:   "normal"         <span class="cm">← hoặc "high" nếu VIP</span>            │ │
+│  │                                                                     │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│  ┌─ <span class="hi">Metadata</span> ───────────────────────────────────────────────────────────┐ │
+│  │                                                                     │ │
+│  │  lastAccessed:   2026-02-10T14:30:00Z                               │ │
+│  │  createdAt:      2025-06-15T09:00:00Z                               │ │
+│  │  contextVersion: 47    <span class="cm">← increment mỗi lần rebuild</span>                │ │
+│  │                                                                     │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│  <span class="am">Tổng kích thước: ~10 KB</span>                                               │
+│  <span class="cm">(phần lớn là references + small config objects)</span>                       │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 3. EXECUTION CONTEXT -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-exec">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Execution Context — Cấu trúc chi tiết</h2></div>
+
+    <div class="dg"><div class="dg-label">execution context anatomy</div><pre>
+┌─ <span class="ty">EXECUTION CONTEXT</span> ─── <span class="cm">tồn tại DUY NHẤT trong 1 request</span> ──────────────────┐
+│                                                                            │
+│  ┌─ <span class="hi">Request Identity</span> ────────────────────────────────────────────────────┐  │
+│  │                                                                      │  │
+│  │  requestId:   "req-uuid-789"    <span class="cm">← unique, dùng cho tracing</span>         │  │
+│  │  tenantId:    "acme-123"        <span class="cm">← copy từ Tenant Context</span>           │  │
+│  │  userId:      "user-456"        <span class="cm">← từ JWT token</span>                     │  │
+│  │  roles:       ["sales_manager"] <span class="cm">← từ JWT token</span>                     │  │
+│  │  ip:          "203.0.113.42"                                         │  │
+│  │                                                                      │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+│  ┌─ <span class="hi">Scoped Resources</span> ─── <span class="cm">acquire từ pool, auto-release sau request</span> ────┐  │
+│  │                                                                      │  │
+│  │  ┌──────────────────────────────────────────────────────────────┐    │  │
+│  │  │  <span class="gn">db: TenantScopedDB</span>                                        │    │  │
+│  │  │                                                              │    │  │
+│  │  │  Bọc 1 connection từ pool (shared hoặc VIP)                  │    │  │
+│  │  │  Query Interceptor đã gắn sẵn:                               │    │  │
+│  │  │    → Mọi query tự động thêm WHERE tenant_id = 'acme-123'    │    │  │
+│  │  │    → SET app.current_tenant trên connection                  │    │  │
+│  │  │  Plugin gọi ctx.db.query('customers') → an toàn             │    │  │
+│  │  │                                                              │    │  │
+│  │  │  <span class="rd">Plugin KHÔNG THỂ:</span>                                          │    │  │
+│  │  │    ✗ Bỏ qua tenant_id filter                                │    │  │
+│  │  │    ✗ Query raw SQL không qua interceptor                     │    │  │
+│  │  │    ✗ Thay đổi tenant_id sang tenant khác                    │    │  │
+│  │  └──────────────────────────────────────────────────────────────┘    │  │
+│  │                                                                      │  │
+│  │  ┌──────────────────────────────────────────────────────────────┐    │  │
+│  │  │  <span class="cy">cache: TenantScopedCache</span>                                    │    │  │
+│  │  │                                                              │    │  │
+│  │  │  Bọc Redis client với auto-prefix:                           │    │  │
+│  │  │    ctx.cache.get('customers:list')                           │    │  │
+│  │  │    → thực tế get('t:acme-123:customers:list')                │    │  │
+│  │  │                                                              │    │  │
+│  │  │  Plugin không thể đọc cache của tenant khác                  │    │  │
+│  │  └──────────────────────────────────────────────────────────────┘    │  │
+│  │                                                                      │  │
+│  │  ┌──────────────────────────────────────────────────────────────┐    │  │
+│  │  │  <span class="vi">logger: ScopedLogger</span>                                        │    │  │
+│  │  │                                                              │    │  │
+│  │  │  Mọi log tự động kèm:                                       │    │  │
+│  │  │    { tenantId, requestId, userId, plugin }                   │    │  │
+│  │  │  PII auto-redaction trước khi ship                           │    │  │
+│  │  └──────────────────────────────────────────────────────────────┘    │  │
+│  │                                                                      │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+│  ┌─ <span class="hi">Scoped Event Bus</span> ────────────────────────────────────────────────────┐  │
+│  │                                                                      │  │
+│  │  Bọc system Event Bus với 2 ràng buộc:                               │  │
+│  │                                                                      │  │
+│  │  <span class="am">1. Emit filter:</span>                                                    │  │
+│  │     Plugin chỉ emit events đã khai báo trong manifest                │  │
+│  │     customer-care manifest: emits: ["sales.created", "call.logged"]  │  │
+│  │     → ctx.eventBus.emit("sales.created", data)  <span class="gn">OK</span>                  │  │
+│  │     → ctx.eventBus.emit("user.deleted", data)   <span class="rd">BLOCKED</span>             │  │
+│  │                                                                      │  │
+│  │  <span class="am">2. Deliver filter:</span>                                                  │  │
+│  │     Khi deliver event đến handlers,                                  │  │
+│  │     chỉ gọi handlers của plugins trong ctx.enabledPlugins            │  │
+│  │     (chi tiết ở tab "Cơ chế Filtering")                              │  │
+│  │                                                                      │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+│  ┌─ <span class="hi">Shared Services</span> ─── <span class="cm">singleton refs, nhưng gọi với tenant scope</span> ─────┐  │
+│  │                                                                      │  │
+│  │  email:         EmailService.send(ctx, ...)                          │  │
+│  │                 → auto thêm tenant branding, from address            │  │
+│  │                                                                      │  │
+│  │  storage:       StorageService.upload(ctx, ...)                      │  │
+│  │                 → auto prefix path: /tenants/acme-123/uploads/       │  │
+│  │                                                                      │  │
+│  │  notification:  NotificationService.push(ctx, ...)                   │  │
+│  │                 → route đến đúng tenant's WebSocket channel          │  │
+│  │                                                                      │  │
+│  │  mq:            MQPublisher.publish(ctx, ...)                        │  │
+│  │                 → auto gắn tenantId vào message metadata             │  │
+│  │                                                                      │  │
+│  │  <span class="cm">Services là singleton, nhưng mọi lời gọi đều tenant-scoped</span>         │  │
+│  │  <span class="cm">nhờ ctx chứa tenantId</span>                                              │  │
+│  │                                                                      │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+│  ┌─ <span class="hi">Plugin Config Snapshot</span> ─────────────────────────────────────────────┐  │
+│  │                                                                      │  │
+│  │  Copy từ Tenant Context → plugin config cho plugin đang xử lý:      │  │
+│  │                                                                      │  │
+│  │  Route /api/v1/sales → plugin: customer-care                        │  │
+│  │  → ctx.pluginConfig = { twilio_sid: "xxx", sla: 24h }              │  │
+│  │                                                                      │  │
+│  │  <span class="cm">Read-only snapshot — plugin không thể modify config lâu dài</span>        │  │
+│  │                                                                      │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+│  <span class="am">Tổng kích thước: ~15 KB</span>                                                 │
+│  <span class="cm">(phần lớn là wrapper objects quanh pool resources)</span>                       │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 4. BUILD PROCESS -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-build">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Quá trình Build — Từ request đến context hoàn chỉnh</h2></div>
+
+    <div class="dg"><div class="dg-label">full build sequence</div><pre>
+<span class="hi">REQUEST ĐẾN: POST https://acme.crm.com/api/v1/sales</span>
+│
+│
+╔══════════════════════════════════════════════════════════════════════════╗
+║  <span class="ty">PHASE 1: Resolve Tenant</span>                                              ║
+║                                                                        ║
+║  Request URL: acme.crm.com                                             ║
+║       │                                                                ║
+║       ▼                                                                ║
+║  Extract subdomain: "acme"                                             ║
+║       │                                                                ║
+║       ├──▶ Check Redis: domain-map:acme                                ║
+║       │         │                                                      ║
+║       │    ┌────┴─────┐                                                ║
+║       │    │ HIT?     │                                                ║
+║       │    ├──────────┤                                                ║
+║       │    │ YES → tenant_id = "acme-123"  (skip DB query)             ║
+║       │    │ NO  → Query Metadata DB:                                  ║
+║       │    │        SELECT id, tier, status                            ║
+║       │    │        FROM tenants WHERE subdomain = 'acme'              ║
+║       │    │        → Cache result in Redis (TTL 5min)                 ║
+║       │    └──────────┘                                                ║
+║       │                                                                ║
+║       ▼                                                                ║
+║  Result: tenantId = "acme-123", tier = "premium", status = "active"    ║
+║                                                                        ║
+║  <span class="rd">status ≠ active? → 403 Account Suspended. Stop.</span>                      ║
+║                                                                        ║
+╚══════════════════════════════════════════════════════════════════════════╝
+       │
+       ▼
+╔══════════════════════════════════════════════════════════════════════════╗
+║  <span class="ty">PHASE 2: Get or Build Tenant Context</span>                                  ║
+║                                                                        ║
+║  Check LRU Cache: tenantContexts.get("acme-123")                       ║
+║       │                                                                ║
+║  ┌────┴──────────────────────────────────────────────────────────────┐  ║
+║  │                                                                   │  ║
+║  │  <span class="gn">CACHE HIT</span> (request thứ 2+ cho tenant này)                       │  ║
+║  │  │                                                                │  ║
+║  │  │  Lấy Tenant Context đã có sẵn                                 │  ║
+║  │  │  Update lastAccessed timestamp                                 │  ║
+║  │  │  Cost: <span class="gn">~0.1ms</span> (memory lookup)                                │  ║
+║  │  │                                                                │  ║
+║  │  │  → Skip thẳng sang Phase 3                                    │  ║
+║  │  │                                                                │  ║
+║  ├──┼────────────────────────────────────────────────────────────────┤  ║
+║  │                                                                   │  ║
+║  │  <span class="am">CACHE MISS</span> (request đầu tiên, hoặc sau invalidate)              │  ║
+║  │  │                                                                │  ║
+║  │  │  <span class="nu">Step 2a:</span> Query enabled plugins cho tenant này               │  ║
+║  │  │                                                                │  ║
+║  │  │  ┌────────────────────────────────────────────────────────┐   │  ║
+║  │  │  │  SELECT plugin_name, config, version                   │   │  ║
+║  │  │  │  FROM tenant_plugins                                   │   │  ║
+║  │  │  │  WHERE tenant_id = 'acme-123' AND enabled = true       │   │  ║
+║  │  │  │                                                        │   │  ║
+║  │  │  │  Result:                                               │   │  ║
+║  │  │  │    customer-data  │ { customFields: [...] }  │ 2.1.0   │   │  ║
+║  │  │  │    customer-care  │ { twilio_sid: "xxx" }    │ 1.5.0   │   │  ║
+║  │  │  │    analytics      │ { theme: "dark" }        │ 1.2.0   │   │  ║
+║  │  │  └────────────────────────────────────────────────────────┘   │  ║
+║  │  │                                                                │  ║
+║  │  │  <span class="nu">Step 2b:</span> Map plugin names → singleton core references         │  ║
+║  │  │                                                                │  ║
+║  │  │  ┌────────────────────────────────────────────────────────┐   │  ║
+║  │  │  │  Global Plugin Cores Map (đã load từ bootstrap):       │   │  ║
+║  │  │  │                                                        │   │  ║
+║  │  │  │  "customer-data"  ──▶ CustomerDataCore instance        │   │  ║
+║  │  │  │  "customer-care"  ──▶ CustomerCareCore instance        │   │  ║
+║  │  │  │  "automation"     ──▶ AutomationCore instance          │   │  ║
+║  │  │  │  "analytics"      ──▶ AnalyticsCore instance           │   │  ║
+║  │  │  │  "marketing"      ──▶ MarketingCore instance           │   │  ║
+║  │  │  │                                                        │   │  ║
+║  │  │  │  Tenant ACME enabled: data, care, analytics            │   │  ║
+║  │  │  │  → Chỉ lấy references của 3 plugin này                │   │  ║
+║  │  │  │  → automation, marketing: <span class="rd">BỎ QUA</span>                     │   │  ║
+║  │  │  └────────────────────────────────────────────────────────┘   │  ║
+║  │  │                                                                │  ║
+║  │  │  <span class="nu">Step 2c:</span> Aggregate permissions                                │  ║
+║  │  │                                                                │  ║
+║  │  │    Gộp permissions từ 3 plugins enabled                       │  ║
+║  │  │    → Set { customers:*, sales:*, calls:*, reports:*, ... }    │  ║
+║  │  │                                                                │  ║
+║  │  │  <span class="nu">Step 2d:</span> Resolve infrastructure routing                       │  ║
+║  │  │                                                                │  ║
+║  │  │    tier = "premium" → dbPool = "shared"                       │  ║
+║  │  │                     → cachePrefix = "t:acme-123"              │  ║
+║  │  │                     → mqPriority = "normal"                   │  ║
+║  │  │                                                                │  ║
+║  │  │  <span class="nu">Step 2e:</span> Assemble Tenant Context object                       │  ║
+║  │  │                                                                │  ║
+║  │  │    Ghép tất cả thành 1 TenantContext → ~10KB                  │  ║
+║  │  │                                                                │  ║
+║  │  │  <span class="nu">Step 2f:</span> Store in LRU Cache                                   │  ║
+║  │  │                                                                │  ║
+║  │  │    tenantContexts.set("acme-123", context)                    │  ║
+║  │  │    <span class="cm">LRU: max 1000 entries, evict 2h inactive</span>                   │  ║
+║  │  │                                                                │  ║
+║  │  │  Cost: <span class="am">~15-30ms</span> (1 DB query + assembly)                       │  ║
+║  │  │                                                                │  ║
+║  └──┴────────────────────────────────────────────────────────────────┘  ║
+║                                                                        ║
+╚══════════════════════════════════════════════════════════════════════════╝
+       │
+       ▼
+╔══════════════════════════════════════════════════════════════════════════╗
+║  <span class="ty">PHASE 3: Build Execution Context</span>                                      ║
+║                                                                        ║
+║  Input: Tenant Context (from cache) + JWT claims + Request info        ║
+║                                                                        ║
+║  ┌──────────────────────────────────────────────────────────────────┐  ║
+║  │                                                                  │  ║
+║  │  <span class="nu">Step 3a:</span> Acquire DB Connection                                  │  ║
+║  │                                                                  │  ║
+║  │    tenantCtx.dbPool = "shared"                                   │  ║
+║  │    → SharedPool.acquire()     <span class="cm">← borrow 1 connection</span>             │  ║
+║  │    → SET app.current_tenant = 'acme-123'  <span class="cm">← for RLS</span>            │  ║
+║  │    → Wrap in TenantScopedDB (Query Interceptor)                  │  ║
+║  │                                                                  │  ║
+║  │    <span class="rd">Pool exhausted? → Circuit Breaker → 503 Service Unavailable</span>   │  ║
+║  │                                                                  │  ║
+║  │  <span class="nu">Step 3b:</span> Create Scoped Cache                                    │  ║
+║  │                                                                  │  ║
+║  │    prefix = tenantCtx.cachePrefix  → "t:acme-123"                │  ║
+║  │    → Wrap Redis client with auto-prefix                          │  ║
+║  │                                                                  │  ║
+║  │  <span class="nu">Step 3c:</span> Create Scoped Logger                                   │  ║
+║  │                                                                  │  ║
+║  │    Bind: { requestId, tenantId, userId }                         │  ║
+║  │    → Every log line auto-includes these fields                   │  ║
+║  │                                                                  │  ║
+║  │  <span class="nu">Step 3d:</span> Create Scoped Event Bus                                │  ║
+║  │                                                                  │  ║
+║  │    Wrap system Event Bus with:                                    │  ║
+║  │    → enabledPlugins filter (from Tenant Context)                  │  ║
+║  │    → emit whitelist (from current plugin's manifest)              │  ║
+║  │                                                                  │  ║
+║  │  <span class="nu">Step 3e:</span> Resolve Plugin Config                                  │  ║
+║  │                                                                  │  ║
+║  │    Route matched: /api/v1/sales → plugin = "customer-care"       │  ║
+║  │    → ctx.pluginConfig = tenantCtx.enabledPlugins                 │  ║
+║  │                            .get("customer-care").config           │  ║
+║  │                                                                  │  ║
+║  │  <span class="nu">Step 3f:</span> Assemble Execution Context                             │  ║
+║  │                                                                  │  ║
+║  │    All scoped resources + identity + config → 1 object (~15KB)   │  ║
+║  │                                                                  │  ║
+║  └──────────────────────────────────────────────────────────────────┘  ║
+║                                                                        ║
+║  Cost: <span class="cy">~2-5ms</span> (pool acquire + wrapper creation)                       ║
+║                                                                        ║
+╚══════════════════════════════════════════════════════════════════════════╝
+       │
+       ▼
+  <span class="gn">EXECUTION CONTEXT SẴN SÀNG</span>
+  → Truyền vào Sandbox → Plugin core xử lý
+  → Sau response: release DB conn, GC context</pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Cost summary — Build context cho request</h2></div>
+
+    <div class="dg"><div class="dg-label">timing breakdown</div><pre>
+<span class="ty">Request đầu tiên từ tenant</span> (cold — no cached context):
+
+  Phase 1: Resolve Tenant
+    ├── Redis domain lookup:    <span class="am">MISS</span>   → ~1ms
+    └── DB query tenants table:         → ~5ms
+                                          ────── <span class="nu">~6ms</span>
+
+  Phase 2: Build Tenant Context
+    ├── DB query tenant_plugins:        → ~8ms
+    ├── Map to singleton refs:          → ~0.1ms
+    ├── Aggregate permissions:          → ~0.1ms
+    ├── Resolve routing:                → ~0.1ms
+    └── Store in LRU:                   → ~0.1ms
+                                          ────── <span class="nu">~9ms</span>
+
+  Phase 3: Build Execution Context
+    ├── Acquire DB connection:          → ~2ms
+    ├── Create scoped wrappers:         → ~1ms
+    └── Resolve plugin config:          → ~0.1ms
+                                          ────── <span class="nu">~3ms</span>
+
+  <span class="am">Total (cold): ~18ms</span>
+
+
+<span class="ty">Request tiếp theo từ cùng tenant</span> (warm — cached context):
+
+  Phase 1: Resolve Tenant
+    └── Redis domain lookup:    <span class="gn">HIT</span>    → ~0.5ms
+                                          ────── <span class="nu">~0.5ms</span>
+
+  Phase 2: Get Tenant Context
+    └── LRU Cache lookup:       <span class="gn">HIT</span>    → ~0.1ms
+                                          ────── <span class="nu">~0.1ms</span>
+
+  Phase 3: Build Execution Context
+    ├── Acquire DB connection:          → ~2ms
+    ├── Create scoped wrappers:         → ~1ms
+    └── Resolve plugin config:          → ~0.1ms
+                                          ────── <span class="nu">~3ms</span>
+
+  <span class="gn">Total (warm): ~3.6ms</span>
+
+
+<span class="cm">Chênh lệch: ~14ms cho request đầu tiên</span>
+<span class="cm">Từ request thứ 2 trở đi: ổn định ~3-4ms</span></pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 5. FILTERING -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-filter">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Cơ chế Filtering — Đăng ký global, thực thi filtered</h2></div>
+
+    <div class="nt am"><strong>Nguyên tắc cốt lõi:</strong> Hooks và events được đăng ký ở system level (bootstrap). Nhưng khi thực thi, Execution Context chứa enabledPlugins của tenant → hệ thống lọc, chỉ gọi handlers thuộc plugins tenant đã enable.</div>
+
+    <div class="dg"><div class="dg-label">event filtering</div><pre>
+<span class="ty">VÍ DỤ: Event "customer.created" được emit</span>
+
+<span class="hi">SYSTEM LEVEL</span> (đăng ký từ bootstrap)
+
+  Event Bus biết:
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Event: "customer.created"                                   │
+  │                                                              │
+  │  Registered handlers:                                        │
+  │    ① customer-care  →  onCustomerCreated()                   │
+  │    ② automation     →  onCustomerCreated()                   │
+  │    ③ analytics      →  onCustomerCreated()                   │
+  │    ④ marketing      →  onCustomerCreated()                   │
+  └──────────────────────────────────────────────────────────────┘
+
+
+<span class="hi">RUNTIME</span> (filtered by tenant context)
+
+  Tenant ACME enabled: [ customer-data, customer-care, analytics ]
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  ctx.eventBus.emit("customer.created", data)                 │
+  │       │                                                      │
+  │       ▼                                                      │
+  │  Event Bus lọc handlers theo ctx.enabledPlugins:             │
+  │                                                              │
+  │    ① customer-care   ∈ enabledPlugins?   <span class="gn">YES → CALL</span>          │
+  │    ② automation      ∈ enabledPlugins?   <span class="rd">NO  → SKIP</span>          │
+  │    ③ analytics       ∈ enabledPlugins?   <span class="gn">YES → CALL</span>          │
+  │    ④ marketing       ∈ enabledPlugins?   <span class="rd">NO  → SKIP</span>          │
+  │                                                              │
+  │  Kết quả: chỉ ① và ③ được gọi                               │
+  └──────────────────────────────────────────────────────────────┘
+
+
+  Cùng lúc, Tenant GLOBEX enabled: [ customer-data, automation ]
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  ctx.eventBus.emit("customer.created", data)                 │
+  │       │                                                      │
+  │       ▼                                                      │
+  │    ① customer-care   ∈ enabledPlugins?   <span class="rd">NO  → SKIP</span>          │
+  │    ② automation      ∈ enabledPlugins?   <span class="gn">YES → CALL</span>          │
+  │    ③ analytics       ∈ enabledPlugins?   <span class="rd">NO  → SKIP</span>          │
+  │    ④ marketing       ∈ enabledPlugins?   <span class="rd">NO  → SKIP</span>          │
+  │                                                              │
+  │  Kết quả: chỉ ② được gọi                                    │
+  └──────────────────────────────────────────────────────────────┘
+
+
+  <span class="cm">Cùng 1 event, cùng 1 Event Bus singleton</span>
+  <span class="cm">→ kết quả KHÁC NHAU tùy tenant</span>
+  <span class="cm">→ nhờ Execution Context filtering</span></pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Hook Filtering — Tương tự</h2></div>
+
+    <div class="dg"><div class="dg-label">hook filtering</div><pre>
+<span class="ty">VÍ DỤ: Hook point "before:saleCreate" trong customer-care</span>
+
+<span class="hi">SYSTEM LEVEL</span>
+
+  Hook Registry biết:
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Hook: "before:saleCreate"                                   │
+  │  Provided by: customer-care                                  │
+  │                                                              │
+  │  Registered consumers:                                       │
+  │    ① automation  →  enrichSaleData()    <span class="cm">(auto-assign rep)</span>    │
+  │    ② marketing   →  addCampaignTag()    <span class="cm">(tag lead source)</span>    │
+  └──────────────────────────────────────────────────────────────┘
+
+
+<span class="hi">RUNTIME — Tenant ACME</span> (enabled: data, care, analytics — NO automation)
+
+  customer-care đang xử lý createSale:
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  → Chạy đến hook point "before:saleCreate"                  │
+  │                                                              │
+  │  Hook Registry lọc theo ctx.enabledPlugins:                  │
+  │                                                              │
+  │    ① automation   ∈ enabledPlugins?   <span class="rd">NO  → SKIP</span>             │
+  │    ② marketing    ∈ enabledPlugins?   <span class="rd">NO  → SKIP</span>             │
+  │                                                              │
+  │  Không có handler nào hợp lệ                                 │
+  │  → Data đi thẳng qua, KHÔNG bị modify                       │
+  │  → Như thể hook point không tồn tại                          │
+  └──────────────────────────────────────────────────────────────┘
+
+
+<span class="hi">RUNTIME — Tenant INITECH</span> (enabled: data, care, automation, marketing)
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │  → Chạy đến hook point "before:saleCreate"                  │
+  │                                                              │
+  │    ① automation   ∈ enabledPlugins?   <span class="gn">YES → CALL</span>             │
+  │      → enrichSaleData() → thêm assignedTo: "rep-5"          │
+  │                                                              │
+  │    ② marketing    ∈ enabledPlugins?   <span class="gn">YES → CALL</span>             │
+  │      → addCampaignTag() → thêm source: "email-campaign-42"  │
+  │                                                              │
+  │  Data được enrich bởi cả 2 hooks trước khi insert DB        │
+  └──────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">Tổng kết cơ chế:</span>
+
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                                                                    │
+  │   <span class="hi">Bootstrap</span>                                                       │
+  │   Plugin load → đăng ký handlers vào Event Bus & Hook Registry    │
+  │   → Đây là danh sách TOÀN BỘ handlers có trong hệ thống          │
+  │                                                                    │
+  │   <span class="hi">Runtime (mỗi request)</span>                                             │
+  │   Execution Context chứa enabledPlugins (từ Tenant Context)       │
+  │   → Event Bus / Hook Registry dùng enabledPlugins làm FILTER      │
+  │   → Chỉ gọi handlers thuộc plugins tenant đã enable               │
+  │                                                                    │
+  │   <span class="hi">Chi phí filtering</span>                                                 │
+  │   enabledPlugins là Set → kiểm tra membership = O(1)              │
+  │   5 handlers × O(1) check = O(5)                                  │
+  │   → Gần như không có overhead                                      │
+  │                                                                    │
+  └────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 6. LIFECYCLE -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-lifecycle">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Vòng đời & Cache Strategy</h2></div>
+
+    <div class="dg"><div class="dg-label">context lifecycle</div><pre>
+<span class="ty">TENANT CONTEXT LIFECYCLE</span>
+
+  <span class="gn">Create</span> ─────── <span class="hi">Cache</span> ────── <span class="am">Serve</span> ────── <span class="rd">Invalidate</span> ────── <span class="gn">Rebuild</span>
+     │              │            │               │                │
+     │              │            │               │                │
+  1st request   LRU Cache    Mọi request     Trigger:         Next request
+  from tenant   max 1000     tiếp theo       • plugin          auto rebuild
+  → build       entries      dùng cached       enable/disable  + re-cache
+  from DB                    context          • config change
+                                              • tier change
+                                              • manual flush
+
+
+<span class="hi">CHI TIẾT TỪNG GIAI ĐOẠN:</span>
+
+<span class="nu">①</span> <span class="gn">CREATE</span> — Khi tenant gửi request đầu tiên (hoặc sau invalidate)
+│
+│  Trigger: LRU cache MISS cho tenant_id
+│  Action:  Query DB → build TenantContext → store in LRU
+│  Cost:    ~15-30ms (1 DB round-trip)
+│
+<span class="nu">②</span> <span class="hi">CACHE</span> — Context nằm trong LRU, sẵn sàng phục vụ
+│
+│  Storage:  In-memory LRU cache (per app instance)
+│  Capacity: max 1000 tenant contexts
+│  Size:     ~10KB × 1000 = ~10MB total
+│  Eviction: LRU — tenant ít active nhất bị evict trước
+│  TTL:      evict sau 2h inactive (configurable)
+│
+│  <span class="cm">Mỗi app instance có LRU RIÊNG</span>
+│  <span class="cm">Instance 1 cache ACME ≠ Instance 2 cache ACME</span>
+│  <span class="cm">Nhưng cùng data vì build từ cùng DB</span>
+│
+<span class="nu">③</span> <span class="am">SERVE</span> — Request đến, dùng cached context
+│
+│  Action:  LRU lookup → HIT → return context
+│           Update lastAccessed timestamp
+│  Cost:    ~0.1ms (memory lookup)
+│
+<span class="nu">④</span> <span class="rd">INVALIDATE</span> — Context trở nên stale, cần xóa
+│
+│  Triggers:
+│  ┌────────────────────────────────────────────────────────────┐
+│  │                                                            │
+│  │  Tenant Admin enable/disable plugin                        │
+│  │       → invalidate context của tenant đó                   │
+│  │                                                            │
+│  │  Tenant Admin thay đổi plugin config                       │
+│  │       → invalidate context của tenant đó                   │
+│  │                                                            │
+│  │  Tenant upgrade/downgrade tier                              │
+│  │       → invalidate context (quotas, routing thay đổi)      │
+│  │                                                            │
+│  │  System Admin deploy/undeploy plugin                        │
+│  │       → invalidate TẤT CẢ tenant contexts                  │
+│  │       (vì plugin cores singleton đã thay đổi)              │
+│  │                                                            │
+│  └────────────────────────────────────────────────────────────┘
+│
+│  Invalidation mechanism:
+│  ┌────────────────────────────────────────────────────────────┐
+│  │                                                            │
+│  │  <span class="nu">1.</span> Delete from local LRU cache                            │
+│  │  <span class="nu">2.</span> Publish via Redis Pub/Sub:                              │
+│  │       channel: "context:invalidate"                        │
+│  │       payload: { tenantId: "acme-123" }                    │
+│  │       (hoặc { all: true } cho system-wide)                 │
+│  │  <span class="nu">3.</span> ALL app instances receive message                       │
+│  │  <span class="nu">4.</span> Each instance deletes from their local LRU               │
+│  │                                                            │
+│  └────────────────────────────────────────────────────────────┘
+│
+<span class="nu">⑤</span> <span class="gn">REBUILD</span> — Next request triggers fresh build
+│
+│  Trigger: LRU cache MISS (vì vừa invalidate)
+│  Action:  Query DB → build new TenantContext → store in LRU
+│  Result:  Context phản ánh trạng thái mới nhất
+│           (new plugins, new config, new tier)</pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">09</span><h2 class="sec-t">Execution Context Lifecycle</h2></div>
+
+    <div class="dg"><div class="dg-label">exec context lifecycle</div><pre>
+<span class="ty">EXECUTION CONTEXT LIFECYCLE</span>  (cho 1 request)
+
+
+  Request        Build          Plugin           Response        Cleanup
+  arrives        context        execution        sent            done
+     │              │               │               │               │
+     ▼              ▼               ▼               ▼               ▼
+  ───●──────────────●───────────────●───────────────●───────────────●───▶ time
+     │              │               │               │               │
+     │              │               │               │               │
+     │     ┌────────┴─────────┐    │    ┌──────────┴──────────┐    │
+     │     │ Acquire:         │    │    │ Release:            │    │
+     │     │  DB connection   │    │    │  DB conn → pool     │    │
+     │     │  Create wrappers │    │    │  Wrappers → GC      │    │
+     │     │  Bind logger     │    │    │                     │    │
+     │     └──────────────────┘    │    └─────────────────────┘    │
+     │                             │                               │
+     │                    ┌────────┴──────────┐                    │
+     │                    │ Plugin code runs: │                    │
+     │                    │  ctx.db.query()   │                    │
+     │                    │  ctx.cache.get()  │                    │
+     │                    │  ctx.eventBus     │                    │
+     │                    │    .emit()        │                    │
+     │                    └───────────────────┘                    │
+     │                                                             │
+     │◀───────────────── ~80ms average ──────────────────────────▶│
+
+
+  <span class="rd">QUAN TRỌNG:</span>
+
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                                                                    │
+  │  Execution Context KHÔNG BAO GIỜ được cache hoặc tái sử dụng.    │
+  │                                                                    │
+  │  Mỗi request = 1 Execution Context mới.                           │
+  │  Lý do:                                                            │
+  │    • DB connection phải trả về pool sau mỗi request                │
+  │    • requestId phải unique cho tracing                             │
+  │    • userId/roles có thể khác nhau giữa requests                  │
+  │    • Tránh memory leak từ accumulated state                        │
+  │                                                                    │
+  │  Tenant Context thì cache được vì chỉ chứa metadata + references. │
+  │  Execution Context chứa live resources (DB conn) → không cache.    │
+  │                                                                    │
+  └────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 7. MULTI-TENANT PARALLEL -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-multi">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">10</span><h2 class="sec-t">Multi-tenant song song — 3 tenants, cùng lúc, cùng instance</h2></div>
+
+    <div class="dg"><div class="dg-label">parallel execution</div><pre>
+<span class="hi">3 REQUESTS ĐẾN CÙNG LÚC trên cùng 1 App Instance</span>
+
+
+  ┌─ <span class="gn">ACME</span> ─────────────────────────────────────────────────────────────────┐
+  │  POST /api/v1/sales                                                    │
+  │                                                                        │
+  │  Tenant Context (from LRU):                                            │
+  │    enabled: [ customer-data, customer-care, analytics ]                │
+  │    tier: premium, dbPool: shared                                       │
+  │                                                                        │
+  │  Execution Context:                                                    │
+  │    db:  SharedPool connection #14   ← tenant_id = "acme-123"          │
+  │    cache prefix: "t:acme-123:"                                         │
+  │                                                                        │
+  │  Plugin: CustomerCareCore.createSale(ctx, ...)                         │
+  │  Events: customer-care ✓, analytics ✓, automation ✗, marketing ✗      │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ <span class="cy">GLOBEX</span> ──────────────────────────────────────────────────────────────┐
+  │  GET /api/v1/customers                                                 │
+  │                                                                        │
+  │  Tenant Context (from LRU):                                            │
+  │    enabled: [ customer-data, automation ]                              │
+  │    tier: basic, dbPool: shared                                         │
+  │                                                                        │
+  │  Execution Context:                                                    │
+  │    db:  SharedPool connection #27   ← tenant_id = "globex-456"        │
+  │    cache prefix: "t:globex-456:"                                       │
+  │                                                                        │
+  │  Plugin: CustomerDataCore.getCustomers(ctx, ...)                       │
+  │  Hooks: filter:customerList → automation ✓ (only enabled hook)         │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ <span class="vi">INITECH (VIP)</span> ────────────────────────────────────────────────────────┐
+  │  GET /api/v1/dashboard                                                 │
+  │                                                                        │
+  │  Tenant Context (from LRU):                                            │
+  │    enabled: [ customer-data, care, automation, analytics, marketing ]  │
+  │    tier: vip, dbPool: vip-initech                                      │
+  │                                                                        │
+  │  Execution Context:                                                    │
+  │    db:  VIP-Initech Pool conn #3   ← tenant_id = "initech-789"       │
+  │    cache prefix: "t:initech-789:"                                      │
+  │                                                                        │
+  │  Plugin: AnalyticsCore.getDashboard(ctx, ...)                          │
+  │  Events: ALL handlers active (all plugins enabled)                     │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">CÙNG SINGLETON CORES, KHÁC CONTEXT:</span>
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                                                                     │
+  │  CustomerDataCore (1 singleton)                                     │
+  │       │                                                             │
+  │       ├── ACME request:   ctx.tenantId="acme-123"   → ACME data    │
+  │       ├── GLOBEX request: ctx.tenantId="globex-456"  → GLOBEX data │
+  │       └── INITECH request:ctx.tenantId="initech-789" → INITECH data│
+  │                                                                     │
+  │  Cùng 1 instance core, cùng 1 method getCustomers()                │
+  │  Nhưng Execution Context khác nhau → DB query trả data khác nhau   │
+  │  Vì Query Interceptor inject tenant_id khác nhau                    │
+  │                                                                     │
+  └─────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">RESOURCE ISOLATION:</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │                                                                      │
+  │  Shared DB Pool:  connection #14 (ACME) ← SET tenant = acme-123    │
+  │                   connection #27 (GLOBEX) ← SET tenant = globex-456│
+  │                   <span class="cm">same pool, different tenant context on each conn</span> │
+  │                                                                      │
+  │  VIP DB Pool:     connection #3 (INITECH only)                      │
+  │                   <span class="cm">dedicated pool, only INITECH can use</span>             │
+  │                                                                      │
+  │  Redis:           t:acme-123:customers:list  ← ACME cache          │
+  │                   t:globex-456:customers:list ← GLOBEX cache        │
+  │                   t:initech-789:dashboard:... ← INITECH cache       │
+  │                   <span class="cm">same Redis cluster, isolated by key prefix</span>       │
+  │                                                                      │
+  │  Event filtering: ACME request  → care ✓ analytics ✓               │
+  │                   GLOBEX request → automation ✓                      │
+  │                   INITECH request → ALL ✓                            │
+  │                   <span class="cm">same Event Bus, different filter per context</span>     │
+  │                                                                      │
+  └──────────────────────────────────────────────────────────────────────┘
+
+
+<span class="cm">Mọi thứ chạy SONG SONG, AN TOÀN, vì:</span>
+<span class="cm">• Plugin cores stateless → thread-safe</span>
+<span class="cm">• Mỗi request có Execution Context riêng → no shared mutable state</span>
+<span class="cm">• DB connections riêng → no cross-tenant query</span>
+<span class="cm">• Cache prefix riêng → no cross-tenant cache read</span>
+<span class="cm">• Event filtering riêng → handlers khác nhau per tenant</span></pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['map','tenant','exec','build','filter','lifecycle','multi'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — Data Access Layer Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
+  --gn:#10b981;--gnd:rgba(16,185,129,.08);
+  --am:#f59e0b;--amd:rgba(245,158,11,.08);
+  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
+  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
+  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
+  --or:#f97316;--pk:#ec4899;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(1.8rem,4vw,3rem);font-weight:800;line-height:1.1;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--bl)}
+.hero p{font-size:1rem;color:var(--td);max-width:660px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--bl)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
+.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.kw{color:#c792ea}.fn{color:#82aaff}.st{color:#c3e88d}.cm{color:#3e4460;font-style:italic}.nu{color:#f78c6c}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.pk{color:#ec4899}.or{color:#f97316}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
+.nt strong{color:inherit}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+.pnl.on .sec:nth-child(2){animation-delay:.04s}
+.pnl.on .sec:nth-child(3){animation-delay:.08s}
+.pnl.on .sec:nth-child(4){animation-delay:.12s}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Layer 4 — Data Access</div>
+    <h1>Data Access <span>Layer</span></h1>
+    <p>4 thực thể cốt lõi: Query Interceptor, Pool Manager, Cache Manager, Migration Engine — cấu trúc nội tại, liên kết xuyên tầng, và hành vi trong mỗi request.</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('map')">Bản đồ L4</button>
+    <button onclick="go('qi')">Query Interceptor</button>
+    <button onclick="go('pm')">Pool Manager</button>
+    <button onclick="go('cm')">Cache Manager</button>
+    <button onclick="go('me')">Migration Engine</button>
+    <button onclick="go('xref')">Liên kết xuyên tầng</button>
+    <button onclick="go('req')">Tham gia xử lý Request</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════ -->
+<!-- MAP -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl on" id="p-map">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ tổng quan L4 — 4 thực thể và vị trí</h2></div>
+
+    <div class="nt rd"><strong>Nguyên tắc tối thượng của L4:</strong> Không plugin nào, không tầng nào được truy cập database trực tiếp. Mọi đường đi đều phải qua L4. L4 là lớp bảo vệ duy nhất giữa business logic và data.</div>
+
+    <div class="dg"><div class="dg-label">L4 position &amp; entities</div><pre>
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  <span class="hi">L3 BUSINESS LOGIC</span>                                                      │
+  │                                                                         │
+  │  Plugin Cores         Shared Services        Event Handlers             │
+  │  (CustomerDataCore,   (EmailService,         (sync + async              │
+  │   CustomerCareCore,    StorageService)         handlers)                 │
+  │   AnalyticsCore)                                                        │
+  │                                                                         │
+  │  <span class="cm">Tất cả gọi: ctx.db.query(), ctx.cache.get(), ctx.db.insert()</span>          │
+  │  <span class="cm">Không ai biết connection pool hay tenant_id injection bên dưới.</span>        │
+  │                                                                         │
+  └─────────────────────────────┬───────────────────────────────────────────┘
+                                │
+                                │  ctx.db / ctx.cache
+                                ▼
+  ╔═════════════════════════════════════════════════════════════════════════╗
+  ║  <span class="rd">L4 DATA ACCESS LAYER</span>                                                  ║
+  ║                                                                         ║
+  ║  ┌──────────────────────────────────────────────────────────────────┐   ║
+  ║  │                                                                  │   ║
+  ║  │              <span class="rd">① QUERY INTERCEPTOR</span>                                │   ║
+  ║  │              (tenant isolation enforcement)                      │   ║
+  ║  │                                                                  │   ║
+  ║  │  Mọi query ĐI QUA đây.                                          │   ║
+  ║  │  Auto-inject tenant_id.                                          │   ║
+  ║  │  Block unsafe queries.                                           │   ║
+  ║  │  Count queries (sandbox limit).                                  │   ║
+  ║  │                                                                  │   ║
+  ║  └────────────────────────────┬─────────────────────────────────────┘   ║
+  ║                               │                                         ║
+  ║                ┌──────────────┼──────────────┐                          ║
+  ║                │              │              │                          ║
+  ║                ▼              ▼              ▼                          ║
+  ║  ┌─────────────────┐ ┌──────────────┐ ┌─────────────────────────────┐  ║
+  ║  │                 │ │              │ │                             │  ║
+  ║  │ <span class="am">② POOL</span>          │ │ <span class="cy">③ CACHE</span>     │ │ <span class="gn">④ MIGRATION ENGINE</span>         │  ║
+  ║  │ <span class="am">   MANAGER</span>      │ │ <span class="cy">   MANAGER</span>  │ │                             │  ║
+  ║  │                 │ │              │ │ Schema versioning per       │  ║
+  ║  │ Route tenant    │ │ 3-level      │ │ plugin per tenant.          │  ║
+  ║  │ → correct DB    │ │ cache:       │ │ Run on plugin enable.       │  ║
+  ║  │ + connection    │ │ L1 memory    │ │ Rollback on disable.        │  ║
+  ║  │   lifecycle     │ │ L2 Redis     │ │                             │  ║
+  ║  │                 │ │ L3 Database  │ │ <span class="cm">(not per-request —</span>          │  ║
+  ║  │                 │ │              │ │ <span class="cm"> only admin operations)</span>     │  ║
+  ║  └────────┬────────┘ └──────┬───────┘ └─────────────┬───────────────┘  ║
+  ║           │                 │                       │                   ║
+  ╚═══════════╪═════════════════╪═══════════════════════╪═══════════════════╝
+              │                 │                       │
+              ▼                 ▼                       ▼
+  ┌───────────────────────────────────────────────────────────────────────────┐
+  │  <span class="vi">L5 INFRASTRUCTURE</span>                                                       │
+  │                                                                           │
+  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────────────┐ │
+  │  │ PostgreSQL │  │ PostgreSQL │  │   Redis    │  │  PostgreSQL        │ │
+  │  │ Metadata   │  │ Shared     │  │  Cluster   │  │  VIP Instances     │ │
+  │  │ Instance   │  │ Data       │  │            │  │  (INITECH, STARK)  │ │
+  │  └────────────┘  └────────────┘  └────────────┘  └────────────────────┘ │
+  └───────────────────────────────────────────────────────────────────────────┘
+
+
+  <span class="ty">VAI TRÒ TỪNG THỰC THỂ:</span>
+
+  ┌────────────────────────────┬─────────────────────────────────────────────┐
+  │ <span class="rd">Query Interceptor</span>          │ Bảo vệ. Inject tenant_id, block bypass,     │
+  │                            │ count queries. Cổng duy nhất tới DB.        │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="am">Pool Manager</span>               │ Route. Tenant tier → đúng DB instance,      │
+  │                            │ quản lý connection lifecycle.               │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="cy">Cache Manager</span>              │ Tăng tốc. 3 tầng cache giảm DB load.       │
+  │                            │ Invalidation cross-instance qua Pub/Sub.   │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="gn">Migration Engine</span>           │ Tiến hóa. Schema versioning per plugin      │
+  │                            │ per tenant. Transactional up/down.          │
+  └────────────────────────────┴─────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- QUERY INTERCEPTOR -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-qi">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Query Interceptor — Cấu trúc nội tại</h2></div>
+
+    <div class="dg"><div class="dg-label">query interceptor anatomy</div><pre>
+┌─ <span class="rd">QUERY INTERCEPTOR</span> ─────────────────────────────────────────────────────────┐
+│                                                                              │
+│  <span class="ty">Được tạo khi nào?</span>                                                        │
+│  → Khi build Execution Context (mỗi request)                                │
+│  → Wrap quanh DB connection được acquire từ Pool Manager                     │
+│  → Sống và chết cùng Execution Context                                      │
+│                                                                              │
+│  <span class="ty">Input:</span>  raw DB connection + tenantId từ Execution Context                 │
+│  <span class="ty">Output:</span> TenantScopedDB — interface mà plugin thấy (ctx.db)                │
+│                                                                              │
+│                                                                              │
+│  ┌─ <span class="hi">Thành phần bên trong</span> ─────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │                                                                        │ │
+│  │  <span class="fn">TenantInjector</span>                                                      │ │
+│  │  │                                                                     │ │
+│  │  │  Trách nhiệm: đảm bảo MỌI query có tenant_id filter               │ │
+│  │  │                                                                     │ │
+│  │  │  SELECT:                                                            │ │
+│  │  │    input:  SELECT * FROM sales WHERE status = 'new'                 │ │
+│  │  │    output: SELECT * FROM sales                                      │ │
+│  │  │            WHERE status = 'new' <span class="gn">AND tenant_id = 'acme-123'</span>         │ │
+│  │  │                                                                     │ │
+│  │  │  INSERT:                                                            │ │
+│  │  │    input:  INSERT INTO sales (title, amount)                        │ │
+│  │  │            VALUES ('Deal', 50000)                                   │ │
+│  │  │    output: INSERT INTO sales (<span class="gn">tenant_id</span>, title, amount)              │ │
+│  │  │            VALUES (<span class="gn">'acme-123'</span>, 'Deal', 50000)                      │ │
+│  │  │                                                                     │ │
+│  │  │  UPDATE:                                                            │ │
+│  │  │    input:  UPDATE sales SET status = 'won' WHERE id = 'sale-42'     │ │
+│  │  │    output: UPDATE sales SET status = 'won'                          │ │
+│  │  │            WHERE id = 'sale-42' <span class="gn">AND tenant_id = 'acme-123'</span>         │ │
+│  │  │                                                                     │ │
+│  │  │  DELETE:                                                            │ │
+│  │  │    input:  DELETE FROM sales WHERE id = 'sale-42'                   │ │
+│  │  │    output: DELETE FROM sales                                        │ │
+│  │  │            WHERE id = 'sale-42' <span class="gn">AND tenant_id = 'acme-123'</span>         │ │
+│  │  │                                                                     │ │
+│  │  │  <span class="rd">Plugin KHÔNG THỂ viết query mà không có tenant_id.</span>                │ │
+│  │  │  <span class="rd">Kể cả plugin cố gắng, Interceptor luôn thêm vào.</span>                 │ │
+│  │                                                                        │ │
+│  │                                                                        │ │
+│  │  <span class="fn">QueryValidator</span>                                                      │ │
+│  │  │                                                                     │ │
+│  │  │  Kiểm tra query an toàn TRƯỚC KHI gửi tới DB:                      │ │
+│  │  │                                                                     │ │
+│  │  │  ┌────────────────────────────────────────────────────────────┐     │ │
+│  │  │  │  ☐ Query có đúng tenant_id sau khi inject?         <span class="gn">PASS</span>   │     │ │
+│  │  │  │  ☐ Parameterized query? (chống SQL injection)      <span class="gn">PASS</span>   │     │ │
+│  │  │  │  ☐ Table nằm trong allowed list?                   <span class="gn">PASS</span>   │     │ │
+│  │  │  │  ☐ Không có raw SQL bypass (no .raw() calls)?      <span class="gn">PASS</span>   │     │ │
+│  │  │  │  ☐ Không có DROP/ALTER/TRUNCATE?                   <span class="gn">PASS</span>   │     │ │
+│  │  │  │  ☐ Không query system tables?                      <span class="gn">PASS</span>   │     │ │
+│  │  │  └────────────────────────────────────────────────────────────┘     │ │
+│  │  │                                                                     │ │
+│  │  │  <span class="rd">Bất kỳ check nào FAIL → query bị BLOCK, log security alert.</span>       │ │
+│  │                                                                        │ │
+│  │                                                                        │ │
+│  │  <span class="fn">QueryCounter</span>                                                        │ │
+│  │  │                                                                     │ │
+│  │  │  Mỗi query đi qua → counter++                                      │ │
+│  │  │  Sandbox Engine set giới hạn: maxQueries = 50                       │ │
+│  │  │                                                                     │ │
+│  │  │  counter = 49 → <span class="am">WARNING log</span>                                        │ │
+│  │  │  counter = 50 → <span class="rd">BLOCK, throw QueryLimitExceeded</span>                    │ │
+│  │  │                                                                     │ │
+│  │  │  <span class="cm">Ngăn plugin chạy N+1 queries hoặc infinite loops.</span>                │ │
+│  │                                                                        │ │
+│  │                                                                        │ │
+│  │  <span class="fn">QueryLogger</span>                                                         │ │
+│  │  │                                                                     │ │
+│  │  │  Mỗi query: ghi log với context                                     │ │
+│  │  │  { tenantId, requestId, plugin, table, operation,                   │ │
+│  │  │    duration_ms, rows_affected }                                     │ │
+│  │  │                                                                     │ │
+│  │  │  Slow query (> 100ms) → <span class="am">WARNING</span>                                     │ │
+│  │  │  Very slow (> 500ms) → <span class="rd">ALERT to ops</span>                                 │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">LUỒNG QUA INTERCEPTOR:</span>                                                   │
+│                                                                              │
+│  Plugin gọi ctx.db.query('sales').where({ status: 'new' })                  │
+│       │                                                                      │
+│       ▼                                                                      │
+│  TenantInjector: thêm AND tenant_id = 'acme-123'                            │
+│       │                                                                      │
+│       ▼                                                                      │
+│  QueryValidator: kiểm tra an toàn → PASS                                    │
+│       │                                                                      │
+│       ▼                                                                      │
+│  QueryCounter: count++ → [3/50]                                              │
+│       │                                                                      │
+│       ▼                                                                      │
+│  → Forward tới DB connection (từ Pool Manager)                               │
+│       │                                                                      │
+│       ▼                                                                      │
+│  QueryLogger: ghi log { table: sales, op: SELECT, duration: 5ms }           │
+│       │                                                                      │
+│       ▼                                                                      │
+│  → Return result set cho plugin                                              │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Double Safety — Interceptor + RLS</h2></div>
+
+    <div class="dg"><div class="dg-label">double safety</div><pre>
+<span class="ty">TẠI SAO CẦN 2 TẦNG BẢO VỆ?</span>
+
+  Query Interceptor (L4) và PostgreSQL RLS (L5) làm CÙNG VIỆC
+  — nhưng ở 2 tầng khác nhau. Đây là defense in depth:
+
+
+  <span class="hi">Tầng 1: Query Interceptor (application level)</span>
+
+    Plugin: ctx.db.query('sales').where({ status: 'new' })
+
+    Interceptor biến thành:
+      SELECT * FROM sales
+      WHERE status = 'new'
+      AND tenant_id = 'acme-123'
+
+    <span class="gn">✓ Chặn ở tầng ứng dụng TRƯỚC KHI gửi tới DB.</span>
+    <span class="gn">✓ Nhanh — không cần DB round-trip để reject.</span>
+    <span class="am">✗ Nếu Interceptor có bug → leak.</span>
+
+
+  <span class="hi">Tầng 2: PostgreSQL RLS (database level)</span>
+
+    Connection đã SET: app.current_tenant = 'acme-123'
+    RLS policy: USING (tenant_id = current_setting('app.tenant_id'))
+
+    Kể cả query vượt qua Interceptor mà thiếu tenant_id filter:
+      SELECT * FROM sales WHERE status = 'new'
+      → RLS THÊM: AND tenant_id = 'acme-123'
+      → Kết quả vẫn đúng, vẫn chỉ data ACME.
+
+    <span class="gn">✓ Backup nếu Interceptor fail.</span>
+    <span class="gn">✓ Database-level — không thể bypass từ application.</span>
+    <span class="am">✗ Chậm hơn (DB must evaluate policy mỗi row).</span>
+
+
+  <span class="ty">SCENARIO: Interceptor có bug</span>
+
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                                                                    │
+  │  Giả sử bug: Interceptor QUÊN inject tenant_id cho 1 edge case.  │
+  │                                                                    │
+  │  Query gửi tới PostgreSQL:                                         │
+  │    SELECT * FROM sales WHERE status = 'new'                        │
+  │    (thiếu AND tenant_id = ...)                                     │
+  │                                                                    │
+  │  <span class="rd">Không có RLS:</span>                                                    │
+  │    → Trả về sales CỦA MỌI TENANT. Data leak nghiêm trọng.       │
+  │                                                                    │
+  │  <span class="gn">Có RLS:</span>                                                          │
+  │    → PostgreSQL apply policy: tenant_id = 'acme-123'              │
+  │    → Chỉ trả sales CỦA ACME. An toàn.                            │
+  │                                                                    │
+  │  <span class="cm">RLS là lớp bảo vệ cuối cùng — "safety net".</span>                     │
+  │                                                                    │
+  └────────────────────────────────────────────────────────────────────┘
+
+
+  <span class="ty">SCENARIO: RLS có bug (policy sai)</span>
+
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                                                                    │
+  │  Giả sử RLS policy sai config trên 1 table.                      │
+  │                                                                    │
+  │  <span class="gn">Interceptor vẫn inject tenant_id vào mọi query.</span>                  │
+  │  → Query đã có WHERE tenant_id = 'acme-123'                       │
+  │  → RLS bug không ảnh hưởng vì filter đã đúng.                    │
+  │                                                                    │
+  │  <span class="cm">Interceptor là lớp bảo vệ đầu tiên — "first wall".</span>              │
+  │                                                                    │
+  └────────────────────────────────────────────────────────────────────┘
+
+  Kết luận: cần CẢ HAI bị compromised cùng lúc mới leak data.
+  Xác suất: rất thấp → defense in depth hiệu quả.</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- POOL MANAGER -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-pm">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Pool Manager — Cấu trúc nội tại</h2></div>
+
+    <div class="dg"><div class="dg-label">pool manager anatomy</div><pre>
+┌─ <span class="am">POOL MANAGER</span> ─── <span class="cm">Singleton, tạo khi bootstrap</span> ──────────────────────────┐
+│                                                                            │
+│  <span class="ty">Trách nhiệm:</span>                                                          │
+│  1. Quản lý nhiều connection pool (metadata, shared, VIP)                 │
+│  2. Route request tới đúng pool dựa trên tenant context                   │
+│  3. Connection lifecycle: acquire → configure → release → health check    │
+│  4. Tạo / hủy VIP pool khi tenant upgrade / downgrade                     │
+│                                                                            │
+│                                                                            │
+│  ┌─ <span class="hi">Thành phần bên trong</span> ──────────────────────────────────────────────┐  │
+│  │                                                                      │  │
+│  │  <span class="fn">PoolRegistry</span>                                                      │  │
+│  │  │                                                                   │  │
+│  │  │  Giữ bản đồ pool name → pool instance:                           │  │
+│  │  │                                                                   │  │
+│  │  │  ┌───────────────────┬────────────────────────────────────────┐  │  │
+│  │  │  │ Pool Name         │ Pool Instance                         │  │  │
+│  │  │  ├───────────────────┼────────────────────────────────────────┤  │  │
+│  │  │  │ "metadata"        │ PostgresPool → Metadata DB Instance   │  │  │
+│  │  │  │                   │ min: 5, max: 20                       │  │  │
+│  │  │  ├───────────────────┼────────────────────────────────────────┤  │  │
+│  │  │  │ "shared"          │ PostgresPool → Shared Data DB         │  │  │
+│  │  │  │                   │ min: 20, max: 200                     │  │  │
+│  │  │  │                   │ per-tenant cap: 20                    │  │  │
+│  │  │  ├───────────────────┼────────────────────────────────────────┤  │  │
+│  │  │  │ "vip-initech"     │ PostgresPool → VIP DB INITECH         │  │  │
+│  │  │  │                   │ min: 5, max: 30                       │  │  │
+│  │  │  ├───────────────────┼────────────────────────────────────────┤  │  │
+│  │  │  │ "vip-stark"       │ PostgresPool → VIP DB STARK           │  │  │
+│  │  │  │                   │ min: 5, max: 30                       │  │  │
+│  │  │  └───────────────────┴────────────────────────────────────────┘  │  │
+│  │  │                                                                   │  │
+│  │  │  <span class="cm">VIP pools tạo/hủy dynamically khi tenant upgrade/downgrade.</span>     │  │
+│  │                                                                      │  │
+│  │                                                                      │  │
+│  │  <span class="fn">PoolRouter</span>                                                        │  │
+│  │  │                                                                   │  │
+│  │  │  Input: tenantContext.dbPool (string)                             │  │
+│  │  │  Output: correct pool instance                                    │  │
+│  │  │                                                                   │  │
+│  │  │  ┌────────────────────────────────────────────────────────────┐  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  │  tenantCtx.dbPool = "shared"                               │  │  │
+│  │  │  │  → PoolRegistry.get("shared")                              │  │  │
+│  │  │  │  → return SharedPool                                       │  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  │  tenantCtx.dbPool = "vip-initech"                          │  │  │
+│  │  │  │  → PoolRegistry.get("vip-initech")                         │  │  │
+│  │  │  │  → return VipPoolInitech                                   │  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  │  <span class="cm">Plugin code KHÔNG biết pool nào. ctx.db trừu tượng hóa.</span>  │  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  └────────────────────────────────────────────────────────────┘  │  │
+│  │                                                                      │  │
+│  │                                                                      │  │
+│  │  <span class="fn">ConnectionConfigurator</span>                                             │  │
+│  │  │                                                                   │  │
+│  │  │  Sau khi acquire connection, TRƯỚC KHI plugin dùng:              │  │
+│  │  │                                                                   │  │
+│  │  │  ┌────────────────────────────────────────────────────────────┐  │  │
+│  │  │  │  <span class="nu">1.</span> SET app.current_tenant = 'acme-123'                   │  │  │
+│  │  │  │     → PostgreSQL RLS dùng giá trị này                     │  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  │  <span class="nu">2.</span> SET statement_timeout = '5000ms'                      │  │  │
+│  │  │  │     → khớp sandbox timeout limit                          │  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  │  <span class="nu">3.</span> SET search_path = 'public'                            │  │  │
+│  │  │  │     → prevent schema confusion attacks                    │  │  │
+│  │  │  └────────────────────────────────────────────────────────────┘  │  │
+│  │  │                                                                   │  │
+│  │  │  <span class="cm">Khi release connection:</span>                                        │  │
+│  │  │  ┌────────────────────────────────────────────────────────────┐  │  │
+│  │  │  │  <span class="nu">1.</span> RESET app.current_tenant                              │  │  │
+│  │  │  │  <span class="nu">2.</span> RESET statement_timeout                               │  │  │
+│  │  │  │  <span class="nu">3.</span> DISCARD TEMP  (clear temp tables nếu có)              │  │  │
+│  │  │  │  <span class="nu">4.</span> Return to idle pool                                  │  │  │
+│  │  │  └────────────────────────────────────────────────────────────┘  │  │
+│  │                                                                      │  │
+│  │                                                                      │  │
+│  │  <span class="fn">HealthChecker</span>                                                     │  │
+│  │  │                                                                   │  │
+│  │  │  Interval: 30s                                                    │  │
+│  │  │  For each pool:                                                   │  │
+│  │  │  ├── Ping idle connections (SELECT 1)                             │  │
+│  │  │  ├── Dead connections → remove + replace                          │  │
+│  │  │  ├── Track: active/idle/total count                               │  │
+│  │  │  └── Emit metrics: pool_connections_active{pool="shared"}        │  │
+│  │  │                                                                   │  │
+│  │  │  <span class="rd">Pool exhausted (all connections in use)?</span>                       │  │
+│  │  │  → Queue request (max wait 2s)                                    │  │
+│  │  │  → Timeout → Circuit Breaker → 503 Service Unavailable            │  │
+│  │                                                                      │  │
+│  │                                                                      │  │
+│  │  <span class="fn">TenantQuotaEnforcer</span>                                               │  │
+│  │  │                                                                   │  │
+│  │  │  Shared Pool: max 200 total, nhưng per-tenant cap 20             │  │
+│  │  │                                                                   │  │
+│  │  │  Track per-tenant active connections:                             │  │
+│  │  │    acme-123:  5/20   ✓                                           │  │
+│  │  │    globex-456: 12/20 ✓                                           │  │
+│  │  │    wayne-789:  20/20 <span class="rd">AT LIMIT</span>                                    │  │
+│  │  │                                                                   │  │
+│  │  │  wayne gửi request mới → wait queue (đợi 1 conn release)         │  │
+│  │  │  <span class="cm">Ngăn 1 tenant "ngốn" hết pool → starvation cho tenants khác.</span>  │  │
+│  │                                                                      │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- CACHE MANAGER -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-cm">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Cache Manager — 3-Level Cache</h2></div>
+
+    <div class="dg"><div class="dg-label">cache manager anatomy</div><pre>
+┌─ <span class="cy">CACHE MANAGER</span> ────────────────────────────────────────────────────────────┐
+│                                                                            │
+│  Plugin gọi: ctx.cache.get("customers:list:active")                       │
+│  Thực tế key: <span class="gn">"t:acme-123:customers:list:active"</span>  (auto-prefix)          │
+│                                                                            │
+│                                                                            │
+│  ┌─ <span class="hi">3-Level Cache Architecture</span> ─────────────────────────────────────────┐ │
+│  │                                                                      │ │
+│  │                                                                      │ │
+│  │  <span class="nu">L1: IN-MEMORY</span> (per app instance)                                    │ │
+│  │  │                                                                   │ │
+│  │  │  Storage:     process memory (Map / LRU)                          │ │
+│  │  │  Max size:    100 MB per instance                                 │ │
+│  │  │  TTL:         60 seconds                                          │ │
+│  │  │  Eviction:    LRU (Least Recently Used)                           │ │
+│  │  │  Latency:     <span class="gn">~0.01ms</span>  (memory read)                             │ │
+│  │  │                                                                   │ │
+│  │  │  <span class="cm">Nhanh nhất nhưng nhỏ nhất.</span>                                    │ │
+│  │  │  <span class="cm">Mỗi instance có L1 RIÊNG — không share.</span>                       │ │
+│  │  │  <span class="cm">Instance 1 cache ≠ Instance 2 cache.</span>                           │ │
+│  │  │                                                                   │ │
+│  │  │                     <span class="am">MISS</span>                                         │ │
+│  │  │                       │                                           │ │
+│  │  │                       ▼                                           │ │
+│  │                                                                      │ │
+│  │  <span class="nu">L2: REDIS CLUSTER</span> (shared across instances)                          │ │
+│  │  │                                                                   │ │
+│  │  │  Storage:     Redis cluster (3 nodes + Sentinel)                  │ │
+│  │  │  Max size:    per policy (no hard limit)                          │ │
+│  │  │  TTL:         5–15 minutes (configurable per data type)           │ │
+│  │  │  Compression: LZ4 for values > 1KB                               │ │
+│  │  │  Latency:     <span class="am">~1-2ms</span>  (network + Redis)                          │ │
+│  │  │                                                                   │ │
+│  │  │  <span class="cm">Shared — tất cả instances đọc/ghi cùng Redis.</span>                 │ │
+│  │  │  <span class="cm">Instance 1 ghi → Instance 2 đọc được ngay.</span>                    │ │
+│  │  │                                                                   │ │
+│  │  │  Key format: t:{tenantId}:{plugin}:{entity}:{hash}               │ │
+│  │  │  Example:    t:acme-123:care:sales:status=new:page=1              │ │
+│  │  │                                                                   │ │
+│  │  │                     <span class="am">MISS</span>                                         │ │
+│  │  │                       │                                           │ │
+│  │  │                       ▼                                           │ │
+│  │                                                                      │ │
+│  │  <span class="nu">L3: DATABASE</span> (source of truth)                                        │ │
+│  │  │                                                                   │ │
+│  │  │  PostgreSQL (via Query Interceptor → Pool Manager)                │ │
+│  │  │  Latency:     <span class="rd">~5-20ms</span>  (query execution + network)                │ │
+│  │  │                                                                   │ │
+│  │  │  Luôn đúng, luôn mới nhất.                                       │ │
+│  │  │  Nhưng chậm nhất → nên cache ở L1/L2 khi có thể.                │ │
+│  │  │                                                                   │ │
+│  └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+│                                                                            │
+│  ┌─ <span class="hi">Luồng READ</span> ────────────────────────────────────────────────────────┐ │
+│  │                                                                      │ │
+│  │  ctx.cache.get("customers:list:active")                              │ │
+│  │       │                                                              │ │
+│  │       ▼                                                              │ │
+│  │  L1 memory: t:acme-123:customers:list:active                        │ │
+│  │       │                                                              │ │
+│  │  ┌────┴──────┐                                                       │ │
+│  │  │ <span class="gn">L1 HIT</span>   │→ return value. Done. <span class="gn">(~0.01ms)</span>                      │ │
+│  │  │ <span class="am">L1 MISS</span>  │→ query L2                                             │ │
+│  │  └───────────┘                                                       │ │
+│  │       │                                                              │ │
+│  │       ▼                                                              │ │
+│  │  L2 Redis: GET t:acme-123:customers:list:active                     │ │
+│  │       │                                                              │ │
+│  │  ┌────┴──────┐                                                       │ │
+│  │  │ <span class="gn">L2 HIT</span>   │→ decompress → store in L1 → return. <span class="gn">(~2ms)</span>           │ │
+│  │  │ <span class="am">L2 MISS</span>  │→ query L3 (database)                                  │ │
+│  │  └───────────┘                                                       │ │
+│  │       │                                                              │ │
+│  │       ▼                                                              │ │
+│  │  L3 DB: SELECT * FROM customers WHERE ...                           │ │
+│  │       │                                                              │ │
+│  │       ▼                                                              │ │
+│  │  Result → compress → store in L2 Redis (TTL 5min)                   │ │
+│  │        → store in L1 memory (TTL 60s)                               │ │
+│  │        → return to plugin                                <span class="rd">(~15ms)</span>    │ │
+│  │                                                                      │ │
+│  └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+│                                                                            │
+│  ┌─ <span class="hi">Invalidation</span> ──────────────────────────────────────────────────────┐ │
+│  │                                                                      │ │
+│  │  Khi nào invalidate?                                                 │ │
+│  │  → Sau mỗi WRITE (insert/update/delete) trong cùng request          │ │
+│  │  → Plugin enable/disable (via Tenant Context invalidate)             │ │
+│  │  → Manual flush (admin operation)                                    │ │
+│  │                                                                      │ │
+│  │                                                                      │ │
+│  │  ctx.db.insert('sales', data)                                        │ │
+│  │       │                                                              │ │
+│  │       ▼  (insert thành công)                                         │ │
+│  │                                                                      │ │
+│  │  Auto-invalidate related cache keys:                                 │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐   │ │
+│  │  │                                                              │   │ │
+│  │  │  <span class="nu">1.</span> L1: delete t:acme-123:care:sales:*  (local instance)    │   │ │
+│  │  │                                                              │   │ │
+│  │  │  <span class="nu">2.</span> L2: delete t:acme-123:care:sales:*  (Redis)             │   │ │
+│  │  │                                                              │   │ │
+│  │  │  <span class="nu">3.</span> Publish Redis Pub/Sub:                                  │   │ │
+│  │  │     channel: "cache:invalidate"                              │   │ │
+│  │  │     payload: { tenant: "acme-123", pattern: "care:sales:*" } │   │ │
+│  │  │                                                              │   │ │
+│  │  │  <span class="nu">4.</span> ALL other instances receive Pub/Sub message:             │   │ │
+│  │  │     → delete matching keys from THEIR L1 cache              │   │ │
+│  │  │                                                              │   │ │
+│  │  └──────────────────────────────────────────────────────────────┘   │ │
+│  │                                                                      │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐   │ │
+│  │  │                                                              │   │ │
+│  │  │  Instance 1            Instance 2            Instance 3      │   │ │
+│  │  │  ┌──────────┐         ┌──────────┐         ┌──────────┐    │   │ │
+│  │  │  │ L1 cache │         │ L1 cache │         │ L1 cache │    │   │ │
+│  │  │  │ delete   │◀──────▶│ delete   │◀──────▶│ delete   │    │   │ │
+│  │  │  │ sales:*  │  Pub/  │ sales:*  │  Pub/  │ sales:*  │    │   │ │
+│  │  │  └──────────┘  Sub   └──────────┘  Sub   └──────────┘    │   │ │
+│  │  │                                                              │   │ │
+│  │  │         ┌──────────────────────────────────┐                 │   │ │
+│  │  │         │           L2 Redis               │                 │   │ │
+│  │  │         │  delete t:acme-123:care:sales:*  │                 │   │ │
+│  │  │         └──────────────────────────────────┘                 │   │ │
+│  │  │                                                              │   │ │
+│  │  └──────────────────────────────────────────────────────────────┘   │ │
+│  │                                                                      │ │
+│  └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- MIGRATION ENGINE -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-me">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Migration Engine — Schema Versioning</h2></div>
+
+    <div class="nt am"><strong>Khác 3 thực thể kia:</strong> Migration Engine KHÔNG tham gia xử lý request. Nó chỉ chạy khi: plugin được enable/disable cho tenant, hoặc plugin version được upgrade. Đây là admin operation, không phải request-time operation.</div>
+
+    <div class="dg"><div class="dg-label">migration engine anatomy</div><pre>
+┌─ <span class="gn">MIGRATION ENGINE</span> ──────────────────────────────────────────────────────────┐
+│                                                                              │
+│  <span class="ty">Trách nhiệm:</span>                                                             │
+│  Quản lý schema evolution per plugin, per tenant.                            │
+│  Mỗi plugin có migration files riêng.                                        │
+│  Mỗi tenant chạy migrations khi enable plugin.                               │
+│                                                                              │
+│                                                                              │
+│  ┌─ <span class="hi">Thành phần bên trong</span> ──────────────────────────────────────────────┐   │
+│  │                                                                      │   │
+│  │  <span class="fn">MigrationRegistry</span>                                                 │   │
+│  │  │                                                                   │   │
+│  │  │  Theo dõi: plugin nào đã chạy migration nào cho tenant nào.      │   │
+│  │  │                                                                   │   │
+│  │  │  Table: <span class="ty">plugin_migrations</span> (trong Metadata DB)                     │   │
+│  │  │  ┌──────────────┬────────────────┬──────────┬──────────────┐     │   │
+│  │  │  │ tenant_id    │ plugin_name    │ version  │ executed_at  │     │   │
+│  │  │  ├──────────────┼────────────────┼──────────┼──────────────┤     │   │
+│  │  │  │ acme-123     │ customer-data  │ 001      │ 2025-06-15   │     │   │
+│  │  │  │ acme-123     │ customer-data  │ 002      │ 2025-06-15   │     │   │
+│  │  │  │ acme-123     │ customer-data  │ 003      │ 2025-06-15   │     │   │
+│  │  │  │ acme-123     │ customer-care  │ 001      │ 2025-07-01   │     │   │
+│  │  │  │ acme-123     │ customer-care  │ 002      │ 2025-07-01   │     │   │
+│  │  │  │ globex-456   │ customer-data  │ 001      │ 2025-08-10   │     │   │
+│  │  │  │ globex-456   │ customer-data  │ 002      │ 2025-08-10   │     │   │
+│  │  │  │ <span class="cm">globex CHƯA enable care → không có care migrations</span>     │     │   │
+│  │  │  └──────────────┴────────────────┴──────────┴──────────────┘     │   │
+│  │                                                                      │   │
+│  │                                                                      │   │
+│  │  <span class="fn">MigrationExecutor</span>                                                  │   │
+│  │  │                                                                   │   │
+│  │  │  Chạy migration trong TRANSACTION:                                │   │
+│  │  │                                                                   │   │
+│  │  │  ┌────────────────────────────────────────────────────────────┐  │   │
+│  │  │  │  BEGIN TRANSACTION                                         │  │   │
+│  │  │  │                                                            │  │   │
+│  │  │  │  -- Acquire lock (1 tenant, 1 plugin tại 1 thời điểm)     │  │   │
+│  │  │  │  SELECT pg_advisory_lock(hash('acme-123:customer-care'))   │  │   │
+│  │  │  │                                                            │  │   │
+│  │  │  │  -- Check: đã chạy tới version nào?                       │  │   │
+│  │  │  │  SELECT MAX(version) FROM plugin_migrations               │  │   │
+│  │  │  │  WHERE tenant_id = 'acme-123' AND plugin = 'customer-care' │  │   │
+│  │  │  │  → result: NULL (chưa chạy)                               │  │   │
+│  │  │  │                                                            │  │   │
+│  │  │  │  -- Chạy migrations chưa executed:                        │  │   │
+│  │  │  │  RUN 001_create_sales.sql                                 │  │   │
+│  │  │  │  RUN 002_create_call_logs.sql                              │  │   │
+│  │  │  │  RUN 003_create_tickets.sql                                │  │   │
+│  │  │  │  RUN 004_add_indexes.sql                                   │  │   │
+│  │  │  │                                                            │  │   │
+│  │  │  │  -- Record migrations executed                             │  │   │
+│  │  │  │  INSERT INTO plugin_migrations (tenant, plugin, version)   │  │   │
+│  │  │  │  VALUES ('acme-123', 'customer-care', '001'), ...          │  │   │
+│  │  │  │                                                            │  │   │
+│  │  │  │  -- Apply RLS policies to new tables                       │  │   │
+│  │  │  │  ALTER TABLE sales ENABLE ROW LEVEL SECURITY               │  │   │
+│  │  │  │  CREATE POLICY tenant_iso ON sales USING (...)             │  │   │
+│  │  │  │                                                            │  │   │
+│  │  │  │  COMMIT                                                    │  │   │
+│  │  │  │  (hoặc ROLLBACK nếu BẤT KỲ step nào fail)                │  │   │
+│  │  │  └────────────────────────────────────────────────────────────┘  │   │
+│  │  │                                                                   │   │
+│  │  │  <span class="rd">Fail → ROLLBACK toàn bộ. Không partial state.</span>                    │   │
+│  │  │  <span class="rd">Plugin KHÔNG được enable. Admin thấy error message.</span>               │   │
+│  │                                                                      │   │
+│  │                                                                      │   │
+│  │  <span class="fn">RollbackExecutor</span>                                                   │   │
+│  │  │                                                                   │   │
+│  │  │  Khi tenant disable plugin:                                       │   │
+│  │  │                                                                   │   │
+│  │  │  Option A: <span class="am">Soft disable</span> (default)                                  │   │
+│  │  │    → Giữ nguyên tables + data                                     │   │
+│  │  │    → Plugin routes bị remove → user không truy cập được           │   │
+│  │  │    → Data vẫn ở đó nếu re-enable sau                             │   │
+│  │  │                                                                   │   │
+│  │  │  Option B: <span class="rd">Hard disable</span> (explicit request)                          │   │
+│  │  │    → RUN DOWN migrations (reverse order)                          │   │
+│  │  │    → 004_down: DROP INDEXES                                       │   │
+│  │  │    → 003_down: DROP TABLE tickets                                 │   │
+│  │  │    → 002_down: DROP TABLE call_logs                               │   │
+│  │  │    → 001_down: DROP TABLE sales                                   │   │
+│  │  │    → Remove plugin_migrations records                             │   │
+│  │  │    → <span class="rd">DATA PERMANENTLY DELETED</span>                                    │   │
+│  │  │                                                                   │   │
+│  │  │  <span class="cm">Configurable per tenant. VIP có thể chọn.</span>                      │   │
+│  │                                                                      │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">ĐẶC BIỆT: Migration chạy trên DB NÀO?</span>                                   │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  Standard tenant (ACME, Premium):                                      │ │
+│  │  → Migrations chạy trên <span class="gn">Shared Data DB</span>                                │ │
+│  │  → Tables tạo ra nằm cạnh tables của tenants khác                     │ │
+│  │  → RLS policies auto-applied                                           │ │
+│  │                                                                        │ │
+│  │  VIP tenant (INITECH):                                                 │ │
+│  │  → Migrations chạy trên <span class="vi">VIP DB INITECH</span>                                │ │
+│  │  → Tables nằm trong dedicated DB                                       │ │
+│  │  → RLS optional (single tenant, nhưng vẫn apply cho consistency)      │ │
+│  │                                                                        │ │
+│  │  Pool Manager route migration connection tới đúng DB                   │ │
+│  │  dựa trên tenantCtx.dbPool — cùng logic như request-time.             │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- CROSS-LAYER REFS -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-xref">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Liên kết xuyên tầng — Ai gọi ai, ai cung cấp gì</h2></div>
+
+    <div class="dg"><div class="dg-label">cross-layer relationships</div><pre>
+<span class="ty">L4 NHẬN INPUT TỪ</span>
+═══════════════════════════════════════════════════════════════════════
+
+<span class="hi">L2 API Gateway</span>  →  L4
+│
+├── Tenant Resolver cung cấp: tenantId
+│   → Pool Manager dùng để route connection
+│   → Query Interceptor dùng để inject tenant_id
+│
+└── Auth Guard cung cấp: userId, roles
+    → Query Logger dùng cho audit context
+
+
+<span class="hi">L3 Business Logic</span>  →  L4
+│
+├── Plugin Cores gọi: ctx.db.query(), ctx.db.insert(), ctx.cache.get()
+│   → Query Interceptor xử lý mọi DB operation
+│   → Cache Manager xử lý mọi cache operation
+│
+├── Execution Context Builder cung cấp: tenantId, dbPool, cachePrefix
+│   → Pool Manager dùng dbPool để chọn pool
+│   → Cache Manager dùng cachePrefix cho key generation
+│
+├── Sandbox Engine cung cấp: maxQueries limit
+│   → Query Counter enforce giới hạn
+│
+├── Plugin Manager gọi: Migration Engine
+│   → Khi enable/disable plugin cho tenant
+│   → Khi upgrade plugin version
+│
+└── Tenant Context Manager gọi: Pool Manager
+    → Acquire metadata DB connection
+    → Query tenant_plugins table
+
+
+<span class="hi">L6 Cross-cutting</span>  →  L4
+│
+├── Config Manager cung cấp: pool sizes, TTLs, health check intervals
+│   → Pool Manager dùng để configure pools
+│   → Cache Manager dùng để set TTLs
+│
+└── Error Handling Framework cung cấp: Circuit Breaker
+    → Pool Manager dùng: pool exhausted → circuit open → 503
+
+
+
+<span class="ty">L4 CUNG CẤP CHO</span>
+═══════════════════════════════════════════════════════════════════════
+
+L4  →  <span class="hi">L3 Business Logic</span>
+│
+├── Query Interceptor → TenantScopedDB interface
+│   Cho plugin: ctx.db (safe, tenant-scoped DB access)
+│
+├── Cache Manager → TenantScopedCache interface
+│   Cho plugin: ctx.cache (auto-prefixed cache access)
+│
+└── Migration Engine → schema ready confirmation
+    Cho Plugin Manager: plugin tables exist → safe to enable
+
+
+L4  →  <span class="hi">L5 Infrastructure</span>
+│
+├── Pool Manager → managed connections TO:
+│   ├── Metadata DB PostgreSQL
+│   ├── Shared Data DB PostgreSQL
+│   └── VIP Data DB PostgreSQL(s)
+│
+└── Cache Manager → managed keys TO:
+    └── Redis Cluster
+
+
+L4  →  <span class="hi">L7 Observability</span>
+│
+├── Query Interceptor emits:
+│   ├── Metrics: query_duration, query_count, slow_query_count
+│   └── Traces: span per DB query (table, operation, duration)
+│
+├── Pool Manager emits:
+│   ├── Metrics: pool_active, pool_idle, pool_waiting, pool_exhausted
+│   └── Alerts: pool > 80% → WARNING, pool = 100% → CRITICAL
+│
+└── Cache Manager emits:
+    ├── Metrics: cache_hit_rate, cache_miss_rate per level
+    └── Traces: span per cache operation</pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Bản đồ liên kết đầy đủ</h2></div>
+
+    <div class="dg"><div class="dg-label">full relationship map</div><pre>
+<span class="hi">L2</span>  Tenant Resolver ─────── tenantId ──────────┐
+    Auth Guard ──────────── userId, roles ──────┤
+                                                │
+<span class="hi">L3</span>  Exec Context Builder ── dbPool, prefix ─────┤
+    Sandbox Engine ──────── maxQueries ─────────┤
+    Plugin Cores ────────── db/cache calls ─────┤
+    Plugin Manager ──────── enable/disable ─────┤
+                                                │
+                                                ▼
+    ┌───────────────────────────────────────────────────────────────┐
+    │                      <span class="rd">L4 DATA ACCESS</span>                          │
+    │                                                               │
+    │  ┌─────────────────────────────────────────────────────────┐ │
+    │  │                <span class="rd">Query Interceptor</span>                       │ │
+    │  │                                                         │ │
+    │  │  ┌──────────────┐ ┌──────────────┐ ┌────────────────┐ │ │
+    │  │  │TenantInjector│ │QueryValidator│ │ QueryCounter   │ │ │
+    │  │  │ +tenant_id   │ │ safety check │ │ [n/50]         │ │ │
+    │  │  └──────┬───────┘ └──────┬───────┘ └───────┬────────┘ │ │
+    │  │         └────────────────┴─────────────────┘          │ │
+    │  └──────────────────────────┬──────────────────────────────┘ │
+    │                             │                                 │
+    │       ┌─────────────────────┼──────────────────┐              │
+    │       │                     │                  │              │
+    │       ▼                     ▼                  ▼              │
+    │  ┌─────────────┐    ┌──────────────┐   ┌──────────────────┐ │
+    │  │<span class="am">Pool Manager</span> │    │<span class="cy">Cache Manager</span>│   │<span class="gn">Migration Engine</span> │ │
+    │  │             │    │              │   │                  │ │
+    │  │PoolRegistry │    │ L1 Memory    │   │ MigrationReg.   │ │
+    │  │PoolRouter   │    │ L2 Redis     │   │ MigrationExec.  │ │
+    │  │ConnConfig.  │    │ Invalidation │   │ RollbackExec.   │ │
+    │  │HealthCheck  │    │ Pub/Sub sync │   │                  │ │
+    │  │QuotaEnforce │    │              │   │                  │ │
+    │  └──────┬──────┘    └───────┬──────┘   └────────┬─────────┘ │
+    │         │                   │                    │           │
+    └─────────┼───────────────────┼────────────────────┼───────────┘
+              │                   │                    │
+              ▼                   ▼                    ▼
+    ┌───────────────────────────────────────────────────────────────┐
+    │                      <span class="vi">L5 INFRASTRUCTURE</span>                       │
+    │                                                               │
+    │  ┌────────────┐  ┌────────────┐  ┌──────┐  ┌─────────────┐ │
+    │  │ Metadata   │  │ Shared     │  │Redis │  │VIP DBs      │ │
+    │  │ PostgreSQL │  │ Data PG    │  │Cluster│  │(per tenant) │ │
+    │  └────────────┘  └────────────┘  └──────┘  └─────────────┘ │
+    └───────────────────────────────────────────────────────────────┘
+              │                                        │
+              ▼                                        ▼
+    ┌───────────────────────────────────────────────────────────────┐
+    │  <span class="pk">L7 OBSERVABILITY</span>                                              │
+    │  Metrics: query_duration, pool_active, cache_hit_rate         │
+    │  Traces:  span per query, span per cache op                   │
+    │  Alerts:  slow query, pool exhausted, cache hit < 60%         │
+    └───────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- REQUEST PARTICIPATION -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-req">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Cách L4 tham gia xử lý request — Trace đầy đủ</h2></div>
+
+    <div class="dg"><div class="dg-label">L4 request participation trace</div><pre>
+<span class="hi">POST /api/v1/sales</span> — ACME (Premium, Shared DB)
+<span class="cm">Chỉ focus vào L4 — các tầng khác thu gọn.</span>
+
+
+<span class="ty">GIAI ĐOẠN 1: Build Context</span> (trước khi plugin chạy)
+│
+│  L3 Execution Context Builder:
+│  "Tôi cần DB connection cho tenant ACME, pool = shared"
+│       │
+│       ▼
+│  <span class="am">Pool Manager</span>
+│  │  PoolRouter: "shared" → SharedPool
+│  │  SharedPool.acquire() → connection #14
+│  │  TenantQuotaEnforcer: ACME đang dùng 5/20 → OK
+│  │  ConnectionConfigurator:
+│  │    SET app.current_tenant = 'acme-123'
+│  │    SET statement_timeout = '5000ms'
+│  │  → Return connection #14 (configured)
+│  │
+│  L3 Execution Context Builder:
+│  "Wrap connection #14 với Query Interceptor"
+│       │
+│       ▼
+│  <span class="rd">Query Interceptor</span>
+│  │  Created with: connection #14 + tenantId = "acme-123"
+│  │  QueryCounter reset: [0/50]
+│  │  → Return TenantScopedDB (this is ctx.db)
+│  │
+│  L3 Execution Context Builder:
+│  "Tạo scoped cache cho ACME"
+│       │
+│       ▼
+│  <span class="cy">Cache Manager</span>
+│     Created TenantScopedCache:
+│     prefix = "t:acme-123"
+│     → Return (this is ctx.cache)
+
+
+<span class="ty">GIAI ĐOẠN 2: Plugin Execution</span> (plugin gọi ctx.db, ctx.cache)
+│
+│
+│  <span class="nu">Query #1:</span> Plugin kiểm tra customer tồn tại
+│  │
+│  │  Plugin: ctx.db.query('customers').where({ id: 'cust-99' })
+│  │       │
+│  │       ▼
+│  │  <span class="rd">Query Interceptor</span>
+│  │  │  TenantInjector:
+│  │  │    SELECT * FROM customers
+│  │  │    WHERE id = 'cust-99'
+│  │  │    <span class="gn">AND tenant_id = 'acme-123'</span>
+│  │  │
+│  │  │  QueryValidator:
+│  │  │    ☐ tenant_id present? ✓
+│  │  │    ☐ parameterized? ✓
+│  │  │    ☐ table allowed? ✓ (customers is plugin-owned table)
+│  │  │
+│  │  │  QueryCounter: [0 → 1/50]
+│  │  │
+│  │  │  → Forward to connection #14
+│  │  │       │
+│  │  │       ▼
+│  │  │  <span class="vi">PostgreSQL</span> (Shared Data DB)
+│  │  │    RLS: tenant_id = current_setting('app.tenant_id')
+│  │  │    → 'acme-123' = 'acme-123' ✓
+│  │  │    Index scan: idx_customers_pk
+│  │  │    → 1 row found: { id: "cust-99", name: "Alice" }
+│  │  │       │
+│  │  │       ▼
+│  │  │  QueryLogger:
+│  │  │    { table: customers, op: SELECT, duration: 5ms, rows: 1 }
+│  │  │
+│  │  └── Result → Plugin: { id: "cust-99", name: "Alice" }
+│  │
+│  │
+│  <span class="nu">Query #2:</span> Plugin insert sale
+│  │
+│  │  Plugin: ctx.db.insert('sales', { customer_id, title, amount })
+│  │       │
+│  │       ▼
+│  │  <span class="rd">Query Interceptor</span>
+│  │  │  TenantInjector:
+│  │  │    INSERT INTO sales (<span class="gn">tenant_id</span>, customer_id, title, amount)
+│  │  │    VALUES (<span class="gn">'acme-123'</span>, 'cust-99', 'Enterprise deal', 50000)
+│  │  │
+│  │  │  QueryValidator: ✓
+│  │  │  QueryCounter: [1 → 2/50]
+│  │  │  → Forward → PostgreSQL → INSERT OK
+│  │  │  QueryLogger: { table: sales, op: INSERT, duration: 8ms }
+│  │  │
+│  │  └── After INSERT:
+│  │       │
+│  │       ▼
+│  │  <span class="cy">Cache Manager</span> (auto-invalidate)
+│  │  │  Table "sales" was modified for acme-123
+│  │  │  → L1: delete t:acme-123:*sales*  (local)
+│  │  │  → L2: delete t:acme-123:*sales*  (Redis)
+│  │  │  → Pub/Sub: notify other instances to clear L1
+│  │  │
+│  │  └── Cache invalidated. Next sales query → cache miss → fresh DB read.
+│  │
+│  │
+│  <span class="nu">Query #3:</span> Plugin update customer lastActivity
+│  │
+│  │  Plugin: ctx.db.update('customers', { id: 'cust-99' }, { lastActivity })
+│  │       │
+│  │       ▼
+│  │  <span class="rd">Query Interceptor</span>
+│  │  │  TenantInjector:
+│  │  │    UPDATE customers SET last_activity = now()
+│  │  │    WHERE id = 'cust-99' <span class="gn">AND tenant_id = 'acme-123'</span>
+│  │  │
+│  │  │  QueryValidator: ✓
+│  │  │  QueryCounter: [2 → 3/50]
+│  │  │  → Forward → PostgreSQL → UPDATE OK
+│  │  │
+│  │  └── Cache Manager: invalidate t:acme-123:*customers*
+│  │
+│  │
+│  <span class="nu">Cache op:</span> Analytics sync handler updates counters
+│  │
+│  │  AnalyticsCore: ctx.cache.incr("stats:sales_count")
+│  │       │
+│  │       ▼
+│  │  <span class="cy">Cache Manager</span>
+│  │  │  Auto-prefix: "t:acme-123:stats:sales_count"
+│  │  │  → Redis INCR t:acme-123:stats:sales_count
+│  │  │  → return new value: 148
+│  │  │
+│  │  AnalyticsCore: ctx.cache.incrBy("stats:sales_total", 50000)
+│  │       │
+│  │       ▼
+│  │  <span class="cy">Cache Manager</span>
+│  │     Auto-prefix: "t:acme-123:stats:sales_total"
+│  │     → Redis INCRBY t:acme-123:stats:sales_total 50000
+│  │     → return: 4,250,000
+
+
+<span class="ty">GIAI ĐOẠN 3: Cleanup</span> (sau response)
+│
+│  <span class="am">Pool Manager</span>
+│  │  ConnectionConfigurator (release):
+│  │    RESET app.current_tenant
+│  │    RESET statement_timeout
+│  │    DISCARD TEMP
+│  │  SharedPool.release(#14) → connection trở về idle pool
+│  │  TenantQuotaEnforcer: ACME count 5 → 4
+│  │
+│  <span class="rd">Query Interceptor</span>
+│  │  QueryCounter final: [3/50] → log as metric
+│  │  → Dereferenced, waiting for GC
+│  │
+│  <span class="cy">Cache Manager</span>
+│     TenantScopedCache wrapper → Dereferenced
+│     (Redis connections are pooled, not per-request)
+
+
+<span class="ty">TỔNG KẾT L4 TRONG REQUEST NÀY:</span>
+
+  ┌────────────────────────┬────────┬──────────────────────────────────┐
+  │ L4 Component           │ Calls  │ Actions                          │
+  ├────────────────────────┼────────┼──────────────────────────────────┤
+  │ <span class="am">Pool Manager</span>          │   2    │ 1 acquire + 1 release            │
+  │ <span class="rd">Query Interceptor</span>     │   3    │ 3 queries (inject + validate     │
+  │                        │        │  + count + log each)             │
+  │ <span class="cy">Cache Manager</span>         │   4    │ 2 invalidates + 2 Redis writes   │
+  │ <span class="gn">Migration Engine</span>      │   0    │ Not involved in requests          │
+  ├────────────────────────┼────────┼──────────────────────────────────┤
+  │ <span class="hi">Total L4 operations</span>   │ <span class="hi">  9</span>    │                                  │
+  │ <span class="hi">Total L4 time</span>         │ <span class="hi">~5ms</span>   │ (overhead on top of DB/Redis)    │
+  └────────────────────────┴────────┴──────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['map','qi','pm','cm','me','xref','req'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

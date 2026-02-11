@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM SaaS — Architecture v2</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #08080d;
+            --sf: #101018;
+            --sf2: #16161f;
+            --bd: #1e1e2e;
+            --bda: #2e2e48;
+            --tx: #e4e4ee;
+            --td: #8e8ea8;
+            --tm: #555570;
+            --ac: #818cf8;
+            --ag: rgba(129, 140, 248, .1);
+            --gn: #34d399;
+            --gd: rgba(52, 211, 153, .08);
+            --am: #fbbf24;
+            --ad: rgba(251, 191, 36, .08);
+            --rd: #f87171;
+            --rdd: rgba(248, 113, 113, .08);
+            --cn: #22d3ee;
+            --cd: rgba(34, 211, 238, .08);
+            --pk: #f472b6;
+            --pd: rgba(244, 114, 182, .08);
+            --vi: #a78bfa;
+            --vd: rgba(167, 139, 250, .08);
+            --mono: 'JetBrains Mono', monospace;
+            --sans: 'DM Sans', sans-serif;
+            --serif: 'Instrument Serif', serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--tx);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased
+        }
+
+        /* ── Hero ── */
+        .hero {
+            padding: 64px 32px 40px;
+            text-align: center;
+            position: relative
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -300px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 900px;
+            height: 600px;
+            background: radial-gradient(ellipse, rgba(129, 140, 248, .06), transparent 70%);
+            pointer-events: none
+        }
+
+        .badge {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: var(--ac);
+            display: inline-block;
+            padding: 5px 14px;
+            border: 1px solid var(--bd);
+            border-radius: 100px;
+            background: var(--sf);
+            margin-bottom: 20px
+        }
+
+        .hero h1 {
+            font-family: var(--serif);
+            font-size: clamp(2rem, 4.5vw, 3.6rem);
+            font-weight: 400;
+            line-height: 1.15;
+            margin-bottom: 12px
+        }
+
+        .hero h1 em {
+            font-style: italic;
+            color: var(--ac)
+        }
+
+        .hero p {
+            font-size: .95rem;
+            color: var(--td);
+            max-width: 600px;
+            margin: 0 auto
+        }
+
+        /* ── Tabs ── */
+        .tabs-wrap {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(8, 8, 13, .88);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--bd);
+            padding: 0 16px
+        }
+
+        .tabs {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            gap: 1px;
+            overflow-x: auto;
+            scrollbar-width: none
+        }
+
+        .tabs::-webkit-scrollbar {
+            display: none
+        }
+
+        .tabs button {
+            font-family: var(--sans);
+            font-size: 12.5px;
+            font-weight: 500;
+            padding: 13px 16px;
+            background: none;
+            border: none;
+            color: var(--tm);
+            cursor: pointer;
+            white-space: nowrap;
+            position: relative;
+            transition: color .15s
+        }
+
+        .tabs button:hover {
+            color: var(--td)
+        }
+
+        .tabs button.on {
+            color: var(--ac)
+        }
+
+        .tabs button.on::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10px;
+            right: 10px;
+            height: 2px;
+            background: var(--ac);
+            border-radius: 2px 2px 0 0
+        }
+
+        /* ── Main ── */
+        .main {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 32px 16px 100px
+        }
+
+        .panel {
+            display: none
+        }
+
+        .panel.on {
+            display: block
+        }
+
+        /* ── Section ── */
+        .sec {
+            margin-bottom: 52px
+        }
+
+        .sec-h {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 22px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--bd)
+        }
+
+        .sec-n {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--ac);
+            background: var(--ag);
+            padding: 3px 9px;
+            border-radius: 4px;
+            letter-spacing: .8px
+        }
+
+        .sec-t {
+            font-family: var(--serif);
+            font-size: 1.6rem;
+            font-weight: 400
+        }
+
+        /* ── Card ── */
+        .c {
+            background: var(--sf);
+            border: 1px solid var(--bd);
+            border-radius: 8px;
+            padding: 22px;
+            margin-bottom: 12px;
+            transition: border-color .15s
+        }
+
+        .c:hover {
+            border-color: var(--bda)
+        }
+
+        .c-h {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px
+        }
+
+        .c-i {
+            width: 32px;
+            height: 32px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0
+        }
+
+        .c-i.ac {
+            background: var(--ag);
+            color: var(--ac)
+        }
+
+        .c-i.gn {
+            background: var(--gd);
+            color: var(--gn)
+        }
+
+        .c-i.am {
+            background: var(--ad);
+            color: var(--am)
+        }
+
+        .c-i.rd {
+            background: var(--rdd);
+            color: var(--rd)
+        }
+
+        .c-i.cn {
+            background: var(--cd);
+            color: var(--cn)
+        }
+
+        .c-i.pk {
+            background: var(--pd);
+            color: var(--pk)
+        }
+
+        .c-i.vi {
+            background: var(--vd);
+            color: var(--vi)
+        }
+
+        .c h3 {
+            font-size: .9rem;
+            font-weight: 600
+        }
+
+        .c-s {
+            font-size: .75rem;
+            color: var(--tm);
+            font-family: var(--mono)
+        }
+
+        .c p,
+        .c li {
+            font-size: .85rem;
+            color: var(--td);
+            line-height: 1.7
+        }
+
+        .c ul {
+            padding-left: 16px
+        }
+
+        .c li {
+            margin-bottom: 4px
+        }
+
+        .c li::marker {
+            color: var(--tm)
+        }
+
+        /* ── Grid ── */
+        .g2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px
+        }
+
+        .g3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px
+        }
+
+        .g4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px
+        }
+
+        .g5 {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px
+        }
+
+        @media(max-width:960px) {
+
+            .g3,
+            .g4,
+            .g5 {
+                grid-template-columns: 1fr 1fr
+            }
+        }
+
+        @media(max-width:640px) {
+
+            .g2,
+            .g3,
+            .g4,
+            .g5 {
+                grid-template-columns: 1fr
+            }
+        }
+
+        /* ── Code ── */
+        .code {
+            background: #08080e;
+            border: 1px solid var(--bd);
+            border-radius: 7px;
+            padding: 18px;
+            font-family: var(--mono);
+            font-size: 11.5px;
+            line-height: 1.8;
+            color: #a0a0c8;
+            overflow-x: auto;
+            margin: 10px 0;
+            white-space: pre
+        }
+
+        .kw {
+            color: #c792ea
+        }
+
+        .fn {
+            color: #82aaff
+        }
+
+        .st {
+            color: #c3e88d
+        }
+
+        .cm {
+            color: #4a4a68;
+            font-style: italic
+        }
+
+        .nu {
+            color: #f78c6c
+        }
+
+        .ty {
+            color: #ffcb6b
+        }
+
+        /* ── Callout ── */
+        .co {
+            padding: 16px 20px;
+            border-radius: 7px;
+            margin: 14px 0;
+            font-size: .85rem;
+            border: 1px solid
+        }
+
+        .co.inf {
+            background: var(--ag);
+            border-color: rgba(129, 140, 248, .2);
+            color: #b8b8f0
+        }
+
+        .co.wrn {
+            background: var(--ad);
+            border-color: rgba(251, 191, 36, .2);
+            color: #f0d878
+        }
+
+        .co.err {
+            background: var(--rdd);
+            border-color: rgba(248, 113, 113, .2);
+            color: #f0a0a0
+        }
+
+        .co.ok {
+            background: var(--gd);
+            border-color: rgba(52, 211, 153, .2);
+            color: #80dbb0
+        }
+
+        .co strong {
+            color: inherit
+        }
+
+        /* ── Tag ── */
+        .tag {
+            display: inline-block;
+            font-family: var(--mono);
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 3px;
+            margin-left: 6px;
+            vertical-align: middle
+        }
+
+        .tag.nw {
+            background: var(--gd);
+            color: var(--gn)
+        }
+
+        .tag.im {
+            background: var(--cd);
+            color: var(--cn)
+        }
+
+        .tag.cr {
+            background: var(--rdd);
+            color: var(--rd)
+        }
+
+        /* ── Layer bar ── */
+        .lbar {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 7px;
+            overflow: hidden;
+            border: 1px solid var(--bd)
+        }
+
+        .lbar .l {
+            flex: 1;
+            padding: 11px 8px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--sf);
+            border-right: 1px solid var(--bd)
+        }
+
+        .lbar .l:last-child {
+            border-right: none
+        }
+
+        .lbar .l span {
+            font-family: var(--mono);
+            font-size: 9px;
+            color: var(--tm);
+            display: block;
+            margin-bottom: 3px
+        }
+
+        .lbar .l.c1 {
+            border-bottom: 2px solid var(--ac)
+        }
+
+        .lbar .l.c2 {
+            border-bottom: 2px solid var(--pk)
+        }
+
+        .lbar .l.c3 {
+            border-bottom: 2px solid var(--cn)
+        }
+
+        .lbar .l.c4 {
+            border-bottom: 2px solid var(--gn)
+        }
+
+        .lbar .l.c5 {
+            border-bottom: 2px solid var(--am)
+        }
+
+        .lbar .l.c6 {
+            border-bottom: 2px solid var(--rd)
+        }
+
+        .lbar .l.c7 {
+            border-bottom: 2px solid var(--vi)
+        }
+
+        /* ── Table ── */
+        .tw {
+            overflow-x: auto;
+            margin: 14px 0;
+            border-radius: 7px;
+            border: 1px solid var(--bd)
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .82rem
+        }
+
+        th {
+            background: var(--sf2);
+            font-weight: 600;
+            text-align: left;
+            padding: 10px 14px;
+            color: var(--td);
+            font-size: .75rem;
+            letter-spacing: .4px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--bd)
+        }
+
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--bd);
+            color: var(--td)
+        }
+
+        tr:last-child td {
+            border-bottom: none
+        }
+
+        /* ── Compare ── */
+        .cmp {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--bd);
+            margin: 14px 0
+        }
+
+        .cmp-c {
+            padding: 20px
+        }
+
+        .cmp-c.old {
+            background: rgba(248, 113, 113, .03);
+            border-right: 1px solid var(--bd)
+        }
+
+        .cmp-c.new {
+            background: rgba(52, 211, 153, .03)
+        }
+
+        .cmp-c h4 {
+            font-size: .8rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .cmp-c ul {
+            padding-left: 14px
+        }
+
+        .cmp-c li {
+            font-size: .82rem;
+            color: var(--td);
+            margin-bottom: 5px
+        }
+
+        @media(max-width:640px) {
+            .cmp {
+                grid-template-columns: 1fr
+            }
+
+            .cmp-c.old {
+                border-right: none;
+                border-bottom: 1px solid var(--bd)
+            }
+        }
+
+        /* ── Anim ── */
+        @keyframes fu {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .panel.on .sec {
+            animation: fu .3s ease both
+        }
+
+        .panel.on .sec:nth-child(2) {
+            animation-delay: .05s
+        }
+
+        .panel.on .sec:nth-child(3) {
+            animation-delay: .1s
+        }
+
+        .panel.on .sec:nth-child(4) {
+            animation-delay: .15s
+        }
+
+        .dim {
+            color: var(--td)
+        }
+
+        .mt {
+            margin-top: 16px
+        }
+
+        .mb {
+            margin-bottom: 14px
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="hero">
+        <div class="badge">Architecture v2.0</div>
+        <h1>CRM Multi-tenant SaaS<br><em>Pluggable Architecture</em></h1>
+        <p>Kiến trúc 7 layers — plugin sandbox, distributed messaging, observability, resilience patterns.</p>
+    </div>
+
+    <div class="tabs-wrap">
+        <div class="tabs" id="tabs">
+            <button class="on" onclick="go('arch')">Kiến trúc tổng quan</button>
+            <button onclick="go('layers')">Chi tiết 7 Layers</button>
+
+            <button onclick="go('plugin')">Plugin System</button>
+            <button onclick="go('tenant')">Multi-tenancy</button>
+            <button onclick="go('security')">Security</button>
+        </div>
+    </div>
+
+    <div class="main">
+
+        <!-- ════════════════════════════════════════════════ -->
+        <!-- PANEL: ARCHITECTURE OVERVIEW -->
+        <!-- ════════════════════════════════════════════════ -->
+        <div class="panel on" id="p-arch">
+
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">ARCH</span>
+                    <h2 class="sec-t">Kiến trúc 7 Layers</h2>
+                </div>
+
+                <div class="lbar">
+                    <div class="l c1"><span>L1</span>Presentation</div>
+                    <div class="l c2"><span>L2</span>API Gateway</div>
+                    <div class="l c3"><span>L3</span>Business Logic</div>
+                    <div class="l c4"><span>L4</span>Data Access</div>
+                    <div class="l c5"><span>L5</span>Infrastructure</div>
+                    <div class="l c6"><span>L6</span>Cross-cutting</div>
+                    <div class="l c7"><span>L7</span>Observability</div>
+                </div>
+
+                <div class="c" style="padding:28px;overflow-x:auto">
+                    <pre class="code" style="border:none;margin:0;padding:0;background:transparent;font-size:11px">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  <span class="kw">L1  PRESENTATION</span>                                                              │
+│                                                                                 │
+│  ┌────────────┐  ┌────────────┐  ┌───────────────────┐  ┌────────────────────┐ │
+│  │  Web App   │  │ Mobile App │  │  Plugin UI Shell  │  │   Admin Console    │ │
+│  │  (React)   │  │ (RN/Flut.) │  │ (Module Federat.) │  │ (Tenant + System)  │ │
+│  └─────┬──────┘  └──────┬─────┘  └─────────┬─────────┘  └──────────┬─────────┘ │
+│        └────────────────┴──────────────────┴────────────────────────┘           │
+└─────────────────────────────────────┬───────────────────────────────────────────┘
+                                      │
+┌─────────────────────────────────────▼───────────────────────────────────────────┐
+│  <span class="kw">L2  API GATEWAY</span>                                                                │
+│                                                                                 │
+│  ┌──────────┐ ┌──────────────┐ ┌──────────┐ ┌──────────────┐ ┌──────────────┐ │
+│  │  Load    │ │   Tenant     │ │Auth+RBAC │ │ Rate Limiter │ │API Versioning│ │
+│  │ Balancer │ │  Resolver    │ │(JWT/OAuth)│ │  (Per Tier)  │ │  Manager     │ │
+│  │(Nginx/K8)│ │  + Router    │ │          │ │              │ │              │ │
+│  └──────────┘ └──────────────┘ └──────────┘ └──────────────┘ └──────────────┘ │
+└─────────────────────────────────────┬───────────────────────────────────────────┘
+                                      │
+┌─────────────────────────────────────▼───────────────────────────────────────────┐
+│  <span class="kw">L3  BUSINESS LOGIC</span>                                                             │
+│                                                                                 │
+│  ┌─ <span class="ty">Plugin Management</span> ─────────────────────────────────────────────────────────┐ │
+│  │                                                                             │ │
+│  │  ┌──────────┐ ┌──────────┐ ┌─────────┐ ┌──────────┐ ┌──────┐ ┌─────────┐ │ │
+│  │  │ Plugin   │ │ Plugin   │ │ Sandbox │ │   DI     │ │Event │ │  Hook   │ │ │
+│  │  │ Registry │ │ Manager  │ │ Engine  │ │Container │ │ Bus  │ │Registry │ │ │
+│  │  └──────────┘ └──────────┘ └─────────┘ └──────────┘ └──────┘ └─────────┘ │ │
+│  └─────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                 │
+│  ┌─ <span class="ty">Plugin Cores</span> (Singleton, Stateless) ──────────────────────────────────────┐ │
+│  │                                                                             │ │
+│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌──────────┐ ┌───────────┐ │ │
+│  │  │ Customer   │ │ Customer   │ │ Automation │ │Analytics │ │ Marketing │ │ │
+│  │  │ Data Core  │ │ Care Core  │ │ Core       │ │ Core     │ │ Core      │ │ │
+│  │  └────────────┘ └────────────┘ └────────────┘ └──────────┘ └───────────┘ │ │
+│  └─────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                 │
+│  ┌─ <span class="ty">Shared Services</span> (Singleton) ─────────────────────────────────────────────┐ │
+│  │  Email │ Storage │ Notification │ Search (ES) │ Scheduler │ MQ Publisher │ │
+│  └─────────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────┬───────────────────────────────────────────┘
+                                      │
+┌─────────────────────────────────────▼───────────────────────────────────────────┐
+│  <span class="kw">L4  DATA ACCESS</span>  <span class="cm">(automatic tenant isolation)</span>                                   │
+│                                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐ │
+│  │ Query        │  │ Tenant-Aware │  │ Cache Manager│  │ Migration Engine  │ │
+│  │ Interceptor  │  │ Pool Manager │  │ (L1+L2+L3)  │  │ (per plugin)      │ │
+│  │<span class="rd"> auto tenant_id</span>│  │ Shared + VIP │  │              │  │ transactional     │ │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └────────────────────┘ │
+└─────────────────────────────────────┬───────────────────────────────────────────┘
+                                      │
+┌─────────────────────────────────────▼───────────────────────────────────────────┐
+│  <span class="kw">L5  INFRASTRUCTURE</span>                                                             │
+│                                                                                 │
+│  ┌───────────┐  ┌───────────┐  ┌──────────────┐  ┌──────────┐  ┌───────────┐ │
+│  │PostgreSQL │  │   Redis   │  │ Message Queue│  │  Object  │  │  Search   │ │
+│  │           │  │  Cluster  │  │  (RabbitMQ/  │  │ Storage  │  │  Engine   │ │
+│  │ Shared DB │  │           │  │   Kafka)     │  │  (S3)    │  │  (ES)     │ │
+│  │ VIP DBs   │  │ L2 Cache  │  │              │  │          │  │           │ │
+│  │ Metadata  │  │ Pub/Sub   │  │ Async Events │  │ Tenant-  │  │ Per-tenant│ │
+│  │ Replicas  │  │ Sessions  │  │ DLQ          │  │ prefixed │  │ indices   │ │
+│  └───────────┘  └───────────┘  └──────────────┘  └──────────┘  └───────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+<span class="cm">┃  L6  CROSS-CUTTING CONCERNS  (vertical — xuyên suốt tất cả layers trên)       ┃</span>
+<span class="cm">┃                                                                                ┃</span>
+<span class="cm">┃  ┌─────────────────┐ ┌─────────────────┐ ┌────────────────┐ ┌──────────────┐  ┃</span>
+<span class="cm">┃  │   Security       │ │   Audit Trail   │ │ Error Handling │ │   Config     │  ┃</span>
+<span class="cm">┃  │  Enforcement     │ │  (immutable,    │ │  Framework     │ │ Management   │  ┃</span>
+<span class="cm">┃  │                 │ │   append-only)  │ │  (typed errors │ │ (global/tier/ │  ┃</span>
+<span class="cm">┃  │ • Encryption     │ │                 │ │  circuit break │ │  tenant)     │  ┃</span>
+<span class="cm">┃  │ • PII masking    │ │ • Who/What/When │ │  retry/fallbk) │ │              │  ┃</span>
+<span class="cm">┃  │ • Tenant isolat. │ │ • Before/After  │ │                │ │ • Hot reload │  ┃</span>
+<span class="cm">┃  │ • Secret mgmt   │ │ • SOC2/GDPR     │ │ • Plugin error │ │ • Feature    │  ┃</span>
+<span class="cm">┃  │   (Vault/KMS)   │ │                 │ │   boundaries   │ │   flags      │  ┃</span>
+<span class="cm">┃  └─────────────────┘ └─────────────────┘ └────────────────┘ └──────────────┘  ┃</span>
+
+<span class="fn">┃  L7  OBSERVABILITY                                                             ┃</span>
+<span class="fn">┃                                                                                ┃</span>
+<span class="fn">┃  ┌──────────────────┐ ┌──────────────────┐ ┌────────────────┐ ┌─────────────┐ ┃</span>
+<span class="fn">┃  │ Structured Logs  │ │ Distributed      │ │    Metrics     │ │  Alerting   │ ┃</span>
+<span class="fn">┃  │ (ELK / Loki)    │ │ Tracing (OTel /  │ │ (Prometheus /  │ │ (PagerDuty  │ ┃</span>
+<span class="fn">┃  │                 │ │  Jaeger / Tempo) │ │  Grafana)      │ │  / Slack)   │ ┃</span>
+<span class="fn">┃  │ • JSON format   │ │                  │ │                │ │             │ ┃</span>
+<span class="fn">┃  │ • tenant_id in  │ │ • Request→DB→    │ │ • Per-tenant   │ │ • P99>500ms │ ┃</span>
+<span class="fn">┃  │   every log     │ │   Response trace │ │   dashboards   │ │ • Err>1%    │ ┃</span>
+<span class="fn">┃  │ • PII redaction │ │ • Cross-MQ trace │ │ • Plugin perf  │ │ • DB conn   │ ┃</span>
+<span class="fn">┃  └──────────────────┘ └──────────────────┘ └────────────────┘ └─────────────┘ ┃</span>
+</pre>
+                </div>
+            </div>
+
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">INFRA</span>
+                    <h2 class="sec-t">Deployment Topology</h2>
+                </div>
+                <div class="c" style="padding:28px;overflow-x:auto">
+                    <pre class="code" style="border:none;margin:0;padding:0;background:transparent;font-size:11px">
+┌─ <span class="ty">Ingress / Load Balancer</span> (Nginx / K8s Ingress) ──────────────────────────────┐
+│   TLS termination  ·  Tenant routing  ·  Rate limiting (L7)                   │
+└──────────────────────────────┬────────────────────────────────────────────────┘
+                               │
+        ┌──────────────────────┼──────────────────────┐
+        │                      │                      │
+┌───────▼──────────┐  ┌───────▼──────────┐  ┌───────▼──────────────────┐
+│ <span class="st">crm-api</span>          │  │ <span class="st">crm-api-vip</span>      │  │ <span class="st">crm-workers</span>              │
+│ replicas: 3–10   │  │ replicas: 2–4    │  │ replicas: 2–6            │
+│ (shared tenants)  │  │ (VIP tenants)    │  │ (async: email, automati- │
+│ HPA: CPU > 70%   │  │ HPA: CPU > 60%   │  │  on, indexing, webhooks) │
+│                  │  │                  │  │ HPA: queue depth > 500   │
+└──────┬───────────┘  └──────┬───────────┘  └───────────┬──────────────┘
+       │                     │                          │
+       └─────────────────────┼──────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────────────────┐
+│  <span class="ty">Stateful Services</span>                                                         │
+│                                                                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐ │
+│  │PostgreSQL│  │  Redis   │  │ RabbitMQ │  │   S3 /   │  │Elasticsearch│ │
+│  │ Primary  │  │ Cluster  │  │ Cluster  │  │  MinIO   │  │  Cluster    │ │
+│  │+ Replicas│  │ 3 nodes  │  │ 3 nodes  │  │          │  │             │ │
+│  │+PgBouncer│  │+Sentinel │  │+ DLQ     │  │          │  │             │ │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └─────────────┘ │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │  <span class="cm">VIP Tenant Dedicated:</span>  Separate PostgreSQL + Redis per VIP tenant  │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════ -->
+        <!-- PANEL: LAYER DETAILS -->
+        <!-- ════════════════════════════════════════════════ -->
+        <div class="panel" id="p-layers">
+
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">L1</span>
+                    <h2 class="sec-t">Presentation Layer</h2>
+                </div>
+                <div class="g3">
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i ac">🌐</div>
+                            <div>
+                                <h3>Web App</h3>
+                                <div class="c-s">React + Module Federation</div>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Host shell load plugin UI modules động</li>
+                            <li>Lazy loading chỉ plugins tenant đã enable</li>
+                            <li>Shared deps (React, UI kit) qua federation</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i gn">📱</div>
+                            <div>
+                                <h3>Mobile App</h3>
+                                <div class="c-s">React Native / Flutter</div>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Dynamic feature modules per plugin</li>
+                            <li>OTA updates cho plugin UI</li>
+                            <li>Offline-first + sync queue</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i pk">⚙️</div>
+                            <div>
+                                <h3>Admin Console</h3>
+                                <div class="c-s">Tenant + System</div>
+                            </div>
+                        </div>
+                        <ul>
+                            <li><strong>Tenant:</strong> plugins, users, config, billing</li>
+                            <li><strong>System:</strong> deploy, tenants, monitoring</li>
+                            <li>Tách domain + auth hoàn toàn</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">L2</span>
+                    <h2 class="sec-t">API Gateway Layer</h2>
+                </div>
+                <div class="g2">
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i pk">🔀</div>
+                            <div>
+                                <h3>Tenant Resolution</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Resolve: subdomain / custom domain / <code>X-Tenant-ID</code></li>
+                            <li>Cache mapping tại gateway</li>
+                            <li>VIP → dedicated instance pool</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i cn">🔐</div>
+                            <div>
+                                <h3>Auth + RBAC</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>JWT + refresh token rotation</li>
+                            <li>RBAC per tenant, plugin-specific perms</li>
+                            <li>API keys cho M2M integrations</li>
+                            <li>SSO (SAML/OIDC) cho Enterprise</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i am">⏱️</div>
+                            <div>
+                                <h3>Rate Limiter</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Sliding window trên Redis</li>
+                            <li>Basic: 100, Premium: 500, Enterprise: 2000, VIP: ∞ req/min</li>
+                            <li>Burst allowance: 2× trong 5s</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i ac">🔄</div>
+                            <div>
+                                <h3>API Versioning</h3><span class="tag nw">NEW</span>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>URL-based: <code>/api/v1/</code>, <code>/api/v2/</code></li>
+                            <li>Plugin APIs version theo plugin ver</li>
+                            <li>Deprecation headers + contract tests</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">L3</span>
+                    <h2 class="sec-t">Business Logic Layer</h2>
+                </div>
+                <div class="g2">
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i ac">🧩</div>
+                            <div>
+                                <h3>Plugin Management</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li><strong>Registry:</strong> metadata, versions, dependencies</li>
+                            <li><strong>Manager:</strong> load/unload/upgrade/rollback</li>
+                            <li><strong>Sandbox:</strong> VM/Worker isolation, resource limits</li>
+                            <li><strong>DI Container:</strong> scoped per-request injection</li>
+                            <li><strong>Event Bus:</strong> sync in-process plugin comm</li>
+                            <li><strong>Hook Registry:</strong> before/after/replace/filter</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i gn">🔧</div>
+                            <div>
+                                <h3>Shared Services</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li><strong>Email:</strong> template engine + queue (async)</li>
+                            <li><strong>Storage:</strong> S3, tenant-prefixed paths</li>
+                            <li><strong>Notification:</strong> WebSocket + Push + In-app</li>
+                            <li><strong>Search:</strong> ES per-tenant index</li>
+                            <li><strong>Scheduler:</strong> cron, delayed tasks (tenant-aware)</li>
+                            <li><strong>MQ Publisher:</strong> giao diện publish distributed events</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">L4</span>
+                    <h2 class="sec-t">Data Access Layer</h2>
+                </div>
+                <div class="co inf"><strong>Core principle:</strong> Plugin KHÔNG THỂ truy cập DB trực tiếp. Mọi query
+                    đều qua Query Interceptor — tự động inject tenant_id. Plugin có bug cũng không thể leak data.</div>
+                <div class="g2">
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i rd">🛡️</div>
+                            <div>
+                                <h3>Query Interceptor</h3><span class="tag cr">CRITICAL</span>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Auto inject <code>WHERE tenant_id = $current</code></li>
+                            <li>Block queries thiếu tenant context</li>
+                            <li>Double safety: Interceptor + PostgreSQL RLS</li>
+                        </ul>
+                        <div class="code"><span class="cm">// Plugin viết:</span>
+                            ctx.db.<span class="fn">query</span>(<span class="st">'customers'</span>).<span
+                                class="fn">where</span>({ status: <span class="st">'active'</span> })
+
+                            <span class="cm">// Interceptor biến thành:</span>
+                            <span class="kw">SELECT</span> * <span class="kw">FROM</span> customers
+                            <span class="kw">WHERE</span> status=<span class="st">'active'</span> <span
+                                class="kw">AND</span> tenant_id=<span class="st">'abc-123'</span>
+                        </div>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i am">🗄️</div>
+                            <div>
+                                <h3>Pool Manager</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li><strong>Shared:</strong> max 200 conns, standard tenants</li>
+                            <li><strong>VIP:</strong> dedicated 30 conns per VIP</li>
+                            <li>Auto-create VIP pool on upgrade, drain on downgrade</li>
+                            <li>Health check 30s, PgBouncer for multiplexing</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i cn">💾</div>
+                            <div>
+                                <h3>Cache (3-Level)</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li><strong>L1:</strong> In-memory, 100MB/inst, LRU, TTL 60s</li>
+                            <li><strong>L2:</strong> Redis cluster, TTL 5-15min, compressed</li>
+                            <li><strong>L3:</strong> Database (source of truth)</li>
+                            <li>Keys: <code>t:{tenant_id}:...</code></li>
+                            <li>Invalidation: Redis Pub/Sub → clear all L1</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i gn">📦</div>
+                            <div>
+                                <h3>Migration Engine</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Per-plugin migration files</li>
+                            <li>Run on plugin enable (transactional)</li>
+                            <li>Fail → full rollback, no partial state</li>
+                            <li>Down migrations on disable</li>
+                            <li>Lock per tenant (prevent concurrent)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">L5</span>
+                    <h2 class="sec-t">Infrastructure</h2>
+                </div>
+                <div class="g3">
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i ac">🐘</div>
+                            <div>
+                                <h3>PostgreSQL</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Shared DB + RLS (Basic/Premium)</li>
+                            <li>Dedicated DB per VIP</li>
+                            <li>Metadata DB (tenants, plugins)</li>
+                            <li>Read replicas for reporting</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i rd">⚡</div>
+                            <div>
+                                <h3>Redis Cluster</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>L2 cache, sessions, rate limits</li>
+                            <li>Pub/Sub cache invalidation</li>
+                            <li>Distributed locks</li>
+                            <li>Sentinel for failover</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i gn">📨</div>
+                            <div>
+                                <h3>Message Queue</h3><span class="tag nw">NEW</span>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>RabbitMQ (or Kafka at scale)</li>
+                            <li>Async: emails, automation, indexing</li>
+                            <li>Dead Letter Queue per queue</li>
+                            <li>Per-tenant priority</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">L6</span>
+                    <h2 class="sec-t">Cross-cutting Concerns</h2><span class="tag nw">NEW</span>
+                </div>
+                <div class="co wrn"><strong>Vertical layer</strong> — xuyên suốt L1-L5. Enforce nhất quán, không phụ
+                    thuộc plugin tự implement.</div>
+                <div class="g2">
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i rd">🔒</div>
+                            <div>
+                                <h3>Security</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Encryption: AES-256 (rest), TLS 1.3 (transit)</li>
+                            <li>PII auto-masking in logs</li>
+                            <li>CSRF/XSS/SQLi protection</li>
+                            <li>Secret mgmt (Vault/KMS)</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i am">📋</div>
+                            <div>
+                                <h3>Audit Trail</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Immutable, append-only log</li>
+                            <li>Who/What/When + Before/After</li>
+                            <li>Tenant cannot delete</li>
+                            <li>SOC2/GDPR ready</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i cn">🚨</div>
+                            <div>
+                                <h3>Error Framework</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Hierarchy: System → Tenant → Plugin → Business</li>
+                            <li>Plugin error boundary (no cascade crash)</li>
+                            <li>Transient vs permanent classification</li>
+                            <li>Circuit breaker, retry, bulkhead, fallback</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i gn">⚙️</div>
+                            <div>
+                                <h3>Config</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Global / Tier / Tenant levels</li>
+                            <li>Hot reload (no restart)</li>
+                            <li>Feature flags, versioned</li>
+                            <li>Plugin config validation via schema</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">L7</span>
+                    <h2 class="sec-t">Observability</h2><span class="tag nw">NEW</span>
+                </div>
+                <div class="g3">
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i ac">📝</div>
+                            <div>
+                                <h3>Logging</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>JSON, always: tenant_id, request_id, plugin</li>
+                            <li>Per-tenant log level</li>
+                            <li>PII auto-redaction</li>
+                            <li>ELK / Grafana Loki</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i pk">🔍</div>
+                            <div>
+                                <h3>Tracing</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>OpenTelemetry SDK built-in</li>
+                            <li>Req → Gateway → Plugin → DB → Resp</li>
+                            <li>Cross-MQ trace propagation</li>
+                            <li>Jaeger / Grafana Tempo</li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i gn">📊</div>
+                            <div>
+                                <h3>Metrics + Alerting</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Prometheus: latency, throughput, errors</li>
+                            <li>Per-tenant + per-plugin dashboards</li>
+                            <li>Alerts: P99>500ms, err>1%, DB conn pool</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- ════════════════════════════════════════════════ -->
+        <!-- PANEL: PLUGIN SYSTEM -->
+        <!-- ════════════════════════════════════════════════ -->
+        <div class="panel" id="p-plugin">
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">PLG</span>
+                    <h2 class="sec-t">Plugin System Architecture</h2>
+                </div>
+                <div class="c" style="padding:24px;overflow-x:auto">
+                    <pre class="code" style="border:none;margin:0;padding:0;background:transparent;font-size:11px">
+              ┌──────────────────────────────────┐
+              │   <span class="ty">Plugin Artifact Registry</span>       │
+              │  (pre-built, validated, versioned │
+              │   OCI images / npm packages)      │
+              └───────────────┬──────────────────┘
+                              │ <span class="fn">pull</span>
+              ┌───────────────▼──────────────────┐
+              │        <span class="kw">Plugin Manager</span>            │
+              │  Lifecycle │ Dependency Resolver  │
+              │  Version   │ Rollback Controller  │
+              └───────────────┬──────────────────┘
+                              │
+     ┌────────────────────────┼────────────────────────┐
+     │                        │                        │
+┌────▼───────┐      ┌────────▼────────┐      ┌───────▼───────┐
+│<span class="ty">Sandbox Eng.</span>│      │ <span class="ty">Plugin Registry</span> │      │ <span class="ty">Hook Registry</span> │
+│ VM isolate │      │ Metadata store  │      │ before/after  │
+│ Resources  │      │ Config schemas  │      │ replace/filter│
+│ Timeout    │      │ Route defs      │      │               │
+│ Whitelist  │      │ Event handlers  │      │               │
+└────────────┘      └─────────────────┘      └───────────────┘</pre>
+                </div>
+
+                <div class="g2 mt">
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i rd">🛡️</div>
+                            <div>
+                                <h3>Sandbox Engine</h3><span class="tag cr">CRITICAL</span>
+                            </div>
+                        </div>
+                        <p class="mb">Plugin lỗi không crash process, không access data khác, không vượt resource
+                            limits.</p>
+                        <div class="code"><span class="kw">class</span> <span class="ty">PluginSandbox</span> {
+                            <span class="fn">execute</span>(core, method, ctx, args) {
+                            <span class="kw">return</span> <span class="fn">runWithLimits</span>({
+                            timeout: ctx.tier === <span class="st">'vip'</span> ? <span class="nu">10000</span> : <span
+                                class="nu">5000</span>,
+                            maxMemory: <span class="nu">50</span> * <span class="nu">1024</span> * <span
+                                class="nu">1024</span>,
+                            maxQueries: <span class="nu">50</span>,
+                            allowedAPIs: [ctx.db, ctx.cache, ctx.eventBus, ctx.logger],
+                            <span class="cm">// BLOCKED: process, fs, net, child_process</span>
+                            onError: (err) => {
+                            ctx.logger.<span class="fn">error</span>(<span class="st">'Plugin failed'</span>, { plugin:
+                            core.name, err });
+                            <span class="kw">return</span> { error: <span class="st">'SERVICE_UNAVAILABLE'</span>,
+                            fallback: <span class="kw">true</span> };
+                            }
+                            }, () => core[method](ctx, ...args));
+                            }
+                            }
+                        </div>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i am">🔄</div>
+                            <div>
+                                <h3>Deploy Pipeline</h3><span class="tag im">IMPROVED</span>
+                            </div>
+                        </div>
+                        <div class="code"><span class="cm">// v1: npm install on prod ❌ → v2: pre-built ✅</span>
+
+                            <span class="nu">1.</span> Dev push → Git
+                            <span class="nu">2.</span> CI/CD: tests + security scan + build artifact
+                            → publish to <span class="ty">Artifact Registry</span>
+                            <span class="nu">3.</span> System Admin: approve version
+                            <span class="nu">4.</span> Deploy (canary → 5% tenants → full):
+                            ├─ Pull pre-built (<span class="kw">NO npm install</span>)
+                            ├─ Validate checksum
+                            ├─ Register routes/events/hooks
+                            └─ Broadcast all instances via MQ
+                            <span class="nu">5.</span> Tenant Admin: enable → migrations → ready
+
+                            <span class="kw">Rollback:</span> error&gt;5% in 5min → auto restore prev version
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tw mt">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Service Package</th>
+                                <th>Plugins</th>
+                                <th>Min Tier</th>
+                                <th>Features</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong style="color:var(--ac)">Core CRM</strong></td>
+                                <td>customer-data</td>
+                                <td>Basic</td>
+                                <td>Contacts, Companies, Notes, Tags, Custom Fields</td>
+                            </tr>
+                            <tr>
+                                <td><strong style="color:var(--cn)">Customer Care</strong></td>
+                                <td>care, call-center</td>
+                                <td>Premium</td>
+                                <td>Sales Pipeline, Call Logs, Tickets, SLA</td>
+                            </tr>
+                            <tr>
+                                <td><strong style="color:var(--am)">Automation</strong></td>
+                                <td>rules, workflow</td>
+                                <td>Premium</td>
+                                <td>Rule Engine, Email Sequences, Triggers</td>
+                            </tr>
+                            <tr>
+                                <td><strong style="color:var(--gn)">Analytics</strong></td>
+                                <td>analytics, reports</td>
+                                <td>Enterprise</td>
+                                <td>Dashboards, Reports, Export, Forecasting</td>
+                            </tr>
+                            <tr>
+                                <td><strong style="color:var(--pk)">Marketing</strong></td>
+                                <td>campaigns, scoring</td>
+                                <td>Enterprise</td>
+                                <td>Email Campaigns, Lead Scoring, A/B</td>
+                            </tr>
+                            <tr>
+                                <td><strong style="color:var(--rd)">Custom</strong></td>
+                                <td>tenant-specific</td>
+                                <td>VIP</td>
+                                <td>Custom-built for enterprise clients</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════ -->
+        <!-- PANEL: MULTI-TENANCY -->
+        <!-- ════════════════════════════════════════════════ -->
+        <div class="panel" id="p-tenant">
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">TNT</span>
+                    <h2 class="sec-t">Tenant Isolation Model</h2>
+                </div>
+                <div class="c" style="padding:24px;overflow-x:auto">
+                    <pre class="code" style="border:none;margin:0;padding:0;background:transparent;font-size:11px">
+<span class="kw">BASIC / PREMIUM</span> — shared infrastructure
+┌──────────────────────────────────────────────────────────────┐
+│ App Instances: shared pool (any tenant → any instance)       │
+│ Database:      shared tables + RLS + Query Interceptor       │
+│ Redis:         shared cluster, keys prefixed <span class="st">t:{id}:</span>         │
+│ MQ:            shared queues, tenant_id in every message     │
+└──────────────────────────────────────────────────────────────┘
+
+<span class="kw">ENTERPRISE VIP</span> — hybrid (dedicated + shared fallback)
+┌──────────────────────────────────────────────────────────────┐
+│ App Instances: dedicated pool (2–3) + shared as fallback     │
+│ Database:      dedicated PostgreSQL instance                 │
+│ Redis:         dedicated instance, higher memory             │
+│ MQ:            priority queues, processed first              │
+└──────────────────────────────────────────────────────────────┘</pre>
+                </div>
+
+                <div class="g2 mt">
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i ac">🧊</div>
+                            <div>
+                                <h3>Tenant Context (cached ~10KB)</h3>
+                            </div>
+                        </div>
+                        <div class="code"><span class="ty">TenantContext</span> {
+                            tenantId, tier, status,
+                            enabledPlugins: <span class="ty">Map</span>&lt;name, {
+                            core: <span class="cm">→ ref to singleton</span>
+                            config: <span class="cm">→ tenant-specific</span>
+                            version
+                            }&gt;,
+                            permissions: <span class="ty">Set</span>, features: <span class="ty">Set</span>,
+                            quotas: <span class="ty">TierQuotas</span>,
+                            dbPool: <span class="st">'shared'</span> | <span class="st">'vip-{id}'</span>,
+                            cachePrefix: <span class="st">'t:abc-123'</span>
+                            }
+                            <span class="cm">// LRU: max 1000, evict 2h inactive</span>
+                        </div>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i cn">⚡</div>
+                            <div>
+                                <h3>Execution Context (per-request ~15KB)</h3>
+                            </div>
+                        </div>
+                        <div class="code"><span class="ty">ExecutionContext</span> {
+                            requestId, tenantId, userId, roles,
+                            db: <span class="ty">TenantScopedDB</span>, <span class="cm">// auto tenant_id</span>
+                            cache: <span class="ty">TenantScopedCache</span>, <span class="cm">// auto prefix</span>
+                            logger: <span class="ty">ScopedLogger</span>, <span class="cm">// auto context</span>
+                            services: {
+                            email, storage, notification,
+                            eventBus: <span class="ty">ScopedEventBus</span> <span class="cm">// scoped events</span>
+                            },
+                            pluginConfig
+                            }
+                            <span class="cm">// Lives 1 request only → GC after response</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tw mt">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Basic</th>
+                                <th>Premium</th>
+                                <th>Enterprise</th>
+                                <th>VIP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Database</td>
+                                <td>Shared (RLS)</td>
+                                <td>Shared (RLS)</td>
+                                <td>Shared (Schema)</td>
+                                <td>Dedicated</td>
+                            </tr>
+                            <tr>
+                                <td>App Instances</td>
+                                <td>Shared</td>
+                                <td>Shared</td>
+                                <td>Shared</td>
+                                <td>Dedicated</td>
+                            </tr>
+                            <tr>
+                                <td>Rate Limit</td>
+                                <td>100/min</td>
+                                <td>500/min</td>
+                                <td>2000/min</td>
+                                <td>Unlimited</td>
+                            </tr>
+                            <tr>
+                                <td>Storage</td>
+                                <td>5 GB</td>
+                                <td>50 GB</td>
+                                <td>500 GB</td>
+                                <td>Unlimited</td>
+                            </tr>
+                            <tr>
+                                <td>Plugins</td>
+                                <td>Core</td>
+                                <td>Core+Care+Auto</td>
+                                <td>All standard</td>
+                                <td>All+Custom</td>
+                            </tr>
+                            <tr>
+                                <td>SLA</td>
+                                <td>99.5%</td>
+                                <td>99.9%</td>
+                                <td>99.95%</td>
+                                <td>99.99%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════ -->
+        <!-- PANEL: SECURITY -->
+        <!-- ════════════════════════════════════════════════ -->
+        <div class="panel" id="p-security">
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">SEC</span>
+                    <h2 class="sec-t">Security — Defense in Depth</h2>
+                </div>
+                <div class="c" style="padding:24px;overflow-x:auto">
+                    <pre class="code" style="border:none;margin:0;padding:0;background:transparent;font-size:11px">
+<span class="kw">Layer Defense Map:</span>
+
+<span class="ty">L1 Presentation</span>   CSP headers, XSS sanitization, CORS whitelist
+       │
+<span class="ty">L2 API Gateway</span>    TLS 1.3, JWT validation, RBAC, Rate limit, IP whitelist (VIP)
+       │
+<span class="ty">L3 Business</span>       Plugin sandbox, input validation, permission checks, CSRF
+       │
+<span class="ty">L4 Data Access</span>    <span class="fn">Query Interceptor (auto tenant_id)</span> + parameterized queries + RLS
+       │
+<span class="ty">L5 Infrastructure</span> Encryption at rest (AES-256), network segmentation, mTLS
+       │
+<span class="ty">L6 Cross-cutting</span>  Audit trail, PII masking, secret management (Vault)
+       │
+<span class="ty">L7 Observability</span>  Anomaly detection, security event alerting, access logs</pre>
+                </div>
+
+                <div class="g2 mt">
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i rd">🛡️</div>
+                            <div>
+                                <h3>Tenant Data Isolation (3 layers)</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li><strong>Layer 1 — Query Interceptor:</strong> auto-inject tenant_id. Plugin CANNOT
+                                bypass.</li>
+                            <li><strong>Layer 2 — PostgreSQL RLS:</strong> DB-level enforcement. Backup dù interceptor
+                                có bug.</li>
+                            <li><strong>Layer 3 — Audit + Alert:</strong> cross-tenant query attempt → immediate alert.
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="c-i am">🔑</div>
+                            <div>
+                                <h3>Auth Flow</h3>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>Access token: 15min, refresh: 7d, rotation per use</li>
+                            <li>Token blacklist in Redis (logout/revocation)</li>
+                            <li>M2M: API keys + HMAC signatures</li>
+                            <li>Enterprise: SAML 2.0 / OIDC SSO</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /main -->
+
+    <script>
+        function go(n) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+            document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('on'));
+            var p = document.getElementById('p-' + n);
+            if (p) p.classList.add('on');
+            var names = ['arch', 'layers', 'plugin', 'tenant', 'security'];
+            var i = names.indexOf(n);
+            var btns = document.querySelectorAll('.tabs button');
+            if (i >= 0 && btns[i]) btns[i].classList.add('on');
+            window.scrollTo({ top: 180, behavior: 'smooth' });
+        }
+    </script>
+</body>
+
+</html>

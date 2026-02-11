@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Plugin System — Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;--sf3:#171a28;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--bld:rgba(59,130,246,.1);--blg:rgba(59,130,246,.25);
+  --gn:#10b981;--gnd:rgba(16,185,129,.08);
+  --am:#f59e0b;--amd:rgba(245,158,11,.08);
+  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
+  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
+  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
+  --or:#f97316;--ord:rgba(249,115,22,.08);
+  --pk:#ec4899;--pkd:rgba(236,72,153,.08);
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+
+/* hero */
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse 600px 300px at 50% 0%,rgba(59,130,246,.05),transparent),
+  repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),
+  repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);
+  opacity:.3;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(2rem,4.5vw,3.4rem);font-weight:800;line-height:1.1;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--bl)}
+.hero p{font-size:1rem;color:var(--td);max-width:640px;margin:0 auto;font-family:var(--body)}
+
+/* nav */
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1280px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--bl)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
+
+/* layout */
+.wrap{max-width:1280px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+
+/* diagram box */
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:
+  repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.3) 23px,rgba(28,32,56,.3) 24px),
+  repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.3) 23px,rgba(28,32,56,.3) 24px);
+  pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.dg .kw{color:#c792ea}.dg .fn{color:#82aaff}.dg .st{color:#c3e88d}.dg .cm{color:#3e4460;font-style:italic}.dg .nu{color:#f78c6c}.dg .ty{color:#ffcb6b}.dg .hi{color:#3b82f6;font-weight:600}.dg .gn{color:#10b981}.dg .rd{color:#ef4444}.dg .am{color:#f59e0b}.dg .cy{color:#06b6d4}.dg .vi{color:#8b5cf6}.dg .pk{color:#ec4899}.dg .or{color:#f97316}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+
+/* card */
+.c{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:22px;margin-bottom:12px;transition:border-color .15s}
+.c:hover{border-color:var(--bda)}
+.c-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.bl{background:var(--bl)}.dot.gn{background:var(--gn)}.dot.am{background:var(--am)}.dot.rd{background:var(--rd)}.dot.cy{background:var(--cy)}.dot.vi{background:var(--vi)}.dot.or{background:var(--or)}.dot.pk{background:var(--pk)}
+.c h3{font-family:var(--head);font-size:.88rem;font-weight:600}
+.c p,.c li{font-size:.88rem;color:var(--td);line-height:1.75}
+.c ul{padding-left:16px}.c li{margin-bottom:4px}
+.c li strong{color:var(--tx)}
+
+/* note callout */
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
+.nt strong{color:inherit}
+
+/* grids */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:960px){.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
+
+/* tag */
+.tag{display:inline-block;font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:2px;margin-left:6px;vertical-align:middle;letter-spacing:.5px}
+.tag.req{background:var(--rdd);color:var(--rd)}.tag.opt{background:var(--gnd);color:var(--gn)}.tag.new{background:var(--bld);color:var(--bl)}
+
+/* anim */
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+.pnl.on .sec:nth-child(2){animation-delay:.04s}
+.pnl.on .sec:nth-child(3){animation-delay:.08s}
+.pnl.on .sec:nth-child(4){animation-delay:.12s}
+.pnl.on .sec:nth-child(5){animation-delay:.16s}
+
+/* step indicator */
+.steps{display:flex;gap:2px;margin:16px 0}
+.stp{flex:1;text-align:center;padding:10px 6px;background:var(--sf2);font-family:var(--mono);font-size:10px;color:var(--tm);border:1px solid var(--bd);position:relative}
+.stp:first-child{border-radius:4px 0 0 4px}.stp:last-child{border-radius:0 4px 4px 0}
+.stp .sn{display:block;font-size:16px;font-weight:600;margin-bottom:2px}
+.stp.bl .sn{color:var(--bl)}.stp.gn .sn{color:var(--gn)}.stp.am .sn{color:var(--am)}.stp.rd .sn{color:var(--rd)}.stp.cy .sn{color:var(--cy)}.stp.vi .sn{color:var(--vi)}.stp.or .sn{color:var(--or)}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Plugin System Deep Dive</div>
+    <h1>Giải phẫu <span>Plugin</span></h1>
+    <p>Cấu trúc, vòng đời, cơ chế scan, mối quan hệ phụ thuộc, luồng hoạt động — trình bày qua biểu đồ.</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('anatomy')">Cấu trúc Plugin</button>
+    <button onclick="go('create')">Tạo Plugin</button>
+    <button onclick="go('scan')">Cơ chế Scan</button>
+    <button onclick="go('deps')">Quan hệ & Phụ thuộc</button>
+    <button onclick="go('use')">Sử dụng Plugin</button>
+    <button onclick="go('flow')">Luồng Runtime</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 1. ANATOMY -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl on" id="p-anatomy">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Cấu trúc tổng quan của một Plugin</h2></div>
+
+    <div class="dg"><div class="dg-label">plugin anatomy</div><pre>
+┌─────────────────────────────────────────────────────────────────────┐
+│                                                                     │
+│   📦  <span class="hi">customer-care-plugin/</span>                                       │
+│                                                                     │
+│   ┌─────────────────────────────────────────────────────────────┐   │
+│   │  <span class="ty">plugin.manifest.json</span>                                       │   │
+│   │                                                             │   │
+│   │  Định danh plugin: tên, version, tier yêu cầu              │   │
+│   │  Khai báo: dependencies, permissions, resource limits       │   │
+│   │  Đăng ký: events emit/listen, routes, hooks                 │   │
+│   │                                                             │   │
+│   │  → <span class="cm">Đây là "hộ chiếu" của plugin — hệ thống đọc file này</span>    │   │
+│   │    <span class="cm">TRƯỚC KHI chạy bất kỳ code nào của plugin</span>               │   │
+│   └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│   ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐     │
+│   │              │  │              │  │                      │     │
+│   │  <span class="fn">core.js</span>     │  │  <span class="fn">routes.js</span>  │  │  <span class="fn">events.js</span>          │     │
+│   │              │  │              │  │                      │     │
+│   │  Business    │  │  API route   │  │  Event handlers      │     │
+│   │  logic       │  │  definitions │  │  (listen to other    │     │
+│   │  (stateless) │  │  (REST/GQL)  │  │   plugins' events)   │     │
+│   │              │  │              │  │                      │     │
+│   └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘     │
+│          │                 │                     │                  │
+│   ┌──────┴─────────────────┴─────────────────────┴───────────┐     │
+│   │                    <span class="ty">hooks.js</span>                               │     │
+│   │                                                          │     │
+│   │  Extension points: can hook into OTHER plugins' logic    │     │
+│   │  before:customerCreate, after:salesUpdate, filter:report │     │
+│   └──────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│   ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐     │
+│   │              │  │              │  │                      │     │
+│   │  <span class="gn">migrations/</span> │  │  <span class="cy">ui/</span>         │  │  <span class="am">config.schema.json</span> │     │
+│   │              │  │              │  │                      │     │
+│   │  SQL files   │  │  Frontend    │  │  Validation schema   │     │
+│   │  for DB      │  │  components  │  │  for tenant-specific │     │
+│   │  tables      │  │  (Module     │  │  configuration       │     │
+│   │  this plugin │  │   Federation)│  │                      │     │
+│   │  needs       │  │              │  │                      │     │
+│   └──────────────┘  └──────────────┘  └──────────────────────┘     │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Vai trò từng thành phần</h2></div>
+
+    <div class="dg"><div class="dg-label">component roles</div><pre>
+<span class="ty">plugin.manifest.json</span>
+│
+├── <span class="hi">Identity</span>          name, version, description
+├── <span class="hi">Requirements</span>      minSystemVersion, required tier(s)
+├── <span class="hi">Dependencies</span>      plugins needed, services needed
+├── <span class="hi">Permissions</span>       db:read, db:write, email:send, storage:write
+├── <span class="hi">Resources</span>         maxMemory, maxCPU, maxDBQueries per request
+├── <span class="hi">Events</span>            emits: [...], listens: [...]
+├── <span class="hi">Routes</span>            prefix, middleware requirements
+└── <span class="hi">Hooks</span>             extension points provided & consumed
+
+
+<span class="fn">core.js</span>  ─────── Business logic (stateless singleton)
+                  │
+                  ├── KHÔNG giữ state giữa các requests
+                  ├── Nhận ExecutionContext → xử lý → trả kết quả
+                  ├── Gọi DB, Cache qua context (tenant-scoped)
+                  └── 1 instance phục vụ TẤT CẢ tenants
+
+
+<span class="fn">routes.js</span> ────── Khai báo REST endpoints
+                  │
+                  ├── <span class="st">GET  /api/v1/sales</span>          → core.getSales(ctx)
+                  ├── <span class="st">POST /api/v1/sales</span>          → core.createSale(ctx)
+                  ├── <span class="st">GET  /api/v1/calls/:id</span>      → core.getCall(ctx)
+                  └── Routes tự động đăng ký khi plugin được load
+
+
+<span class="fn">events.js</span> ────── Event handlers
+                  │
+                  ├── <span class="gn">Sync handlers</span>  (in-process, cùng request)
+                  │   └── customer.created → tạo sales opportunity
+                  │
+                  └── <span class="cy">Async handlers</span> (distributed, qua MQ)
+                      └── customer.created → gửi notification cho sales team
+
+
+<span class="ty">hooks.js</span> ─────── Extension points
+                  │
+                  ├── <span class="am">Provides:</span>  hook points mà plugins KHÁC có thể hook vào
+                  │   └── before:saleCreate, after:saleCreate
+                  │
+                  └── <span class="vi">Consumes:</span>  hook vào plugins KHÁC
+                      └── filter:customerList → thêm sales data vào customer list
+
+
+<span class="gn">migrations/</span> ──── DB schema cho plugin
+                  │
+                  ├── Chạy khi plugin được ENABLE cho 1 tenant
+                  ├── Rollback khi plugin bị DISABLE
+                  └── Mỗi file = 1 migration step (transactional)
+
+
+<span class="cy">ui/</span> ──────────── Frontend components
+                  │
+                  ├── remoteEntry.js → Module Federation entry point
+                  ├── Shell app load UI này dynamically
+                  └── Chỉ load khi tenant đã enable plugin
+
+
+<span class="am">config.schema</span> ── Tenant configuration validation
+                  │
+                  ├── Mỗi tenant có config RIÊNG cho plugin này
+                  ├── Schema đảm bảo config hợp lệ
+                  └── VD: Twilio SID, email templates, SLA thresholds</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 2. CREATE -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-create">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Quy trình tạo một Plugin mới</h2></div>
+
+    <div class="steps">
+        <div class="stp bl"><span class="sn">①</span>Scaffold</div>
+        <div class="stp gn"><span class="sn">②</span>Develop</div>
+        <div class="stp am"><span class="sn">③</span>Test</div>
+        <div class="stp cy"><span class="sn">④</span>Build</div>
+        <div class="stp vi"><span class="sn">⑤</span>Publish</div>
+        <div class="stp or"><span class="sn">⑥</span>Approve</div>
+        <div class="stp rd"><span class="sn">⑦</span>Deploy</div>
+    </div>
+
+    <div class="dg"><div class="dg-label">creation pipeline</div><pre>
+<span class="hi">① SCAFFOLD</span>
+│
+│   Developer chạy CLI tool:
+│   <span class="st">$ crm-cli plugin create --name "loyalty-program" --tier premium</span>
+│
+│   CLI tự động tạo:
+│   ┌─ loyalty-program/
+│   ├── plugin.manifest.json    <span class="cm">(pre-filled template)</span>
+│   ├── core.js                 <span class="cm">(empty class với lifecycle methods)</span>
+│   ├── routes.js               <span class="cm">(example route)</span>
+│   ├── events.js               <span class="cm">(example handler)</span>
+│   ├── hooks.js                <span class="cm">(empty)</span>
+│   ├── migrations/             <span class="cm">(empty dir)</span>
+│   ├── ui/                     <span class="cm">(React template)</span>
+│   ├── config.schema.json      <span class="cm">(empty schema)</span>
+│   └── tests/                  <span class="cm">(test template)</span>
+│
+▼
+<span class="gn">② DEVELOP</span>
+│
+│   Developer implement:
+│   ┌───────────────────────────────────────────────────────┐
+│   │  manifest  →  khai báo deps, perms, events, routes   │
+│   │  core      →  business logic (stateless methods)      │
+│   │  routes    →  REST endpoints                          │
+│   │  events    →  handlers cho events từ plugins khác     │
+│   │  hooks     →  extension points                        │
+│   │  migrations→  SQL schema                              │
+│   │  ui        →  React components                        │
+│   │  config    →  tenant config schema                    │
+│   └───────────────────────────────────────────────────────┘
+│
+│   <span class="cm">Quy tắc quan trọng:</span>
+│   <span class="rd">✗</span> Không import modules hệ thống (fs, net, process)
+│   <span class="rd">✗</span> Không truy cập DB trực tiếp, phải qua ctx.db
+│   <span class="rd">✗</span> Không giữ state trong biến global
+│   <span class="gn">✓</span> Mọi thứ qua ExecutionContext
+│   <span class="gn">✓</span> Stateless — cùng input → cùng output
+│
+▼
+<span class="am">③ TEST</span>
+│
+│   ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐
+│   │ Unit Tests  │  │ Integration  │  │ Contract Tests   │
+│   │             │  │ Tests        │  │                  │
+│   │ Core logic  │  │ DB, Cache,   │  │ API contracts    │
+│   │ isolated    │  │ Events       │  │ Event schemas    │
+│   │             │  │ against real │  │ Hook interfaces  │
+│   │             │  │ sandbox env  │  │                  │
+│   └─────────────┘  └──────────────┘  └──────────────────┘
+│
+▼
+<span class="cy">④ BUILD</span>  (CI/CD — automated)
+│
+│   ┌─────────────────────────────────────────────────┐
+│   │  Code lint + type check                         │
+│   │  Security scan (Snyk / Trivy)                   │
+│   │  Bundle code + all dependencies                 │
+│   │  Validate manifest schema                       │
+│   │  Generate checksum (SHA-256)                    │
+│   │  Package → plugin artifact (.tgz / OCI image)  │
+│   └─────────────────────────────────────────────────┘
+│
+│   <span class="am">⚠ Dependencies được bundle VÀO artifact</span>
+│   <span class="am">  → Không cần npm install trên production</span>
+│
+▼
+<span class="vi">⑤ PUBLISH</span>
+│
+│   Artifact → <span class="ty">Plugin Artifact Registry</span>
+│   ┌──────────────────────────────────────┐
+│   │  loyalty-program@1.0.0               │
+│   │  artifact: loyalty-program-1.0.0.tgz │
+│   │  checksum: sha256:a1b2c3...          │
+│   │  manifest: { ... }                   │
+│   │  status: <span class="am">pending_approval</span>             │
+│   └──────────────────────────────────────┘
+│
+▼
+<span class="or">⑥ APPROVE</span>
+│
+│   System Admin review:
+│   ├── Manifest: permissions hợp lý?
+│   ├── Resource limits: reasonable?
+│   ├── Security scan: clean?
+│   ├── Dependencies: trusted?
+│   └── Approve → status: <span class="gn">approved</span>
+│
+▼
+<span class="rd">⑦ DEPLOY</span>
+│
+│   ┌─────────────────────────────────────────┐
+│   │  Pull artifact từ registry              │
+│   │  Validate checksum                      │
+│   │  Load vào Plugin Manager                │
+│   │  Canary: 5% tenants (monitor 1h)        │
+│   │  OK → Rollout 100%                      │
+│   │  NG → Auto-rollback                     │
+│   └─────────────────────────────────────────┘
+│
+│   Plugin giờ <span class="gn">available</span> trong hệ thống
+│   Nhưng chưa tenant nào dùng — cần ENABLE
+│
+└── <span class="cm">End of creation pipeline</span></pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 3. SCAN -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-scan">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Cơ chế Scan & Load Plugin</h2></div>
+
+    <div class="nt bl"><strong>Khi nào scan xảy ra?</strong> (1) Application bootstrap, (2) Hot deploy plugin mới, (3) Plugin update broadcast từ instance khác.</div>
+
+    <div class="dg"><div class="dg-label">bootstrap scan flow</div><pre>
+<span class="hi">APPLICATION BOOTSTRAP</span>
+│
+│  <span class="ty">Phase 1: Discovery</span>
+│  │
+│  │   Plugin Manager query Metadata DB:
+│  │   ┌──────────────────────────────────────────────────────┐
+│  │   │  SELECT name, version, artifact_url, checksum, status │
+│  │   │  FROM plugin_registry                                 │
+│  │   │  WHERE status = 'active'                              │
+│  │   └──────────────────────────────────────────────────────┘
+│  │
+│  │   Result:
+│  │   ┌─────────────────┬─────────┬──────────────────────────┐
+│  │   │ name            │ version │ artifact_url             │
+│  │   ├─────────────────┼─────────┼──────────────────────────┤
+│  │   │ customer-data   │ 2.1.0   │ registry/cust-data-2.1   │
+│  │   │ customer-care   │ 1.5.0   │ registry/cust-care-1.5   │
+│  │   │ automation      │ 3.0.0   │ registry/automate-3.0    │
+│  │   │ analytics       │ 1.2.0   │ registry/analytics-1.2   │
+│  │   │ marketing       │ 1.0.0   │ registry/marketing-1.0   │
+│  │   └─────────────────┴─────────┴──────────────────────────┘
+│  │
+│  ▼
+│  <span class="ty">Phase 2: Dependency Resolution</span>
+│  │
+│  │   Đọc manifest của từng plugin → xây dựng dependency graph:
+│  │
+│  │   ┌──────────────────────────────────────────────────────────┐
+│  │   │                                                          │
+│  │   │            <span class="hi">customer-data</span>  (no deps — root)              │
+│  │   │               ▲      ▲                                   │
+│  │   │               │      │                                   │
+│  │   │     <span class="gn">customer-care</span>  <span class="am">analytics</span>                          │
+│  │   │          ▲                                               │
+│  │   │          │                                               │
+│  │   │     <span class="vi">automation</span>                                        │
+│  │   │          ▲                                               │
+│  │   │          │                                               │
+│  │   │     <span class="pk">marketing</span>                                         │
+│  │   │                                                          │
+│  │   └──────────────────────────────────────────────────────────┘
+│  │
+│  │   Topological sort → load order:
+│  │   <span class="nu">1.</span> customer-data
+│  │   <span class="nu">2.</span> customer-care, analytics  <span class="cm">(parallel — no deps on each other)</span>
+│  │   <span class="nu">3.</span> automation
+│  │   <span class="nu">4.</span> marketing
+│  │
+│  ▼
+│  <span class="ty">Phase 3: Validation</span>
+│  │
+│  │   For each plugin (in dependency order):
+│  │   ┌───────────────────────────────────────────────────────┐
+│  │   │                                                       │
+│  │   │  ☐ Checksum matches artifact?               <span class="gn">PASS/</span><span class="rd">FAIL</span> │
+│  │   │  ☐ All plugin dependencies available?        <span class="gn">PASS/</span><span class="rd">FAIL</span> │
+│  │   │  ☐ All service dependencies available?       <span class="gn">PASS/</span><span class="rd">FAIL</span> │
+│  │   │  ☐ System version >= minSystemVersion?       <span class="gn">PASS/</span><span class="rd">FAIL</span> │
+│  │   │  ☐ Manifest schema valid?                    <span class="gn">PASS/</span><span class="rd">FAIL</span> │
+│  │   │  ☐ No circular dependencies?                 <span class="gn">PASS/</span><span class="rd">FAIL</span> │
+│  │   │  ☐ Permissions declared & approved?           <span class="gn">PASS/</span><span class="rd">FAIL</span> │
+│  │   │                                                       │
+│  │   │  Any FAIL → <span class="rd">skip plugin, log error, alert ops</span>         │
+│  │   │  All PASS → proceed to load                           │
+│  │   └───────────────────────────────────────────────────────┘
+│  │
+│  ▼
+│  <span class="ty">Phase 4: Instantiation</span>
+│  │
+│  │   For each validated plugin:
+│  │
+│  │   ┌─ Load ──────────────────────────────────────────────┐
+│  │   │                                                     │
+│  │   │  Import plugin artifact (pre-built bundle)          │
+│  │   │           │                                         │
+│  │   │           ▼                                         │
+│  │   │  Create Plugin Core instance  <span class="cm">(SINGLETON)</span>          │
+│  │   │           │                                         │
+│  │   │           ▼                                         │
+│  │   │  Inject shared services via DI Container:           │
+│  │   │    • DB Pool Manager                                │
+│  │   │    • Cache Manager                                  │
+│  │   │    • Email Service                                  │
+│  │   │    • Event Bus                                      │
+│  │   │    • Logger                                         │
+│  │   │           │                                         │
+│  │   │           ▼                                         │
+│  │   │  Call <span class="fn">core.onLoad()</span>  — plugin initialization         │
+│  │   │           │                                         │
+│  │   │           ▼                                         │
+│  │   │  Register:                                          │
+│  │   │    • Routes    → Route Registry                     │
+│  │   │    • Events    → Event Bus (sync handlers)          │
+│  │   │    • Events    → MQ Consumer (async handlers)       │
+│  │   │    • Hooks     → Hook Registry                      │
+│  │   │           │                                         │
+│  │   │           ▼                                         │
+│  │   │  Store in Plugin Cores Map:                         │
+│  │   │    <span class="st">pluginCores.set('customer-care', coreInstance)</span>   │
+│  │   │                                                     │
+│  │   └─────────────────────────────────────────────────────┘
+│  │
+│  ▼
+│  <span class="gn">✓ All plugins loaded. System ready.</span></pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Hot Deploy Scan (runtime)</h2></div>
+    <div class="dg"><div class="dg-label">hot deploy scan</div><pre>
+<span class="hi">NEW PLUGIN DEPLOYED TO INSTANCE 1</span>
+│
+│  Instance 1:
+│  ├── Pull artifact, validate, load, register
+│  └── Publish via MQ: <span class="st">"plugin.deployed: loyalty-program@1.0.0"</span>
+│
+│  ┌─────────────────────────────────────────────────────────────┐
+│  │                    Message Queue (RabbitMQ)                  │
+│  │                                                             │
+│  │   Exchange: <span class="ty">system.events</span> (fanout)                        │
+│  │   Message:  { type: "plugin.deployed",                      │
+│  │              name: "loyalty-program", version: "1.0.0" }    │
+│  └──────┬──────────────┬──────────────┬───────────────────────┘
+│         │              │              │
+│    Instance 2     Instance 3     Instance 4
+│    ┌─────────┐   ┌─────────┐   ┌─────────┐
+│    │ Receive  │   │ Receive  │   │ Receive  │
+│    │ Pull     │   │ Pull     │   │ Pull     │
+│    │ Validate │   │ Validate │   │ Validate │
+│    │ Load     │   │ Load     │   │ Load     │
+│    │ Register │   │ Register │   │ Register │
+│    │ <span class="gn">Ready</span>   │   │ <span class="gn">Ready</span>   │   │ <span class="gn">Ready</span>   │
+│    └─────────┘   └─────────┘   └─────────┘
+│
+│  <span class="cm">Tất cả instances sync trong ~5 giây</span>
+│  <span class="cm">Existing requests không bị ảnh hưởng</span></pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 4. DEPENDENCIES -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-deps">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Mối quan hệ giữa các Plugin</h2></div>
+
+    <div class="dg"><div class="dg-label">relationship types</div><pre>
+Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ gọi trực tiếp nhau:
+
+
+<span class="ty">① DEPENDENCY</span> (khai báo trong manifest)
+─────────────────────────────────────────────
+   customer-care  ──<span class="rd">depends on</span>──▶  customer-data
+
+   • care KHÔNG THỂ hoạt động nếu customer-data chưa load
+   • Hệ thống enforce: load customer-data TRƯỚC care
+   • Nếu customer-data bị disable → care cũng bị disable
+
+
+<span class="ty">② EVENTS</span> (loose coupling, pub/sub)
+─────────────────────────────────────────────
+   customer-data  ──<span class="gn">emits</span>──▶  "customer.created"
+                                     │
+                        ┌────────────┼──────────────┐
+                        ▼            ▼              ▼
+                   customer-care  automation    analytics
+                   <span class="cm">(tạo sales)</span>   <span class="cm">(send email)</span> <span class="cm">(update count)</span>
+
+   • Publisher không biết có bao nhiêu subscribers
+   • Subscriber có thể thêm/bớt mà không sửa publisher
+   • Sync events (in-process) + Async events (MQ)
+
+
+<span class="ty">③ HOOKS</span> (extension points)
+─────────────────────────────────────────────
+   customer-data  ──<span class="am">provides hook</span>──▶  "filter:customerList"
+                                              │
+                                     ┌────────┴────────┐
+                                     ▼                 ▼
+                              customer-care       analytics
+                              <span class="cm">(add sales data</span>    <span class="cm">(add score</span>
+                              <span class="cm"> to each customer)</span> <span class="cm"> to each customer)</span>
+
+   • Plugin A cung cấp hook point
+   • Plugin B, C đăng ký handler cho hook đó
+   • Khi A chạy đến hook point → gọi tất cả handlers
+   • Khác event: hooks MODIFY data (filter/transform)
+
+
+<span class="ty">④ SHARED SERVICES</span> (indirect interaction)
+─────────────────────────────────────────────
+   customer-care  ──<span class="cy">uses</span>──▶  EmailService  ◀──<span class="cy">uses</span>──  automation
+   analytics      ──<span class="cy">uses</span>──▶  CacheManager  ◀──<span class="cy">uses</span>──  marketing
+
+   • Plugins không biết về nhau
+   • Nhưng share cùng infrastructure services
+   • Services đảm bảo tenant isolation</pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Dependency Graph — Full System</h2></div>
+
+    <div class="dg"><div class="dg-label">dependency graph</div><pre>
+<span class="cm">Legend:  ───▶ hard dependency    - - ▶ event subscription    ═══▶ hook</span>
+
+                          ┌──────────────────┐
+                          │                  │
+                          │  <span class="hi">customer-data</span>  │  <span class="cm">ROOT — no dependencies</span>
+                          │                  │
+                          │  <span class="cm">emits:</span>          │
+                          │  customer.created│
+                          │  customer.updated│
+                          │  customer.deleted│
+                          │                  │
+                          │  <span class="cm">hooks provided:</span> │
+                          │  filter:custList │
+                          │  before:custSave │
+                          │  after:custSave  │
+                          │                  │
+                          └────┬──────┬──────┘
+                     ┌─────────┘      └──────────┐
+                     │                           │
+                     ▼                           ▼
+           ┌─────────────────┐         ┌─────────────────┐
+           │                 │         │                 │
+           │ <span class="gn">customer-care</span>  │         │  <span class="am">analytics</span>     │
+           │                 │         │                 │
+           │ <span class="cm">depends:</span>       │         │ <span class="cm">depends:</span>       │
+           │  customer-data  │         │  customer-data  │
+           │                 │         │                 │
+           │ <span class="cm">listens:</span>       │         │ <span class="cm">listens:</span>       │
+           │  customer.*     │         │  customer.*     │
+           │                 │         │  sales.*        │
+           │ <span class="cm">emits:</span>         │         │  call.*         │
+           │  sales.created  │         │                 │
+           │  sales.updated  │         │ <span class="cm">hooks:</span>         │
+           │  call.logged    │         │  ═▶ filter:     │
+           │                 │         │     custList    │
+           │ <span class="cm">hooks:</span>         │         │                 │
+           │  ═▶ filter:     │         └────────┬────────┘
+           │     custList    │                  │
+           │                 │                  │ <span class="cm">event subscription</span>
+           └────────┬────────┘                  │
+                    │                           │
+                    ▼                           │
+           ┌─────────────────┐                  │
+           │                 │                  │
+           │  <span class="vi">automation</span>    │◀─ ─ ─ ─ ─ ─ ─ ─ ┘
+           │                 │
+           │ <span class="cm">depends:</span>       │
+           │  customer-care  │
+           │                 │
+           │ <span class="cm">listens:</span>       │
+           │  customer.*     │
+           │  sales.*        │
+           │                 │
+           │ <span class="cm">emits:</span>         │
+           │  automation.    │
+           │   triggered     │
+           │  email.queued   │
+           │                 │
+           └────────┬────────┘
+                    │
+                    ▼
+           ┌─────────────────┐
+           │                 │
+           │  <span class="pk">marketing</span>     │
+           │                 │
+           │ <span class="cm">depends:</span>       │
+           │  automation     │
+           │  customer-data  │
+           │                 │
+           │ <span class="cm">listens:</span>       │
+           │  customer.*     │
+           │  automation.*   │
+           │                 │
+           └─────────────────┘
+
+
+<span class="ty">Load Order</span> (topological):
+┌──────────┐   ┌──────────────┐   ┌───────────┐   ┌──────────┐
+│<span class="nu"> Round 1  </span>│──▶│<span class="nu">   Round 2    </span>│──▶│<span class="nu">  Round 3  </span>│──▶│<span class="nu"> Round 4  </span>│
+│cust-data │   │cust-care     │   │automation │   │marketing │
+│          │   │analytics     │   │           │   │          │
+└──────────┘   └──────────────┘   └───────────┘   └──────────┘
+
+
+<span class="ty">Disable Cascade</span>:
+  Disable customer-data → <span class="rd">cascade disable</span>: care, analytics, automation, marketing
+  Disable customer-care → <span class="rd">cascade disable</span>: automation, marketing
+  Disable analytics     → <span class="gn">no cascade</span> (nothing depends on it)
+  Disable marketing     → <span class="gn">no cascade</span> (leaf node)</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 5. USAGE -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-use">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Cách sử dụng Plugin (Tenant Admin)</h2></div>
+
+    <div class="dg"><div class="dg-label">enable flow</div><pre>
+<span class="hi">TENANT ADMIN muốn enable "customer-care" cho tenant ACME</span>
+│
+│  <span class="ty">Step 1: Kiểm tra điều kiện</span>
+│  │
+│  │  ┌──────────────────────────────────────────────────────────┐
+│  │  │  ☐ Tenant tier >= plugin required tier?                  │
+│  │  │    ACME tier: <span class="gn">premium</span>  ·  Plugin requires: <span class="gn">premium</span>  → OK  │
+│  │  │                                                          │
+│  │  │  ☐ Plugin dependencies đã enabled cho tenant này?        │
+│  │  │    Requires: customer-data                               │
+│  │  │    ACME has: <span class="gn">customer-data ✓</span>                    → OK  │
+│  │  │                                                          │
+│  │  │  ☐ Quota check — tenant có đủ quota cho plugin này?      │
+│  │  │    Storage: 12GB / 50GB                          → OK    │
+│  │  │    Plugin slots: 3 / 10                          → OK    │
+│  │  │                                                          │
+│  │  │  Any FAIL → <span class="rd">reject with explanation</span>                      │
+│  │  └──────────────────────────────────────────────────────────┘
+│  │
+│  ▼
+│  <span class="ty">Step 2: Run Migrations</span>
+│  │
+│  │  ┌───────────────────────────────────────────────────┐
+│  │  │  BEGIN TRANSACTION                                │
+│  │  │                                                   │
+│  │  │  migration 001: Create table "sales"              │
+│  │  │  migration 002: Create table "call_logs"          │
+│  │  │  migration 003: Add indexes                       │
+│  │  │  migration 004: Seed default data                 │
+│  │  │                                                   │
+│  │  │  All tables include: tenant_id = ACME             │
+│  │  │  RLS policies auto-applied                        │
+│  │  │                                                   │
+│  │  │  <span class="gn">COMMIT</span>  (or <span class="rd">ROLLBACK</span> if any step fails)        │
+│  │  └───────────────────────────────────────────────────┘
+│  │
+│  ▼
+│  <span class="ty">Step 3: Save Configuration</span>
+│  │
+│  │  ┌───────────────────────────────────────────────────┐
+│  │  │  INSERT INTO tenant_plugins:                      │
+│  │  │    tenant_id:   ACME                              │
+│  │  │    plugin_name: customer-care                     │
+│  │  │    enabled:     true                              │
+│  │  │    config:      { twilio_sid: "xxx", ... }        │
+│  │  │    version:     1.5.0                             │
+│  │  └───────────────────────────────────────────────────┘
+│  │
+│  ▼
+│  <span class="ty">Step 4: Invalidate Cache</span>
+│  │
+│  │  ┌───────────────────────────────────────────────────┐
+│  │  │  Delete ACME tenant context from LRU cache        │
+│  │  │  Publish via Redis Pub/Sub:                       │
+│  │  │    "cache:invalidate" → { tenant: ACME }          │
+│  │  │  All instances clear ACME context from L1         │
+│  │  └───────────────────────────────────────────────────┘
+│  │
+│  ▼
+│  <span class="gn">✓ Done!</span>
+│
+│  Next request from ACME:
+│  ├── Load tenant context → <span class="am">CACHE MISS</span> (just invalidated)
+│  ├── Query DB → now includes customer-care in enabledPlugins
+│  ├── Context now references CustomerCareCore singleton
+│  ├── Routes /api/v1/sales, /api/v1/calls now accessible
+│  └── UI shell loads customer-care remote module</pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">09</span><h2 class="sec-t">Disable & Upgrade Flows</h2></div>
+
+    <div class="g2">
+        <div class="c"><div class="c-h"><div class="dot rd"></div><h3>Disable Plugin</h3></div>
+            <div class="dg" style="margin:0"><pre>
+<span class="rd">DISABLE customer-care cho ACME</span>
+│
+├─ Check: có plugin nào depend vào care?
+│  └─ automation depends on care
+│     → <span class="am">Warn: automation cũng sẽ bị disable</span>
+│     → Admin confirm
+│
+├─ Disable automation trước (cascade)
+├─ Disable customer-care
+├─ Run DOWN migrations (optional)
+│  └─ Drop tables? hoặc soft-delete?
+│     → Configurable per tenant
+│
+├─ Update tenant_plugins: enabled=false
+├─ Invalidate context cache
+└─ <span class="gn">Done</span> — routes no longer accessible</pre></div></div>
+
+        <div class="c"><div class="c-h"><div class="dot am"></div><h3>Upgrade Plugin Version</h3></div>
+            <div class="dg" style="margin:0"><pre>
+<span class="am">UPGRADE care 1.5.0 → 2.0.0 cho ACME</span>
+│
+├─ Check: new version compatible?
+│  ├─ Breaking changes?
+│  └─ New deps required?
+│
+├─ Run NEW migrations (if any)
+│  └─ 005_add_priority_column.sql
+│
+├─ Update tenant_plugins: version=2.0.0
+├─ Update config nếu schema thay đổi
+│  └─ Merge old config + new defaults
+│
+├─ Invalidate context cache
+└─ <span class="gn">Done</span> — tenant uses new version
+   <span class="cm">Plugin core singleton already updated</span>
+   <span class="cm">(system-wide deploy happened earlier)</span></pre></div></div>
+    </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 6. RUNTIME FLOW -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-flow">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">10</span><h2 class="sec-t">Luồng Runtime — Từ Request đến Response</h2></div>
+
+    <div class="dg"><div class="dg-label">runtime flow</div><pre>
+<span class="hi">ACME gửi request: POST /api/v1/sales</span>   (tạo sales opportunity mới)
+│
+│
+│  ┌─ <span class="ty">API GATEWAY</span> ──────────────────────────────────────────────────────┐
+│  │                                                                    │
+│  │  <span class="nu">1</span>  Load Balancer → chọn instance                                │
+│  │  <span class="nu">2</span>  Tenant Resolver: acme.crm.com → tenant_id = ACME              │
+│  │  <span class="nu">3</span>  Auth: validate JWT → user_id, roles                           │
+│  │  <span class="nu">4</span>  Rate Limit: check ACME quota → OK                             │
+│  │  <span class="nu">5</span>  Route Match: /api/v1/sales → plugin: <span class="gn">customer-care</span>             │
+│  │                                                                    │
+│  └───────────────────────────────┬────────────────────────────────────┘
+│                                  │
+│  ┌─ <span class="ty">CONTEXT BUILDING</span> ─────────────▼────────────────────────────────────┐
+│  │                                                                    │
+│  │  <span class="nu">6</span>  Load Tenant Context (from LRU cache or DB)                     │
+│  │      → ACME has: customer-data, customer-care, analytics          │
+│  │      → Context references CustomerCareCore singleton              │
+│  │                                                                    │
+│  │  <span class="nu">7</span>  Check: user has permission "sales:create"? → <span class="gn">YES</span>              │
+│  │                                                                    │
+│  │  <span class="nu">8</span>  Build Execution Context:                                      │
+│  │      ┌──────────────────────────────────────────────┐             │
+│  │      │  requestId, tenantId: ACME, userId            │             │
+│  │      │  db:      TenantScopedDB  (auto tenant_id)   │             │
+│  │      │  cache:   TenantScopedCache (auto prefix)    │             │
+│  │      │  logger:  ScopedLogger                       │             │
+│  │      │  eventBus, services, pluginConfig             │             │
+│  │      └──────────────────────────────────────────────┘             │
+│  │                                                                    │
+│  └───────────────────────────────┬────────────────────────────────────┘
+│                                  │
+│  ┌─ <span class="ty">SANDBOX EXECUTION</span> ─────────────▼────────────────────────────────────┐
+│  │                                                                    │
+│  │  <span class="nu">9</span>  Sandbox wraps execution with:                                  │
+│  │      timeout: 5000ms, maxMemory: 50MB, maxQueries: 50            │
+│  │                                                                    │
+│  │  <span class="nu">10</span> <span class="fn">CustomerCareCore.createSale(ctx, requestBody)</span>                │
+│  │      │                                                             │
+│  │      ├── Validate input data                                      │
+│  │      │                                                             │
+│  │      ├── <span class="am">HOOK: before:saleCreate</span>                                   │
+│  │      │   │                                                         │
+│  │      │   │  Hook Registry checks: any plugin registered?           │
+│  │      │   │  → automation has registered a before:saleCreate hook  │
+│  │      │   │  → automation.beforeSaleCreate(ctx, data)              │
+│  │      │   │  → enriches data: adds auto-assigned sales rep         │
+│  │      │   │                                                         │
+│  │      │   └── data now has: { ...original, assignedTo: "rep-5" }   │
+│  │      │                                                             │
+│  │      ├── Insert to DB (tenant_id auto-injected by interceptor)    │
+│  │      │                                                             │
+│  │      ├── <span class="am">HOOK: after:saleCreate</span>                                    │
+│  │      │   └── analytics records: "sale created" metric             │
+│  │      │                                                             │
+│  │      ├── <span class="gn">SYNC EVENT: "sales.created"</span>                               │
+│  │      │   │                                                         │
+│  │      │   │  In-process Event Bus delivers to sync handlers:       │
+│  │      │   ├── analytics.onSaleCreated(event)                       │
+│  │      │   │   └── increment counter in Redis (fast, <5ms)          │
+│  │      │   └── customer-data.onSaleCreated(event)                   │
+│  │      │       └── update customer.lastActivity (fast)              │
+│  │      │                                                             │
+│  │      ├── <span class="cy">ASYNC MESSAGE: publish to MQ</span>                              │
+│  │      │   │                                                         │
+│  │      │   │  Message Queue receives "sales.created":               │
+│  │      │   ├── → <span class="cm">Worker: automation checks rules</span>                     │
+│  │      │   │       → if match: queue welcome email                  │
+│  │      │   ├── → <span class="cm">Worker: send notification to sales team</span>             │
+│  │      │   └── → <span class="cm">Worker: update search index</span>                        │
+│  │      │                                                             │
+│  │      │   <span class="cm">These happen AFTER response is sent to user</span>              │
+│  │      │                                                             │
+│  │      ├── Invalidate related caches                                │
+│  │      └── Return: { id: "sale-123", status: "created" }           │
+│  │                                                                    │
+│  └───────────────────────────────┬────────────────────────────────────┘
+│                                  │
+│  ┌─ <span class="ty">CLEANUP</span> ────────────────────────▼────────────────────────────────────┐
+│  │                                                                    │
+│  │  <span class="nu">11</span> Format JSON response → 201 Created                             │
+│  │  <span class="nu">12</span> Release DB connection → back to pool                            │
+│  │  <span class="nu">13</span> Execution context → garbage collected                           │
+│  │  <span class="nu">14</span> Emit observability:                                             │
+│  │      ├── Metric: request_duration{plugin="care"} = 85ms          │
+│  │      ├── Trace span: closed, shipped to Jaeger                    │
+│  │      └── Audit log: ACME / user-5 / sales.created / sale-123     │
+│  │                                                                    │
+│  └────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">Timeline:</span>
+
+  0ms        30ms          60ms      80ms  85ms         ~200ms
+  │───────────│─────────────│─────────│─────│            │
+  Gateway     Context       Core      Hooks Response     Async workers
+  + Auth      Build         Logic     +Sync             finish
+                                      Events            (email, notif)</pre></div>
+</div>
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">11</span><h2 class="sec-t">Plugin Interaction trong 1 Request</h2></div>
+
+    <div class="dg"><div class="dg-label">interaction map — single request</div><pre>
+<span class="hi">POST /api/v1/sales</span>  (customer-care plugin handles this)
+
+  ┌──────────────────┐
+  │  <span class="gn">customer-care</span>   │─── Route handler: createSale()
+  │  (active plugin) │
+  └──────┬───────────┘
+         │
+         │ <span class="am">before:saleCreate hook</span>
+         │
+  ┌──────▼───────────┐
+  │  <span class="vi">automation</span>       │─── enriches: auto-assign sales rep
+  │  (hook handler)  │
+  └──────┬───────────┘
+         │ returns enriched data
+         │
+  ┌──────▼───────────┐
+  │  <span class="gn">customer-care</span>   │─── inserts to DB
+  │  (continues)     │─── emits "sales.created" (sync)
+  └──────┬───────────┘
+         │
+    ┌────┴────────────┐
+    │                 │
+    │ <span class="gn">sync event</span>      │ <span class="gn">sync event</span>
+    │                 │
+  ┌─▼──────────────┐ ┌▼─────────────────┐
+  │ <span class="am">analytics</span>      │ │ <span class="hi">customer-data</span>   │
+  │                │ │                  │
+  │ increment      │ │ update customer  │
+  │ sales counter  │ │ lastActivity     │
+  └────────────────┘ └──────────────────┘
+
+         │
+         │ <span class="cy">async message → MQ</span>
+         │
+         ▼  (after response sent)
+  ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
+  │ <span class="vi">automation</span>     │ │ notification   │ │ search indexer │
+  │ worker         │ │ worker         │ │ worker         │
+  │                │ │                │ │                │
+  │ check rules    │ │ notify sales   │ │ update ES      │
+  │ queue email    │ │ team           │ │ index          │
+  └────────────────┘ └────────────────┘ └────────────────┘
+
+
+<span class="ty">Tổng kết tương tác trong 1 request:</span>
+
+  ┌────────────────────────────────────────────────────────┐
+  │  Plugin active:     customer-care (xử lý chính)       │
+  │  Hook:              automation (enrich data)           │
+  │  Sync events:       analytics + customer-data          │
+  │  Async messages:    automation + notification + search │
+  │                                                        │
+  │  Tổng plugins involved: <span class="hi">5</span>                             │
+  │  Plugins gọi trực tiếp nhau: <span class="hi">0</span>                       │
+  │  Coupling: <span class="gn">ZERO</span> — chỉ qua events, hooks, MQ           │
+  └────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['anatomy','create','scan','deps','use','flow'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

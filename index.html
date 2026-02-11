@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Architecture Documentation</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #08080d;
+            --sf: #101018;
+            --bd: #1e1e2e;
+            --tx: #e4e4ee;
+            --td: #8e8ea8;
+            --ac: #818cf8;
+            --ac-hover: rgba(129, 140, 248, 0.1);
+            --font-sans: 'DM Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--tx);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--sf);
+            border-right: 1px solid var(--bd);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid var(--bd);
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--tx);
+            margin-bottom: 4px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.8rem;
+            color: var(--td);
+            font-family: var(--font-mono);
+        }
+
+        .nav {
+            padding: 20px 0;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 12px 24px;
+            color: var(--td);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            color: var(--tx);
+            background: var(--ac-hover);
+        }
+
+        .nav-item.active {
+            color: var(--ac);
+            background: var(--ac-hover);
+            border-left-color: var(--ac);
+        }
+
+        .nav-group {
+            margin-bottom: 24px;
+        }
+
+        .nav-group-title {
+            padding: 0 24px;
+            margin-bottom: 8px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--td);
+            font-family: var(--font-mono);
+            opacity: 0.7;
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            background: var(--bg);
+            position: relative;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>CRM Architecture</h1>
+            <p>v2.1 Documentation</p>
+        </div>
+
+        <nav class="nav">
+            <div class="nav-group">
+                <div class="nav-group-title">Overview</div>
+                <a href="crm-architecture-v2.1.html" target="content-frame" class="nav-item active">Architecture
+                    Overview</a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">Deep Dives</div>
+                <a href="crm-request-flow.html" target="content-frame" class="nav-item">Request Flow</a>
+                <a href="crm-execution-context.html" target="content-frame" class="nav-item">Execution Context</a>
+                <a href="crm-data-access-layer.html" target="content-frame" class="nav-item">Data Access Layer</a>
+                <a href="crm-plugin-deep-dive.html" target="content-frame" class="nav-item">Plugin System</a>
+                <a href="crm-database-topology.html" target="content-frame" class="nav-item">Database Topology</a>
+            </div>
+        </nav>
+    </div>
+
+    <div class="content">
+        <iframe name="content-frame" src="crm-architecture-v2.1.html"></iframe>
+    </div>
+
+    <script>
+        // Simple script to handle active state of navigation
+        const navItems = document.querySelectorAll('.nav-item');
+        const iframe = document.querySelector('iframe');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', function () {
+                navItems.forEach(n => n.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Optional: Sync active state if iframe changes (same-origin policy allows)
+        iframe.addEventListener('load', function () {
+            try {
+                const currentPath = iframe.contentWindow.location.pathname.split('/').pop();
+                navItems.forEach(item => {
+                    if (item.getAttribute('href') === currentPath) {
+                        navItems.forEach(n => n.classList.remove('active'));
+                        item.classList.add('active');
+                    }
+                });
+            } catch (e) {
+                // Ignore cross-origin errors if running locally via file://
+                console.log('Cannot access iframe content due to cross-origin policy');
+            }
+        });
+    </script>
+
+</body>
+
+</html>

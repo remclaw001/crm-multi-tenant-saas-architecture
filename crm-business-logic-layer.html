@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — L3 Business Logic Layer Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
+  --gn:#10b981;--gnd:rgba(16,185,129,.08);
+  --am:#f59e0b;--amd:rgba(245,158,11,.08);
+  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
+  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
+  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
+  --or:#f97316;--pk:#ec4899;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(1.6rem,3.5vw,2.6rem);font-weight:800;line-height:1.15;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--bl)}
+.hero p{font-size:1rem;color:var(--td);max-width:660px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--bl)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
+.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.cm{color:#3e4460;font-style:italic}.nu{color:#f78c6c}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.pk{color:#ec4899}.or{color:#f97316}.fn{color:#82aaff}.st{color:#c3e88d}.kw{color:#c792ea}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
+.nt strong{color:inherit}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+.pnl.on .sec:nth-child(2){animation-delay:.04s}
+.pnl.on .sec:nth-child(3){animation-delay:.08s}
+.pnl.on .sec:nth-child(4){animation-delay:.12s}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Layer 3 — Business Logic</div>
+    <h1>Mọi thứ bên trong <span>Business Logic Layer</span></h1>
+    <p>4 nhóm thành phần: Plugin Management, Plugin Cores, Context Building, Shared Services.</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('map')">Bản đồ L3</button>
+    <button onclick="go('mgr')">Plugin Manager</button>
+    <button onclick="go('reg')">Plugin Registry</button>
+    <button onclick="go('sand')">Sandbox Engine</button>
+    <button onclick="go('evt')">Event Bus</button>
+    <button onclick="go('hook')">Hook Registry</button>
+    <button onclick="go('core')">Plugin Cores</button>
+    <button onclick="go('ctx')">Context Building</button>
+    <button onclick="go('svc')">Shared Services</button>
+    <button onclick="go('flow')">Luồng tổng hợp</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- MAP -->
+<div class="pnl on" id="p-map">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L3 — 4 nhóm, 15 thành phần</h2></div>
+    <div class="nt bl"><strong>Nguyên tắc cốt lõi:</strong> L3 là nơi business logic THỰC SỰ xảy ra. Nhưng không phải code business logic viết trực tiếp ở đây — code nằm trong Plugin Cores. L3 cung cấp hạ tầng để plugins CHẠY AN TOÀN: quản lý lifecycle, sandbox, giao tiếp, context, và shared services.</div>
+    <div class="dg"><div class="dg-label">L3 overview</div><pre>
+  L2 Gateway output: { tenantId, userId, plugin, method, permission }
+                                            │
+  ┌─ <span class="ty">L3 BUSINESS LOGIC</span> ─────────────────────▼────────────────────────────────┐
+  │                                                                          │
+  │  <span class="hi">① PLUGIN MANAGEMENT</span> (system singletons, tạo khi bootstrap)             │
+  │  ┌────────────┐ ┌────────────┐ ┌──────────┐ ┌─────────┐ ┌────────────┐ │
+  │  │Plugin      │ │Plugin      │ │Sandbox   │ │Event    │ │Hook        │ │
+  │  │Manager     │ │Registry    │ │Engine    │ │Bus      │ │Registry    │ │
+  │  │deploy,     │ │manifests,  │ │VM isolate│ │sync +   │ │before/     │ │
+  │  │upgrade,    │ │routes,     │ │5s/50MB/  │ │async MQ │ │after/      │ │
+  │  │rollback,   │ │events,     │ │50 queries│ │publish  │ │filter      │ │
+  │  │canary      │ │hooks, perms│ │error bnd.│ │         │ │priority    │ │
+  │  └────────────┘ └────────────┘ └──────────┘ └─────────┘ └────────────┘ │
+  │                                                                          │
+  │  <span class="gn">② PLUGIN CORES</span> (singletons, stateless — business logic code)           │
+  │  ┌────────────┐ ┌────────────┐ ┌──────────┐ ┌─────────┐ ┌────────────┐ │
+  │  │CustomerData│ │CustomerCare│ │Automation│ │Analytics│ │Marketing   │ │
+  │  │Core        │ │Core        │ │Core      │ │Core     │ │Core        │ │
+  │  │customers   │ │sales       │ │rules     │ │reports  │ │campaigns   │ │
+  │  │companies   │ │call_logs   │ │workflows │ │dashbrds │ │segments    │ │
+  │  └────────────┘ └────────────┘ └──────────┘ └─────────┘ └────────────┘ │
+  │                                                                          │
+  │  <span class="vi">③ CONTEXT BUILDING</span>                                                     │
+  │  ┌──────────────────────┐  ┌──────────────────────────────────────────┐ │
+  │  │Tenant Context Manager│  │Execution Context Builder                 │ │
+  │  │LRU max 1000, TTL 2h │  │per-request: wrap db, cache, logger,     │ │
+  │  │Source: Metadata DB   │  │eventBus, services → pass to plugin      │ │
+  │  └──────────────────────┘  └──────────────────────────────────────────┘ │
+  │                                                                          │
+  │  <span class="or">④ SHARED SERVICES</span> (singletons, called via ctx.services)               │
+  │  ┌──────┐ ┌───────┐ ┌────────────┐ ┌──────┐ ┌─────────┐ ┌──────────┐ │
+  │  │Email │ │Storage│ │Notification│ │Search│ │Scheduler│ │MQPublish │ │
+  │  │(MQ)  │ │(S3)   │ │(WS+Push)   │ │(ES)  │ │(cron)   │ │(RabbitMQ)│ │
+  │  └──────┘ └───────┘ └────────────┘ └──────┘ └─────────┘ └──────────┘ │
+  │                                                                          │
+  └────────────────────────────────────┬─────────────────────────────────────┘
+                                       ▼
+  L4 Data Access (Query Interceptor, Pool Manager, Cache, Migration Engine)
+
+
+<span class="ty">MỌI THỨ Ở L3 ĐỀU STATELESS.</span>
+  State nằm ở L4 (database) và L5 (Redis, MQ).
+  L3 chỉ chứa logic + cấu trúc, không chứa dữ liệu.
+
+  ┌───────────────────────┬──────────────────────┬───────────────────────────┐
+  │ Nhóm                  │ Lifecycle            │ Vai trò                   │
+  ├───────────────────────┼──────────────────────┼───────────────────────────┤
+  │ ① Plugin Management  │ Singleton, bootstrap │ Hạ tầng quản lý plugin   │
+  │ ② Plugin Cores       │ Singleton, stateless │ Business logic code       │
+  │ ③ Context Building   │ Per-request build    │ Chuẩn bị thế giới cho    │
+  │                       │                      │ plugin                    │
+  │ ④ Shared Services    │ Singleton, stateless │ Utility dùng chung       │
+  └───────────────────────┴──────────────────────┴───────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- PLUGIN MANAGER -->
+<div class="pnl" id="p-mgr">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Plugin Manager — Lifecycle Controller</h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Quản lý toàn bộ vòng đời plugin — deploy, upgrade, enable/disable per-tenant, canary rollout, rollback. Phối hợp với Registry, Sandbox, Migration Engine (L4), và MQ (L5).</div>
+    <div class="dg"><div class="dg-label">plugin manager</div><pre>
+<span class="ty">CẤU TRÚC NỘI BỘ:</span>
+
+  Plugin Manager (singleton)
+  ├── <span class="fn">LifecycleController</span>
+  │   ├── deploy(artifact)        → validate + register + schema migration
+  │   ├── upgrade(plugin, ver)    → canary + new schema migration + broadcast
+  │   ├── rollback(plugin)        → restore prev version + broadcast
+  │   ├── enable(tenant, plugin)  → check deps + tenant migration + activate
+  │   ├── disable(tenant, plugin) → check dependents + deactivate
+  │   └── undeploy(plugin)        → deprecate 90d → manual cleanup
+  │
+  ├── <span class="fn">DependencyResolver</span>
+  │   ├── resolve(plugin)                → topological sort dependencies
+  │   ├── checkCanEnable(tenant, plugin) → all deps enabled for tenant?
+  │   └── checkCanDisable(tenant, plugin)→ no dependents still enabled?
+  │
+  ├── <span class="fn">CanaryController</span>
+  │   ├── start(plugin, 5%)       → route 5% traffic to new version
+  │   ├── monitor(plugin)         → watch error rate, latency
+  │   ├── promote(plugin)         → 5% → 25% → 100%
+  │   └── abort(plugin)           → rollback, restore old version
+  │
+  └── <span class="fn">BroadcastManager</span>
+      └── notify(event) → MQ crm.system (fanout) → all instances
+
+
+<span class="ty">DEPLOY PIPELINE:</span>
+
+  <span class="nu">1.</span> Dev push → Git
+  <span class="nu">2.</span> CI/CD: tests + security scan + build artifact → Artifact Registry
+  <span class="nu">3.</span> System Admin: approve version
+  <span class="nu">4.</span> Plugin Manager.deploy():
+     ├── Pull pre-built artifact (<span class="rd">NO npm install trên production</span>)
+     ├── Validate checksum + manifest schema
+     ├── Parse manifest → register routes, events, hooks, permissions
+     ├── Run <span class="hi">Schema Migrations</span> (DDL) — CREATE TABLE IF NOT EXISTS (1 lần)
+     ├── Instantiate Plugin Core singleton
+     ├── Store metadata → Metadata DB (plugin_registry)
+     └── Broadcast via MQ: "plugin.deployed: customer-care@2.0.0"
+  <span class="nu">5.</span> All instances receive → hot-load plugin code
+  <span class="nu">6.</span> Tenant Admin enable → <span class="am">Tenant Migrations</span> (DML) per-tenant → activated
+
+
+<span class="ty">ENABLE/DISABLE PER-TENANT:</span>
+
+  <span class="gn">enable(acme-123, customer-care)</span>:
+  ① DependencyResolver: customer-care depends on customer-data → OK (enabled)
+  ② Migration Engine: Schema DDL → SKIP (done). Tenant DML → RUN for acme-123
+  ③ UPDATE tenant_plugins SET enabled=true, version='2.0.0'
+  ④ Invalidate Tenant Context cache (Redis Pub/Sub → all instances)
+
+  <span class="rd">disable(acme-123, customer-care)</span> (soft — mặc định):
+  ① DependencyResolver: any plugin depends on care? → NO → proceed
+  ② UPDATE tenant_plugins SET enabled=false. <span class="gn">Tables + data: GIỮA NGUYÊN.</span>
+  ③ Invalidate cache → routes 404, events SKIP, hooks SKIP for acme-123
+
+
+<span class="ty">CANARY + AUTO-ROLLBACK:</span>
+
+  Upgrade 1.5 → 2.0:
+  Phase 1: 5% tenants → monitor 15min
+  Phase 2: 25% → monitor 15min
+  Phase 3: 100% → stable
+  <span class="rd">AUTO-ROLLBACK:</span> error &gt;5% in 5min → restore v1.5 → PagerDuty + Slack</pre></div>
+</div>
+</div>
+
+<!-- PLUGIN REGISTRY -->
+<div class="pnl" id="p-reg">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Plugin Registry — Metadata Store</h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Bộ nhớ trung tâm chứa metadata mọi plugin. Gateway cần biết URL thuộc plugin nào, Event Bus cần biết ai lắng nghe, Hook Registry cần biết ai hook — tất cả query Registry.</div>
+    <div class="dg"><div class="dg-label">registry</div><pre>
+<span class="ty">REGISTRY CHỨA 5 MAP:</span>
+
+  Plugin Registry (singleton, in-memory — loaded from Metadata DB)
+  │
+  ├── <span class="fn">pluginMap</span>: Map&lt;name, PluginEntry&gt;
+  │   └── { name, version, status, <span class="gn">coreInstance</span>, manifest, deployedAt }
+  │
+  ├── <span class="fn">routeTable</span>: Map&lt;urlPattern, RouteEntry&gt;
+  │   ├── "POST /api/v1/sales" → { plugin: "customer-care",
+  │   │     method: "createSale", permission: "sales:write" }
+  │   ├── "GET /api/v1/customers" → { plugin: "customer-data",
+  │   │     method: "listCustomers", permission: "customers:read" }
+  │   └── ...
+  │   <span class="cm">L2 Route Matcher dùng routeTable này.</span>
+  │
+  ├── <span class="fn">eventMap</span>: Map&lt;eventName, Array&lt;HandlerEntry&gt;&gt;
+  │   ├── "sales.created" → [
+  │   │     { plugin: "analytics", handler: "onSaleCreated", sync: true },
+  │   │     { plugin: "automation", handler: "onSaleAsync",  sync: false }
+  │   │   ]
+  │   └── <span class="cm">Event Bus dùng eventMap.</span>
+  │
+  ├── <span class="fn">hookMap</span>: Map&lt;hookName, Array&lt;HookEntry&gt;&gt;
+  │   ├── "filter:customerList" → [
+  │   │     { provider: "customer-data", consumer: "customer-care",
+  │   │       handler: "enrichWithSalesData", priority: 10 }
+  │   │   ]
+  │   └── <span class="cm">Hook Registry dùng hookMap.</span>
+  │
+  ├── <span class="fn">permissionMap</span>: Map&lt;pluginName, Array&lt;Permission&gt;&gt;
+  │   ├── "customer-data" → ["customers:read", "customers:write", ...]
+  │   └── <span class="cm">L2 Auth Guard dùng permissionMap.</span>
+  │
+  └── <span class="fn">dependencyGraph</span>: Map&lt;name, Array&lt;dep&gt;&gt;
+      ├── "customer-care" → ["customer-data"]
+      ├── "automation"    → ["customer-data", "customer-care"]
+      └── "customer-data" → []  <span class="cm">← root</span>
+
+
+<span class="ty">DỮ LIỆU ĐẾN TỪ MANIFEST.JSON:</span>
+
+  {
+    "name": "customer-care", "version": "2.0.0",
+    "dependencies": ["customer-data"],
+    "minTier": "premium",
+    "tables": ["sales", "call_logs", "tickets"],
+    "permissions": ["sales:read", "sales:write", "tickets:read"],
+    "routes": [
+      { "method": "POST", "path": "/api/v1/sales",
+        "handler": "createSale", "permission": "sales:write" },
+      ...
+    ],
+    "events": {
+      "emits": ["sales.created", "sales.updated"],
+      "listens": ["customer.updated"]
+    },
+    "hooks": {
+      "provides": ["before:saleCreate", "after:saleCreate"],
+      "consumes": ["filter:customerList"]
+    },
+    "resources": { "maxMemory": "50MB", "timeout": 5000, "maxQueries": 50 }
+  }
+
+  Plugin Manager parse manifest → populate Registry maps.</pre></div>
+</div>
+</div>
+
+<!-- SANDBOX ENGINE -->
+<div class="pnl" id="p-sand">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Sandbox Engine — Isolation & Resource Limits</h2></div>
+    <div class="nt rd"><strong>Tại sao?</strong> Plugin code có thể có bug: vô hạn loop, memory leak, cố truy cập hệ thống. Sandbox ngăn chặn: plugin crash → graceful error, không crash process, không ảnh hưởng requests khác.</div>
+    <div class="dg"><div class="dg-label">sandbox</div><pre>
+<span class="ty">CƠ CHẾ:</span>
+
+  Sandbox.execute(pluginCore, methodName, ctx, args):
+
+  <span class="nu">①</span> Load resource limits (from manifest):
+     timeout: 5000ms (VIP: 10000ms), maxMemory: 50MB, maxQueries: 50
+
+  <span class="nu">②</span> Whitelist allowed APIs:
+     <span class="gn">ALLOWED:</span> ctx.db, ctx.cache, ctx.logger, ctx.eventBus, ctx.services
+     <span class="rd">BLOCKED:</span> process, fs, net, child_process, os, require(), global state
+
+  <span class="nu">③</span> Execute trong VM/Worker Thread có giám sát:
+     ┌─ VM isolate ──────────────────────────────────┐
+     │  pluginCore[methodName](ctx, ...args)         │
+     │                                                │
+     │  Timer: 5000ms ──────────────────────┐        │
+     │  Memory monitor: 50MB ───────────────┤        │
+     │  Query counter: [n/50] ──────────────┤        │
+     │                                      │        │
+     │  Bất kỳ limit bị vượt ─────────────▶│        │
+     └──────────────────────────────────────┘        │
+                                             │
+  <span class="nu">④</span> Khi vi phạm limit:                      │
+     → Terminate NGAY LẬP TỨC               │
+     → Log error + metrics: sandbox_limit_reached_total
+     → Return: { error: 'SERVICE_UNAVAILABLE', fallback: true }
+     → Request trả graceful error, process tiếp tục chạy bình thường
+
+  <span class="nu">⑤</span> Khi thành công:
+     → Return kết quả → Gateway → response cho user
+     → Metrics: plugin_execution_duration_seconds
+
+
+<span class="ty">ERROR BOUNDARY:</span>
+
+  Request A → Plugin care: <span class="rd">CRASH (unhandled throw)</span>
+  ├── Sandbox catches → log → return 500 "Plugin error"
+  └── Process tiếp tục chạy
+
+  Request B → Plugin data: <span class="gn">Bình thường</span> (không bị ảnh hưởng)
+  Request C → Plugin care: <span class="gn">Bình thường</span> (mỗi request có context riêng)</pre></div>
+</div>
+</div>
+
+<!-- EVENT BUS -->
+<div class="pnl" id="p-evt">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Event Bus — Plugin Communication</h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Cho phép plugins giao tiếp MÀ KHÔNG biết nhau. Plugin A emit event → Event Bus deliver tới handlers — A không biết ai lắng nghe. Loose coupling.</div>
+    <div class="dg"><div class="dg-label">event bus</div><pre>
+<span class="ty">2 CHẾ ĐỘ:</span>
+
+  ctx.eventBus.emit("sales.created", { saleId, amount })
+  │
+  ├── <span class="gn">SYNC HANDLERS</span> (in-process, cùng request)
+  │   ├── Chạy tuần tự trong cùng process, cùng transaction
+  │   ├── analytics.onSaleCreated(event) → sales_count ++
+  │   ├── Cùng DB transaction (rollback = rollback handler)
+  │   ├── Ảnh hưởng response time (handler chậm = request chậm)
+  │   ├── Exception → catch bởi Sandbox → log + skip
+  │   └── Dùng cho: data consistency, realtime aggregation
+  │
+  └── <span class="cy">ASYNC HANDLERS</span> (distributed, qua MQ)
+      ├── Publish message to RabbitMQ <span class="or">crm.events</span> (topic exchange)
+      │   routing key: "sales.created"
+      │   payload: { saleId, tenantId, requestId, traceId }
+      │   priority: VIP=10, Premium=5, Basic=1
+      │
+      ├── Workers consume từ bound queues:
+      │   notification → email, push
+      │   search.index → ES update
+      │   webhook → external URLs
+      │   analytics → batch reports
+      │
+      ├── KHÔNG ảnh hưởng response time (fire &amp; forget)
+      ├── Retry 3x exponential backoff → DLQ
+      └── Carries traceId → linked spans in Jaeger
+
+
+<span class="ty">SCOPED EVENT BUS — Tenant-aware filter:</span>
+
+  ScopedEventBus (per-request) wraps Event Bus singleton:
+  ├── emit(): auto-attach tenantId, userId, requestId, traceId
+  └── <span class="am">Filter:</span> sync handler "analytics.onSaleCreated":
+       ACME enable analytics?  <span class="gn">YES → call</span>
+       GLOBEX enable analytics? <span class="rd">NO → SKIP</span>
+
+  Plugin đăng ký handler 1 lần (system-level).
+  ScopedEventBus filter PER-REQUEST dựa trên tenant enabledPlugins.
+
+
+<span class="ty">EVENT vs HOOK:</span>
+
+  Event: Thông báo "đã xảy ra". Read-only payload. Async possible. Loose coupling.
+  Hook:  Can thiệp "sắp xảy ra". MODIFY payload. Luôn sync. Tighter coupling.</pre></div>
+</div>
+</div>
+
+<!-- HOOK REGISTRY -->
+<div class="pnl" id="p-hook">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Hook Registry — Extension Points</h2></div>
+    <div class="nt am"><strong>Vai trò:</strong> Quản lý "điểm mở rộng" giữa plugins. Plugin A CỐ TÌNH tạo hook points — cho phép plugins KHÁC can thiệp vào luồng xử lý mà KHÔNG sửa code gốc.</div>
+    <div class="dg"><div class="dg-label">hooks</div><pre>
+<span class="ty">3 LOẠI HOOK:</span>
+
+  <span class="am">before:</span>  Chạy TRƯỚC thao tác. Validate, reject, enrich.
+           customer-data provides "before:customerSave"
+           automation consumes → validateBeforeSave() → nếu invalid → cancel
+
+  <span class="am">after:</span>   Chạy SAU thao tác. Trigger side effects.
+           customer-data provides "after:customerSave"
+           automation consumes → checkRulesAfterSave() → trigger email
+
+  <span class="am">filter:</span>  TRANSFORM data đang xử lý. Nhận → sửa → trả.
+           customer-data provides "filter:customerList"
+           customer-care consumes → enrichWithSalesData(customers)
+             → thêm lastSaleAmount vào mỗi customer → return modified
+
+
+<span class="ty">EXECUTION PIPELINE:</span>
+
+  Plugin customer-data code:
+    let customers = await ctx.db.query('customers').where(filters);
+    customers = await ctx.hooks.run('filter:customerList', customers);
+    //                   ▲
+    //  Hook Registry: lookup hookMap → filter by enabledPlugins
+    //  → sort by priority (thấp = chạy trước)
+    //  → pipe data qua từng consumer handler
+
+  Input data
+    │
+    ▼
+  ┌────────────────────────────────────────────────────┐
+  │ Hook Registry.run("filter:customerList", data)     │
+  │                                                     │
+  │ ① care.enrichWithSalesData(data)    (priority 10)  │
+  │    → data + lastSaleAmount                         │
+  │         │                                           │
+  │ ② analytics.enrichWithScore(data)   (priority 20)  │
+  │    → data + engagementScore                        │
+  │    <span class="am">Nếu analytics KHÔNG enabled → SKIP ②</span>              │
+  └─────────┬──────────────────────────────────────────┘
+            ▼
+  Output data (enriched)
+
+
+<span class="ty">AN TOÀN:</span>
+  ├── Consumer chạy trong CÙNG Sandbox, cùng resource limits
+  ├── Consumer throw → catch, log, skip (KHÔNG cancel thao tác gốc)
+  ├── Consumer chạy lâu → đếm vào timeout chung
+  └── Consumer query DB → đếm vào maxQueries chung</pre></div>
+</div>
+</div>
+
+<!-- PLUGIN CORES -->
+<div class="pnl" id="p-core">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Plugin Cores — Business Logic Code</h2></div>
+    <div class="nt gn"><strong>Vai trò:</strong> Chứa code business logic thực tế — CRUD, validation, business rules. Mỗi core là singleton stateless: instantiate 1 lần, dùng chung cho MỌI tenant. State per-tenant nằm ở database (L4/L5).</div>
+    <div class="dg"><div class="dg-label">plugin cores</div><pre>
+<span class="ty">CẤU TRÚC THƯ MỤC:</span>
+
+  customer-care/
+  ├── <span class="fn">manifest.json</span>    ← metadata: deps, routes, events, hooks, perms
+  ├── <span class="fn">core.js</span>          ← business logic (stateless singleton)
+  ├── <span class="fn">routes.js</span>        ← route handler definitions
+  ├── <span class="fn">events.js</span>        ← event handler implementations
+  ├── <span class="fn">hooks.js</span>         ← hook provider/consumer implementations
+  ├── migrations/
+  │   ├── schema/      ← DDL (system-wide, run once)
+  │   └── tenant/      ← DML (per-tenant, run on enable)
+  └── tests/
+
+
+<span class="ty">CORE.JS — Code example:</span>
+
+  <span class="kw">class</span> <span class="ty">CustomerCareCore</span> {
+
+    <span class="kw">async</span> <span class="fn">createSale</span>(ctx, input) {
+      <span class="cm">// 1. Validate</span>
+      <span class="kw">const</span> validated = validateSaleInput(input);
+
+      <span class="cm">// 2. Hook: before:saleCreate</span>
+      <span class="kw">await</span> ctx.hooks.run(<span class="st">'before:saleCreate'</span>, validated);
+
+      <span class="cm">// 3. Check customer (reads table from customer-data plugin)</span>
+      <span class="kw">const</span> cust = <span class="kw">await</span> ctx.db.query(<span class="st">'customers'</span>)
+        .where({ id: validated.customerId }).first();
+      <span class="cm">// ctx.db auto-inject tenant_id</span>
+
+      <span class="kw">if</span> (!cust) <span class="kw">throw new</span> BusinessError(<span class="st">'CUSTOMER_NOT_FOUND'</span>);
+
+      <span class="cm">// 4. Insert sale</span>
+      <span class="kw">const</span> sale = <span class="kw">await</span> ctx.db.insert(<span class="st">'sales'</span>, {
+        customerId: validated.customerId,
+        title: validated.title,
+        amount: validated.amount,
+        status: <span class="st">'new'</span>
+      }); <span class="cm">// tenant_id auto-injected</span>
+
+      <span class="cm">// 5. Update customer stats</span>
+      <span class="kw">await</span> ctx.db.update(<span class="st">'customers'</span>,
+        { id: validated.customerId },
+        { totalSales: cust.totalSales + <span class="nu">1</span> });
+
+      <span class="cm">// 6. Hook: after:saleCreate</span>
+      <span class="kw">await</span> ctx.hooks.run(<span class="st">'after:saleCreate'</span>, sale);
+
+      <span class="cm">// 7. Event: sales.created</span>
+      <span class="kw">await</span> ctx.eventBus.emit(<span class="st">'sales.created'</span>, {
+        saleId: sale.id, amount: sale.amount });
+
+      ctx.logger.info(<span class="st">'Sale created'</span>, { saleId: sale.id });
+      <span class="kw">return</span> sale;
+    }
+  }
+
+
+<span class="ty">DANH SÁCH PLUGIN CORES:</span>
+
+  ┌─────────────────┬────────────────────────────────┬──────────┐
+  │ Plugin           │ Tables Owned                   │ Min Tier │
+  ├─────────────────┼────────────────────────────────┼──────────┤
+  │ customer-data   │ customers, companies, contacts,│ Basic    │
+  │                  │ notes, tags, custom_fields     │ (root)   │
+  │ customer-care   │ sales, call_logs, tickets,     │ Premium  │
+  │                  │ pipeline_stages, sla_configs   │          │
+  │ automation      │ rules, workflows, email_tmpl   │ Premium  │
+  │ analytics       │ report_snapshots, dashboards   │ Enterpr. │
+  │ marketing       │ campaigns, segments, scoring   │ Enterpr. │
+  └─────────────────┴────────────────────────────────┴──────────┘
+
+  <span class="cm">Plugins KHÔNG gọi nhau trực tiếp.</span>
+  <span class="cm">Tương tác qua: Events, Hooks, hoặc đọc table nhau qua ctx.db.</span></pre></div>
+</div>
+</div>
+
+<!-- CONTEXT BUILDING -->
+<div class="pnl" id="p-ctx">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Context Building — Chuẩn bị thế giới cho Plugin</h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Giai đoạn GIỮA Gateway và Plugin execution. Tạo Tenant Context (tenant là ai, dùng gì) + Execution Context (request cần gì). Plugin CHỈ nhận Execution Context.</div>
+    <div class="dg"><div class="dg-label">context building</div><pre>
+<span class="ty">TENANT CONTEXT MANAGER:</span>
+
+  getOrBuild(tenantId):
+  ① LRU cache hit (~95%):  return cached           ~0.01ms
+  ② Cache miss → Metadata DB:
+     SELECT * FROM tenants WHERE id = $id           ~2ms
+     SELECT * FROM tenant_plugins WHERE enabled=true ~2ms
+  ③ Assemble:
+     {
+       tenantId: "acme-123", tier: "premium",
+       <span class="hi">dbPool: "shared"</span>,  <span class="cm">← hoặc "vip-initech"</span>
+       enabledPlugins: Map {
+         "customer-data": { version, config, <span class="gn">coreRef: singleton</span> },
+         "customer-care": { version, config, <span class="gn">coreRef: singleton</span> }
+       },
+       quotas: { rateLimit: 500, storage: "50GB", maxConns: 20 }
+     }
+  ④ Store LRU (max 1000, evict 2h)
+  <span class="rd">Invalidation:</span> Redis Pub/Sub → all instances evict
+
+
+<span class="ty">EXECUTION CONTEXT BUILDER (per-request, ~2-5ms):</span>
+
+  build(tenantCtx, jwtClaims, requestInfo):
+  ① Acquire DB conn: PoolRouter(tenantCtx.dbPool) → conn #14     ~1ms
+     SET app.current_tenant = 'acme-123'                          ~0.5ms
+  ② Wrap DB: ctx.db = TenantScopedDB(conn) + Query Interceptor
+  ③ Cache:   ctx.cache = TenantScopedCache(prefix "t:acme-123")
+  ④ Logger:  ctx.logger = ScopedLogger({requestId, tenantId, userId})
+  ⑤ Events:  ctx.eventBus = ScopedEventBus(filter by enabledPlugins)
+  ⑥ Services: ctx.services = { email, storage, notification, search }
+  ⑦ Config:  ctx.pluginConfig = tenant-specific config for plugin
+
+  <span class="rd">After response:</span> RESET tenant → release conn → GC context
+
+  <span class="am">Plugin thấy:</span>  ctx.db, ctx.cache, ctx.logger, ctx.eventBus, ctx.services
+  <span class="rd">Plugin KHÔNG thấy:</span> pool, tenant_id injection, RLS, cache prefix,
+                     log scope, routing, tracing, sandbox limits</pre></div>
+</div>
+</div>
+
+<!-- SHARED SERVICES -->
+<div class="pnl" id="p-svc">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Shared Services — Utility dùng chung</h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Singletons cung cấp utility cho mọi plugin. Plugin gọi qua ctx.services — không cần biết S3 bucket nào, Redis cluster nào, MQ exchange nào. Tất cả tenant-aware.</div>
+    <div class="dg"><div class="dg-label">shared services</div><pre>
+<span class="or">① Email Service</span>
+  ctx.services.email.send({ to, template, data })
+  → Render template → publish to MQ email queue (async, no block)
+  → Worker → SMTP provider (SendGrid/SES) → retry 3x → DLQ
+
+<span class="cy">② Storage Service</span>
+  ctx.services.storage.upload(file, path)
+  ctx.services.storage.getUrl(path)
+  → S3/MinIO wrapper, auto-prefix /tenants/{tenantId}/{path}
+  → Plugin: storage.upload(file, "contracts/abc.pdf")
+  → Actual: s3://bucket/tenants/acme-123/contracts/abc.pdf
+  → Tenant CANNOT access files of other tenants
+  → Signed URLs for temp access (15min TTL)
+
+<span class="vi">③ Notification Service</span>
+  ctx.services.notification.send({ userId, type, payload })
+  → WebSocket (real-time) + Push (FCM/APNs) + In-app (DB stored)
+  → Publish to MQ notification queue → worker delivers
+
+<span class="pk">④ Search Service</span>
+  ctx.services.search.index(entity, data)
+  ctx.services.search.query(entity, searchText, filters)
+  → Elasticsearch wrapper, per-tenant indices: {tenantId}-{entity}
+  → Index: async via MQ search.index queue (~1-2s lag)
+  → Query: sync direct to ES (tenantId filter enforced)
+
+<span class="am">⑤ Scheduler Service</span>
+  ctx.services.scheduler.schedule({ cron, task, data })
+  ctx.services.scheduler.delay({ after, task, data })
+  → Cron: "0 9 * * 1" (mỗi thứ Hai 9h)
+  → Delay: "sau 30 phút gửi follow-up"
+  → Tenant-aware, stored in DB, polls → MQ → worker
+
+<span class="gn">⑥ MQ Publisher Service</span>
+  ctx.services.mq.publish({ exchange, routingKey, payload, priority })
+  → RabbitMQ wrapper, auto-attach tenantId, requestId, traceId
+  → VIP=10, Premium=5, Basic=1 priority
+  → Plugin thường KHÔNG gọi trực tiếp (Event Bus gọi internally)
+
+
+<span class="ty">PATTERN CHUNG:</span>
+  Mọi Shared Service: Singleton, Tenant-aware (auto-prefix/filter/scope),
+  Async-preferred (MQ-backed, no block), Plugin gọi qua ctx.services</pre></div>
+</div>
+</div>
+
+<!-- FLOW -->
+<div class="pnl" id="p-flow">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">09</span><h2 class="sec-t">Luồng tổng hợp — POST /api/v1/sales qua L3</h2></div>
+    <div class="dg"><div class="dg-label">complete L3 flow</div><pre>
+<span class="ty">POST /api/v1/sales — ACME (Premium) — User: sales_manager</span>
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  <span class="vi">PHASE 1: Context Building</span> (~3ms)                                      │
+│                                                                         │
+│  ① Tenant Context: LRU hit                                  ~0.01ms   │
+│  ② Execution Context: pool acquire conn #14                  ~1ms     │
+│     SET app.current_tenant, wrap DB/cache/logger/eventBus    ~1ms     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  <span class="rd">PHASE 2: Sandbox Execution</span> (~37ms)                                    │
+│                                                                         │
+│  ③ Sandbox: limits 5000ms/50MB/50queries                               │
+│  ④ CustomerCareCore.createSale(ctx, input):                            │
+│     a. Validate input                                        ~0.5ms   │
+│     b. Hook before:saleCreate → 0 consumers → skip          ~0.5ms   │
+│     c. ctx.db.query('customers')  [1/50]                     ~5ms     │
+│     d. ctx.db.insert('sales')     [2/50]                     ~8ms     │
+│     e. ctx.db.update('customers') [3/50]                     ~5ms     │
+│     f. Hook after:saleCreate → 0 consumers → skip           ~0.5ms   │
+│     g. Event sales.created:                                            │
+│        Sync: analytics.onSaleCreated (enabled) → run         ~8ms     │
+│              automation (NOT enabled for ACME) → SKIP                  │
+│        Async: MQ publish crm.events "sales.created"          ~2ms     │
+│     h. ctx.logger.info('Sale created')                       ~0ms     │
+│  ⑤ Sandbox: within limits ✓                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  <span class="gn">PHASE 3: Cleanup</span> (~1ms)                                               │
+│                                                                         │
+│  ⑥ RESET tenant, release conn #14, GC context                         │
+│  ⑦ Return 201 Created to Gateway → User                               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+  Async (không ảnh hưởng response):
+  ⑧ Worker: notification → email "New sale"
+  ⑨ Worker: search.index → update ES
+  ⑩ Worker: webhook → POST to ACME webhook URL
+
+
+<span class="ty">TỔNG KẾT:</span>
+
+  ┌───────────────────────────┬─────────┬─────────────────────────────────┐
+  │ Component                 │ Time    │ Action                          │
+  ├───────────────────────────┼─────────┼─────────────────────────────────┤
+  │ Tenant Context Manager   │ ~0.01ms │ LRU cache hit                   │
+  │ Execution Context Builder│ ~2ms    │ Pool acquire + wrap             │
+  │ Sandbox Engine           │ ~0ms    │ Set limits, monitor             │
+  │ Plugin Core (care)       │ ~27ms   │ Validate, DB, business logic    │
+  │ Hook Registry            │ ~1ms    │ Lookup + filter (0 consumers)   │
+  │ Event Bus (sync)         │ ~8ms    │ analytics.onSaleCreated         │
+  │ Event Bus (async)        │ ~2ms    │ MQ publish (fire &amp; forget)      │
+  │ Cleanup                  │ ~1ms    │ Release conn, GC context        │
+  ├───────────────────────────┼─────────┼─────────────────────────────────┤
+  │ <span class="hi">TOTAL L3</span>                 │ <span class="hi">~41ms</span>   │                                 │
+  └───────────────────────────┴─────────┴─────────────────────────────────┘
+
+  L3 chiếm phần lớn thời gian (business logic NẰM ở đây).
+  Nhưng ~18ms là I/O wait (DB queries), không phải CPU.
+  L3 code thuần ~5ms. DB wait ~18ms. Event/hook ~9ms. Overhead ~9ms.</pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['map','mgr','reg','sand','evt','hook','core','ctx','svc','flow'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

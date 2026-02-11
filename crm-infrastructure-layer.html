@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — Infrastructure Layer Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
+  --gn:#10b981;--gnd:rgba(16,185,129,.08);
+  --am:#f59e0b;--amd:rgba(245,158,11,.08);
+  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
+  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
+  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
+  --or:#f97316;--pk:#ec4899;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(1.8rem,4vw,3rem);font-weight:800;line-height:1.1;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--bl)}
+.hero p{font-size:1rem;color:var(--td);max-width:660px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--bl)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
+.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.kw{color:#c792ea}.fn{color:#82aaff}.st{color:#c3e88d}.cm{color:#3e4460;font-style:italic}.nu{color:#f78c6c}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.pk{color:#ec4899}.or{color:#f97316}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
+.nt strong{color:inherit}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+.pnl.on .sec:nth-child(2){animation-delay:.04s}
+.pnl.on .sec:nth-child(3){animation-delay:.08s}
+.pnl.on .sec:nth-child(4){animation-delay:.12s}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Layer 5 — Infrastructure</div>
+    <h1>Infrastructure <span>Layer</span></h1>
+    <p>PostgreSQL, Redis, RabbitMQ, S3, Elasticsearch — cấu trúc, vai trò, cấu hình per-tier, và cách từng thành phần phục vụ hệ thống.</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('map')">Bản đồ L5</button>
+    <button onclick="go('pg')">PostgreSQL</button>
+    <button onclick="go('redis')">Redis</button>
+    <button onclick="go('mq')">RabbitMQ</button>
+    <button onclick="go('s3')">Object Storage</button>
+    <button onclick="go('es')">Elasticsearch</button>
+    <button onclick="go('tier')">Cấu hình per-Tier</button>
+    <button onclick="go('req')">Tham gia Request</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════ -->
+<!-- MAP -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl on" id="p-map">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L5 — 5 thành phần hạ tầng</h2></div>
+
+    <div class="dg"><div class="dg-label">L5 full map</div><pre>
+┌───────────────────────────────────────────────────────────────────────────────┐
+│  <span class="hi">L4 DATA ACCESS</span>                                                              │
+│                                                                               │
+│  Query Interceptor    Pool Manager    Cache Manager    Migration Engine       │
+│        │                   │               │                │                 │
+│        │ SQL queries       │ connections   │ get/set        │ DDL             │
+└────────┼───────────────────┼───────────────┼────────────────┼─────────────────┘
+         │                   │               │                │
+         ▼                   ▼               ▼                ▼
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║                          <span class="vi">L5 INFRASTRUCTURE LAYER</span>                             ║
+║                                                                               ║
+║                                                                               ║
+║  ┌─────────────────────────────────────────────────────────────────────────┐ ║
+║  │                                                                         │ ║
+║  │                        <span class="hi">① POSTGRESQL</span>                                   │ ║
+║  │                        (Persistent Data Store)                          │ ║
+║  │                                                                         │ ║
+║  │  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────────────┐ │ ║
+║  │  │              │  │                  │  │                          │ │ ║
+║  │  │  <span class="am">Metadata</span>    │  │  <span class="gn">Shared Data</span>     │  │  <span class="vi">VIP Dedicated</span>          │ │ ║
+║  │  │  Instance    │  │  Instance        │  │  Instance(s)            │ │ ║
+║  │  │              │  │  + Read Replicas  │  │  1 per VIP tenant       │ │ ║
+║  │  │  tenants     │  │  customers       │  │  same schema            │ │ ║
+║  │  │  plugins     │  │  sales           │  │  custom tuning          │ │ ║
+║  │  │  audit_log   │  │  (all tenants)   │  │  own backups            │ │ ║
+║  │  │              │  │                  │  │                          │ │ ║
+║  │  └──────────────┘  └──────────────────┘  └──────────────────────────┘ │ ║
+║  │                                                                         │ ║
+║  └─────────────────────────────────────────────────────────────────────────┘ ║
+║                                                                               ║
+║  ┌──────────────────────┐  ┌──────────────────────────────────────────────┐ ║
+║  │                      │  │                                              │ ║
+║  │   <span class="rd">② REDIS CLUSTER</span>    │  │   <span class="or">③ RABBITMQ CLUSTER</span>                       │ ║
+║  │   (Cache + Pub/Sub   │  │   (Async Message Broker)                     │ ║
+║  │    + Session + Rate)  │  │                                              │ ║
+║  │                      │  │  ┌───────────┐ ┌───────────┐ ┌───────────┐ │ ║
+║  │  ┌────┐┌────┐┌────┐ │  │  │ Exchange  │ │  Queues   │ │   DLQ     │ │ ║
+║  │  │ M  ││ R1 ││ R2 │ │  │  │ crm.events│ │ notif.    │ │ (retries  │ │ ║
+║  │  │    ││    ││    │ │  │  │ (topic)   │ │ search.   │ │  failed)  │ │ ║
+║  │  └────┘└────┘└────┘ │  │  │           │ │ webhook.  │ │           │ │ ║
+║  │  + Sentinel HA       │  │  └───────────┘ └───────────┘ └───────────┘ │ ║
+║  │                      │  │                                              │ ║
+║  └──────────────────────┘  └──────────────────────────────────────────────┘ ║
+║                                                                               ║
+║  ┌──────────────────────┐  ┌──────────────────────────────────────────────┐ ║
+║  │                      │  │                                              │ ║
+║  │   <span class="cy">④ OBJECT STORAGE</span>   │  │   <span class="pk">⑤ ELASTICSEARCH</span>                          │ ║
+║  │   (S3-compatible)    │  │   (Full-text Search)                         │ ║
+║  │                      │  │                                              │ ║
+║  │  /tenants/           │  │  Indices per tenant:                         │ ║
+║  │    acme-123/         │  │    acme-123-customers                        │ ║
+║  │      uploads/        │  │    acme-123-sales                            │ ║
+║  │      exports/        │  │    globex-456-customers                      │ ║
+║  │      backups/        │  │    ...                                       │ ║
+║  │    globex-456/       │  │  OR shared index + tenant filter             │ ║
+║  │      ...             │  │                                              │ ║
+║  │                      │  │                                              │ ║
+║  └──────────────────────┘  └──────────────────────────────────────────────┘ ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+
+<span class="ty">VAI TRÒ TỪNG THÀNH PHẦN:</span>
+
+  ┌────────────────────┬───────────┬──────────────────────────────────────────┐
+  │ Component          │ Loại      │ Chức năng chính                         │
+  ├────────────────────┼───────────┼──────────────────────────────────────────┤
+  │ <span class="hi">PostgreSQL</span>         │ Stateful  │ Source of truth. Mọi business data,     │
+  │                    │           │ metadata, audit. ACID transactions.     │
+  ├────────────────────┼───────────┼──────────────────────────────────────────┤
+  │ <span class="rd">Redis</span>              │ Stateful  │ Cache L2, session, rate limit counter,  │
+  │                    │           │ domain map, Pub/Sub cross-instance.     │
+  ├────────────────────┼───────────┼──────────────────────────────────────────┤
+  │ <span class="or">RabbitMQ</span>           │ Stateful  │ Async event delivery. Decouple sync     │
+  │                    │           │ request from heavy operations.          │
+  ├────────────────────┼───────────┼──────────────────────────────────────────┤
+  │ <span class="cy">Object Storage</span>     │ Stateful  │ File uploads, CSV exports, backups.     │
+  │                    │           │ Tenant-isolated by path prefix.         │
+  ├────────────────────┼───────────┼──────────────────────────────────────────┤
+  │ <span class="pk">Elasticsearch</span>      │ Stateful  │ Full-text search. Fast queries across   │
+  │                    │           │ large datasets. Near-realtime index.    │
+  └────────────────────┴───────────┴──────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- POSTGRESQL -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-pg">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">PostgreSQL — 3 loại instance</h2></div>
+
+    <div class="dg"><div class="dg-label">postgresql topology</div><pre>
+<span class="ty">METADATA INSTANCE</span> (#1)
+│
+│  ┌────────────────────────────────────────────────────────────────────┐
+│  │                                                                    │
+│  │  <span class="am">Purpose:</span> Hệ thống biết "ai là ai, dùng gì"                      │
+│  │                                                                    │
+│  │  <span class="am">Tables:</span>                                                         │
+│  │  ├── tenants              (tenant identity + tier + DB routing)    │
+│  │  ├── tenant_plugins       (which plugins enabled per tenant)      │
+│  │  ├── plugin_registry      (all deployed plugins + manifests)      │
+│  │  ├── plugin_migrations    (migration tracking per tenant/plugin)  │
+│  │  ├── audit_log            (immutable, partitioned monthly)        │
+│  │  ├── webhooks             (tenant webhook registrations)          │
+│  │  └── system_config        (global + tier settings)                │
+│  │                                                                    │
+│  │  <span class="am">Sizing:</span>  4 vCPU, 16GB RAM, 500GB SSD                            │
+│  │  <span class="am">Traffic:</span> LOW read (cached), HIGH write (audit_log only)          │
+│  │  <span class="am">Backup:</span>  Daily full + hourly WAL archive                        │
+│  │  <span class="am">HA:</span>      Streaming replication → standby (auto-failover)         │
+│  │                                                                    │
+│  │  <span class="ty">Ai kết nối:</span>                                                     │
+│  │  ├── L4 Pool Manager (metadata pool, max 20 conns)                │
+│  │  ├── L2 Tenant Resolver (on cache miss)                           │
+│  │  ├── L3 Plugin Manager (bootstrap + deploy)                       │
+│  │  └── L6 Audit Logger (async batched inserts)                      │
+│  │                                                                    │
+│  └────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">SHARED DATA INSTANCE</span> (#2) + Read Replicas
+│
+│  ┌────────────────────────────────────────────────────────────────────┐
+│  │                                                                    │
+│  │  <span class="gn">Purpose:</span> Business data cho TẤT CẢ standard tenants               │
+│  │                                                                    │
+│  │  <span class="gn">Tables</span> (created by plugin migrations):                            │
+│  │  ├── customers, companies, contacts    (plugin: customer-data)    │
+│  │  ├── sales, call_logs, tickets         (plugin: customer-care)    │
+│  │  ├── report_snapshots, dashboards      (plugin: analytics)        │
+│  │  ├── automation_rules, email_templates (plugin: automation)       │
+│  │  ├── campaigns, segments               (plugin: marketing)        │
+│  │  └── ... (new plugins → new tables)                               │
+│  │                                                                    │
+│  │  <span class="gn">Mọi table có:</span>                                                    │
+│  │  ├── tenant_id UUID NOT NULL                                      │
+│  │  ├── INDEX on (tenant_id, ...)                                    │
+│  │  └── RLS POLICY: USING (tenant_id = current_setting('app.tid'))   │
+│  │                                                                    │
+│  │  <span class="gn">Sizing:</span>  16 vCPU, 64GB RAM, 2TB SSD, PgBouncer front             │
+│  │  <span class="gn">Traffic:</span> VERY HIGH (all business reads + writes)                  │
+│  │  <span class="gn">Backup:</span>  Continuous WAL + daily snapshot                          │
+│  │                                                                    │
+│  │  <span class="ty">Replication topology:</span>                                            │
+│  │                                                                    │
+│  │  ┌─────────────────────────────────────────────┐                  │
+│  │  │                                             │                  │
+│  │  │  <span class="gn">Primary</span> (RW)                                │                  │
+│  │  │  │                                          │                  │
+│  │  │  ├── streaming repl ──▶ <span class="cy">Replica-1</span> (RO)     │                  │
+│  │  │  │                      analytics queries   │                  │
+│  │  │  │                      report generation   │                  │
+│  │  │  │                                          │                  │
+│  │  │  ├── streaming repl ──▶ <span class="cy">Replica-2</span> (RO)     │                  │
+│  │  │  │                      search indexing      │                  │
+│  │  │  │                      export jobs          │                  │
+│  │  │  │                                          │                  │
+│  │  │  └── streaming repl ──▶ <span class="cy">Replica-3</span> (RO)     │                  │
+│  │  │                         hot standby          │                  │
+│  │  │                         (failover target)    │                  │
+│  │  │                                             │                  │
+│  │  └─────────────────────────────────────────────┘                  │
+│  │                                                                    │
+│  │  <span class="ty">Routing rules</span> (Pool Manager → PgBouncer):                        │
+│  │  ├── INSERT/UPDATE/DELETE        → <span class="gn">Primary</span> always                  │
+│  │  ├── SELECT (same-txn after write) → <span class="gn">Primary</span> (read-your-writes)  │
+│  │  ├── SELECT (analytics/report)   → <span class="cy">Replica-1</span>                     │
+│  │  ├── SELECT (search worker)      → <span class="cy">Replica-2</span>                     │
+│  │  └── SELECT (general read)       → <span class="cy">any Replica</span> round-robin       │
+│  │                                                                    │
+│  │  <span class="ty">Ai kết nối:</span>                                                     │
+│  │  ├── L4 Pool Manager (shared pool, max 200 conns via PgBouncer)  │
+│  │  ├── L4 Migration Engine (DDL for enable/disable plugins)         │
+│  │  └── Async Workers (via own pool, max 30 conns)                   │
+│  │                                                                    │
+│  └────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">VIP DEDICATED INSTANCE(S)</span> (#3, #4, ...)
+│
+│  ┌────────────────────────────────────────────────────────────────────┐
+│  │                                                                    │
+│  │  <span class="vi">Purpose:</span> Business data cho 1 VIP tenant duy nhất                 │
+│  │                                                                    │
+│  │  <span class="vi">1 Instance = 1 Tenant.</span>                                            │
+│  │  INITECH → Instance #3                                             │
+│  │  STARK   → Instance #4                                             │
+│  │                                                                    │
+│  │  <span class="vi">Schema:</span> Giống hệt Shared Data, nhưng:                             │
+│  │  ├── Chỉ 1 tenant → không cần RLS (vẫn apply cho consistency)    │
+│  │  ├── Custom PostgreSQL tuning (shared_buffers, work_mem...)       │
+│  │  ├── Own backup schedule (có thể hourly cho VIP)                  │
+│  │  ├── Own maintenance window (vacuum, reindex)                     │
+│  │  └── Optional own read replica                                     │
+│  │                                                                    │
+│  │  <span class="vi">Sizing:</span>  Configurable per tenant (8-32 vCPU, 32-128GB RAM)       │
+│  │  <span class="vi">Traffic:</span> Moderate (single tenant)                                 │
+│  │                                                                    │
+│  │  <span class="ty">Provisioning:</span>                                                    │
+│  │  ┌────────────────────────────────────────────────────────┐       │
+│  │  │  Tenant upgrade → VIP:                                  │       │
+│  │  │  1. Provision cloud DB (RDS / Cloud SQL / self-hosted) │       │
+│  │  │  2. Run all plugin migrations (create tables)           │       │
+│  │  │  3. Migrate data from Shared DB → VIP DB               │       │
+│  │  │  4. Update tenants.db_host in Metadata DB              │       │
+│  │  │  5. Pool Manager creates VIP pool                       │       │
+│  │  │  6. Invalidate tenant context cache                     │       │
+│  │  │  7. Verify → delete old data from Shared DB            │       │
+│  │  └────────────────────────────────────────────────────────┘       │
+│  │                                                                    │
+│  │  <span class="ty">Ai kết nối:</span>                                                     │
+│  │  ├── L4 Pool Manager (vip pool, max 30 conns)                     │
+│  │  ├── VIP-dedicated app instances (sticky routing)                 │
+│  │  └── VIP-dedicated async workers                                   │
+│  │                                                                    │
+│  └────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- REDIS -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-redis">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Redis Cluster — 6 vai trò trong hệ thống</h2></div>
+
+    <div class="dg"><div class="dg-label">redis roles &amp; topology</div><pre>
+┌─ <span class="rd">REDIS CLUSTER</span> ── <span class="cm">3 Master + 3 Replica + Sentinel</span> ──────────────────────┐
+│                                                                            │
+│  ┌──────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                      │ │
+│  │  <span class="rd">Master-1</span> ←→ Replica-1    (slots 0-5460)                            │ │
+│  │  <span class="rd">Master-2</span> ←→ Replica-2    (slots 5461-10922)                         │ │
+│  │  <span class="rd">Master-3</span> ←→ Replica-3    (slots 10923-16383)                        │ │
+│  │                                                                      │ │
+│  │  Sentinel: 3 nodes, auto-failover master → replica                  │ │
+│  │  Sizing: 8GB RAM per node (24GB total usable)                       │ │
+│  │                                                                      │ │
+│  └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+│                                                                            │
+│  <span class="ty">Redis phục vụ 6 VAI TRÒ khác nhau:</span>                                     │
+│                                                                            │
+│                                                                            │
+│  <span class="nu">❶</span> <span class="hi">L2 CACHE</span> — Cache Manager L2 layer                                   │
+│  │                                                                         │
+│  │  Key pattern:   t:{tenantId}:{plugin}:{entity}:{hash}                  │
+│  │  Example:       t:acme-123:care:sales:status=new:page=1               │
+│  │  TTL:           5–15 min (per data type)                               │
+│  │  Compression:   LZ4 for values > 1KB                                   │
+│  │                                                                         │
+│  │  Gọi bởi:      L4 Cache Manager (khi L1 miss)                         │
+│  │  Traffic:       HIGH (mọi cache miss từ mọi instance)                  │
+│  │                                                                         │
+│                                                                            │
+│  <span class="nu">❷</span> <span class="hi">DOMAIN MAP</span> — Tenant Resolver cache                                  │
+│  │                                                                         │
+│  │  Key pattern:   domain-map:{subdomain}                                 │
+│  │  Example:       domain-map:acme → "acme-123"                          │
+│  │  TTL:           5 min                                                   │
+│  │                                                                         │
+│  │  Gọi bởi:      L2 Tenant Resolver (mỗi request)                       │
+│  │  Traffic:       HIGH read, LOW write (chỉ khi miss → query Meta DB)   │
+│  │                                                                         │
+│                                                                            │
+│  <span class="nu">❸</span> <span class="hi">RATE LIMIT</span> — Sliding window counters                                │
+│  │                                                                         │
+│  │  Key pattern:   rl:{tenantId}  (Sorted Set)                            │
+│  │  Members:       timestamps of recent requests                          │
+│  │  TTL:           60 seconds (sliding window)                             │
+│  │                                                                         │
+│  │  Gọi bởi:      L2 Rate Limiter (mỗi request)                          │
+│  │  Operations:    ZADD + ZRANGEBYSCORE + ZCARD                           │
+│  │  Traffic:       HIGH (3 Redis ops per request)                          │
+│  │                                                                         │
+│                                                                            │
+│  <span class="nu">❹</span> <span class="hi">AUTH TOKEN BLACKLIST</span> — Revoked JWT tracking                         │
+│  │                                                                         │
+│  │  Key pattern:   blacklist:{jti}                                        │
+│  │  Value:         "revoked"                                              │
+│  │  TTL:           = token remaining lifetime                              │
+│  │                                                                         │
+│  │  Gọi bởi:      L2 Auth Guard (mỗi request)                            │
+│  │  Operations:    EXISTS (fast, O(1))                                     │
+│  │  Traffic:       HIGH read, VERY LOW write (only on token revoke)       │
+│  │                                                                         │
+│                                                                            │
+│  <span class="nu">❺</span> <span class="hi">PUB/SUB CHANNELS</span> — Cross-instance messaging                         │
+│  │                                                                         │
+│  │  Channels:                                                              │
+│  │  ├── cache:invalidate      → Cache Manager L1 sync                     │
+│  │  │   payload: { tenant, pattern }                                      │
+│  │  │   subscribers: all app instances                                     │
+│  │  │                                                                      │
+│  │  ├── context:invalidate    → Tenant Context LRU sync                   │
+│  │  │   payload: { tenantId } or { all: true }                            │
+│  │  │   subscribers: all app instances                                     │
+│  │  │                                                                      │
+│  │  └── plugin:deployed       → Hot deploy notification                    │
+│  │      payload: { pluginName, version }                                  │
+│  │      subscribers: all app instances                                     │
+│  │                                                                         │
+│  │  <span class="cm">Pub/Sub KHÔNG persistent — nếu instance down thì miss message.</span>     │
+│  │  <span class="cm">OK vì: cache/context rebuild tự động ở next request.</span>               │
+│  │                                                                         │
+│                                                                            │
+│  <span class="nu">❻</span> <span class="hi">REALTIME COUNTERS</span> — Analytics plugin fast counters                   │
+│     │                                                                      │
+│     │  Key pattern:   t:{tenantId}:stats:{metric}                         │
+│     │  Example:       t:acme-123:stats:sales_count  → 148                 │
+│     │                 t:acme-123:stats:sales_total  → 4250000             │
+│     │  Operations:    INCR, INCRBY (atomic, O(1))                          │
+│     │                                                                      │
+│     │  Gọi bởi:      Analytics sync event handlers                        │
+│     │  <span class="cm">Nhanh hơn nhiều so với DB aggregate queries.</span>                    │
+│     │  <span class="cm">Periodic sync: Redis counters → DB snapshots (every 5min).</span>       │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- RABBITMQ -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-mq">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">RabbitMQ — Async Message Broker</h2></div>
+
+    <div class="dg"><div class="dg-label">rabbitmq topology</div><pre>
+┌─ <span class="or">RABBITMQ CLUSTER</span> ── <span class="cm">3 nodes, quorum queues, mirrored</span> ──────────────────┐
+│                                                                            │
+│                                                                            │
+│  <span class="ty">EXCHANGE TOPOLOGY:</span>                                                      │
+│                                                                            │
+│  ┌──────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                      │ │
+│  │  <span class="or">crm.events</span>  (type: <span class="hi">topic</span>)                                         │ │
+│  │  │                                                                   │ │
+│  │  │  Routing key pattern: {entity}.{action}                           │ │
+│  │  │  Examples: customer.created, sales.created, call.logged           │ │
+│  │  │                                                                   │ │
+│  │  │  Publishers:                                                      │ │
+│  │  │  ├── App instances (after sync event phase)                       │ │
+│  │  │  └── ctx.mq.publish("sales.lifecycle", message)                   │ │
+│  │  │                                                                   │ │
+│  │  │                                                                   │ │
+│  │  │  Bindings → Queues:                                               │ │
+│  │  │                                                                   │ │
+│  │  │  ┌──────────────────┐                                             │ │
+│  │  │  │ routing key      │──▶ queue                                    │ │
+│  │  │  ├──────────────────┼──────────────────────────────────────┐      │ │
+│  │  │  │ customer.*       │  notification.customer               │      │ │
+│  │  │  │ sales.*          │  notification.sales                  │      │ │
+│  │  │  │ *.created        │  search.index                        │      │ │
+│  │  │  │ *.updated        │  search.index                        │      │ │
+│  │  │  │ *.deleted        │  search.index                        │      │ │
+│  │  │  │ sales.*          │  webhook.deliver                     │      │ │
+│  │  │  │ customer.*       │  webhook.deliver                     │      │ │
+│  │  │  │ sales.created    │  analytics.aggregate                 │      │ │
+│  │  │  └──────────────────┴──────────────────────────────────────┘      │ │
+│  │  │                                                                   │ │
+│  │  │  1 message → có thể route tới NHIỀU queues                       │ │
+│  │  │  "sales.created" → notification + search + webhook + analytics   │ │
+│  │  │                                                                   │ │
+│  └──┴───────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+│  ┌──────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                      │ │
+│  │  <span class="or">crm.system</span>  (type: <span class="hi">fanout</span>)                                        │ │
+│  │  │                                                                   │ │
+│  │  │  Purpose: system-wide broadcasts                                  │ │
+│  │  │  Messages: plugin.deployed, config.updated, maintenance.start     │ │
+│  │  │  Fanout → ALL bound queues receive every message                  │ │
+│  │  │                                                                   │ │
+│  └──┴───────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+│                                                                            │
+│  <span class="ty">QUEUE DETAILS:</span>                                                          │
+│                                                                            │
+│  ┌───────────────────────┬──────────┬──────────┬────────────────────────┐ │
+│  │ Queue                 │ Workers  │ Priority │ DLQ                    │ │
+│  ├───────────────────────┼──────────┼──────────┼────────────────────────┤ │
+│  │ notification.customer │ 3        │ normal   │ notification.cust.dlq  │ │
+│  │ notification.sales    │ 3        │ normal   │ notification.sales.dlq │ │
+│  │ search.index          │ 5        │ low      │ search.index.dlq       │ │
+│  │ webhook.deliver       │ 3        │ normal   │ webhook.deliver.dlq    │ │
+│  │ analytics.aggregate   │ 2        │ low      │ analytics.agg.dlq      │ │
+│  │ email.send            │ 3        │ normal   │ email.send.dlq         │ │
+│  └───────────────────────┴──────────┴──────────┴────────────────────────┘ │
+│                                                                            │
+│                                                                            │
+│  <span class="ty">MESSAGE FORMAT:</span>                                                         │
+│                                                                            │
+│  ┌────────────────────────────────────────────────────────────────────┐   │
+│  │  headers: {                                                        │   │
+│  │    tenantId:     "acme-123",                                       │   │
+│  │    traceId:      "req-789",        ← trace propagation            │   │
+│  │    priority:     "normal",         ← from tenant tier             │   │
+│  │    publishedAt:  "2026-02-10T14:30:00Z",                          │   │
+│  │    retryCount:   0                 ← increment on retry           │   │
+│  │  }                                                                 │   │
+│  │  body: {                                                           │   │
+│  │    type: "sales.created",                                          │   │
+│  │    data: { sale: { id, customerId, title, amount } }               │   │
+│  │  }                                                                 │   │
+│  └────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+│                                                                            │
+│  <span class="ty">VIP PRIORITY QUEUES:</span>                                                    │
+│                                                                            │
+│  ┌────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                    │   │
+│  │  VIP tenants → messages published with priority: "high"           │   │
+│  │                                                                    │   │
+│  │  RabbitMQ Priority Queue:                                          │   │
+│  │  ├── priority 10 (VIP):     processed FIRST                      │   │
+│  │  ├── priority 5  (ent/prem): processed SECOND                     │   │
+│  │  └── priority 1  (basic):   processed LAST                        │   │
+│  │                                                                    │   │
+│  │  → VIP messages xử lý nhanh hơn ngay cả khi queue dài.           │   │
+│  │                                                                    │   │
+│  └────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+│                                                                            │
+│  <span class="ty">RETRY & DLQ FLOW:</span>                                                       │
+│                                                                            │
+│  ┌────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                    │   │
+│  │  Worker consume message                                            │   │
+│  │  │                                                                 │   │
+│  │  ├── <span class="gn">Success</span> → ACK → message removed from queue                  │   │
+│  │  │                                                                 │   │
+│  │  └── <span class="rd">Failure</span> → NACK                                              │   │
+│  │       │                                                            │   │
+│  │       ├── retryCount < 3?                                          │   │
+│  │       │   YES → re-queue with backoff                              │   │
+│  │       │         (retry 1: 5s, retry 2: 30s, retry 3: 2min)       │   │
+│  │       │                                                            │   │
+│  │       └── retryCount = 3?                                          │   │
+│  │           → Move to DLQ                                            │   │
+│  │           → Alert ops (PagerDuty)                                  │   │
+│  │           → Manual review → fix → replay                          │   │
+│  │                                                                    │   │
+│  └────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- S3 -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-s3">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Object Storage (S3) & Elasticsearch</h2></div>
+
+    <div class="dg"><div class="dg-label">object storage</div><pre>
+┌─ <span class="cy">OBJECT STORAGE</span> ── <span class="cm">S3 / MinIO / GCS</span> ─────────────────────────────────────┐
+│                                                                            │
+│  <span class="ty">Purpose:</span> File uploads, CSV exports, backups, email attachments         │
+│                                                                            │
+│  <span class="ty">Bucket structure:</span>                                                       │
+│                                                                            │
+│  crm-storage/                                                              │
+│  ├── tenants/                                                              │
+│  │   ├── <span class="gn">acme-123/</span>                                                      │
+│  │   │   ├── uploads/                                                      │
+│  │   │   │   ├── avatar-user5.jpg                                          │
+│  │   │   │   ├── contract-cust99.pdf                                       │
+│  │   │   │   └── ...                                                       │
+│  │   │   ├── exports/                                                      │
+│  │   │   │   ├── customers-2026-02-10.csv                                  │
+│  │   │   │   └── sales-report-q4.xlsx                                      │
+│  │   │   └── backups/                                                      │
+│  │   │       └── data-2026-02-10.sql.gz                                    │
+│  │   │                                                                     │
+│  │   ├── <span class="cy">globex-456/</span>                                                    │
+│  │   │   ├── uploads/ ...                                                  │
+│  │   │   └── exports/ ...                                                  │
+│  │   │                                                                     │
+│  │   └── <span class="vi">initech-789/</span>                                                   │
+│  │       └── ...                                                           │
+│  │                                                                         │
+│  └── system/                                                               │
+│      ├── plugin-artifacts/                                                 │
+│      │   ├── customer-data-2.1.0.tgz                                      │
+│      │   ├── customer-care-1.5.0.tgz                                      │
+│      │   └── ...                                                           │
+│      └── audit-archives/                                                   │
+│          ├── audit-2025-01.parquet                                          │
+│          └── ...                                                           │
+│                                                                            │
+│                                                                            │
+│  <span class="ty">Tenant Isolation:</span>                                                       │
+│  ┌────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                    │   │
+│  │  Plugin gọi: ctx.storage.upload(file)                              │   │
+│  │  Storage Service auto-prefix: /tenants/{tenantId}/uploads/         │   │
+│  │                                                                    │   │
+│  │  <span class="rd">Plugin KHÔNG THỂ chỉ định path tùy ý.</span>                            │   │
+│  │  <span class="rd">Luôn bị scope vào /tenants/{tenantId}/</span>                            │   │
+│  │                                                                    │   │
+│  │  S3 bucket policy: IAM role chỉ cho phép prefix tenants/*         │   │
+│  │  Pre-signed URLs: expire sau 15 phút, tenant-scoped               │   │
+│  │                                                                    │   │
+│  └────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+│  <span class="ty">Ai kết nối:</span>                                                             │
+│  ├── L3 Storage Service (upload/download, called by plugins via ctx)      │
+│  ├── Async Workers (export jobs, backup jobs)                              │
+│  ├── L3 Plugin Manager (pull artifacts from system/plugin-artifacts/)     │
+│  └── L6 Audit Logger (archive old partitions to audit-archives/)          │
+│                                                                            │
+│  <span class="ty">Quota per tier:</span>                                                         │
+│  ├── Basic:      5 GB                                                      │
+│  ├── Premium:    50 GB                                                     │
+│  ├── Enterprise: 500 GB                                                    │
+│  └── VIP:        Unlimited                                                 │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘</pre></div>
+
+    <div class="dg"><div class="dg-label">elasticsearch</div><pre>
+┌─ <span class="pk">ELASTICSEARCH CLUSTER</span> ── <span class="cm">3 nodes</span> ──────────────────────────────────────┐
+│                                                                            │
+│  <span class="ty">Purpose:</span> Full-text search cho customers, sales, contacts, tickets      │
+│  <span class="cm">PostgreSQL LIKE queries chậm với >100K records.</span>                         │
+│  <span class="cm">Elasticsearch trả kết quả &lt;50ms cho millions of documents.</span>              │
+│                                                                            │
+│                                                                            │
+│  <span class="ty">Index Strategy: Per-tenant indices</span>                                      │
+│                                                                            │
+│  ┌────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                    │   │
+│  │  Indices:                                                          │   │
+│  │  ├── acme-123-customers     (ACME's customer docs)                │   │
+│  │  ├── acme-123-sales         (ACME's sales docs)                   │   │
+│  │  ├── globex-456-customers   (GLOBEX's customer docs)              │   │
+│  │  ├── globex-456-sales       (GLOBEX's sales docs)                 │   │
+│  │  └── ...                                                           │   │
+│  │                                                                    │   │
+│  │  Tại sao per-tenant index (không phải shared + filter)?           │   │
+│  │  ├── <span class="gn">Isolation:</span> tenant delete → drop index (nhanh, sạch)           │   │
+│  │  ├── <span class="gn">Performance:</span> smaller indices = faster queries                  │   │
+│  │  ├── <span class="gn">Scaling:</span> VIP tenant index → dedicated shard/node               │   │
+│  │  └── <span class="am">Trade-off:</span> nhiều indices = more cluster overhead               │   │
+│  │      → cho small tenants: alias pointing to shared index          │   │
+│  │                                                                    │   │
+│  └────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+│                                                                            │
+│  <span class="ty">Index lifecycle:</span>                                                        │
+│                                                                            │
+│  ┌────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                    │   │
+│  │  Plugin gọi ctx.db.insert('customers', data)                      │   │
+│  │  → DB insert thành công                                            │   │
+│  │  → Async event publish: "customer.created"                        │   │
+│  │  → RabbitMQ → search.index queue                                  │   │
+│  │  → Search Index Worker consume:                                    │   │
+│  │    ├── Build ES document from DB record                           │   │
+│  │    ├── Index to: {tenantId}-customers                             │   │
+│  │    └── <span class="am">Near-realtime: ~1-2 seconds lag</span>                            │   │
+│  │                                                                    │   │
+│  │  Plugin gọi ctx.search.query("customers", { q: "Alice" })        │   │
+│  │  → Search Service:                                                 │   │
+│  │    ├── Index: {ctx.tenantId}-customers                             │   │
+│  │    ├── Query: { match: { _all: "Alice" } }                       │   │
+│  │    └── Return: scored results in <span class="gn">&lt;50ms</span>                          │   │
+│  │                                                                    │   │
+│  └────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+│  <span class="ty">Ai kết nối:</span>                                                             │
+│  ├── Search Index Worker (write: index documents after DB changes)        │
+│  ├── L3 Search Service (read: full-text queries from plugins)             │
+│  └── Analytics Replica (read: aggregate search analytics)                  │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- TIER CONFIG -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-tier">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Cấu hình Infrastructure per Tier</h2></div>
+
+    <div class="dg"><div class="dg-label">tier comparison</div><pre>
+┌──────────────────────┬──────────────┬──────────────┬──────────────┬──────────────┐
+│ <span class="ty">Infrastructure</span>       │ <span class="td">Basic</span>        │ <span class="am">Premium</span>      │ <span class="gn">Enterprise</span>   │ <span class="vi">VIP</span>          │
+├──────────────────────┼──────────────┼──────────────┼──────────────┼──────────────┤
+│                      │              │              │              │              │
+│ <span class="hi">PostgreSQL</span>           │              │              │              │              │
+│  DB instance         │ Shared       │ Shared       │ Shared       │ <span class="vi">Dedicated</span>    │
+│  Conn pool share     │ max 10       │ max 20       │ max 30       │ max 30 own   │
+│  Read replica access │ No           │ No           │ Yes          │ Own replica  │
+│  Custom tuning       │ No           │ No           │ No           │ <span class="vi">Yes</span>          │
+│  Own backup schedule │ No           │ No           │ No           │ <span class="vi">Yes</span>          │
+│  Data partitioning   │ Shared table │ Shared table │ Shared table │ Own tables   │
+│  RLS                 │ Yes          │ Yes          │ Yes          │ Optional     │
+│                      │              │              │              │              │
+│ <span class="rd">Redis</span>                │              │              │              │              │
+│  Cluster access      │ Shared       │ Shared       │ Shared       │ Shared*      │
+│  Cache TTL           │ 5 min        │ 10 min       │ 15 min       │ 15 min       │
+│  Rate limit          │ 100 req/min  │ 500 req/min  │ 2000 req/min │ Unlimited    │
+│  Pub/Sub             │ Shared       │ Shared       │ Shared       │ Shared       │
+│                      │              │              │              │              │
+│ <span class="or">RabbitMQ</span>             │              │              │              │              │
+│  Queue access        │ Shared       │ Shared       │ Shared       │ Shared*      │
+│  Message priority    │ 1 (low)      │ 5 (normal)   │ 5 (normal)   │ <span class="vi">10 (high)</span>    │
+│  Dedicated workers   │ No           │ No           │ No           │ <span class="vi">Yes</span>          │
+│  DLQ retention       │ 3 days       │ 7 days       │ 30 days      │ 90 days      │
+│                      │              │              │              │              │
+│ <span class="cy">Object Storage</span>       │              │              │              │              │
+│  Quota               │ 5 GB         │ 50 GB        │ 500 GB       │ Unlimited    │
+│  Backup retention    │ 7 days       │ 30 days      │ 90 days      │ 365 days     │
+│  Export formats      │ CSV          │ CSV, XLSX    │ All          │ All          │
+│                      │              │              │              │              │
+│ <span class="pk">Elasticsearch</span>        │              │              │              │              │
+│  Index strategy      │ Shared alias │ Per-tenant   │ Per-tenant   │ <span class="vi">Dedicated</span>    │
+│  Search results/page │ 100          │ 500          │ 1000         │ Unlimited    │
+│  Custom analyzers    │ No           │ No           │ Yes          │ <span class="vi">Yes</span>          │
+│                      │              │              │              │              │
+│ <span class="pk">SLA</span>                  │ <span class="td">99.5%</span>        │ <span class="am">99.9%</span>        │ <span class="gn">99.95%</span>       │ <span class="vi">99.99%</span>       │
+│                      │              │              │              │              │
+└──────────────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
+
+<span class="cm">* VIP có thể dùng dedicated Redis/MQ nếu workload justify — nhưng mặc định shared.</span>
+<span class="cm">  VIP isolation chủ yếu ở PostgreSQL vì đây là bottleneck chính.</span></pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- REQUEST PARTICIPATION -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-req">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">L5 tham gia xử lý request — Trace đầy đủ</h2></div>
+
+    <div class="dg"><div class="dg-label">L5 request trace</div><pre>
+<span class="hi">POST /api/v1/sales</span> — ACME (Premium)
+<span class="cm">Chỉ focus L5. Các tầng khác thu gọn.</span>
+
+
+  <span class="ty">① REDIS</span> — Gateway phase (3 ops, ~3ms)
+  │
+  │  <span class="nu">Op 1:</span> Tenant Resolver
+  │  GET domain-map:acme → <span class="gn">HIT</span> "acme-123"               <span class="nu">~0.5ms</span>
+  │
+  │  <span class="nu">Op 2:</span> Auth Guard
+  │  EXISTS blacklist:jwt-id-xyz → <span class="gn">0</span> (not revoked)      <span class="nu">~0.3ms</span>
+  │
+  │  <span class="nu">Op 3:</span> Rate Limiter
+  │  ZADD rl:acme-123 {now} {now}                        <span class="nu">~0.5ms</span>
+  │  ZRANGEBYSCORE rl:acme-123 {now-60s} {now}
+  │  ZCARD → 249 / 500 → <span class="gn">PASS</span>                            <span class="nu">~0.5ms</span>
+  │
+  │
+  <span class="ty">② POSTGRESQL</span> — Plugin execution phase (3 queries, ~20ms)
+  │
+  │  Connection: Shared Pool → conn #14
+  │  Configured: app.current_tenant = 'acme-123'
+  │
+  │  <span class="nu">Query 1:</span> Read customer (validate)
+  │  SELECT * FROM customers
+  │  WHERE id = 'cust-99' AND tenant_id = 'acme-123'
+  │  → Shared Data DB Primary
+  │  → Index scan idx_customers_pk                        <span class="nu">~5ms</span>
+  │
+  │  <span class="nu">Query 2:</span> Insert sale
+  │  INSERT INTO sales (tenant_id, customer_id, ...)
+  │  VALUES ('acme-123', 'cust-99', ...)
+  │  → Shared Data DB Primary                             <span class="nu">~8ms</span>
+  │
+  │  <span class="nu">Query 3:</span> Update customer lastActivity
+  │  UPDATE customers SET last_activity = now()
+  │  WHERE id = 'cust-99' AND tenant_id = 'acme-123'
+  │  → Shared Data DB Primary                             <span class="nu">~5ms</span>
+  │
+  │  Release: RESET app.current_tenant → return conn #14 to pool
+  │
+  │
+  <span class="ty">③ REDIS</span> — Sync event phase (4 ops, ~4ms)
+  │
+  │  Analytics handler:
+  │  INCR   t:acme-123:stats:sales_count                  <span class="nu">~1ms</span>
+  │  INCRBY t:acme-123:stats:sales_total 50000            <span class="nu">~1ms</span>
+  │
+  │  Cache invalidation:
+  │  DEL t:acme-123:care:sales:*                           <span class="nu">~1ms</span>
+  │  PUBLISH cache:invalidate { tenant, pattern }          <span class="nu">~1ms</span>
+  │
+  │
+  <span class="ty">④ RABBITMQ</span> — Async publish (~2ms)
+  │
+  │  PUBLISH to exchange crm.events
+  │  routing_key: sales.created
+  │  headers: { tenantId: acme-123, priority: 5, traceId: req-789 }
+  │  body: { type: sales.created, sale: {...} }
+  │  → Broker ACK                                         <span class="nu">~2ms</span>
+  │
+  │
+  <span class="ty">⑤ POSTGRESQL</span> — Audit (async, ~3ms)
+  │
+  │  INSERT INTO audit_log (...) VALUES (...)
+  │  → Metadata DB (via metadata pool)                    <span class="nu">~3ms</span>
+  │
+  │
+═══════════════════════════════════════════════════════════════════
+  <span class="gn">RESPONSE SENT — 59ms total</span>
+═══════════════════════════════════════════════════════════════════
+  │
+  │  <span class="cm">...async, sau response...</span>
+  │
+  <span class="ty">⑥ RABBITMQ → WORKERS → nhiều L5 components</span>
+  │
+  │  Worker: notification
+  │  ├── <span class="hi">PostgreSQL</span>: query users (who to notify)           <span class="nu">~5ms</span>
+  │  └── <span class="rd">Redis</span>: PUBLISH to WebSocket channel               <span class="nu">~1ms</span>
+  │
+  │  Worker: search.index
+  │  ├── <span class="hi">PostgreSQL</span>: read full sale record                   <span class="nu">~5ms</span>
+  │  └── <span class="pk">Elasticsearch</span>: PUT acme-123-sales/sale-42         <span class="nu">~50ms</span>
+  │
+  │  Worker: webhook.deliver
+  │  ├── <span class="hi">PostgreSQL</span>: read webhook registrations             <span class="nu">~5ms</span>
+  │  └── HTTP POST to https://acme.com/hooks/crm          <span class="nu">~200ms</span>
+
+
+<span class="ty">TỔNG KẾT L5 TRONG 1 REQUEST:</span>
+
+  ┌─────────────────────┬──────┬───────┬────────────────────────────────────┐
+  │ Component           │ Ops  │ Time  │ Phase                              │
+  ├─────────────────────┼──────┼───────┼────────────────────────────────────┤
+  │ <span class="rd">Redis</span>               │  7   │  ~4ms │ gateway(3) + events(4)             │
+  │ <span class="hi">PostgreSQL Shared</span>   │  3   │ ~18ms │ plugin execution (read+write)      │
+  │ <span class="hi">PostgreSQL Meta</span>     │  1   │  ~3ms │ audit log                          │
+  │ <span class="or">RabbitMQ</span>            │  1   │  ~2ms │ async publish                      │
+  │ <span class="cy">S3</span>                  │  0   │   —   │ (not involved in this request)      │
+  │ <span class="pk">Elasticsearch</span>       │  0   │   —   │ (async worker, after response)      │
+  ├─────────────────────┼──────┼───────┼────────────────────────────────────┤
+  │ <span class="hi">Sync total</span>          │ <span class="hi">12</span>   │<span class="hi">~27ms</span> │ contributes to response latency    │
+  │ <span class="cm">Async total</span>         │ <span class="cm"> 5+</span>  │<span class="cm">~260ms</span>│ does NOT affect response latency    │
+  └─────────────────────┴──────┴───────┴────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['map','pg','redis','mq','s3','es','tier','req'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — Shared DB Migration Mechanics</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
+  --gn:#10b981;--gnd:rgba(16,185,129,.08);
+  --am:#f59e0b;--amd:rgba(245,158,11,.08);
+  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
+  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
+  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
+  --or:#f97316;--pk:#ec4899;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(1.6rem,3.5vw,2.6rem);font-weight:800;line-height:1.15;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--bl)}
+.hero p{font-size:1rem;color:var(--td);max-width:660px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--bl)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
+.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.cm{color:#3e4460;font-style:italic}.nu{color:#f78c6c}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.pk{color:#ec4899}.or{color:#f97316}.fn{color:#82aaff}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
+.nt strong{color:inherit}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+.pnl.on .sec:nth-child(2){animation-delay:.04s}
+.pnl.on .sec:nth-child(3){animation-delay:.08s}
+.pnl.on .sec:nth-child(4){animation-delay:.12s}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Migration Paradox — Shared DB</div>
+    <h1>Khi enable/disable plugin<br>trong <span>Shared Database</span></h1>
+    <p>Tables dùng chung nhưng plugins enable riêng — Migration Engine giải quyết nghịch lý này như thế nào?</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('prob')">Nghịch lý</button>
+    <button onclick="go('split')">2 loại Migration</button>
+    <button onclick="go('en')">Enable: Kịch bản cụ thể</button>
+    <button onclick="go('dis')">Disable: Kịch bản cụ thể</button>
+    <button onclick="go('up')">Upgrade Plugin Version</button>
+    <button onclick="go('vip')">So sánh VIP DB</button>
+    <button onclick="go('edge')">Edge Cases & Risks</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════ -->
+<!-- PARADOX -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl on" id="p-prob">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Nghịch lý cốt lõi</h2></div>
+
+    <div class="dg"><div class="dg-label">the paradox</div><pre>
+<span class="ty">BÀI TOÁN:</span>
+
+  Shared Data DB chứa data CỦA MỌI standard tenant trong CÙNG tables.
+
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  <span class="hi">sales</span> table (1 bảng duy nhất, shared)                              │
+  │                                                                    │
+  │  id       │ <span class="rd">tenant_id</span>    │ title            │ amount              │
+  │  ─────────┼──────────────┼──────────────────┼──────────────────   │
+  │  sale-42  │ <span class="gn">acme-123</span>     │ Enterprise deal  │ 50000               │
+  │  sale-43  │ <span class="gn">acme-123</span>     │ Startup package  │ 5000                │
+  │  sale-88  │ <span class="cy">globex-456</span>   │ Widget order     │ 12000               │
+  │  sale-91  │ <span class="am">wayne-789</span>    │ Tech upgrade     │ 80000               │
+  └────────────────────────────────────────────────────────────────────┘
+
+  Bảng <span class="hi">sales</span> thuộc plugin <span class="fn">customer-care</span>.
+  3 tenants (ACME, GLOBEX, WAYNE) đều đã enable customer-care.
+  Data của cả 3 nằm TRONG CÙNG BẢNG.
+
+
+<span class="ty">CÂU HỎI:</span>
+
+  <span class="nu">①</span> Khi ACME enable customer-care (tenant đầu tiên):
+     → Migration tạo table sales. OK rõ ràng.
+
+  <span class="nu">②</span> Khi GLOBEX enable customer-care (tenant thứ hai):
+     → Table sales ĐÃ TỒN TẠI. Migration làm gì?
+     → <span class="am">Có chạy CREATE TABLE lại không? Lỗi không?</span>
+
+  <span class="nu">③</span> Khi ACME disable customer-care:
+     → ACME không dùng nữa. DROP TABLE sales?
+     → <span class="rd">Nhưng GLOBEX và WAYNE vẫn dùng! DROP = mất data họ!</span>
+
+  <span class="nu">④</span> Khi upgrade customer-care v1.5 → v2.0 (thêm cột mới):
+     → ALTER TABLE sales ADD COLUMN pipeline_stage TEXT;
+     → <span class="am">Chỉ ACME upgrade, GLOBEX còn v1.5 → GLOBEX thấy cột mới?</span>
+
+
+<span class="ty">ĐÁP ÁN TỔNG QUÁT:</span>
+
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                                                                    │
+  │  Migration Engine TÁCH migration thành 2 loại:                    │
+  │                                                                    │
+  │  <span class="hi">Schema Migrations</span> (DDL) — CREATE TABLE, ALTER TABLE, ADD INDEX    │
+  │  → Chạy 1 LẦN cho toàn hệ thống.                                 │
+  │  → Idempotent: CREATE TABLE <span class="gn">IF NOT EXISTS</span>.                       │
+  │  → Không bao giờ DROP TABLE khi disable.                          │
+  │  → Track ở level: <span class="gn">(plugin, version)</span> — không có tenant.            │
+  │                                                                    │
+  │  <span class="am">Tenant Migrations</span> (DML) — seed data, default configs, RLS        │
+  │  → Chạy PER TENANT mỗi lần enable.                               │
+  │  → Track ở level: <span class="am">(tenant, plugin, version)</span>.                     │
+  │  → Rollback khi disable = xóa DATA (rows), không xóa TABLE.     │
+  │                                                                    │
+  └────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 2 TYPES -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-split">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">2 loại Migration — Schema vs Tenant</h2></div>
+
+    <div class="dg"><div class="dg-label">migration types</div><pre>
+<span class="ty">MỖI PLUGIN CÓ 2 THƯ MỤC MIGRATION:</span>
+
+  customer-care/
+  ├── migrations/
+  │   ├── <span class="hi">schema/</span>                        ← DDL, chạy 1 lần cho toàn DB
+  │   │   ├── 001_create_sales.sql
+  │   │   ├── 002_create_call_logs.sql
+  │   │   ├── 003_create_tickets.sql
+  │   │   └── 004_add_indexes.sql
+  │   │
+  │   └── <span class="am">tenant/</span>                        ← DML, chạy per tenant khi enable
+  │       ├── 001_apply_rls_policies.sql
+  │       ├── 002_seed_default_config.sql
+  │       └── 003_create_default_pipeline.sql
+  │
+  └── plugin.manifest.json
+
+
+<span class="ty">CHI TIẾT TỪNG LOẠI:</span>
+
+
+  ┌─ <span class="hi">SCHEMA MIGRATIONS</span> (DDL) ──────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="ty">Purpose:</span>  Tạo/sửa cấu trúc bảng (tables, indexes, constraints)      │
+  │  <span class="ty">Scope:</span>    Toàn Shared Data DB — không gắn tenant nào                  │
+  │  <span class="ty">Runs:</span>     1 lần duy nhất cho mỗi version                             │
+  │  <span class="ty">Track:</span>    table <span class="fn">schema_migrations</span> trong Metadata DB                   │
+  │                                                                        │
+  │  ┌──────────────────────────────────────────────────────────────────┐ │
+  │  │  <span class="fn">schema_migrations</span>                                               │ │
+  │  │                                                                  │ │
+  │  │  plugin_name  │ version │ file                   │ executed_at   │ │
+  │  │  ─────────────┼─────────┼────────────────────────┼─────────────  │ │
+  │  │  cust-care    │ 001     │ create_sales.sql       │ 2025-06-15   │ │
+  │  │  cust-care    │ 002     │ create_call_logs.sql   │ 2025-06-15   │ │
+  │  │  cust-care    │ 003     │ create_tickets.sql     │ 2025-06-15   │ │
+  │  │  cust-care    │ 004     │ add_indexes.sql        │ 2025-06-15   │ │
+  │  │                                                                  │ │
+  │  │  <span class="gn">Không có cột tenant_id. 1 record per migration file.</span>           │ │
+  │  └──────────────────────────────────────────────────────────────────┘ │
+  │                                                                        │
+  │  <span class="ty">SQL example:</span>                                                        │
+  │  ┌──────────────────────────────────────────────────────────────────┐ │
+  │  │  -- schema/001_create_sales.sql                                  │ │
+  │  │                                                                  │ │
+  │  │  CREATE TABLE <span class="gn">IF NOT EXISTS</span> sales (                             │ │
+  │  │    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),       │ │
+  │  │    tenant_id   UUID NOT NULL,                                    │ │
+  │  │    customer_id UUID NOT NULL,                                    │ │
+  │  │    title       TEXT,                                             │ │
+  │  │    amount      DECIMAL,                                          │ │
+  │  │    status      TEXT DEFAULT 'new',                               │ │
+  │  │    created_at  TIMESTAMPTZ DEFAULT now()                        │ │
+  │  │  );                                                              │ │
+  │  │                                                                  │ │
+  │  │  -- <span class="gn">IF NOT EXISTS = idempotent</span>                                  │ │
+  │  │  -- Chạy lần 2 → no-op. Không lỗi.                             │ │
+  │  └──────────────────────────────────────────────────────────────────┘ │
+  │                                                                        │
+  │  <span class="ty">Khi nào chạy:</span>                                                       │
+  │  ├── Plugin DEPLOY lần đầu tiên vào hệ thống                         │
+  │  ├── Plugin UPGRADE version (new migration files)                     │
+  │  └── <span class="rd">KHÔNG chạy khi tenant enable/disable</span>                             │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+  ┌─ <span class="am">TENANT MIGRATIONS</span> (DML) ──────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="ty">Purpose:</span>  Setup per-tenant: RLS, seed data, default configs           │
+  │  <span class="ty">Scope:</span>    Per tenant — mỗi tenant chạy riêng                          │
+  │  <span class="ty">Runs:</span>     Mỗi lần tenant enable plugin                               │
+  │  <span class="ty">Track:</span>    table <span class="fn">tenant_plugin_migrations</span> trong Metadata DB             │
+  │                                                                        │
+  │  ┌──────────────────────────────────────────────────────────────────┐ │
+  │  │  <span class="fn">tenant_plugin_migrations</span>                                        │ │
+  │  │                                                                  │ │
+  │  │  tenant_id  │ plugin    │ version │ executed_at                  │ │
+  │  │  ───────────┼───────────┼─────────┼──────────────                │ │
+  │  │  acme-123   │ cust-care │ 001     │ 2025-07-01                  │ │
+  │  │  acme-123   │ cust-care │ 002     │ 2025-07-01                  │ │
+  │  │  acme-123   │ cust-care │ 003     │ 2025-07-01                  │ │
+  │  │  globex-456 │ cust-care │ 001     │ 2025-08-10                  │ │
+  │  │  globex-456 │ cust-care │ 002     │ 2025-08-10                  │ │
+  │  │  globex-456 │ cust-care │ 003     │ 2025-08-10                  │ │
+  │  │                                                                  │ │
+  │  │  <span class="am">CÓ cột tenant_id. Per-tenant per-plugin per-version.</span>           │ │
+  │  └──────────────────────────────────────────────────────────────────┘ │
+  │                                                                        │
+  │  <span class="ty">SQL example:</span>                                                        │
+  │  ┌──────────────────────────────────────────────────────────────────┐ │
+  │  │  -- tenant/002_seed_default_config.sql                           │ │
+  │  │  -- Biến {{tenant_id}} được thay thế bởi Migration Engine       │ │
+  │  │                                                                  │ │
+  │  │  INSERT INTO sales (tenant_id, title, status)                    │ │
+  │  │  VALUES ('<span class="am">{{tenant_id}}</span>', 'Sample opportunity', 'new')         │ │
+  │  │  <span class="gn">ON CONFLICT DO NOTHING</span>;                                        │ │
+  │  │                                                                  │ │
+  │  │  -- Seed default sales pipeline stages cho tenant này           │ │
+  │  │  -- Chỉ ảnh hưởng DATA (rows), không ảnh hưởng STRUCTURE       │ │
+  │  └──────────────────────────────────────────────────────────────────┘ │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- ENABLE SCENARIOS -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-en">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Enable Plugin — 3 kịch bản cụ thể</h2></div>
+
+    <div class="dg"><div class="dg-label">scenario: first enable</div><pre>
+<span class="ty">SCENARIO A: ACME enable customer-care</span>
+<span class="ty">(Tenant ĐẦU TIÊN enable plugin này trên toàn hệ thống)</span>
+
+  Trạng thái trước:
+  ├── Plugin customer-care v1.5.0 đã DEPLOY vào hệ thống
+  ├── schema_migrations: trống cho customer-care
+  ├── Chưa tenant nào enable
+  └── Bảng sales, call_logs, tickets CHƯA TỒN TẠI
+
+
+  Migration Engine xử lý:
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="nu">Step 1:</span> Check Schema Migrations                                     │
+  │                                                                        │
+  │    SELECT MAX(version) FROM schema_migrations                          │
+  │    WHERE plugin_name = 'customer-care'                                 │
+  │    → NULL (chưa chạy bao giờ)                                         │
+  │                                                                        │
+  │    Pending: 001, 002, 003, 004                                         │
+  │                                                                        │
+  │  <span class="nu">Step 2:</span> <span class="hi">Run Schema Migrations</span> (DDL — toàn DB)                          │
+  │                                                                        │
+  │    BEGIN;                                                               │
+  │      pg_advisory_lock(hash('schema:customer-care'))                    │
+  │                                                                        │
+  │      <span class="hi">CREATE TABLE IF NOT EXISTS sales (...)</span>     ← table MỚI       │
+  │      <span class="hi">CREATE TABLE IF NOT EXISTS call_logs (...)</span> ← table MỚI       │
+  │      <span class="hi">CREATE TABLE IF NOT EXISTS tickets (...)</span>   ← table MỚI       │
+  │      <span class="hi">CREATE INDEX ...</span>                                               │
+  │                                                                        │
+  │      INSERT INTO schema_migrations VALUES                              │
+  │        ('customer-care', '001'), ('customer-care', '002'),             │
+  │        ('customer-care', '003'), ('customer-care', '004');             │
+  │    COMMIT;                                                              │
+  │                                                                        │
+  │    <span class="gn">Tables tạo xong. Mọi tenant tương lai sẽ dùng chung.</span>             │
+  │                                                                        │
+  │  <span class="nu">Step 3:</span> <span class="am">Run Tenant Migrations</span> (DML — cho ACME)                       │
+  │                                                                        │
+  │    BEGIN;                                                               │
+  │      pg_advisory_lock(hash('tenant:acme-123:customer-care'))           │
+  │                                                                        │
+  │      <span class="am">-- Enable RLS cho ACME trên tables mới</span>                         │
+  │      <span class="am">ALTER TABLE sales ENABLE ROW LEVEL SECURITY;</span>                   │
+  │      <span class="am">CREATE POLICY IF NOT EXISTS tenant_iso ON sales</span>                │
+  │      <span class="am">  USING (tenant_id = current_setting('app.tenant_id')::UUID);</span>  │
+  │                                                                        │
+  │      <span class="cm">↑ RLS policies cũng idempotent: IF NOT EXISTS.</span>                │
+  │      <span class="cm">  Chạy 1 lần, apply cho MỌI tenant dùng chung table.</span>          │
+  │                                                                        │
+  │      -- Seed default data cho ACME                                     │
+  │      INSERT INTO sales (tenant_id, title, status)                      │
+  │      VALUES ('acme-123', 'Sample opportunity', 'new');                 │
+  │                                                                        │
+  │      INSERT INTO tenant_plugin_migrations VALUES                       │
+  │        ('acme-123', 'customer-care', '001'),                           │
+  │        ('acme-123', 'customer-care', '002'),                           │
+  │        ('acme-123', 'customer-care', '003');                           │
+  │    COMMIT;                                                              │
+  │                                                                        │
+  │  <span class="nu">Step 4:</span> Update tenant_plugins                                       │
+  │    UPDATE tenant_plugins SET enabled = true                            │
+  │    WHERE tenant_id = 'acme-123' AND plugin = 'customer-care';         │
+  │                                                                        │
+  │  <span class="nu">Step 5:</span> Invalidate ACME tenant context cache                        │
+  │    → Next request rebuilds context with customer-care enabled.         │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘</pre></div>
+
+    <div class="dg"><div class="dg-label">scenario: second enable</div><pre>
+<span class="ty">SCENARIO B: GLOBEX enable customer-care</span>
+<span class="ty">(ACME đã enable trước đó → tables ĐÃ TỒN TẠI)</span>
+
+  Trạng thái trước:
+  ├── schema_migrations: customer-care 001-004 đã chạy
+  ├── Bảng sales, call_logs, tickets ĐÃ TỒN TẠI (ACME đã dùng)
+  └── GLOBEX chưa có data trong bảng sales
+
+
+  Migration Engine xử lý:
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="nu">Step 1:</span> Check Schema Migrations                                     │
+  │                                                                        │
+  │    SELECT MAX(version) FROM schema_migrations                          │
+  │    WHERE plugin_name = 'customer-care'                                 │
+  │    → '004' (đã chạy hết)                                              │
+  │                                                                        │
+  │    Pending: <span class="gn">NONE</span>                                                      │
+  │                                                                        │
+  │  <span class="nu">Step 2:</span> <span class="gn">SKIP Schema Migrations — không có gì để chạy!</span>                  │
+  │                                                                        │
+  │    <span class="cm">Tables đã được ACME tạo trước đó.</span>                                 │
+  │    <span class="cm">GLOBEX dùng chung tables đó luôn.</span>                                 │
+  │    <span class="cm">Không cần CREATE TABLE lại.</span>                                       │
+  │                                                                        │
+  │                                                                        │
+  │  <span class="nu">Step 3:</span> <span class="am">Run Tenant Migrations</span> (DML — cho GLOBEX)                     │
+  │                                                                        │
+  │    BEGIN;                                                               │
+  │      pg_advisory_lock(hash('tenant:globex-456:customer-care'))         │
+  │                                                                        │
+  │      <span class="cm">-- RLS đã enable từ lần ACME → IF NOT EXISTS → skip</span>           │
+  │                                                                        │
+  │      -- Seed default data cho GLOBEX                                   │
+  │      INSERT INTO sales (tenant_id, title, status)                      │
+  │      VALUES ('<span class="cy">globex-456</span>', 'Sample opportunity', 'new');             │
+  │                                                                        │
+  │      INSERT INTO tenant_plugin_migrations VALUES                       │
+  │        ('globex-456', 'customer-care', '001'), ...;                    │
+  │    COMMIT;                                                              │
+  │                                                                        │
+  │  <span class="nu">Step 4-5:</span> Update tenant_plugins + invalidate cache.                  │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+  <span class="ty">TRẠNG THÁI SAU:</span>
+
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  <span class="hi">sales</span> table (cùng 1 bảng, giờ có data 2 tenants)                 │
+  │                                                                    │
+  │  id       │ tenant_id    │ title               │ source            │
+  │  ─────────┼──────────────┼─────────────────────┼──────────────     │
+  │  sale-42  │ <span class="gn">acme-123</span>     │ Enterprise deal     │ user created      │
+  │  sale-43  │ <span class="gn">acme-123</span>     │ Sample opportunity  │ seed (enable)     │
+  │  sale-88  │ <span class="cy">globex-456</span>   │ Sample opportunity  │ seed (enable)     │
+  │                                                                    │
+  │  <span class="cm">ACME query sales → thấy sale-42, sale-43 (RLS filter)</span>            │
+  │  <span class="cm">GLOBEX query sales → thấy sale-88 (RLS filter)</span>                   │
+  │  <span class="cm">Không ai thấy data của người khác.</span>                               │
+  └────────────────────────────────────────────────────────────────────┘</pre></div>
+
+    <div class="dg"><div class="dg-label">scenario: hundredth enable</div><pre>
+<span class="ty">SCENARIO C: Tenant thứ 100 enable customer-care</span>
+
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                                                                    │
+  │  Schema Migrations:  <span class="gn">SKIP</span> (đã chạy từ lâu rồi)                    │
+  │  Tenant Migrations:  RUN (seed data + track cho tenant mới)       │
+  │                                                                    │
+  │  Thời gian: <span class="gn">~50ms</span> (chỉ DML, không DDL)                             │
+  │  vs Tenant đầu tiên: ~500ms (DDL + DML)                           │
+  │                                                                    │
+  │  <span class="cm">Enable nhanh dần vì schema đã sẵn sàng.</span>                          │
+  │  <span class="cm">Chỉ chạy seed/config cho tenant mới.</span>                              │
+  │                                                                    │
+  └────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- DISABLE SCENARIOS -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-dis">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Disable Plugin — Bảng chung không bị ảnh hưởng</h2></div>
+
+    <div class="dg"><div class="dg-label">disable: soft vs hard</div><pre>
+<span class="ty">ACME disable customer-care</span>
+<span class="ty">(GLOBEX và WAYNE vẫn dùng)</span>
+
+
+<span class="hi">OPTION A: SOFT DISABLE</span> (mặc định — khuyến nghị)
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="nu">Step 1:</span> Update tenant_plugins                                       │
+  │    UPDATE tenant_plugins SET enabled = <span class="rd">false</span>                          │
+  │    WHERE tenant_id = 'acme-123' AND plugin = 'customer-care';         │
+  │                                                                        │
+  │  <span class="nu">Step 2:</span> Invalidate ACME tenant context cache                        │
+  │    → enabledPlugins không còn customer-care                            │
+  │    → Routes /sales, /calls, /tickets → 404 cho ACME                   │
+  │    → Event handlers customer-care: SKIP cho ACME                      │
+  │    → Hook consumers customer-care: SKIP cho ACME                      │
+  │                                                                        │
+  │  <span class="nu">Step 3:</span> KHÔNG có gì xảy ra ở database level                        │
+  │                                                                        │
+  │    <span class="gn">Tables:     GIỮA NGUYÊN (sales, call_logs, tickets vẫn ở đó)</span>     │
+  │    <span class="gn">ACME data:  GIỮA NGUYÊN (rows với tenant_id=acme-123 vẫn ở đó)</span>  │
+  │    <span class="gn">RLS:        GIỮA NGUYÊN (policies vẫn active)</span>                    │
+  │    <span class="gn">Indexes:    GIỮA NGUYÊN</span>                                          │
+  │                                                                        │
+  │  <span class="ty">Hiệu ứng:</span>                                                          │
+  │  ├── ACME không thể truy cập sales API nữa (routes disabled)         │
+  │  ├── ACME data vẫn nằm trong table (không xóa)                        │
+  │  ├── Nếu ACME re-enable → data cũ vẫn còn → hoạt động ngay          │
+  │  ├── GLOBEX, WAYNE: <span class="gn">KHÔNG BỊ ẢNH HƯỞNG GÌ</span>                          │
+  │  └── Schema migrations: <span class="gn">KHÔNG THAY ĐỔI</span> (tables vẫn tồn tại)        │
+  │                                                                        │
+  │  <span class="cm">Soft disable = vô hình hóa plugin cho tenant đó.</span>                   │
+  │  <span class="cm">Như ẩn app trên điện thoại — app vẫn còn, data vẫn còn.</span>            │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="hi">OPTION B: HARD DISABLE + DATA PURGE</span> (yêu cầu tường minh — hiếm)
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="rd">Chỉ chạy khi tenant YÊU CẦU xóa data (GDPR, account close...)</span>     │
+  │                                                                        │
+  │  <span class="nu">Step 1:</span> Soft disable (như trên)                                     │
+  │                                                                        │
+  │  <span class="nu">Step 2:</span> <span class="rd">Purge ACME data FROM shared tables</span>                           │
+  │                                                                        │
+  │    BEGIN;                                                               │
+  │      <span class="rd">DELETE FROM tickets   WHERE tenant_id = 'acme-123';</span>            │
+  │      <span class="rd">DELETE FROM call_logs WHERE tenant_id = 'acme-123';</span>            │
+  │      <span class="rd">DELETE FROM sales     WHERE tenant_id = 'acme-123';</span>            │
+  │    COMMIT;                                                              │
+  │                                                                        │
+  │    <span class="cm">Xóa ROWS, không xóa TABLE.</span>                                      │
+  │    <span class="cm">Table vẫn tồn tại cho GLOBEX, WAYNE.</span>                             │
+  │                                                                        │
+  │  <span class="nu">Step 3:</span> Remove tenant migration tracking                            │
+  │    DELETE FROM tenant_plugin_migrations                                │
+  │    WHERE tenant_id = 'acme-123' AND plugin = 'customer-care';         │
+  │                                                                        │
+  │  <span class="nu">Step 4:</span> Audit log ghi: "ACME data purged for customer-care"         │
+  │                                                                        │
+  │  <span class="ty">Hiệu ứng:</span>                                                          │
+  │  ├── ACME data: <span class="rd">XÓA VĨNH VIỄN</span>                                       │
+  │  ├── Tables: <span class="gn">VẪN TỒN TẠI</span> (shared, dùng bởi tenants khác)            │
+  │  ├── Nếu ACME re-enable → bắt đầu từ 0 (data đã mất)               │
+  │  ├── GLOBEX, WAYNE: <span class="gn">KHÔNG BỊ ẢNH HƯỞNG GÌ</span>                          │
+  │  └── Schema: <span class="gn">KHÔNG THAY ĐỔI</span>                                          │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">TRƯỜNG HỢP ĐẶC BIỆT: Tenant CUỐI CÙNG disable</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  ACME, GLOBEX, WAYNE đều disable customer-care.                       │
+  │  Không còn tenant nào dùng.                                            │
+  │                                                                        │
+  │  <span class="am">Tables sales, call_logs, tickets VẪN TỒN TẠI.</span>                      │
+  │                                                                        │
+  │  Tại sao không DROP?                                                   │
+  │  ├── <span class="nu">1.</span> Tenant mới có thể enable bất cứ lúc nào                     │
+  │  ├── <span class="nu">2.</span> Soft-disabled tenants vẫn có data trong tables               │
+  │  ├── <span class="nu">3.</span> DROP TABLE = DDL lock → ảnh hưởng toàn DB                   │
+  │  ├── <span class="nu">4.</span> Rỗng tables chiếm ~0 disk (chỉ metadata)                   │
+  │  └── <span class="nu">5.</span> Audit/compliance có thể cần data lịch sử                   │
+  │                                                                        │
+  │  <span class="cm">Tables rỗng = harmless. Để yên.</span>                                    │
+  │  <span class="cm">System Admin CÓ THỂ manual cleanup nếu plugin bị deprecated,</span>        │
+  │  <span class="cm">nhưng đây là admin operation, không phải auto behavior.</span>              │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- UPGRADE -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-up">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Upgrade Plugin Version — Schema evolution</h2></div>
+
+    <div class="dg"><div class="dg-label">version upgrade</div><pre>
+<span class="ty">SCENARIO: customer-care v1.5 → v2.0</span>
+<span class="ty">v2.0 thêm cột pipeline_stage vào bảng sales</span>
+
+
+  New migration files in v2.0:
+  ├── schema/005_add_pipeline_stage.sql
+  └── tenant/004_seed_pipeline_stages.sql
+
+
+<span class="hi">DEPLOY v2.0 vào hệ thống:</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  System Admin deploy customer-care v2.0:                               │
+  │                                                                        │
+  │  <span class="nu">Step 1:</span> <span class="hi">Run NEW Schema Migrations</span>                                    │
+  │                                                                        │
+  │    schema_migrations already has: 001, 002, 003, 004                   │
+  │    New: 005                                                             │
+  │                                                                        │
+  │    <span class="hi">ALTER TABLE sales ADD COLUMN IF NOT EXISTS</span>                        │
+  │    <span class="hi">  pipeline_stage TEXT DEFAULT 'new';</span>                                │
+  │                                                                        │
+  │    INSERT INTO schema_migrations VALUES ('customer-care', '005');      │
+  │                                                                        │
+  │    <span class="rd">⚠ ALTER TABLE ảnh hưởng TOÀN BỘ TENANTS dùng chung bảng.</span>        │
+  │    <span class="rd">  ACME, GLOBEX, WAYNE đều thấy cột mới NGAY LẬP TỨC.</span>            │
+  │                                                                        │
+  │    Nhưng:                                                               │
+  │    <span class="gn">ADD COLUMN với DEFAULT = online operation (PG 11+)</span>                │
+  │    <span class="gn">Không lock table. Không downtime. Không ảnh hưởng reads.</span>          │
+  │                                                                        │
+  │                                                                        │
+  │  <span class="nu">Step 2:</span> Update plugin_registry version → v2.0                       │
+  │                                                                        │
+  │  <span class="nu">Step 3:</span> <span class="am">Tenant Migrations CHƯA chạy.</span>                                  │
+  │    → Chạy khi mỗi tenant upgrade version TRONG tenant_plugins.        │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="hi">TENANT UPGRADE — rolling per tenant:</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="ty">ACME upgrade to v2.0:</span>                                                │
+  │                                                                        │
+  │  Tenant Admin hoặc auto-upgrade:                                       │
+  │  UPDATE tenant_plugins SET version = '2.0.0'                           │
+  │  WHERE tenant_id = 'acme-123' AND plugin = 'customer-care';           │
+  │                                                                        │
+  │  Migration Engine:                                                      │
+  │    Schema: 005 đã chạy → <span class="gn">SKIP</span>                                       │
+  │    Tenant: check tenant_plugin_migrations cho acme-123                 │
+  │      → đã có 001, 002, 003. Pending: <span class="am">004</span>                             │
+  │                                                                        │
+  │    Run tenant/004_seed_pipeline_stages.sql (cho ACME):                 │
+  │      INSERT INTO pipeline_stages (tenant_id, name, ...)                │
+  │      VALUES ('acme-123', 'Qualification', ...),                        │
+  │             ('acme-123', 'Proposal', ...),                             │
+  │             ('acme-123', 'Negotiation', ...);                          │
+  │                                                                        │
+  │  ACME giờ có: cột pipeline_stage + seed pipeline stages.              │
+  │                                                                        │
+  │                                                                        │
+  │  <span class="ty">GLOBEX vẫn ở v1.5:</span>                                                  │
+  │                                                                        │
+  │  GLOBEX thấy cột pipeline_stage không?  <span class="am">CÓ.</span>                          │
+  │  (ALTER TABLE đã thêm cột cho toàn bảng)                               │
+  │                                                                        │
+  │  GLOBEX có pipeline seed data?  <span class="rd">KHÔNG.</span>                                │
+  │  (Tenant migration 004 chưa chạy cho GLOBEX)                          │
+  │                                                                        │
+  │  GLOBEX query: SELECT pipeline_stage FROM sales                        │
+  │  → trả về 'new' (DEFAULT value) cho mọi row                          │
+  │                                                                        │
+  │  <span class="gn">Backward compatible:</span> v1.5 code không dùng cột mới.                 │
+  │  Cột tồn tại nhưng plugin v1.5 không đọc/ghi nó → vô hại.           │
+  │                                                                        │
+  │                                                                        │
+  │  <span class="ty">KHI GLOBEX upgrade lên v2.0 sau:</span>                                    │
+  │                                                                        │
+  │  Schema migrations: 005 đã chạy → <span class="gn">SKIP</span>                              │
+  │  Tenant migrations: chạy 004 cho GLOBEX → seed pipeline stages.       │
+  │  → Giờ GLOBEX cũng có đầy đủ tính năng v2.0.                         │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">QUY TẮC MIGRATION KHI UPGRADE:</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="nu">1.</span> Schema migrations PHẢI backward compatible:                      │
+  │     ├── ADD COLUMN (OK — old code ignores new column)                 │
+  │     ├── ADD INDEX  (OK — old code không bị ảnh hưởng)                │
+  │     ├── <span class="rd">DROP COLUMN (CẤM — old code sẽ break)</span>                        │
+  │     ├── <span class="rd">RENAME COLUMN (CẤM — old code sẽ break)</span>                     │
+  │     └── <span class="am">ALTER TYPE (THẬN TRỌNG — cần compatible cast)</span>                │
+  │                                                                        │
+  │  <span class="nu">2.</span> Nếu cần breaking schema change (DROP/RENAME column):              │
+  │     → 2-phase migration:                                               │
+  │     Phase 1 (v2.0): ADD new column, copy data, code uses both.       │
+  │     Phase 2 (v3.0): Sau khi MỌI tenant upgrade → DROP old column.   │
+  │                                                                        │
+  │  <span class="nu">3.</span> Schema DDL = chạy 1 lần, ảnh hưởng mọi tenant NGAY.            │
+  │     → PHẢI test kỹ. PHẢI backward compatible.                        │
+  │     → Deploy OFF-PEAK hours.                                           │
+  │                                                                        │
+  │  <span class="nu">4.</span> Tenant DML = chạy per-tenant, tenant upgrade khi nào thì chạy. │
+  │     → Safe. Isolated. Rollback dễ.                                    │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- VIP COMPARISON -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-vip">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">So sánh: Shared DB vs VIP Dedicated DB</h2></div>
+
+    <div class="dg"><div class="dg-label">shared vs vip migration</div><pre>
+<span class="ty">CÙNG THAO TÁC, KHÁC CƠ CHẾ:</span>
+
+  ┌───────────────────────┬──────────────────────────┬────────────────────────┐
+  │ Thao tác              │ <span class="gn">Shared DB</span>                │ <span class="vi">VIP Dedicated DB</span>       │
+  │                       │ (ACME, GLOBEX, WAYNE...) │ (INITECH)              │
+  ├───────────────────────┼──────────────────────────┼────────────────────────┤
+  │                       │                          │                        │
+  │ Enable plugin         │                          │                        │
+  │ (tenant đầu tiên)     │ Schema DDL: CREATE TABLE │ Schema DDL: same       │
+  │                       │ Tenant DML: seed data    │ Tenant DML: seed data  │
+  │                       │ <span class="am">→ Tables shared</span>          │ <span class="vi">→ Tables exclusive</span>     │
+  │                       │                          │                        │
+  │ Enable plugin         │ Schema DDL: <span class="gn">SKIP</span>         │ N/A (chỉ 1 tenant)    │
+  │ (tenant thứ N)        │ Tenant DML: seed data    │                        │
+  │                       │                          │                        │
+  │ Disable (soft)        │ enabled = false          │ enabled = false        │
+  │                       │ Tables: <span class="gn">giữ nguyên</span>       │ Tables: <span class="gn">giữ nguyên</span>    │
+  │                       │ Data: <span class="gn">giữ nguyên</span>         │ Data: <span class="gn">giữ nguyên</span>      │
+  │                       │                          │                        │
+  │ Disable (hard purge)  │ DELETE rows WHERE        │ <span class="vi">CÓ THỂ DROP TABLE</span>     │
+  │                       │ tenant_id = X            │ (no other tenants)     │
+  │                       │ <span class="am">Tables: giữ (shared)</span>     │ <span class="vi">Tables: drop OK</span>       │
+  │                       │                          │                        │
+  │ Upgrade version       │ Schema DDL: ảnh hưởng    │ Schema DDL: ảnh hưởng │
+  │                       │ <span class="rd">MỌI tenant ngay</span>          │ <span class="vi">CHỈ INITECH</span>           │
+  │                       │ Tenant DML: per-tenant   │ Tenant DML: INITECH   │
+  │                       │                          │                        │
+  │ DROP TABLE khi cần    │ <span class="rd">CẤM</span> (ảnh hưởng tenants   │ <span class="vi">OK</span> (chỉ ảnh hưởng     │
+  │                       │ khác)                    │ INITECH)               │
+  │                       │                          │                        │
+  │ Risk level            │ <span class="am">Cao hơn</span> (shared state)   │ <span class="gn">Thấp hơn</span> (isolated)   │
+  │                       │                          │                        │
+  │ Flexibility           │ <span class="am">Thấp hơn</span> (backward       │ <span class="gn">Cao hơn</span> (can do       │
+  │                       │ compatible required)     │ breaking changes)      │
+  │                       │                          │                        │
+  └───────────────────────┴──────────────────────────┴────────────────────────┘
+
+
+<span class="ty">VIP ADVANTAGE — Breaking schema changes:</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  INITECH (VIP, dedicated DB) upgrade customer-care v2.0 → v3.0:      │
+  │                                                                        │
+  │  v3.0 migration: <span class="vi">RENAME COLUMN amount → deal_value</span>                   │
+  │                                                                        │
+  │  Shared DB: <span class="rd">IMPOSSIBLE</span> (GLOBEX vẫn ở v2.0, code dùng "amount")      │
+  │  VIP DB:    <span class="gn">OK</span> — chỉ ảnh hưởng INITECH, code v3.0 dùng "deal_value" │
+  │                                                                        │
+  │  → VIP tenants có thể chạy bleeding-edge versions.                    │
+  │  → Shared tenants phải đợi backward-compatible migration path.        │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- EDGE CASES -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-edge">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Edge Cases & Risks</h2></div>
+
+    <div class="dg"><div class="dg-label">edge cases</div><pre>
+<span class="rd">EDGE CASE 1: Schema migration FAIL giữa chừng</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  Deploy customer-care v2.0:                                            │
+  │  schema/005: ALTER TABLE sales ADD COLUMN → <span class="gn">OK</span>                      │
+  │  schema/006: CREATE INDEX CONCURRENTLY  → <span class="rd">FAIL</span> (disk full)           │
+  │                                                                        │
+  │  <span class="ty">Vấn đề:</span> 005 đã commit, 006 fail.                                   │
+  │  Cột mới đã thêm nhưng index chưa tạo.                                │
+  │                                                                        │
+  │  <span class="ty">Giải pháp:</span>                                                          │
+  │  ├── Mỗi schema migration file = 1 transaction riêng                  │
+  │  ├── Tracking ghi: 005 done, 006 FAILED                               │
+  │  ├── Next attempt: retry từ 006 (005 đã recorded, skip)              │
+  │  ├── Alerting: "Schema migration partial failure" → ops investigate   │
+  │  └── Rollback 005 nếu cần: schema cũng có DOWN migration             │
+  │        005_down: ALTER TABLE sales DROP COLUMN pipeline_stage;        │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="rd">EDGE CASE 2: Tenant enable VÀ disable cùng lúc (concurrent)</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  ACME admin click "enable" → request 1                                │
+  │  ACME admin click "disable" 1 giây sau → request 2                    │
+  │                                                                        │
+  │  <span class="ty">Giải pháp:</span> Advisory Lock                                          │
+  │  pg_advisory_lock(hash('tenant:acme-123:customer-care'))              │
+  │                                                                        │
+  │  Request 1 acquire lock → chạy enable migration                        │
+  │  Request 2 đợi lock → lock released → chạy disable                    │
+  │  → Kết quả: enable xong, rồi disable → cuối cùng disabled.           │
+  │  → Consistent. Không race condition.                                   │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="rd">EDGE CASE 3: Orphaned data sau khi plugin UNDEPLOY</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  System Admin undeploy customer-care khỏi toàn hệ thống.             │
+  │  Plugin code bị remove. Không ai có thể enable nữa.                  │
+  │                                                                        │
+  │  Nhưng tables (sales, call_logs, tickets) VẪN TỒN TẠI.             │
+  │  Data VẪN NẰM TRONG tables.                                          │
+  │                                                                        │
+  │  <span class="ty">Giải pháp:</span>                                                          │
+  │  ├── Plugin status = "deprecated" (giai đoạn chuyển tiếp)            │
+  │  │   → Tenants still read-only access for 90 days                     │
+  │  │   → Export data window                                              │
+  │  ├── After 90 days: status = "removed"                                │
+  │  │   → Admin CAN run manual cleanup:                                  │
+  │  │     DROP TABLE IF EXISTS sales;                                    │
+  │  │     DROP TABLE IF EXISTS call_logs;                                │
+  │  │     DROP TABLE IF EXISTS tickets;                                  │
+  │  │   → Chỉ khi KHÔNG CÒN tenant nào enabled                         │
+  │  └── Audit trail giữ lại record vĩnh viễn                            │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="rd">EDGE CASE 4: ALTER TABLE trên bảng lớn (100M+ rows)</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  Schema migration: ALTER TABLE sales ADD COLUMN pipeline_stage TEXT    │
+  │  Bảng sales có 100 triệu rows (tất cả tenants cộng lại).            │
+  │                                                                        │
+  │  <span class="ty">PostgreSQL 11+:</span>                                                    │
+  │  ADD COLUMN with DEFAULT = metadata-only operation.                   │
+  │  <span class="gn">Near-instant. Không rewrite table. Không lock.</span>                     │
+  │                                                                        │
+  │  <span class="am">Nhưng:</span> ADD COLUMN NOT NULL without DEFAULT = full table rewrite.   │
+  │  <span class="rd">→ CẤM trong schema migrations.</span>                                     │
+  │  <span class="rd">→ Phải dùng: ADD COLUMN + DEFAULT + backfill async + ADD NOT NULL.</span>  │
+  │                                                                        │
+  │  Safe migration pattern:                                                │
+  │  v2.0: ADD COLUMN pipeline_stage TEXT DEFAULT 'new';   (instant)      │
+  │  v2.1: Background job: backfill NULL rows;             (async)        │
+  │  v2.2: ALTER COLUMN SET NOT NULL;                      (fast, no NULLs)│
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="rd">EDGE CASE 5: FK constraint cross-plugin khi disable</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  sales.customer_id FK → customers.id                                  │
+  │  (care plugin)           (data plugin)                                 │
+  │                                                                        │
+  │  ACME disable customer-data nhưng VẪN enable customer-care?           │
+  │                                                                        │
+  │  <span class="ty">Giải pháp:</span> Dependency enforcement                                  │
+  │  customer-care depends on customer-data (manifest).                    │
+  │  → System REFUSES disable data nếu care vẫn enabled.                  │
+  │  → Error: "Cannot disable customer-data: customer-care depends on it" │
+  │  → Must disable care FIRST, then data.                                 │
+  │                                                                        │
+  │  → FK constraints luôn valid vì dependency chain enforced.            │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['prob','split','en','dis','up','vip','edge'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

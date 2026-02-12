@@ -1,96 +1,423 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRM — Request Flow Complete</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
-  --bd:#1c2038;--bda:#2a3055;
-  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
-  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
-  --gn:#10b981;--gnd:rgba(16,185,129,.08);
-  --am:#f59e0b;--amd:rgba(245,158,11,.08);
-  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
-  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
-  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
-  --or:#f97316;--pk:#ec4899;
-  --mono:'IBM Plex Mono',monospace;
-  --head:'Anybody',sans-serif;
-  --body:'Source Serif 4',Georgia,serif;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
-.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
-.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
-.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
-.hero h1{font-family:var(--head);font-size:clamp(1.8rem,4vw,3rem);font-weight:800;line-height:1.1;margin-bottom:14px;letter-spacing:-.5px}
-.hero h1 span{color:var(--bl)}
-.hero p{font-size:1rem;color:var(--td);max-width:640px;margin:0 auto}
-.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
-.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
-.nav::-webkit-scrollbar{display:none}
-.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
-.nav button:hover{color:var(--td)}
-.nav button.on{color:var(--bl)}
-.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
-.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
-.pnl{display:none}.pnl.on{display:block}
-.sec{margin-bottom:56px}
-.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
-.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
-.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
-.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
-.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
-.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
-.kw{color:#c792ea}.fn{color:#82aaff}.st{color:#c3e88d}.cm{color:#3e4460;font-style:italic}.nu{color:#f78c6c}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.pk{color:#ec4899}.or{color:#f97316}
-.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
-.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
-.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
-.nt strong{color:inherit}
-@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.pnl.on .sec{animation:fu .3s ease both}
-.pnl.on .sec:nth-child(2){animation-delay:.04s}
-.pnl.on .sec:nth-child(3){animation-delay:.08s}
-.pnl.on .sec:nth-child(4){animation-delay:.12s}
-.pnl.on .sec:nth-child(5){animation-delay:.16s}
-.pnl.on .sec:nth-child(6){animation-delay:.2s}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRM — Request Flow Complete</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060810;
+      --sf: #0c0e18;
+      --sf2: #111420;
+      --bd: #1c2038;
+      --bda: #2a3055;
+      --tx: #d8dce8;
+      --td: #7880a0;
+      --tm: #484e6a;
+      --bl: #3b82f6;
+      --bld: rgba(59, 130, 246, .1);
+      --gn: #10b981;
+      --gnd: rgba(16, 185, 129, .08);
+      --am: #f59e0b;
+      --amd: rgba(245, 158, 11, .08);
+      --rd: #ef4444;
+      --rdd: rgba(239, 68, 68, .08);
+      --cy: #06b6d4;
+      --cyd: rgba(6, 182, 212, .08);
+      --vi: #8b5cf6;
+      --vid: rgba(139, 92, 246, .08);
+      --or: #f97316;
+      --pk: #ec4899;
+      --mono: 'IBM Plex Mono', monospace;
+      --head: 'Anybody', sans-serif;
+      --body: 'Source Serif 4', Georgia, serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      font-family: var(--body);
+      background: var(--bg);
+      color: var(--tx);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased
+    }
+
+    .hero {
+      padding: 72px 32px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 59px, var(--bd) 59px, var(--bd) 60px), repeating-linear-gradient(90deg, transparent, transparent 59px, var(--bd) 59px, var(--bd) 60px);
+      opacity: .18;
+      pointer-events: none
+    }
+
+    .hero-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--bl);
+      display: inline-block;
+      padding: 5px 14px;
+      border: 1px solid var(--bd);
+      border-radius: 2px;
+      background: var(--sf);
+      margin-bottom: 20px
+    }
+
+    .hero h1 {
+      font-family: var(--head);
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 14px;
+      letter-spacing: -.5px
+    }
+
+    .hero h1 span {
+      color: var(--bl)
+    }
+
+    .hero p {
+      font-size: 1rem;
+      color: var(--td);
+      max-width: 640px;
+      margin: 0 auto
+    }
+
+    .nw {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(6, 8, 16, .9);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--bd)
+    }
+
+    .nav {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 0 12px
+    }
+
+    .nav::-webkit-scrollbar {
+      display: none
+    }
+
+    .nav button {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      font-weight: 500;
+      padding: 13px 15px;
+      background: none;
+      border: none;
+      color: var(--tm);
+      cursor: pointer;
+      white-space: nowrap;
+      position: relative;
+      transition: color .15s;
+      letter-spacing: .3px
+    }
+
+    .nav button:hover {
+      color: var(--td)
+    }
+
+    .nav button.on {
+      color: var(--bl)
+    }
+
+    .nav button.on::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 8px;
+      right: 8px;
+      height: 2px;
+      background: var(--bl);
+      border-radius: 2px 2px 0 0
+    }
+
+    .wrap {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 36px 16px 120px
+    }
+
+    .pnl {
+      display: none
+    }
+
+    .pnl.on {
+      display: block
+    }
+
+    .sec {
+      margin-bottom: 56px
+    }
+
+    .sec-h {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--bd)
+    }
+
+    .sec-n {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--bl);
+      background: var(--bld);
+      padding: 3px 9px;
+      border-radius: 2px;
+      letter-spacing: 1px
+    }
+
+    .sec-t {
+      font-family: var(--head);
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -.3px
+    }
+
+    .dg {
+      background: var(--sf);
+      border: 1px solid var(--bd);
+      border-radius: 6px;
+      padding: 28px;
+      margin: 16px 0;
+      overflow-x: auto;
+      position: relative
+    }
+
+    .dg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 6px;
+      background: repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(28, 32, 56, .22) 23px, rgba(28, 32, 56, .22) 24px), repeating-linear-gradient(90deg, transparent, transparent 23px, rgba(28, 32, 56, .22) 23px, rgba(28, 32, 56, .22) 24px);
+      pointer-events: none
+    }
+
+    .dg pre {
+      position: relative;
+      z-index: 1;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.85;
+      color: #8890b8;
+      white-space: pre;
+      margin: 0
+    }
+
+    .kw {
+      color: #c792ea
+    }
+
+    .fn {
+      color: #82aaff
+    }
+
+    .st {
+      color: #c3e88d
+    }
+
+    .cm {
+      color: #3e4460;
+      font-style: italic
+    }
+
+    .nu {
+      color: #f78c6c
+    }
+
+    .ty {
+      color: #ffcb6b
+    }
+
+    .hi {
+      color: #3b82f6;
+      font-weight: 600
+    }
+
+    .gn {
+      color: #10b981
+    }
+
+    .rd {
+      color: #ef4444
+    }
+
+    .am {
+      color: #f59e0b
+    }
+
+    .cy {
+      color: #06b6d4
+    }
+
+    .vi {
+      color: #8b5cf6
+    }
+
+    .pk {
+      color: #ec4899
+    }
+
+    .or {
+      color: #f97316
+    }
+
+    .dg-label {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--tm);
+      z-index: 2
+    }
+
+    .nt {
+      padding: 16px 20px;
+      border-radius: 4px;
+      margin: 14px 0;
+      font-size: .85rem;
+      border-left: 3px solid;
+      background: var(--sf2)
+    }
+
+    .nt.bl {
+      border-color: var(--bl);
+      color: #8bb8f8
+    }
+
+    .nt.gn {
+      border-color: var(--gn);
+      color: #80d8b8
+    }
+
+    .nt.am {
+      border-color: var(--am);
+      color: #f0d080
+    }
+
+    .nt.rd {
+      border-color: var(--rd);
+      color: #f0a0a0
+    }
+
+    .nt strong {
+      color: inherit
+    }
+
+    @keyframes fu {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .pnl.on .sec {
+      animation: fu .3s ease both
+    }
+
+    .pnl.on .sec:nth-child(2) {
+      animation-delay: .04s
+    }
+
+    .pnl.on .sec:nth-child(3) {
+      animation-delay: .08s
+    }
+
+    .pnl.on .sec:nth-child(4) {
+      animation-delay: .12s
+    }
+
+    .pnl.on .sec:nth-child(5) {
+      animation-delay: .16s
+    }
+
+    .pnl.on .sec:nth-child(6) {
+      animation-delay: .2s
+    }
+  </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+
 </head>
+
 <body>
 
-<div class="hero">
+  <div class="hero">
     <div class="hero-tag">Request Flow Deep Dive</div>
     <h1>Luồng xử lý <span>1 Request</span></h1>
     <p>Trace từ byte đầu tiên đến byte cuối cùng — mọi thành phần, mọi plugin, mọi quyết định.</p>
-</div>
+  </div>
 
-<div class="nw"><div class="nav">
-    <button class="on" onclick="go('full')">Luồng đầy đủ</button>
-    <button onclick="go('gw')">① Gateway</button>
-    <button onclick="go('ctx')">② Build Context</button>
-    <button onclick="go('exec')">③ Sandbox & Plugin</button>
-    <button onclick="go('side')">④ Events & Async</button>
-    <button onclick="go('end')">⑤ Response & Cleanup</button>
-    <button onclick="go('err')">Khi lỗi xảy ra</button>
-    <button onclick="go('time')">Timeline</button>
-</div></div>
+  <div class="nw">
+    <div class="nav">
+      <button class="on" onclick="go('full')">Luồng đầy đủ</button>
+      <button onclick="go('gw')">① Gateway</button>
+      <button onclick="go('ctx')">② Build Context</button>
+      <button onclick="go('exec')">③ Sandbox & Plugin</button>
+      <button onclick="go('side')">④ Events & Async</button>
+      <button onclick="go('end')">⑤ Response & Cleanup</button>
+      <button onclick="go('err')">Khi lỗi xảy ra</button>
+      <button onclick="go('time')">Timeline</button>
+      <button onclick="go('diag')">Diagram</button>
 
-<div class="wrap">
+    </div>
+  </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- FULL FLOW -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl on" id="p-full">
+  <div class="wrap">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ toàn bộ luồng</h2></div>
+    <!-- ═══════════════════════════════════════ -->
+    <!-- FULL FLOW -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="pnl on" id="p-full">
 
-    <div class="nt bl"><strong>Request mẫu:</strong> POST https://acme.crm.com/api/v1/sales — User tạo sales opportunity mới. Tenant ACME (Premium), enabled: customer-data, customer-care, analytics.</div>
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">00</span>
+          <h2 class="sec-t">Bản đồ toàn bộ luồng</h2>
+        </div>
 
-    <div class="dg"><div class="dg-label">complete request map</div><pre>
+        <div class="nt bl"><strong>Request mẫu:</strong> POST https://acme.crm.com/api/v1/sales — User tạo sales
+          opportunity mới. Tenant ACME (Premium), enabled: customer-data, customer-care, analytics.</div>
+
+        <div class="dg">
+          <div class="dg-label">complete request map</div>
+          <pre>
 <span class="hi">CLIENT</span>
   │
   │  POST https://acme.crm.com/api/v1/sales
@@ -197,19 +524,24 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
   │
   ├──▶ <span class="fn">Notification Worker</span>    notify assigned sales manager
   ├──▶ <span class="fn">Search Index Worker</span>    update Elasticsearch index
-  └──▶ <span class="fn">Webhook Worker</span>         call external webhook (if configured)</pre></div>
-</div>
-</div>
+  └──▶ <span class="fn">Webhook Worker</span>         call external webhook (if configured)</pre>
+        </div>
+      </div>
+    </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- GATEWAY DETAIL -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-gw">
+    <!-- ═══════════════════════════════════════ -->
+    <!-- GATEWAY DETAIL -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="pnl" id="p-gw">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">①</span><h2 class="sec-t">API Gateway — Chi tiết từng thành phần</h2></div>
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">①</span>
+          <h2 class="sec-t">API Gateway — Chi tiết từng thành phần</h2>
+        </div>
 
-    <div class="dg"><div class="dg-label">gateway pipeline</div><pre>
+        <div class="dg">
+          <div class="dg-label">gateway pipeline</div>
+          <pre>
 <span class="hi">REQUEST VÀO</span>
 │
 │
@@ -349,19 +681,24 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 └──────────────────────────────────┬───────────────────────────────────────┘
                                    │
                                    ▼
-                          Tiếp tục: ② Build Context</pre></div>
-</div>
-</div>
+                          Tiếp tục: ② Build Context</pre>
+        </div>
+      </div>
+    </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- CONTEXT BUILD -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-ctx">
+    <!-- ═══════════════════════════════════════ -->
+    <!-- CONTEXT BUILD -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="pnl" id="p-ctx">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">②</span><h2 class="sec-t">Build Context — Chi tiết từng thành phần</h2></div>
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">②</span>
+          <h2 class="sec-t">Build Context — Chi tiết từng thành phần</h2>
+        </div>
 
-    <div class="dg"><div class="dg-label">context build pipeline</div><pre>
+        <div class="dg">
+          <div class="dg-label">context build pipeline</div>
+          <pre>
 <span class="hi">TỪ GATEWAY</span>: tenantId=ACME, userId=user-5, route=customer-care.createSale
 │
 │
@@ -492,19 +829,24 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 └──────────────────────────────────┬───────────────────────────────────────┘
                                    │
                                    ▼
-                          Tiếp tục: ③ Sandbox Execution</pre></div>
-</div>
-</div>
+                          Tiếp tục: ③ Sandbox Execution</pre>
+        </div>
+      </div>
+    </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- SANDBOX & PLUGIN -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-exec">
+    <!-- ═══════════════════════════════════════ -->
+    <!-- SANDBOX & PLUGIN -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="pnl" id="p-exec">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">③</span><h2 class="sec-t">Sandbox & Plugin Execution — Từng bước bên trong</h2></div>
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">③</span>
+          <h2 class="sec-t">Sandbox & Plugin Execution — Từng bước bên trong</h2>
+        </div>
 
-    <div class="dg"><div class="dg-label">sandbox execution detail</div><pre>
+        <div class="dg">
+          <div class="dg-label">sandbox execution detail</div>
+          <pre>
 <span class="hi">EXECUTION CONTEXT SẴN SÀNG</span> → Truyền vào Sandbox Engine
 │
 │
@@ -658,19 +1000,24 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │                                                                          │
 │  → Tiếp tục: Events & Async (Step 8, 9)                                 │
 │                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘</pre></div>
-</div>
-</div>
+└──────────────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+    </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- EVENTS & ASYNC -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-side">
+    <!-- ═══════════════════════════════════════ -->
+    <!-- EVENTS & ASYNC -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="pnl" id="p-side">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">④</span><h2 class="sec-t">Events & Async — Side effects</h2></div>
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">④</span>
+          <h2 class="sec-t">Events & Async — Side effects</h2>
+        </div>
 
-    <div class="dg"><div class="dg-label">sync events + async messaging</div><pre>
+        <div class="dg">
+          <div class="dg-label">sync events + async messaging</div>
+          <pre>
 <span class="hi">VẪN TRONG SANDBOX, SAU KHI INSERT VÀ CACHE INVALIDATE</span>
 │
 │
@@ -797,19 +1144,24 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │  return { id: "sale-42", status: "new", customerId: "cust-99",
 │           title: "Enterprise deal", amount: 50000 }
 │
-└── Sandbox: execution completed in 65ms (< 5000ms timeout) ✓</pre></div>
-</div>
-</div>
+└── Sandbox: execution completed in 65ms (< 5000ms timeout) ✓</pre>
+        </div>
+      </div>
+    </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- RESPONSE & CLEANUP -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-end">
+    <!-- ═══════════════════════════════════════ -->
+    <!-- RESPONSE & CLEANUP -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="pnl" id="p-end">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">⑤</span><h2 class="sec-t">Response & Cleanup</h2></div>
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">⑤</span>
+          <h2 class="sec-t">Response & Cleanup</h2>
+        </div>
 
-    <div class="dg"><div class="dg-label">response and cleanup</div><pre>
+        <div class="dg">
+          <div class="dg-label">response and cleanup</div>
+          <pre>
 <span class="hi">SANDBOX TRẢ KẾT QUẢ</span>
 │
 │
@@ -915,19 +1267,24 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │                                                                          │
 │  <span class="gn">✓ Request fully processed. All resources released.</span>                    │
 │                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘</pre></div>
-</div>
-</div>
+└──────────────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+    </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- ERROR FLOWS -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-err">
+    <!-- ═══════════════════════════════════════ -->
+    <!-- ERROR FLOWS -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="pnl" id="p-err">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">ERR</span><h2 class="sec-t">Khi lỗi xảy ra — tại từng điểm</h2></div>
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">ERR</span>
+          <h2 class="sec-t">Khi lỗi xảy ra — tại từng điểm</h2>
+        </div>
 
-    <div class="dg"><div class="dg-label">error handling at each stage</div><pre>
+        <div class="dg">
+          <div class="dg-label">error handling at each stage</div>
+          <pre>
 <span class="ty">GATEWAY ERRORS</span> (trước khi plugin code chạy)
 ─────────────────────────────────────────────────────────────────
 
@@ -1066,19 +1423,24 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
   │                                                            │
   │  <span class="gn">DB connection NEVER leaks, regardless of error type.</span>       │
   │                                                            │
-  └────────────────────────────────────────────────────────────┘</pre></div>
-</div>
-</div>
+  └────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+    </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- TIMELINE -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-time">
+    <!-- ═══════════════════════════════════════ -->
+    <!-- TIMELINE -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="pnl" id="p-time">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">TIME</span><h2 class="sec-t">Timeline — Tổng hợp thời gian</h2></div>
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">TIME</span>
+          <h2 class="sec-t">Timeline — Tổng hợp thời gian</h2>
+        </div>
 
-    <div class="dg"><div class="dg-label">timeline visualization</div><pre>
+        <div class="dg">
+          <div class="dg-label">timeline visualization</div>
+          <pre>
 <span class="ty">POST /api/v1/sales — Total: 78ms (sync) + ~300ms (async)</span>
 
 
@@ -1168,24 +1530,290 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
   │  Tổng plugins chạy code:  <span class="hi">2</span> (care + analytics)                  │
   │  Plugins gọi trực tiếp nhau: <span class="hi">0</span>                                  │
   │                                                                  │
-  └──────────────────────────────────────────────────────────────────┘</pre></div>
-</div>
-</div>
+  └──────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+    </div>
 
-</div><!-- /wrap -->
+    <!-- ═══════════════════════════════════════ -->
+    <!-- SEQUENCE DIAGRAM -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="pnl" id="p-diag">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">DIAG</span>
+          <h2 class="sec-t">Sequence Diagram</h2>
+        </div>
 
-<script>
-function go(n){
-    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
-    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
-    var p=document.getElementById('p-'+n);
-    if(p)p.classList.add('on');
-    var names=['full','gw','ctx','exec','side','end','err','time'];
-    var i=names.indexOf(n);
-    var btns=document.querySelectorAll('.nav button');
-    if(i>=0&&btns[i])btns[i].classList.add('on');
-    window.scrollTo({top:160,behavior:'smooth'});
-}
-</script>
+        <div style="margin-bottom:12px; display:flex; gap:8px;">
+          <button onclick="zoom(0.1)"
+            style="padding:4px 12px; border:1px solid var(--bd); background:var(--sf); color:var(--tx); cursor:pointer; border-radius:4px;">Zoom
+            In +</button>
+          <button onclick="zoom(-0.1)"
+            style="padding:4px 12px; border:1px solid var(--bd); background:var(--sf); color:var(--tx); cursor:pointer; border-radius:4px;">Zoom
+            Out -</button>
+          <button onclick="zoom(0)"
+            style="padding:4px 12px; border:1px solid var(--bd); background:var(--sf); color:var(--tx); cursor:pointer; border-radius:4px;">Reset</button>
+        </div>
+
+        <div class="dg"
+          style="overflow:hidden; height:800px; text-align:center; position:relative; cursor:grab; user-select:none;"
+          id="diag-container">
+
+          <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    
+    actor Client
+    
+    box "Infrastructure Layer" #2C3E50
+        participant LB as Load Balancer
+        participant TLS as TLS Termination
+        participant GW as Gateway Components
+        participant Redis as Redis (Shared)
+    end
+
+    box "App Layer - Context Build" #2980B9
+        participant ContextMgr as Tenant Context Mgr
+        participant Perms as Permission Check
+        participant Pool as DB Pool Manager
+    end
+
+    box "App Layer - Execution" #8E44AD
+        participant Sandbox as Sandbox Engine
+        participant Plugin as CustomerCareCore
+        participant Interceptor as Query Interceptor
+        participant DB as PostgreSQL (Shared)
+        participant Cache as Scoped Cache
+        participant EventBus as Scoped Event Bus
+        participant Analytics as AnalyticsCore (Sync)
+    end
+
+    box "Events & Async Layer" #E67E22
+        participant MQ as Message Queue (RabbitMQ)
+        participant Worker as Async Workers
+    end
+
+    note over Client, Worker: Request: POST https://acme.crm.com/api/v1/sales (Tenant: ACME)
+
+    %% ----------------------------------------------------------------
+    %% 1. GATEWAY PHASE
+    %% ----------------------------------------------------------------
+    Client->>LB: 1. HTTP Request
+    note right of Client: Headers: { Authorization: Bearer JWT }<br/>Body: { customerId: UUID, title: String, amount: Number }
+
+    LB->>TLS: 2. Forward (Round Robin)
+    TLS->>GW: 3. Decrypted HTTP Request
+
+    rect rgb(44, 62, 80)
+        note right of GW: **Pipeline 1: Tenant Resolver**
+        GW->>Redis: GET domain-map:acme
+        Redis-->>GW: { tenantId: "acme-123", tier: "premium", status: "active" }
+        
+        note right of GW: **Pipeline 2: Auth Middleware**
+        GW->>GW: Validate JWT (Sig, Exp, Tenant Claim)
+        note right of GW: User Context: { userId: "user-5", roles: ["sales_manager"], perms: ["sales:write"] }
+
+        note right of GW: **Pipeline 3: Rate Limiter**
+        GW->>Redis: INCR rate-limit:acme-123
+        Redis-->>GW: current: 147 (Limit: 500) -> PASS
+
+        note right of GW: **Pipeline 4: Route Matcher**
+        GW->>GW: Match POST /sales
+        note right of GW: Route Info: { plugin: "customer-care", method: "createSale", requiredPerm: "sales:write" }
+    end
+
+    %% ----------------------------------------------------------------
+    %% 2. CONTEXT BUILD PHASE
+    %% ----------------------------------------------------------------
+    GW->>ContextMgr: 4. Build Execution Context
+    ContextMgr->>ContextMgr: Lookup LRU Cache
+    note right of ContextMgr: Tenant Config: { enabledPlugins: ["care", "data", "analytics"], dbPool: "shared" }
+    
+    ContextMgr->>Perms: 5. Verify Permissions
+    Perms->>Perms: Check: "sales:write" in UserPerms AND "customer-care" in EnabledPlugins -> PROCEED
+    
+    ContextMgr->>Pool: 6. Acquire Resource
+    Pool->>Pool: Borrow Connection #88 (Shared Pool)
+    Pool->>Interceptor: Bind tenant_id='acme-123'
+    Pool->>Cache: Wrap Redis (Prefix: "t:acme-123:")
+    
+    ContextMgr-->>Sandbox: 7. Context Ready (~15KB Object)
+
+    %% ----------------------------------------------------------------
+    %% 3. SANDBOX EXECUTION PHASE
+    %% ----------------------------------------------------------------
+    Sandbox->>Sandbox: Set Limits (Timeout: 5s, Mem: 50MB)
+    Sandbox->>Plugin: 8. Invoke createSale(ctx, body)
+    
+    rect rgb(142, 68, 173)
+        Plugin->>Plugin: Validate Input (Schema Check)
+        
+        %% Step 2: Query Customer
+        Plugin->>Interceptor: ctx.db.query('customers').where({id: "cust-99"})
+        Interceptor->>DB: SELECT * FROM customers WHERE id="cust-99" AND tenant_id='acme-123'
+        DB-->>Plugin: Record: { id: "cust-99", name: "Alice", email: "..." }
+        
+        %% Step 3: Hooks (Before)
+        Plugin->>Plugin: Hook "before:saleCreate"
+        note right of Plugin: No enabled handlers -> SKIP
+        
+        %% Step 4: Insert Sale
+        Plugin->>Interceptor: ctx.db.insert('sales', data)
+        Interceptor->>DB: INSERT INTO sales (id, tenant_id, customer_id, amount, status) VALUES ("sale-42", "acme-123", "cust-99", 50000, "new")
+        DB-->>Plugin: Success (Row Count: 1)
+        
+        %% Step 6: Update Customer (Side effect)
+        Plugin->>Interceptor: ctx.db.update('customers', { lastActivity: now() })
+        Interceptor->>DB: UPDATE customers SET last_activity=... WHERE id="cust-99" AND tenant_id='acme-123'
+        DB-->>Plugin: Success
+        
+        %% Step 7: Invalidate Cache
+        Plugin->>Cache: ctx.cache.delete("sales:list:*")
+        Cache->>Redis: DEL t:acme-123:sales:list:*
+        
+        %% Step 8: Sync Events
+        Plugin->>EventBus: emit("sales.created", payload)
+        note right of EventBus: Check Whitelist & Enabled Plugins
+        EventBus->>Analytics: Handle Sync: onSaleCreated
+        Analytics->>Cache: ctx.cache.incr("metrics:sales:count")
+        Cache->>Redis: INCR t:acme-123:metrics:sales:count
+        
+        %% Step 9: Async Publish
+        Plugin->>MQ: publish("sales.lifecycle", message)
+        note right of MQ: Message: { type: "sales.created", tenantId: "acme-123", sale: {...}, traceId: "xyz-789" }
+    end
+    
+    Plugin-->>Sandbox: Return Result: { id: "sale-42", status: "new" }
+
+    %% ----------------------------------------------------------------
+    %% 4. RESPONSE & CLEANUP PHASE
+    %% ----------------------------------------------------------------
+    Sandbox->>GW: 9. Execution Complete
+    GW->>Client: 10. HTTP 201 Created
+    note right of Client: JSON Body: { id: "sale-42", ... }<br/>Headers: { X-RateLimit-Remaining: 353 }
+
+    par Cleanup Actions (After Response)
+        GW->>DB: INSERT INTO audit_log (Audit Entry)
+        GW->>Pool: Release Connection #88
+        GW->>ContextMgr: GC Execution Context
+    end
+
+    %% ----------------------------------------------------------------
+    %% 5. ASYNC WORKER PHASE
+    %% ----------------------------------------------------------------
+    MQ->>Worker: 11. Consume Message (sales.created)
+    
+    rect rgb(230, 126, 34)
+        note right of Worker: Workers create new separate Execution Contexts
+        Worker->>Worker: Notification Worker: Push to WebSocket
+        Worker->>Worker: Search Index Worker: Update Elasticsearch
+        Worker->>Worker: Webhook Worker: POST to https://acme.com/hooks
+    end
+        </pre>
+        </div>
+      </div>
+    </div>
+
+
+  </div><!-- /wrap -->
+
+  <script>
+    function go(n) {
+      document.querySelectorAll('.pnl').forEach(function (p) { p.classList.remove('on') });
+      document.querySelectorAll('.nav button').forEach(function (b) { b.classList.remove('on') });
+      var p = document.getElementById('p-' + n);
+      if (p) p.classList.add('on');
+      var names = ['full', 'gw', 'ctx', 'exec', 'side', 'end', 'err', 'time', 'diag'];
+
+      var i = names.indexOf(n);
+      var btns = document.querySelectorAll('.nav button');
+      if (i >= 0 && btns[i]) btns[i].classList.add('on');
+      window.scrollTo({ top: 160, behavior: 'smooth' });
+    }
+    var scale = 1, panning = false, pointX = 0, pointY = 0, startX = 0, startY = 0;
+
+    function setTransform() {
+      var svg = document.querySelector('#diag-container svg');
+      if (svg) {
+        // Use translate + scale
+        svg.style.transform = 'translate(' + pointX + 'px, ' + pointY + 'px) scale(' + scale + ')';
+        // Origin at 0 0 or center top?
+        // Since we are translating manually, 0 0 gives predictable control.
+        // But initial layout is centered.
+        // Let's try transform-origin: center top, but then translation logic needs to account for it.
+        // Simplest for "drag": just move X/Y.
+        svg.style.transformOrigin = 'center top';
+        svg.style.transition = panning ? 'none' : 'transform 0.1s';
+      }
+    }
+
+    function zoom(diff) {
+      if (diff === 0) {
+        scale = 1; pointX = 0; pointY = 0;
+      } else {
+        scale += diff;
+        if (scale < 0.1) scale = 0.1;
+      }
+      setTransform();
+    }
+
+    // Drag / Pan Events
+    var container = document.getElementById('diag-container');
+
+    // Check if container exists (it might not be ready if script runs too early, but this is at end of body)
+    if (container) {
+      container.addEventListener('mousedown', function (e) {
+        if (e.button !== 0) return; // Only left click
+        e.preventDefault();
+        startX = e.clientX - pointX;
+        startY = e.clientY - pointY;
+        panning = true;
+        container.style.cursor = 'grabbing';
+      });
+
+      container.addEventListener('mousemove', function (e) {
+        if (!panning) return;
+        e.preventDefault();
+        pointX = e.clientX - startX;
+        pointY = e.clientY - startY;
+        setTransform();
+      });
+
+      container.addEventListener('mouseup', function (e) {
+        panning = false;
+        container.style.cursor = 'grab';
+      });
+
+      container.addEventListener('mouseleave', function (e) {
+        panning = false;
+        container.style.cursor = 'grab';
+      });
+
+      container.addEventListener('dblclick', function (e) {
+        e.preventDefault();
+        var rect = container.getBoundingClientRect();
+        // Mouse position relative to container
+        var mouseX = e.clientX - rect.left;
+        var mouseY = e.clientY - rect.top;
+
+        // Logic:
+        // worldX = (mouseX - pointX) / scale
+        // worldY = (mouseY - pointY) / scale
+        // newScale = scale + 0.5
+        // newPointX = mouseX - worldX * newScale
+        // newPointY = mouseY - worldY * newScale
+
+        var newScale = scale + 0.5;
+
+        pointX = mouseX - ((mouseX - pointX) / scale) * newScale;
+        pointY = mouseY - ((mouseY - pointY) / scale) * newScale;
+        scale = newScale;
+
+        setTransform();
+      });
+    }
+
+  </script>
 </body>
+
 </html>

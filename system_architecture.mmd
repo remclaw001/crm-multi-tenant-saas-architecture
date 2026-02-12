@@ -1,0 +1,158 @@
+graph TD
+    %% Define Styles
+    classDef l1 fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef l2 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef l3 fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+    classDef l4 fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
+    classDef l5 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef l6 fill:#eceff1,stroke:#455a64,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef l7 fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,stroke-dasharray: 5 5;
+
+    %% L1 Presentation Layer
+    subgraph L1 [L1 PRESENTATION]
+        direction TB
+        WebApp[Web App <br/>React]:::l1
+        MobileApp[Mobile App <br/>RN/Flutter]:::l1
+        PluginUI[Plugin UI Shell <br/>Module Fed.]:::l1
+        AdminConsole[Admin Console <br/>Tenant/System]:::l1
+    end
+
+    %% L2 API Gateway Layer
+    subgraph L2 [L2 API GATEWAY <br/>Sequential]
+        direction LR
+        LB[Load Balancer]:::l2 -->|Round-Robin| TR[Tenant Resolver]:::l2
+        TR -->|Subdomain/Header| Auth[Auth Guard]:::l2
+        Auth -->|JWT Validate| RL[Rate Limiter]:::l2
+        RL -->|Sliding Window| RM[Route Matcher]:::l2
+    end
+
+    %% L3 Business Logic Layer
+    subgraph L3 [L3 BUSINESS LOGIC]
+        direction TB
+        subgraph PluginMgmt [Plugin Management]
+            PM[Plugin Manager]:::l3
+            PR[Plugin Registry]:::l3
+            Sandbox[Sandbox Engine]:::l3
+            EB[Event Bus]:::l3
+            HR[Hook Registry]:::l3
+        end
+        
+        subgraph PluginCores [Plugin Cores <br/>Stateless]
+            CDC[Customer Data Core]:::l3
+            CCC[Customer Care Core]:::l3
+            AC[Analytics Core]:::l3
+            AutoC[Automation Core]:::l3
+            MC[Marketing Core]:::l3
+        end
+        
+        subgraph ContextBuilding [Context Building]
+            TCM[Tenant Context Mgr]:::l3
+            ECB[Execution Context Builder]:::l3
+        end
+        
+        subgraph SharedServices [Shared Services]
+            Email:::l3
+            Storage:::l3
+            Notification:::l3
+            Search:::l3
+            Scheduler:::l3
+            MQPub[MQ Publisher]:::l3
+        end
+    end
+
+    %% L4 Data Access Layer
+    subgraph L4 [L4 DATA ACCESS]
+        direction TB
+        QI[Query Interceptor]:::l4
+        subgraph QISub [Interceptor Components]
+            TI[Tenant Injector]:::l4
+            QV[Query Validator]:::l4
+            QC[Query Counter]:::l4
+            QL[Query Logger]:::l4
+        end
+        QI --- QISub
+
+        PoolM[Pool Manager]:::l4
+        subgraph PoolSub [Pool Components]
+            PReg[Pool Registry]:::l4
+            PRt[Pool Router]:::l4
+            PConf[Connection Configurator]:::l4
+            PHealth[Health Checker]:::l4
+            PQuota[Tenant Quota Enforcer]:::l4
+        end
+        PoolM --- PoolSub
+
+        CacheM[Cache Manager]:::l4
+        MigE[Migration Engine]:::l4
+    end
+
+    %% L5 Infrastructure Layer
+    subgraph L5 [L5 INFRASTRUCTURE]
+        direction TB
+        PG[PostgreSQL <br/>Metadata, Shared, VIP]:::l5
+        Redis[Redis Cluster <br/>Cache, Limit, PubSub]:::l5
+        Rabbit[RabbitMQ Cluster <br/>Events, System]:::l5
+        S3[S3 / MinIO <br/>Files]:::l5
+        ES[Elasticsearch <br/>Search Index]:::l5
+    end
+
+    %% L6 Cross-Cutting Concerns
+    subgraph L6 [L6 CROSS-CUTTING CONCERNS]
+        direction TB
+        Security[Security Enforcement]:::l6
+        Error[Error Handling Framework]:::l6
+        Config[Config Management]:::l6
+        DepMgmt[Dependency Management]:::l6
+    end
+
+    %% L7 Observability Layer
+    subgraph L7 [L7 OBSERVABILITY]
+        direction TB
+        Log[Structured Logging]:::l7
+        Trace[Distributed Tracing]:::l7
+        Met[Metrics <br/>Prometheus]:::l7
+        Alert[Alerting <br/>PagerDuty/Slack]:::l7
+        Health[Health Checks]:::l7
+        Audit[Audit Trail]:::l7
+    end
+
+    %% Relationships
+    WebApp -->|HTTPS/JSON| LB
+    MobileApp -->|HTTPS/JSON| LB
+    PluginUI -->|HTTPS/JSON| LB
+    AdminConsole -->|HTTPS/JSON| LB
+
+    RM -->|Plugin+Method+Perm| L3
+    
+    %% L3 internal labeled
+    PluginCores -->|Read Ctx| ContextBuilding
+    PluginCores -->|Call| SharedServices
+    PluginCores -->|Lifecycle Events| PluginMgmt
+
+    %% L3 to L4 labeled
+    L3 -->|SQL + Ctx| QI
+    L3 -->|Acquire Conn| PoolM
+    L3 -->|Get/Set Key| CacheM
+    L3 -->|DDL/DML| MigE
+
+    %% L4 to L5 labeled
+    QI -->|Wrapped Conn| PoolM
+    PoolM -->|TCP/IP SQL| PG
+    CacheM -->|TCP/IP RESP| Redis
+    MQPub -->|AMQP Topic| Rabbit
+    Storage -->|HTTPS Put/Get| S3
+    Search -->|HTTPS REST| ES
+
+    %% Cross-cutting annotation
+    L6 -.->|Apply Policies| L1
+    L6 -.->|Filter/Config| L2
+    L6 -.->|Inject/Handle| L3
+    L6 -.->|Enforce/Wrap| L4
+    L6 -.->|Manage| L5
+
+    %% Observability annotation
+    L7 -.->|Monitor| L1
+    L7 -.->|Trace/Metric| L2
+    L7 -.->|Log/Trace| L3
+    L7 -.->|Query Log/Stats| L4
+    L7 -.->|Health/Usage| L5

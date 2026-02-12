@@ -1,0 +1,149 @@
+sequenceDiagram
+    autonumber
+    
+    actor Client
+    
+    box "Infrastructure Layer" #2C3E50
+        participant LB as Load Balancer
+        participant TLS as TLS Termination
+        participant GW as Gateway Components
+        participant Redis as Redis (Shared)
+    end
+
+    box "App Layer - Context Build" #2980B9
+        participant ContextMgr as Tenant Context Mgr
+        participant Perms as Permission Check
+        participant Pool as DB Pool Manager
+    end
+
+    box "App Layer - Execution" #8E44AD
+        participant Sandbox as Sandbox Engine
+        participant Plugin as CustomerCareCore
+        participant Interceptor as Query Interceptor
+        participant DB as PostgreSQL (Shared)
+        participant Cache as Scoped Cache
+        participant EventBus as Scoped Event Bus
+        participant Analytics as AnalyticsCore (Sync)
+    end
+
+    box "Events & Async Layer" #E67E22
+        participant MQ as Message Queue (RabbitMQ)
+        participant Worker as Async Workers
+    end
+
+    note over Client, Worker: Request: POST https://acme.crm.com/api/v1/sales (Tenant: ACME)
+
+    %% ----------------------------------------------------------------
+    %% 1. GATEWAY PHASE
+    %% ----------------------------------------------------------------
+    Client->>LB: 1. HTTP Request
+    note right of Client: Headers: { Authorization: Bearer <JWT> }<br/>Body: { customerId: UUID, title: String, amount: Number }
+
+    LB->>TLS: 2. Forward (Round Robin)
+    TLS->>GW: 3. Decrypted HTTP Request
+
+    rect rgb(44, 62, 80)
+        note right of GW: **Pipeline 1: Tenant Resolver**
+        GW->>Redis: GET domain-map:acme
+        Redis-->>GW: { tenantId: "acme-123", tier: "premium", status: "active" }
+        
+        note right of GW: **Pipeline 2: Auth Middleware**
+        GW->>GW: Validate JWT (Sig, Exp, Tenant Claim)
+        note right of GW: User Context: { userId: "user-5", roles: ["sales_manager"], perms: ["sales:write"] }
+
+        note right of GW: **Pipeline 3: Rate Limiter**
+        GW->>Redis: INCR rate-limit:acme-123
+        Redis-->>GW: current: 147 (Limit: 500) -> PASS
+
+        note right of GW: **Pipeline 4: Route Matcher**
+        GW->>GW: Match POST /sales
+        note right of GW: Route Info: { plugin: "customer-care", method: "createSale", requiredPerm: "sales:write" }
+    end
+
+    %% ----------------------------------------------------------------
+    %% 2. CONTEXT BUILD PHASE
+    %% ----------------------------------------------------------------
+    GW->>ContextMgr: 4. Build Execution Context
+    ContextMgr->>ContextMgr: Lookup LRU Cache
+    note right of ContextMgr: Tenant Config: { enabledPlugins: ["care", "data", "analytics"], dbPool: "shared" }
+    
+    ContextMgr->>Perms: 5. Verify Permissions
+    Perms->>Perms: Check: "sales:write" in UserPerms AND "customer-care" in EnabledPlugins -> PROCEED
+    
+    ContextMgr->>Pool: 6. Acquire Resource
+    Pool->>Pool: Borrow Connection #88 (Shared Pool)
+    Pool->>Interceptor: Bind tenant_id='acme-123'
+    Pool->>Cache: Wrap Redis (Prefix: "t:acme-123:")
+    
+    ContextMgr-->>Sandbox: 7. Context Ready (~15KB Object)
+
+    %% ----------------------------------------------------------------
+    %% 3. SANDBOX EXECUTION PHASE
+    %% ----------------------------------------------------------------
+    Sandbox->>Sandbox: Set Limits (Timeout: 5s, Mem: 50MB)
+    Sandbox->>Plugin: 8. Invoke createSale(ctx, body)
+    
+    rect rgb(142, 68, 173)
+        Plugin->>Plugin: Validate Input (Schema Check)
+        
+        %% Step 2: Query Customer
+        Plugin->>Interceptor: ctx.db.query('customers').where({id: "cust-99"})
+        Interceptor->>DB: SELECT * FROM customers WHERE id="cust-99" AND tenant_id='acme-123'
+        DB-->>Plugin: Record: { id: "cust-99", name: "Alice", email: "..." }
+        
+        %% Step 3: Hooks (Before)
+        Plugin->>Plugin: Hook "before:saleCreate"
+        note right of Plugin: No enabled handlers -> SKIP
+        
+        %% Step 4: Insert Sale
+        Plugin->>Interceptor: ctx.db.insert('sales', data)
+        Interceptor->>DB: INSERT INTO sales (id, tenant_id, customer_id, amount, status) VALUES ("sale-42", "acme-123", "cust-99", 50000, "new")
+        DB-->>Plugin: Success (Row Count: 1)
+        
+        %% Step 6: Update Customer (Side effect)
+        Plugin->>Interceptor: ctx.db.update('customers', { lastActivity: now() })
+        Interceptor->>DB: UPDATE customers SET last_activity=... WHERE id="cust-99" AND tenant_id='acme-123'
+        DB-->>Plugin: Success
+        
+        %% Step 7: Invalidate Cache
+        Plugin->>Cache: ctx.cache.delete("sales:list:*")
+        Cache->>Redis: DEL t:acme-123:sales:list:*
+        
+        %% Step 8: Sync Events
+        Plugin->>EventBus: emit("sales.created", payload)
+        note right of EventBus: Check Whitelist & Enabled Plugins
+        EventBus->>Analytics: Handle Sync: onSaleCreated
+        Analytics->>Cache: ctx.cache.incr("metrics:sales:count")
+        Cache->>Redis: INCR t:acme-123:metrics:sales:count
+        
+        %% Step 9: Async Publish
+        Plugin->>MQ: publish("sales.lifecycle", message)
+        note right of MQ: Message: { type: "sales.created", tenantId: "acme-123", sale: {...}, traceId: "xyz-789" }
+    end
+    
+    Plugin-->>Sandbox: Return Result: { id: "sale-42", status: "new" }
+
+    %% ----------------------------------------------------------------
+    %% 4. RESPONSE & CLEANUP PHASE
+    %% ----------------------------------------------------------------
+    Sandbox->>GW: 9. Execution Complete
+    GW->>Client: 10. HTTP 201 Created
+    note right of Client: JSON Body: { id: "sale-42", ... }<br/>Headers: { X-RateLimit-Remaining: 353 }
+
+    par Cleanup Actions (After Response)
+        GW->>DB: INSERT INTO audit_log (Audit Entry)
+        GW->>Pool: Release Connection #88
+        GW->>ContextMgr: GC Execution Context
+    end
+
+    %% ----------------------------------------------------------------
+    %% 5. ASYNC WORKER PHASE
+    %% ----------------------------------------------------------------
+    MQ->>Worker: 11. Consume Message (sales.created)
+    
+    rect rgb(230, 126, 34)
+        note right of Worker: Workers create new separate Execution Contexts
+        Worker->>Worker: Notification Worker: Push to WebSocket
+        Worker->>Worker: Search Index Worker: Update Elasticsearch
+        Worker->>Worker: Webhook Worker: POST to https://acme.com/hooks
+    end

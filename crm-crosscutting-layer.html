@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — L6 Cross-cutting Concerns Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
+  --gn:#10b981;--gnd:rgba(16,185,129,.08);
+  --am:#f59e0b;--amd:rgba(245,158,11,.08);
+  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
+  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
+  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
+  --or:#f97316;--pk:#ec4899;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--rd);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(1.6rem,3.5vw,2.6rem);font-weight:800;line-height:1.15;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--rd)}
+.hero p{font-size:1rem;color:var(--td);max-width:700px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--rd)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--rd);border-radius:2px 2px 0 0}
+.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--rd);background:var(--rdd);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.cm{color:#3e4460;font-style:italic}.nu{color:#f78c6c}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.pk{color:#ec4899}.or{color:#f97316}.fn{color:#82aaff}.st{color:#c3e88d}.kw{color:#c792ea}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
+.nt strong{color:inherit}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+.pnl.on .sec:nth-child(2){animation-delay:.04s}
+.pnl.on .sec:nth-child(3){animation-delay:.08s}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Layer 6 — Cross-cutting Concerns</div>
+    <h1>Mọi thứ bên trong <span>Cross-cutting Concerns</span></h1>
+    <p>4 hệ thống xuyên suốt L1→L5: Security, Error Handling, Config Management, Dependency Management. Không thuộc riêng layer nào — enforce nhất quán xuyên toàn bộ kiến trúc.</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('map')">Bản đồ L6</button>
+    <button onclick="go('sec')">Security</button>
+    <button onclick="go('iso')">Tenant Isolation</button>
+    <button onclick="go('err')">Error Handling</button>
+    <button onclick="go('cfg')">Config Management</button>
+    <button onclick="go('dep')">Dependency Mgmt</button>
+    <button onclick="go('xref')">Cross-layer Map</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- MAP -->
+<div class="pnl on" id="p-map">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L6 — Vertical Layer xuyên suốt L1→L5</h2></div>
+    <div class="nt rd"><strong>L6 KHÁC mọi layer khác.</strong> L1→L5 là horizontal — request đi tuần tự từ trên xuống. L6 là VERTICAL — mỗi concern xuyên qua TẤT CẢ layers. Security không chỉ ở Gateway, Error handling không chỉ ở Plugin, Config không chỉ ở DB. Chúng ENFORCE nhất quán ở mọi nơi.</div>
+    <div class="dg"><div class="dg-label">L6 vertical map</div><pre>
+         <span class="rd">L6 CROSS-CUTTING CONCERNS</span>
+         │         │             │            │
+  ┌──────┼─────────┼─────────────┼────────────┼─────────────────────────┐
+  │      │         │             │            │                         │
+  │   <span class="rd">Security</span>  <span class="am">Error Handling</span>  <span class="cy">Config Mgmt</span>  <span class="vi">Dependency Mgmt</span>         │
+  │      │         │             │            │                         │
+  │ ─────┼─────────┼─────────────┼────────────┼─── L1 PRESENTATION ─── │
+  │  CSP,CORS   Error toast     Theme cfg    UI shows only             │
+  │  XSS guard  Retry button    Feature flag enabled plugins           │
+  │  JWT memory Offline queue   Tenant brand                           │
+  │      │         │             │            │                         │
+  │ ─────┼─────────┼─────────────┼────────────┼─── L2 GATEWAY ──────── │
+  │  TLS 1.3    Rate limit 429  Tier limits  Route only                │
+  │  JWT valid. Token expired   Per-tier     enabled plugin            │
+  │  RBAC       Tenant suspend  rate config  routes                    │
+  │  Blacklist  Graceful reject                                        │
+  │      │         │             │            │                         │
+  │ ─────┼─────────┼─────────────┼────────────┼─── L3 BUSINESS ─────── │
+  │  Sandbox    Error boundary  Plugin cfg   Dependency check          │
+  │  Whitelist  Typed errors    Tenant cfg   on enable/disable         │
+  │  PII redact Hook exception  Hot reload   Topological sort          │
+  │  Input val. Event fail skip              Disable chain             │
+  │      │         │             │            │                         │
+  │ ─────┼─────────┼─────────────┼────────────┼─── L4 DATA ACCESS ──── │
+  │  Query      Circuit breaker Pool cfg     Migration dep.            │
+  │  Intercept  Pool exhaust    Conn limits  Cannot disable if         │
+  │  RLS        Retry (DB)      Per-tier     dependent uses            │
+  │  Param SQL  Timeout kill    quota cfg    shared tables             │
+  │      │         │             │            │                         │
+  │ ─────┼─────────┼─────────────┼────────────┼─── L5 INFRA ────────── │
+  │  AES-256    MQ DLQ+retry   Redis TTL    N/A                       │
+  │  mTLS       Redis fallback  MQ priority                            │
+  │  Net segment ES retry       S3 quota                               │
+  │  Vault/KMS                                                          │
+  │      │         │             │            │                         │
+  └──────┴─────────┴─────────────┴────────────┴─────────────────────────┘
+
+
+<span class="ty">4 CROSS-CUTTING CONCERNS:</span>
+
+  ┌───────────────────────┬──────────────────────────────────────────────┐
+  │ Concern               │ Core Responsibility                          │
+  ├───────────────────────┼──────────────────────────────────────────────┤
+  │ <span class="rd">① Security</span>           │ Encryption, PII masking, tenant isolation,   │
+  │                       │ secret management, defense in depth          │
+  │                       │                                              │
+  │ <span class="am">② Error Handling</span>     │ Typed errors, circuit breaker, retry,        │
+  │                       │ bulkhead, fallback, error boundary           │
+  │                       │                                              │
+  │ <span class="cy">③ Config Management</span>  │ 3-level config (global/tier/tenant),         │
+  │                       │ hot reload, feature flags                    │
+  │                       │                                              │
+  │ <span class="vi">④ Dependency Mgmt</span>    │ Plugin dependency resolution, disable chain  │
+  │                       │ enforcement — xuyên L3 + L4                  │
+  └───────────────────────┴──────────────────────────────────────────────┘
+
+  <span class="cm">L6 KHÔNG xử lý request trực tiếp.</span>
+  <span class="cm">L6 cung cấp POLICIES + RULES mà L1→L5 phải tuân thủ.</span>
+  <span class="cm">Plugin KHÔNG implement security riêng — L6 enforce tự động.</span></pre></div>
+</div>
+</div>
+
+<!-- SECURITY -->
+<div class="pnl" id="p-sec">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Security — Defense in Depth</h2></div>
+    <div class="nt rd"><strong>Nguyên tắc:</strong> Security không phải 1 bức tường — nó là nhiều lớp chồng lên nhau. Mỗi layer có defense riêng. Attacker phá được 1 lớp → vẫn còn nhiều lớp phía sau. Plugin developer KHÔNG CẦN tự implement security — hệ thống enforce tự động.</div>
+    <div class="dg"><div class="dg-label">defense in depth</div><pre>
+<span class="ty">7 LAYERS OF DEFENSE:</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │                                                                      │
+  │  <span class="hi">L1</span>  CSP headers            → chỉ load script từ CDN whitelist     │
+  │      XSS sanitization       → React auto-escape + DOMPurify        │
+  │      CORS per-tenant        → acme.crm.com ≠ gọi globex API       │
+  │      JWT in memory          → XSS không đọc được token             │
+  │      SRI hashes             → CDN compromise → browser refuse load │
+  │      ─────────────────────────────────────────────────────────────  │
+  │  <span class="hi">L2</span>  TLS 1.3 terminate       → encrypt mọi data in transit          │
+  │      JWT validation         → signature + expiry + tenant claim    │
+  │      Token blacklist        → logout/revoke → Redis check          │
+  │      Rate limiting          → DDoS/abuse protection per-tenant     │
+  │      RBAC permission check  → user chỉ access đúng quyền          │
+  │      IP whitelist (VIP)     → VIP tenant lock IP range             │
+  │      ─────────────────────────────────────────────────────────────  │
+  │  <span class="hi">L3</span>  Sandbox isolation       → plugin KHÔNG access fs/net/process   │
+  │      Input validation       → typed schema, reject malformed       │
+  │      CSRF protection        → SameSite cookie + custom header      │
+  │      PII redaction (logs)   → email → al***@***.com               │
+  │      ─────────────────────────────────────────────────────────────  │
+  │  <span class="hi">L4</span>  Query Interceptor       → auto tenant_id, block cross-tenant   │
+  │      PostgreSQL RLS         → DB-level backup nếu interceptor bug  │
+  │      Parameterized queries  → SQL injection impossible             │
+  │      QueryValidator         → 6 safety checks per query           │
+  │      ─────────────────────────────────────────────────────────────  │
+  │  <span class="hi">L5</span>  AES-256 at rest         → DB, S3, Redis data encrypted         │
+  │      mTLS between services  → service-to-service authentication    │
+  │      Network segmentation   → DB not reachable from internet       │
+  │      Redis AUTH + ACL       → per-service credentials              │
+  │      ─────────────────────────────────────────────────────────────  │
+  │  <span class="hi">L6</span>  Secret management       → Vault/KMS, no hardcoded secrets      │
+  │      Audit trail            → immutable record of all mutations    │
+  │      PII masking policy     → define which fields are PII          │
+  │      ─────────────────────────────────────────────────────────────  │
+  │  <span class="hi">L7</span>  Anomaly detection       → unusual pattern → alert              │
+  │      Security event alert   → cross-tenant attempt → PagerDuty    │
+  │      Access logs            → who accessed what, when              │
+  │                                                                      │
+  └──────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">ENCRYPTION:</span>
+
+  <span class="gn">In Transit:</span>
+  ├── Client → LB:         TLS 1.3 (HTTPS)
+  ├── LB → App:            plain HTTP (within K8s cluster, trusted network)
+  ├── App → PostgreSQL:    TLS (sslmode=verify-full)
+  ├── App → Redis:         TLS + AUTH
+  ├── App → RabbitMQ:      TLS + SASL
+  ├── App → Elasticsearch: TLS + API key
+  └── App → S3:            HTTPS (AWS SDK default)
+
+  <span class="gn">At Rest:</span>
+  ├── PostgreSQL:  dm-crypt (volume) + pgcrypto (column-level cho PII)
+  ├── Redis:       encrypted memory (AWS ElastiCache encryption)
+  ├── S3:          SSE-KMS (AWS KMS managed keys)
+  ├── Elasticsearch: encrypted-at-rest (node-level)
+  └── Backups:     AES-256-GCM encrypted before upload to S3
+
+
+<span class="ty">SECRET MANAGEMENT (Vault / AWS KMS):</span>
+
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                                                                    │
+  │  <span class="rd">KHÔNG BAO GIỜ</span> hardcode secrets trong code hoặc env vars.          │
+  │                                                                    │
+  │  Secrets stored in Vault/KMS:                                     │
+  │  ├── DB connection strings (host, user, password)                 │
+  │  ├── Redis AUTH passwords                                         │
+  │  ├── RabbitMQ credentials                                         │
+  │  ├── JWT signing private key                                      │
+  │  ├── Third-party API keys (SendGrid, Twilio, AWS)                │
+  │  ├── Tenant-specific secrets (Twilio SID per tenant)             │
+  │  └── Encryption master keys                                       │
+  │                                                                    │
+  │  Access pattern:                                                   │
+  │  App bootstrap → authenticate to Vault (K8s service account)     │
+  │  → Lease secrets with TTL (8h) → auto-renew                     │
+  │  → Secret rotation: Vault rotates → app gets new on next renew  │
+  │                                                                    │
+  │  Plugin tenant secrets (Twilio SID, webhook secrets):            │
+  │  → Stored in tenant_plugins.config (Metadata DB)                 │
+  │  → <span class="am">Encrypted column</span>: pgcrypto AES-256                            │
+  │  → Decrypted only at runtime, within Execution Context           │
+  │  → Plugin sees plaintext via ctx.pluginConfig                    │
+  │  → NEVER appears in logs (PII redaction covers secrets too)      │
+  │                                                                    │
+  └────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- TENANT ISOLATION -->
+<div class="pnl" id="p-iso">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Tenant Isolation — 3-Layer Protection</h2></div>
+    <div class="nt rd"><strong>Zero cross-tenant data leak là yêu cầu TUYỆT ĐỐI.</strong> Một tenant KHÔNG BAO GIỜ nhìn thấy data của tenant khác. Hệ thống enforce tự động ở 3 tầng — plugin developer KHÔNG THỂ bypass dù cố ý hay vô ý.</div>
+    <div class="dg"><div class="dg-label">3-layer tenant isolation</div><pre>
+<span class="ty">LAYER 1: QUERY INTERCEPTOR (L4 — application level)</span>
+
+  Plugin code:  ctx.db.query('customers').where({ status: 'active' })
+
+  Query Interceptor transforms:
+  SELECT * FROM customers WHERE status = 'active'
+  →
+  SELECT * FROM customers WHERE status = 'active' <span class="rd">AND tenant_id = 'acme-123'</span>
+
+  <span class="fn">TenantInjector</span>:
+  ├── AUTO-inject tenant_id vào mọi SELECT, INSERT, UPDATE, DELETE
+  ├── Plugin KHÔNG CẦN (và KHÔNG THỂ) chỉ định tenant_id
+  ├── INSERT: auto-add tenant_id = $current vào column list
+  └── Cross-table JOIN: validate BOTH tables have tenant_id filter
+
+  <span class="fn">QueryValidator</span> (6 safety checks):
+  ├── ① Has tenant_id in WHERE?           → <span class="gn">guaranteed by injector</span>
+  ├── ② No raw SQL without tenant filter? → <span class="rd">block if detected</span>
+  ├── ③ No SELECT * FROM sys_tables?      → <span class="rd">block system table access</span>
+  ├── ④ No ALTER/DROP/TRUNCATE?           → <span class="rd">block DDL from plugins</span>
+  ├── ⑤ No cross-schema access?           → <span class="rd">block pg_catalog etc</span>
+  └── ⑥ Parameter count matches?          → <span class="rd">prevent SQL injection</span>
+
+
+<span class="ty">LAYER 2: POSTGRESQL RLS (L5 — database level)</span>
+
+  Backup layer. Nếu Query Interceptor có bug → RLS vẫn block:
+
+  CREATE POLICY tenant_isolation ON customers
+    USING (tenant_id = current_setting('app.current_tenant'));
+
+  ├── Connection: SET app.current_tenant = 'acme-123' (before queries)
+  ├── RLS evaluated by PostgreSQL engine, KHÔNG bypass được
+  ├── Nếu interceptor quên inject → RLS vẫn filter đúng tenant
+  ├── Nếu interceptor inject SAI tenant → RLS override
+  └── Apply cho MỌI table có tenant_id column
+
+  <span class="cm">Double safety: 2 systems independent, cùng enforce 1 rule.</span>
+  <span class="cm">Probability cả 2 fail cùng lúc = gần bằng 0.</span>
+
+
+<span class="ty">LAYER 3: AUDIT + ALERT (L7 — detection level)</span>
+
+  Nếu (impossible nhưng) cross-tenant access xảy ra:
+
+  ├── Audit Trail ghi: user_id, tenant_id, resource accessed
+  ├── Anomaly detection: query patterns bất thường
+  │   → Tenant A user query data with Tenant B tenant_id in result
+  │   → <span class="rd">IMMEDIATE ALERT: PagerDuty P1</span>
+  ├── Forensic: full trace available (request_id → Jaeger → log → audit)
+  └── Response: auto-block user, investigate
+
+
+<span class="ty">ISOLATION NGOÀI DB:</span>
+
+  ┌────────────────────┬───────────────────────────────────────────────┐
+  │ Resource            │ Isolation mechanism                           │
+  ├────────────────────┼───────────────────────────────────────────────┤
+  │ Redis cache        │ Key prefix: t:{tenantId}:...                 │
+  │                    │ TenantScopedCache auto-prefix                │
+  │ S3 storage         │ Path prefix: /tenants/{tenantId}/...         │
+  │                    │ Storage Service auto-prefix                  │
+  │ Elasticsearch      │ Per-tenant index: {tenantId}-{entity}       │
+  │                    │ Search Service auto-filter                   │
+  │ MQ messages        │ tenantId in message headers                  │
+  │                    │ Worker verify tenant before process          │
+  │ Logs               │ tenantId in every log line                   │
+  │                    │ Query filter: mandatory tenant_id field      │
+  │ Module Federation  │ Load only enabledPlugins' UI remotes        │
+  └────────────────────┴───────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ERROR HANDLING -->
+<div class="pnl" id="p-err">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Error Handling — Resilience Framework</h2></div>
+    <div class="nt am"><strong>Vai trò:</strong> Cung cấp framework thống nhất để MỌI layer xử lý lỗi nhất quán: phân loại lỗi (permanent vs transient), pattern phục hồi (retry, circuit breaker, bulkhead, fallback), và error boundary cho plugins. Plugin developer throw error → framework tự phân loại + response đúng HTTP status.</div>
+    <div class="dg"><div class="dg-label">error framework</div><pre>
+<span class="ty">TYPED ERROR HIERARCHY:</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="kw">CrmError</span> (base class, mọi error trong hệ thống)                     │
+  │  │                                                                     │
+  │  ├── <span class="am">BusinessError</span> (permanent — KHÔNG retry)                         │
+  │  │   ├── code: "CUSTOMER_NOT_FOUND"   → 404                          │
+  │  │   ├── code: "INVALID_INPUT"        → 400                          │
+  │  │   ├── code: "DUPLICATE_ENTRY"      → 409                          │
+  │  │   ├── code: "FORBIDDEN"            → 403                          │
+  │  │   └── code: "QUOTA_EXCEEDED"       → 402                          │
+  │  │   <span class="cm">Plugin throw BusinessError → client KHÔNG nên retry.</span>              │
+  │  │                                                                     │
+  │  ├── <span class="rd">SystemError</span> (transient — CÓ THỂ retry)                           │
+  │  │   ├── code: "DB_TIMEOUT"           → 504                          │
+  │  │   ├── code: "DB_POOL_EXHAUSTED"    → 503 + Retry-After           │
+  │  │   ├── code: "REDIS_UNAVAILABLE"    → 503                          │
+  │  │   ├── code: "MQ_PUBLISH_FAILED"    → 503                          │
+  │  │   └── code: "EXTERNAL_API_TIMEOUT" → 502                          │
+  │  │   <span class="cm">SystemError → client CÓ THỂ retry sau Retry-After.</span>               │
+  │  │                                                                     │
+  │  └── <span class="vi">PluginError</span> (plugin-specific — có thể retry tùy loại)           │
+  │      ├── code: "PLUGIN_TIMEOUT"       → 504                          │
+  │      ├── code: "PLUGIN_CRASH"         → 500                          │
+  │      ├── code: "MEMORY_EXCEEDED"      → 500                          │
+  │      ├── code: "QUERY_LIMIT"          → 500                          │
+  │      └── code: "PLUGIN_DISABLED"      → 503                          │
+  │      <span class="cm">PluginError → Sandbox catches, error boundary isolates.</span>          │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  <span class="ty">Response format (nhất quán toàn hệ thống):</span>
+  {
+    "error": { "code": "CUSTOMER_NOT_FOUND", "message": "...", "status": 404 },
+    "requestId": "req-789",
+    "timestamp": "2026-02-10T14:30:00Z"
+  }
+  <span class="cm">→ Không leak stack trace, DB error, internal state.</span>
+
+
+<span class="ty">RESILIENCE PATTERNS:</span>
+
+  ┌─ <span class="rd">CIRCUIT BREAKER</span> (protect downstream khi service lỗi) ──────────────┐
+  │                                                                        │
+  │  Áp dụng cho: DB Pool, Redis, Elasticsearch, External APIs           │
+  │                                                                        │
+  │  ┌──────────┐   fail > threshold   ┌──────────┐   30s timer   ┌─────┐│
+  │  │  CLOSED  │ ──────────────────▶  │   OPEN   │ ──────────▶  │HALF ││
+  │  │ (normal) │                      │(fast-fail)│              │OPEN ││
+  │  └──────────┘  ◀────────────────── └──────────┘              └──┬──┘│
+  │       ▲        success in half-open      ▲                      │    │
+  │       │                                  │     fail in half-open│    │
+  │       └──────────────────────────────────┴──────────────────────┘    │
+  │                                                                        │
+  │  DB Pool exhausted → Circuit OPEN → 503 fast-fail (no wait)         │
+  │  30s later → HALF-OPEN → try 1 request                              │
+  │  Success → CLOSED (resume normal). Fail → OPEN again (30s more)    │
+  │                                                                        │
+  │  <span class="gn">Benefit:</span> không queue 1000 requests chờ DB recover              │
+  │  → fast-fail + Retry-After cho client biết khi nào retry             │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ <span class="am">RETRY WITH BACKOFF</span> (tự phục hồi transient errors) ────────────────┐
+  │                                                                        │
+  │  Áp dụng cho: MQ publish, ES index, External API calls              │
+  │                                                                        │
+  │  Attempt 1: fail → wait 5s                                           │
+  │  Attempt 2: fail → wait 30s                                          │
+  │  Attempt 3: fail → wait 2min                                         │
+  │  All 3 fail → DLQ (Dead Letter Queue) → manual investigation       │
+  │                                                                        │
+  │  Jitter: random ±20% delay → prevent thundering herd                │
+  │  <span class="rd">CHỈ retry SystemError (transient). BusinessError KHÔNG retry.</span>        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ <span class="cy">BULKHEAD</span> (isolate failure domains) ─────────────────────────────────┐
+  │                                                                        │
+  │  Per-tenant connection caps (Pool Manager):                          │
+  │  ├── Shared Pool: 200 total connections                              │
+  │  ├── Per-tenant cap: 20 connections max                              │
+  │  │   → 1 tenant spike KHÔNG starve other tenants                    │
+  │  └── VIP: own pool, own cap (no shared resource contention)         │
+  │                                                                        │
+  │  Per-plugin Sandbox limits:                                          │
+  │  ├── timeout: 5000ms, maxMemory: 50MB, maxQueries: 50              │
+  │  │   → 1 plugin bug KHÔNG affect other plugins                     │
+  │  └── Error boundary: plugin crash → only that request fails        │
+  │                                                                        │
+  │  MQ queue isolation:                                                  │
+  │  ├── Separate queues per concern (notification, search, webhook)    │
+  │  │   → notification backlog KHÔNG block search indexing             │
+  │  └── VIP priority queues (10/5/1)                                   │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ <span class="gn">FALLBACK</span> (degraded nhưng vẫn hoạt động) ───────────────────────────┐
+  │                                                                        │
+  │  Redis down     → fallback to Metadata DB (chậm hơn ~5ms/call)     │
+  │  ES down        → fallback to DB LIKE query (chậm, basic search)   │
+  │  MQ down        → log to disk queue → replay khi MQ recover        │
+  │  Cache miss     → rebuild from DB → cache for next request         │
+  │  Plugin crash   → 500 graceful error, process vẫn chạy            │
+  │  CDN down       → origin server serve static files (chậm hơn)     │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">ERROR BOUNDARY LAYERS (cascade protection):</span>
+
+  Request →
+  ├── L2 Gateway:  reject early (auth, rate limit) → 4xx fast
+  ├── L3 Sandbox:  catch plugin crash → 500 graceful, process safe
+  ├── L4 Circuit:  catch infra fail → 503 fast-fail, no cascade
+  ├── L5 Retry:    catch transient → retry 3x → DLQ
+  └── L7 Alert:    detect pattern → alert ops team
+
+  <span class="cm">Mỗi layer catch lỗi CỦA NÓ. Không để lỗi leak ra ngoài.</span>
+  <span class="cm">Plugin crash ≠ process crash. DB down ≠ toàn bộ hệ thống down.</span></pre></div>
+</div>
+</div>
+
+<!-- CONFIG MANAGEMENT -->
+<div class="pnl" id="p-cfg">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Config Management — 3-Level Configuration</h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Quản lý cấu hình ở 3 cấp: Global (toàn hệ thống), Tier (per-plan), Tenant (per-tenant). Config cascade: Tenant override Tier, Tier override Global. Hỗ trợ hot reload (thay đổi mà không restart) và feature flags (bật/tắt feature không cần deploy).</div>
+    <div class="dg"><div class="dg-label">config management</div><pre>
+<span class="ty">3-LEVEL CONFIG CASCADE:</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="vi">Level 1: GLOBAL CONFIG</span> (áp dụng mọi tenant, mọi tier)                │
+  │  Source: system_config table / environment variables                   │
+  │  ┌──────────────────────────────────────────────────────────────────┐ │
+  │  │ max_upload_size:     10MB                                        │ │
+  │  │ session_timeout:     3600s                                       │ │
+  │  │ default_language:    "vi"                                        │ │
+  │  │ maintenance_mode:    false                                       │ │
+  │  │ api_version:         "v1"                                        │ │
+  │  │ password_min_length: 8                                           │ │
+  │  └──────────────────────────────────────────────────────────────────┘ │
+  │       │                                                                │
+  │       ▼ override bởi                                                   │
+  │  <span class="am">Level 2: TIER CONFIG</span> (per-plan defaults)                               │
+  │  Source: tier_config table                                            │
+  │  ┌──────────────────────────────────────────────────────────────────┐ │
+  │  │ Basic:     { rateLimit: 100,  storage: "5GB",  maxUsers: 5 }   │ │
+  │  │ Premium:   { rateLimit: 500,  storage: "50GB", maxUsers: 50 }  │ │
+  │  │ Enterprise:{ rateLimit: 2000, storage: "500GB",maxUsers: 500 } │ │
+  │  │ VIP:       { rateLimit: -1,   storage: "-1",   maxUsers: -1 }  │ │
+  │  │             <span class="cm">(-1 = unlimited)</span>                                    │ │
+  │  └──────────────────────────────────────────────────────────────────┘ │
+  │       │                                                                │
+  │       ▼ override bởi                                                   │
+  │  <span class="gn">Level 3: TENANT CONFIG</span> (per-tenant customization)                     │
+  │  Source: tenants.config + tenant_plugins.config                       │
+  │  ┌──────────────────────────────────────────────────────────────────┐ │
+  │  │ ACME: {                                                          │ │
+  │  │   theme: { logo: "acme.png", color: "#2563eb" },               │ │
+  │  │   plugins: {                                                     │ │
+  │  │     "customer-care": {                                           │ │
+  │  │       twilioSid: "xxx",          <span class="cm">← encrypted in DB</span>             │ │
+  │  │       slaThresholds: { urgent: 1h, normal: 24h },              │ │
+  │  │       pipelineStages: ["New","Qualify","Proposal","Closed"]    │ │
+  │  │     },                                                           │ │
+  │  │     "automation": {                                              │ │
+  │  │       emailTemplates: [...],                                    │ │
+  │  │       triggerRules: [...]                                       │ │
+  │  │     }                                                            │ │
+  │  │   }                                                              │ │
+  │  │ }                                                                │ │
+  │  └──────────────────────────────────────────────────────────────────┘ │
+  │                                                                        │
+  │  <span class="ty">Resolution:</span> getConfig(key) → tenant → tier → global → default        │
+  │  ACME rateLimit? → tenant: undefined → tier premium: 500 → <span class="gn">500</span>      │
+  │  ACME logo? → tenant: "acme.png" → <span class="gn">"acme.png"</span> (tenant override)       │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">HOT RELOAD — Thay đổi config KHÔNG cần restart:</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="nu">1.</span> Admin thay đổi config (Tenant Admin hoặc System Admin)            │
+  │  <span class="nu">2.</span> API: PUT /api/v1/admin/config → validate against schema           │
+  │  <span class="nu">3.</span> Write to DB (tenants.config / system_config)                      │
+  │  <span class="nu">4.</span> Publish Redis Pub/Sub: "config:updated:{tenantId}"                │
+  │  <span class="nu">5.</span> ALL instances receive → invalidate in-memory cache                │
+  │  <span class="nu">6.</span> Next request → reload config from DB → cache lại                 │
+  │                                                                        │
+  │  Latency: ~5 giây (Pub/Sub delivery + next request trigger)          │
+  │  <span class="cm">Không cần restart. Không cần redeploy. Không cần downtime.</span>          │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">FEATURE FLAGS — Bật/tắt feature không cần deploy:</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  feature_flags table:                                                 │
+  │  ┌───────────────────────┬────────┬───────────┬─────────────────────┐ │
+  │  │ flag                  │ global │ tier      │ tenant_override     │ │
+  │  ├───────────────────────┼────────┼───────────┼─────────────────────┤ │
+  │  │ new_pipeline_ui       │ false  │ VIP: true │ acme-123: true      │ │
+  │  │ bulk_import           │ true   │ Basic:false│                    │ │
+  │  │ ai_suggestions        │ false  │ Ent: true │                     │ │
+  │  │ beta_reporting        │ false  │           │ acme-123: true      │ │
+  │  └───────────────────────┴────────┴───────────┴─────────────────────┘ │
+  │                                                                        │
+  │  isEnabled("new_pipeline_ui", tenantCtx):                             │
+  │    tenant_override[acme-123] = true? → <span class="gn">YES → enabled</span>                  │
+  │                                                                        │
+  │  Use cases:                                                           │
+  │  ├── Gradual rollout: enable for 1 tenant → monitor → rollout all   │
+  │  ├── Tier gating: ai_suggestions only Enterprise+                    │
+  │  ├── Kill switch: turn off buggy feature instantly (no deploy)       │
+  │  └── A/B testing: 50% tenants see new UI                            │
+  │                                                                        │
+  │  <span class="ty">Tương tác với L1:</span>                                                    │
+  │  GET /api/v1/me/context → includes featureFlags                     │
+  │  Host Shell: if (flags.new_pipeline_ui) render NewPipeline          │
+  │              else render ClassicPipeline                             │
+  │                                                                        │
+  │  <span class="ty">Tương tác với L3:</span>                                                    │
+  │  if (ctx.featureFlags.get('ai_suggestions')) { ... }                │
+  │  Plugin code check flag → enable/skip feature branch                │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- DEPENDENCY MANAGEMENT -->
+<div class="pnl" id="p-dep">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Dependency Management — Plugin Dependency Graph</h2></div>
+    <div class="nt am"><strong>Vai trò:</strong> Quản lý dependency giữa plugins: A depends on B → không enable A nếu B chưa enable, không disable B nếu A vẫn enable. Thuộc L6 vì XUYÊN TẦNG: enforcement diễn ra ở L3 (Plugin Manager), L4 (Migration Engine), và L1 (UI hiển thị).</div>
+    <div class="dg"><div class="dg-label">dependency management</div><pre>
+<span class="ty">DEPENDENCY GRAPH:</span>
+
+                       ┌──────────────────┐
+                       │  customer-data    │
+                       │  (root — Basic)   │
+                       └────────┬─────────┘
+                    ┌───────────┼───────────┐
+                    ▼           ▼           ▼
+            ┌──────────┐ ┌──────────┐ ┌──────────┐
+            │customer- │ │automation│ │analytics │
+            │care      │ │          │ │          │
+            │(Premium) │ │(Premium) │ │(Enterpr.)│
+            └──────┬───┘ └──────────┘ └──────────┘
+                   │
+                   ▼
+            ┌──────────┐
+            │marketing │
+            │(Enterpr.)│
+            └──────────┘
+
+  <span class="cm">Mỗi plugin khai báo deps trong manifest.json:</span>
+  <span class="cm">customer-care:  dependencies: ["customer-data"]</span>
+  <span class="cm">automation:     dependencies: ["customer-data", "customer-care"]</span>
+  <span class="cm">marketing:      dependencies: ["customer-data", "customer-care"]</span>
+
+
+<span class="ty">ENABLE ENFORCEMENT (Plugin Manager — L3):</span>
+
+  Tenant ACME muốn enable "automation":
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                                                                    │
+  │  DependencyResolver.checkCanEnable("acme-123", "automation"):     │
+  │                                                                    │
+  │  deps = ["customer-data", "customer-care"]                        │
+  │                                                                    │
+  │  ✓ customer-data enabled for ACME?  → <span class="gn">YES</span>                        │
+  │  ✗ customer-care enabled for ACME?  → <span class="rd">NO</span>                         │
+  │                                                                    │
+  │  → <span class="rd">REJECT: "Cannot enable automation: customer-care not enabled"</span> │
+  │  → Response: { missingDeps: ["customer-care"],                    │
+  │               suggestion: "Enable customer-care first" }          │
+  │                                                                    │
+  │  <span class="ty">Tương tác L1:</span> Admin Console hiển thị:                              │
+  │  [automation] ⚠️ Requires: customer-care (not enabled)            │
+  │  [Enable customer-care first] button                               │
+  │                                                                    │
+  └────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">DISABLE CHAIN ENFORCEMENT (Plugin Manager — L3):</span>
+
+  Tenant ACME muốn disable "customer-care":
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                                                                    │
+  │  DependencyResolver.checkCanDisable("acme-123", "customer-care"): │
+  │                                                                    │
+  │  Scan enabledPlugins có deps on customer-care:                    │
+  │  ├── automation: deps = [customer-data, <span class="rd">customer-care</span>] → ENABLED   │
+  │  └── marketing:  deps = [customer-data, <span class="rd">customer-care</span>] → DISABLED  │
+  │                                                                    │
+  │  automation STILL ENABLED and depends on care                     │
+  │  → <span class="rd">REJECT: "Cannot disable: automation depends on customer-care"</span> │
+  │  → Response: { dependents: ["automation"],                        │
+  │               suggestion: "Disable automation first" }            │
+  │                                                                    │
+  │  <span class="ty">Tương tác L1:</span> Admin Console hiển thị:                              │
+  │  [customer-care] ⚠️ Cannot disable: automation depends on it     │
+  │  [Disable automation first] button                                 │
+  │                                                                    │
+  └────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">MIGRATION DEPENDENCY (Migration Engine — L4):</span>
+
+  ┌────────────────────────────────────────────────────────────────────┐
+  │                                                                    │
+  │  Schema DDL: customer-care creates table "sales"                  │
+  │              with FOREIGN KEY (customer_id) → customers.id        │
+  │                                                                    │
+  │  Enforcement:                                                     │
+  │  ├── DDL run ORDER respects dependency graph                      │
+  │  │   customer-data DDL first → THEN customer-care DDL            │
+  │  ├── Hard purge (DELETE rows): respect FK constraints             │
+  │  │   → Cannot purge customer-data if sales rows reference it     │
+  │  └── Advisory lock: prevent race condition                        │
+  │      (2 tenants enable same plugin → serialize via pg_advisory)  │
+  │                                                                    │
+  └────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">TẠI SAO L6 (KHÔNG PHẢI L3)?</span>
+
+  Dependency enforcement xuyên NHIỀU layer:
+  ├── L1: Admin UI hiển thị dep warnings, suggest enable order
+  ├── L3: Plugin Manager check deps trước enable/disable
+  ├── L4: Migration Engine respect dep order cho DDL/DML
+  └── L7: Alert nếu orphaned state detected (edge case)
+
+  → Không thuộc riêng L3 hay L4. Nó là cross-cutting concern.</pre></div>
+</div>
+</div>
+
+<!-- CROSS-LAYER MAP -->
+<div class="pnl" id="p-xref">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Cross-layer Map — L6 ↔ L1→L5 tương tác</h2></div>
+    <div class="nt bl"><strong>Tổng hợp:</strong> Bảng ma trận chi tiết mỗi L6 concern tương tác với component cụ thể nào ở mỗi layer, ai enforce, và cơ chế ra sao.</div>
+    <div class="dg"><div class="dg-label">interaction matrix</div><pre>
+<span class="rd">━━━ ① SECURITY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+  ┌───────┬───────────────────────┬───────────────────────────────────────┐
+  │ Layer │ Component             │ Security Mechanism                    │
+  ├───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L1   │ Host Shell            │ CSP headers, CORS, XSS guard,       │
+  │       │                       │ JWT in-memory, SRI hashes            │
+  │       │ Plugin UI Remote      │ Error boundary sandbox, no raw DOM   │
+  │       │ Mobile Shell          │ Certificate pinning, biometric auth  │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L2   │ Load Balancer         │ TLS 1.3, DDoS mitigation            │
+  │       │ Tenant Resolver       │ Domain validation, status check      │
+  │       │ Auth Guard            │ JWT verify, blacklist, tenant match  │
+  │       │ Rate Limiter          │ Per-tenant throttle (anti-abuse)     │
+  │       │ Route Matcher         │ Plugin enabled check, RBAC           │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L3   │ Sandbox Engine        │ API whitelist, block fs/net/process  │
+  │       │ Plugin Cores          │ Input validation (schema-based)      │
+  │       │ ScopedLogger          │ PII auto-redaction before ship       │
+  │       │ ScopedEventBus        │ Filter events by enabledPlugins      │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L4   │ Query Interceptor     │ Auto tenant_id, 6 safety checks     │
+  │       │ Pool Manager          │ SET/RESET app.current_tenant per conn│
+  │       │ PostgreSQL            │ RLS policies (DB-level backup)       │
+  │       │ QueryValidator        │ Block DDL, cross-schema, raw SQL     │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L5   │ PostgreSQL            │ AES-256 at rest, pgcrypto columns   │
+  │       │ Redis                 │ AUTH + ACL + TLS + encrypted memory  │
+  │       │ S3                    │ SSE-KMS, Object Lock for audit       │
+  │       │ Network               │ mTLS, segmentation, VPN for admin   │
+  └───────┴───────────────────────┴───────────────────────────────────────┘
+
+
+<span class="am">━━━ ② ERROR HANDLING ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+  ┌───────┬───────────────────────┬───────────────────────────────────────┐
+  │ Layer │ Component             │ Error Pattern                         │
+  ├───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L1   │ Host Shell            │ Error Boundary per plugin area,      │
+  │       │                       │ retry button, offline queue          │
+  │       │ Mobile Shell          │ Offline sync, pending mutation queue │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L2   │ Rate Limiter          │ 429 + Retry-After header             │
+  │       │ Tenant Resolver       │ 403 Suspended (graceful message)     │
+  │       │ Auth Guard            │ 401 + refresh hint                   │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L3   │ Sandbox Engine        │ Error boundary: catch crash,         │
+  │       │                       │ timeout kill, memory kill            │
+  │       │ Hook Registry         │ Consumer throw → skip, continue      │
+  │       │ Event Bus             │ Sync handler fail → log, skip       │
+  │       │ Plugin Core           │ Throw BusinessError → typed 4xx     │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L4   │ Pool Manager          │ Circuit breaker: CLOSED→OPEN→HALF   │
+  │       │ Query Interceptor     │ Query limit → 500, timeout → 504    │
+  │       │ Connection            │ Pool exhaust → 503 + Retry-After    │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L5   │ RabbitMQ              │ Retry 3x exponential → DLQ          │
+  │       │ Redis                 │ Fallback to DB on failure            │
+  │       │ Elasticsearch         │ Retry + fallback LIKE query         │
+  └───────┴───────────────────────┴───────────────────────────────────────┘
+
+
+<span class="cy">━━━ ③ CONFIG MANAGEMENT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+  ┌───────┬───────────────────────┬───────────────────────────────────────┐
+  │ Layer │ Component             │ Config Usage                          │
+  ├───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L1   │ Host Shell            │ Theme (logo, colors), featureFlags,  │
+  │       │                       │ enabledPlugins list from context API │
+  │       │ Admin Console         │ Config editor with schema validation │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L2   │ Rate Limiter          │ Tier config: rateLimit per tier      │
+  │       │ Auth Guard            │ Global config: token TTL, algo       │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L3   │ Plugin Core           │ ctx.pluginConfig (tenant-specific)   │
+  │       │ Tenant Context        │ Cached config, hot reload via PubSub │
+  │       │ Sandbox Engine        │ Resource limits from plugin manifest │
+  │       │ Plugin Core           │ ctx.featureFlags for branch logic    │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L4   │ Pool Manager          │ Per-tier connection caps             │
+  │       │ Cache Manager         │ Per-tier TTL config                  │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L5   │ Redis                 │ TTL from tier config (5/10/15min)    │
+  │       │ RabbitMQ              │ Priority from tier config (1/5/10)   │
+  │       │ S3                    │ Quota from tier config (5/50/500GB)  │
+  └───────┴───────────────────────┴───────────────────────────────────────┘
+
+
+<span class="vi">━━━ ④ DEPENDENCY MANAGEMENT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+  ┌───────┬───────────────────────┬───────────────────────────────────────┐
+  │ Layer │ Component             │ Dependency Role                       │
+  ├───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L1   │ Admin Console         │ Show dep warnings, suggest order     │
+  │       │ Host Shell sidebar    │ Only show enabled plugins (filtered) │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L2   │ Route Matcher         │ 404 for disabled plugin routes       │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L3   │ Plugin Manager        │ checkCanEnable, checkCanDisable      │
+  │       │ DependencyResolver    │ Topological sort, cycle detection    │
+  │       │ ScopedEventBus        │ Skip events for disabled plugins     │
+  │       │ Hook Registry         │ Skip hooks for disabled plugins      │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L4   │ Migration Engine      │ DDL order respects dep graph,        │
+  │       │                       │ FK constraints, advisory locks       │
+  │───────┼───────────────────────┼───────────────────────────────────────┤
+  │  L7   │ Alerting              │ Orphaned state detection alert       │
+  └───────┴───────────────────────┴───────────────────────────────────────┘
+
+
+<span class="ty">TÓM TẮT — L6 enforce NHƯ THẾ NÀO:</span>
+
+  L6 KHÔNG có code xử lý request.
+  L6 cung cấp:
+  ├── <span class="rd">Policies</span>:  "Encrypt at rest", "PII must be redacted"
+  ├── <span class="am">Patterns</span>:  CircuitBreaker class, RetryWithBackoff util
+  ├── <span class="cy">Config</span>:    Cascading resolver, hot reload mechanism
+  ├── <span class="vi">Rules</span>:     Dependency graph, enable/disable validators
+  └── <span class="gn">Libraries</span>: Shared error classes, config loaders, crypto utils
+
+  L1→L5 CONSUME từ L6:
+  ├── L2 Rate Limiter dùng tier config từ Config Management
+  ├── L3 Sandbox dùng error classes từ Error Framework
+  ├── L4 Pool Manager dùng CircuitBreaker pattern
+  ├── L5 Redis client dùng encryption + secrets từ Security
+  └── L3 Plugin Manager dùng DependencyResolver từ Dep Mgmt</pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['map','sec','iso','err','cfg','dep','xref'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

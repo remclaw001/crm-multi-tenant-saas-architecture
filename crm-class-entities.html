@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRM — Class Diagram Entities per Layer</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060810;
+      --sf: #0c0e18;
+      --sf2: #111420;
+      --bd: #1c2038;
+      --bda: #2a3055;
+      --tx: #d8dce8;
+      --td: #7880a0;
+      --tm: #484e6a;
+      --bl: #3b82f6;
+      --bld: rgba(59, 130, 246, .1);
+      --gn: #10b981;
+      --gnd: rgba(16, 185, 129, .08);
+      --am: #f59e0b;
+      --amd: rgba(245, 158, 11, .08);
+      --rd: #ef4444;
+      --rdd: rgba(239, 68, 68, .08);
+      --cy: #06b6d4;
+      --cyd: rgba(6, 182, 212, .08);
+      --vi: #8b5cf6;
+      --vid: rgba(139, 92, 246, .08);
+      --or: #f97316;
+      --pk: #ec4899;
+      --mono: 'IBM Plex Mono', monospace;
+      --head: 'Anybody', sans-serif;
+      --body: 'Source Serif 4', Georgia, serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      font-family: var(--body);
+      background: var(--bg);
+      color: var(--tx);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased
+    }
+
+    .hero {
+      padding: 72px 32px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 59px, var(--bd) 59px, var(--bd) 60px), repeating-linear-gradient(90deg, transparent, transparent 59px, var(--bd) 59px, var(--bd) 60px);
+      opacity: .18;
+      pointer-events: none
+    }
+
+    .hero-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--cy);
+      display: inline-block;
+      padding: 5px 14px;
+      border: 1px solid var(--bd);
+      border-radius: 2px;
+      background: var(--sf);
+      margin-bottom: 20px
+    }
+
+    .hero h1 {
+      font-family: var(--head);
+      font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 14px;
+      letter-spacing: -.5px
+    }
+
+    .hero h1 span {
+      color: var(--cy)
+    }
+
+    .hero p {
+      font-size: 1rem;
+      color: var(--td);
+      max-width: 700px;
+      margin: 0 auto 32px;
+      font-weight: 400
+    }
+
+    @media (min-width: 1024px) {
+      .split-right {
+        position: sticky
+      }
+    }
+
+    .split-view {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start
+    }
+
+    .split-left {
+      flex: 1;
+      min-width: 0;
+      overflow-x: auto
+    }
+
+    .split-right {
+      flex: 1;
+      min-width: 0;
+      position: sticky;
+      top: 60px
+    }
+
+    .diagram-controls {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      justify-content: center;
+    }
+
+    .diagram-controls button {
+      padding: 4px 12px;
+      border: 1px solid var(--bd);
+      background: var(--sf);
+      color: var(--tx);
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      transition: background .15s
+    }
+
+    .diagram-controls button:hover {
+      background: var(--sf2)
+    }
+
+    .diagram-viewport {
+      background: var(--sf);
+      border: 1px solid var(--bd);
+      border-radius: 6px;
+      overflow: hidden;
+      height: 700px;
+      position: relative;
+      cursor: grab;
+      user-select: none
+    }
+
+    .diagram-viewport svg {
+      max-width: none !important
+    }
+
+    .nw {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(6, 8, 16, .85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--bd);
+      padding: 0 16px;
+      display: flex;
+      justify-content: center
+    }
+
+    .nav {
+      display: flex;
+      gap: 2px;
+      overflow-x: auto;
+      padding: 12px 0;
+      scrollbar-width: none
+    }
+
+    .nav button {
+      background: 0 0;
+      border: none;
+      color: var(--td);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 6px 14px;
+      cursor: pointer;
+      border-radius: 4px;
+      white-space: nowrap;
+      transition: all .2s
+    }
+
+    .nav button:hover {
+      color: var(--tx);
+      background: var(--sf2)
+    }
+
+    .nav button.on {
+      color: var(--cy);
+      background: var(--cyd)
+    }
+
+    .nav button.on::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 8px;
+      right: 8px;
+      height: 2px;
+      background: var(--cy);
+      border-radius: 2px 2px 0 0
+    }
+
+    .wrap {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 36px 16px 120px
+    }
+
+    .pnl {
+      display: none
+    }
+
+    .pnl.on {
+      display: block
+    }
+
+    .sec {
+      margin-bottom: 56px
+    }
+
+    .sec-h {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--bd)
+    }
+
+    .sec-n {
+      font-family: var(--head);
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--sf2);
+      -webkit-text-stroke: 1px var(--bda);
+      line-height: 1
+    }
+
+    .sec-t {
+      font-family: var(--head);
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -.3px
+    }
+
+    .dg {
+      background: var(--sf);
+      border: 1px solid var(--bd);
+      border-radius: 6px;
+      padding: 28px;
+      margin: 16px 0;
+      overflow-x: auto;
+      position: relative
+    }
+
+    .dg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 6px;
+      background: repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(28, 32, 56, .22) 23px, rgba(28, 32, 56, .22) 24px), repeating-linear-gradient(90deg, transparent, transparent 23px, rgba(28, 32, 56, .22) 23px, rgba(28, 32, 56, .22) 24px);
+      pointer-events: none
+    }
+
+    .dg pre {
+      position: relative;
+      z-index: 1;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.85;
+      color: #8890b8;
+      white-space: pre;
+      margin: 0
+    }
+
+    .cm {
+      color: #3e4460;
+      font-style: italic
+    }
+
+    .nu {
+      color: #f78c6c
+    }
+
+    .ty {
+      color: #ffcb6b
+    }
+
+    .hi {
+      color: #3b82f6;
+      font-weight: 600
+    }
+
+    .gn {
+      color: #10b981
+    }
+
+    .rd {
+      color: #ef4444
+    }
+
+    .am {
+      color: #f59e0b
+    }
+
+    .cy {
+      color: #06b6d4
+    }
+
+    .vi {
+      color: #8b5cf6
+    }
+
+    .pk {
+      color: #ec4899
+    }
+
+    .or {
+      color: #f97316
+    }
+
+    .fn {
+      color: #82aaff
+    }
+
+    .st {
+      color: #c3e88d
+    }
+
+    .kw {
+      color: #c792ea
+    }
+
+    .dg-label {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--tm);
+      z-index: 2
+    }
+
+    .nt {
+      padding: 16px 20px;
+      border-radius: 4px;
+      margin: 14px 0;
+      font-size: .85rem;
+      border-left: 3px solid;
+      background: var(--sf2)
+    }
+
+    .nt.bl {
+      border-color: var(--bl);
+      color: #8bb8f8
+    }
+
+    .nt.gn {
+      border-color: var(--gn);
+      color: #80d8b8
+    }
+
+    .nt.rd {
+      border-color: var(--rd);
+      color: #f87171
+    }
+
+    .nt.cy {
+      border-color: var(--cy);
+      color: #22d3ee
+    }
+
+    .ft {
+      margin-top: 120px;
+      padding-top: 40px;
+      border-top: 1px solid var(--bd);
+      text-align: center;
+      font-size: 12px;
+      color: var(--td);
+      font-family: var(--mono)
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <div class="hero">
+    <div class="hero-tag">Architecture Documentation</div>
+    <h1>CRM Class Entities <span>(Detailed)</span></h1>
+    <p>Chi tiết các thực thể (class/service) trong từng Layer của hệ thống CRM Multi-tenant SaaS.</p>
+  </div>
+
+  <div class="nw">
+    <div class="nav">
+      <button class="on" onclick="go('all')">Tổng quan</button>
+      <button onclick="go('l1')">L1 Presentation</button>
+      <button onclick="go('l2')">L2 Gateway</button>
+      <button onclick="go('l3')">L3 Business Logic</button>
+      <button onclick="go('l4')">L4 Data Access</button>
+      <button onclick="go('l5')">L5 Infrastructure</button>
+      <button onclick="go('l6')">L6 Cross-cutting</button>
+      <button onclick="go('l7')">L7 Observability</button>
+      <button onclick="go('rel')">Quan hệ chính</button>
+      <button onclick="go('diag')">Diagram</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <!-- OVERVIEW -->
+    <div class="pnl on" id="p-all">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">00</span>
+          <h2 class="sec-t">Tổng quan — Thực thể theo Layer</h2>
+        </div>
+        <div class="nt cy"><strong>Quy ước:</strong> «singleton» = 1 instance per process. «per-request» = tạo mới mỗi
+          request rồi GC. «per-tenant» = 1 per tenant (cached). «abstract» = base class/interface. «external» = hệ thống
+          bên ngoài. Số lượng: ~80 thực thể chính.</div>
+        <div class="dg">
+          <div class="dg-label">entity count per layer</div>
+          <pre>
+  ┌──────────────────────────┬────────┬──────────────────────────────────┐
+  │ Layer                    │ Count  │ Nhóm chính                       │
+  ├──────────────────────────┼────────┼──────────────────────────────────┤
+  │ <span class="hi">L1</span> Presentation           │   10   │ Shell, Remotes, Admin, Mobile    │
+  │ <span class="hi">L2</span> API Gateway             │   8    │ 5 Middleware + 3 support         │
+  │ <span class="hi">L3</span> Business Logic          │   20   │ Mgmt, Cores, Context, Services  │
+  │ <span class="hi">L4</span> Data Access             │   14   │ Query, Pool, Cache, Migration   │
+  │ <span class="hi">L5</span> Infrastructure          │   10   │ PostgreSQL, Redis, MQ, ES, S3   │
+  │ <span class="rd">L6</span> Cross-cutting           │   10   │ Security, Error, Config, Deps   │
+  │ <span class="vi">L7</span> Observability           │   8    │ Log, Trace, Metric, Alert, Audit│
+  ├──────────────────────────┼────────┼──────────────────────────────────┤
+  │ <span class="ty">TOTAL</span>                     │ <span class="ty">~80</span>    │                                  │
+  └──────────────────────────┴────────┴──────────────────────────────────┘
+
+
+<span class="ty">STEREOTYPE LEGEND:</span>
+
+  «singleton»    Tạo 1 lần khi bootstrap. Dùng chung toàn process.
+  «per-request»  Tạo mới mỗi HTTP request. GC sau response.
+  «per-tenant»   1 instance per tenant. Cached trong LRU.
+  «abstract»     Base class / interface. Không instantiate trực tiếp.
+  «external»     Hệ thống ngoài (DB, Redis, MQ). Không viết code.
+  «static»       Utility class, chỉ có static methods.
+  «enum»         Tập hợp constants cố định.
+  «config»       Configuration object, loaded from DB/file.
+
+
+<span class="ty">QUAN HỆ CHÍNH GIỮA CÁC LAYER:</span>
+
+  L1 ───HTTP──→ L2 ───output──→ L3 ───uses──→ L4 ───connects──→ L5
+                                  │                                │
+                                  └─────── L6 (xuyên tầng) ───────┘
+                                  └─────── L7 (quan sát) ─────────┘</pre>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- L1 -->
+    <div class="pnl" id="p-l1">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">L1</span>
+          <h2 class="sec-t">Presentation Layer — 10 thực thể</h2>
+        </div>
+        <div class="dg">
+          <div class="dg-label">L1 entities</div>
+          <pre>
+<span class="ty">WEB APP GROUP (5)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="hi">HostShell</span> «singleton»                                               │
+  │ React SPA entry point. Quản lý app frame (sidebar, topbar),        │
+  │ auth flow (JWT memory + refresh cookie), React Router,              │
+  │ theme engine (CSS vars per-tenant), plugin remote loading.          │
+  │ methods: bootstrap(), loadRemote(plugin, ver), buildNav(plugins)   │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">PluginRemote</span> «per-plugin»                                           │
+  │ Module Federation remote entry (remoteEntry.js). Chứa pages +      │
+  │ components UI cho 1 plugin. Load động bởi HostShell khi navigate.  │
+  │ exposes: pages[], components[], navItems[]                         │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">PluginArea</span> «singleton»                                              │
+  │ React component slot trong HostShell. Render active PluginRemote   │
+  │ based on URL. Wraps mỗi remote trong ErrorBoundary riêng.         │
+  │ methods: renderRemote(name), handleCrash(error)                    │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">ThemeEngine</span> «singleton»                                             │
+  │ Load tenant theme (logo, colors, fonts) từ /me/context API.       │
+  │ Apply CSS custom properties lên document root.                      │
+  │ methods: applyTheme(theme), resetToDefault()                       │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">ApiClient</span> «singleton»                                               │
+  │ Shared HTTP client (Axios/Fetch wrapper). Auto-attach JWT Bearer,  │
+  │ X-Tenant-ID header. Handle 401 → auto refresh. Retry transient.   │
+  │ methods: get(), post(), put(), delete(), refreshToken()            │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">MOBILE APP GROUP (3)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="gn">MobileShell</span> «singleton»                                             │
+  │ React Native / Flutter app shell. Navigation, push handler,        │
+  │ biometric auth, tenant branding, dynamic feature module loader.    │
+  │ methods: loadFeatureModule(plugin), handlePush(notification)       │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">OfflineSyncEngine</span> «singleton»                                       │
+  │ SQLite local cache + pending mutation queue. Khi online → batch    │
+  │ sync API. Conflict resolution (last-write-wins / server-wins).     │
+  │ methods: cacheResponse(), queueMutation(), syncPending()           │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">OtaUpdateManager</span> «singleton»                                        │
+  │ CodePush / Shorebird wrapper. Check + download + apply OTA delta.  │
+  │ methods: checkForUpdate(), downloadDelta(), applyUpdate()          │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">ADMIN GROUP (2)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="am">TenantAdminApp</span> «singleton»                                          │
+  │ SPA cho tenant admin. Plugin enable/disable, user RBAC,            │
+  │ plugin config editor (schema-validated), billing/usage dashboard.   │
+  │ domain: admin.{subdomain}.crm.com                                  │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="vi">SystemAdminApp</span> «singleton»                                          │
+  │ SPA cho platform ops (internal only, VPN). Tenant CRUD, plugin     │
+  │ deploy/canary/rollback, monitoring, migration status.              │
+  │ domain: system.crm.internal (IP whitelist + MFA)                   │
+  └──────────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+
+
+
+    </div>
+
+    <!-- L2 -->
+    <div class="pnl" id="p-l2">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">L2</span>
+          <h2 class="sec-t">API Gateway Layer — 8 thực thể</h2>
+        </div>
+        <div class="dg">
+          <div class="dg-label">L2 entities</div>
+          <pre>
+<span class="ty">MIDDLEWARE PIPELINE (5) — chạy tuần tự mỗi request</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="hi">LoadBalancer</span> «external»                                             │
+  │ Nginx / K8s Ingress. TLS terminate, least-conn routing, VIP →      │
+  │ dedicated pool. Health check /health/live 10s. HPA trigger.        │
+  │ output: plain HTTP request → app instance                          │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">TenantResolver</span> «singleton»                                          │
+  │ Extract subdomain / custom domain / X-Tenant-ID header.            │
+  │ Redis cache (domain-map:{key}, TTL 5min) → fallback Metadata DB.   │
+  │ output: { tenantId, tier, status } | reject 404/403/410            │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">AuthGuard</span> «singleton»                                               │
+  │ JWT decode → verify RS256 → check expiry → tenant claim match →   │
+  │ Redis blacklist check → extract userId, roles, permissions.        │
+  │ output: { userId, roles, permissions } | reject 401/403            │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">RateLimiter</span> «singleton»                                             │
+  │ Sliding window counter (Redis Sorted Set). ZADD + ZCARD per        │
+  │ tenant. Tier limits: Basic 100, Premium 500, Ent 2000, VIP ∞.     │
+  │ output: pass + X-RateLimit headers | reject 429 + Retry-After      │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">RouteMatcher</span> «singleton»                                            │
+  │ Trie-based URL lookup → routeTable (from PluginRegistry).          │
+  │ Map URL+method → plugin name + handler method + required perm.     │
+  │ output: { plugin, method, requiredPermission } | reject 404        │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">SUPPORT (3)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="am">PermissionChecker</span> «singleton»                                       │
+  │ 3 kiểm tra: plugin enabled cho tenant? User role có perm? Tenant  │
+  │ tier bao gồm feature? In-memory lookup, ~0.1ms.                   │
+  │ output: pass | reject 403                                          │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="am">GatewayContext</span> «per-request»                                        │
+  │ DTO tổng hợp output các middleware: tenantId, tier, userId, roles, │
+  │ plugin, method, permission. Chuyển cho L3 Context Building.        │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="am">TokenManager</span> «singleton»                                            │
+  │ JWT signing key cache (rotate định kỳ), refresh token rotation,   │
+  │ blacklist write (on logout/revoke).                                 │
+  │ methods: issueTokenPair(), revokeToken(jti), rotateKey()           │
+  └──────────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- L3 -->
+    <div class="pnl" id="p-l3">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">L3</span>
+          <h2 class="sec-t">Business Logic Layer — 20 thực thể</h2>
+        </div>
+        <div class="dg">
+          <div class="dg-label">L3 entities</div>
+          <pre>
+<span class="ty">PLUGIN MANAGEMENT (5)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="hi">PluginManager</span> «singleton»                                           │
+  │ Quản lý vòng đời plugin. Load configs, check dependencies, inject  │
+  │ code, handle hot-reload/rollback.                                  │
+  │ methods: deploy(ver), enable(tenant), disable(tenant), rollback()  │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">PluginRegistry</span> «singleton»                                          │
+  │ In-memory map [pluginName → PluginCore instance]. Route table map  │
+  │ [url → handler]. Event listener map.                               │
+  │ properties: pluginMap, routeTable, eventMap                        │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">SandboxEngine</span> «singleton»                                           │
+  │ Wrapper an toàn để execute plugin code. Catch unhandled errors,    │
+  │ timeout protection (30s), resource usage tracking.                 │
+  │ methods: execute(core, method, ctx, args)                          │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">LifecycleController</span> «singleton»                                     │
+  │ Điều phối quy trình init/destroy của plugin. Đảm bảo init theo     │
+  │ dependency order (D.O.G).                                          │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">PLUGIN CORES (5) — Các core logic modules</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="gn">PluginCore</span> «abstract»                                               │
+  │ Base class cho mọi plugin backend. Bắt buộc implement: init(ctx),  │
+  │ destroy(). Optional: onTenantEnable(), onTenantDisable().          │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">CustomerDataCore</span> «singleton»                                      │
+  │ Quản lý Contacts, Leads, Companies. Custom fields engine.          │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">CustomerCareCore</span> «singleton»                                      │
+  │ Tickets, SLAs, Email templates, Omnichannel routing.               │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">AutomationCore</span> «singleton»                                        │
+  │ Workflow storage, trigger matching, action execution engine.       │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">AnalyticsCore</span> «singleton»                                         │
+  │ ETL jobs, Report generation, Dashboard config storage.             │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">CONTEXT BUILDING (5) — «per-request»</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="am">TenantContextManager</span> «singleton»                                    │
+  │ Quản lý tenant config cache (timezone, currency, features).        │
+  │ methods: getOrBuild(tenantId), invalidate(tenantId)                │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="am">ExecutionContextBuilder</span> «singleton»                                 │
+  │ Factory tạo TenantScopedDB, TenantScopedCache cho mỗi request.     │
+  │ Inject tenant_id vào mọi câu query SQL/Redis.                      │
+  │ methods: build(tenantCtx, jwt, request), release(ctx)              │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="am">TenantScopedDB</span> «per-request»                                      │
+  │ Wrapper quanh Knex/TypeORM transaction. Auto-filter `where         │
+  │ tenant_id = ?`. Block cross-tenant queries.                        │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="am">TenantScopedCache</span> «per-request»                                   │
+  │ Wrapper quanh Redis client. Auto-prefix `tenant:{id}:`.            │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">MESSAGING & EVENTS (5)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="cy">EventBus</span> «singleton»                                              │
+  │ Internal pub/sub (Nodejs EventEmitter). Sync/Async handlers.       │
+  │ methods: emit(event, data), on(event, handler)                     │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="cy">MQPublisher</span> «singleton»                                           │
+  │ Publish message ra RabbitMQ (cho async jobs, webhooks).            │
+  │ methods: publish(queue, msg), schedule(queue, msg, delay)          │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="cy">SystemServices</span>                                                  │
+  │ 6 services nhưng cùng pattern → group thành 1 block.                │
+  │ Tất cả: singleton, tenant-aware, async-preferred.                 │
+  └──────────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- L4 -->
+    <div class="pnl" id="p-l4">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">L4</span>
+          <h2 class="sec-t">Data Access Layer — 14 thực thể</h2>
+        </div>
+        <div class="dg">
+          <div class="dg-label">L4 entities</div>
+          <pre>
+<span class="ty">QUERY INTERCEPTOR GROUP (4) — chặn + transform mọi query</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="hi">TenantInjector</span> «singleton»                                          │
+  │ Parse SQL AST, tự động thêm `WHERE tenant_id = '...'` vào SELECT,  │
+  │ UPDATE, DELETE. Thêm check vào INSERT. Chặn DROP TABLE.            │
+  │ methods: injectSelect(), injectInsert(), validateQuery()           │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">QueryValidator</span> «singleton»                                          │
+  │ Whitelist tables/columns allow. Block dangerous SQL functions.     │
+  │ Ensures no cross-schema access.                                    │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">QueryCounter</span> «per-request»                                          │
+  │ Đếm số lượng query trong 1 request. Warning nếu > 50, Error > 100. │
+  │ methods: increment(), isExhausted()                                │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">QueryLogger</span> «singleton»                                             │
+  │ Log slow queries (>200ms) + explain plan. Sample 1% normal queries.│
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">POOL MANAGER GROUP (5) — quản lý connection database</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="gn">PoolRegistry</span> «singleton»                                            │
+  │ Map [db_shard → Knex Pool]. Quản lý physical connections tới các   │
+  │ DB shards (Shared, VIP1, VIP2). Start/Stop pools.                  │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">PoolRouter</span> «singleton»                                              │
+  │ Quyết định tenant A dùng pool nào. Logic: TenantConfig.db_shard    │
+  │ methods: route(tenantId) → poolName                                │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">ConnectionConfigurator</span> «singleton»                                  │
+  │ `SET LOCAL search_path` cho Postgres session nếu dùng schema-per-  │
+  │ tenant. Reset session state khi return pool.                       │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">TenantQuotaEnforcer</span> «singleton»                                     │
+  │ Giới hạn max connections per tenant. Tránh 1 tenant chiếm hết pool.│
+  │ methods: canAcquire(tenantId)                                      │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">CACHE MANAGER GROUP (2)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="am">L1MemoryCache</span> «singleton»                                           │
+  │ LRU Cache (In-process). Cache nhỏ, TTL ngắn (5s). Configs, rules.  │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="am">L2RedisCache</span> «singleton»                                            │
+  │ Redis Client wrapper. Consistent Hashing cho Redis Cluster.        │
+  │ Serialization (JSON/Protobuf). Compression (Snappy) cho large obj. │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">MIGRATION ENGINE GROUP (3)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="cy">SchemaMigrationRunner</span> «singleton»                                   │
+  │ Chạy DDL (Create Table, Add col) cho từng plugin version.          │
+  │ Idempotent. Track version trong `schema_migrations` table.         │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="cy">TenantMigrationRunner</span> «singleton»                                   │
+  │ Data backfill/transform khi tenant upgrade plugin version.         │
+  │ Run background job, low priority.                                  │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="cy">MigrationLockManager</span> «singleton»                                    │
+  │ PostgreSQL advisory locks. Prevent race condition khi 2 tenants    │
+  │ enable cùng plugin đồng thời. Serialize migration execution.      │
+  │ methods: acquireLock(plugin), releaseLock(plugin)                  │
+  └──────────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- L5 -->
+    <div class="pnl" id="p-l5">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">L5</span>
+          <h2 class="sec-t">Infrastructure Layer — 10 thực thể</h2>
+        </div>
+        <div class="dg">
+          <div class="dg-label">L5 entities</div>
+          <pre>
+<span class="ty">POSTGRESQL GROUP (3) — «external»</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="hi">MetadataDB</span>                                                          │
+  │ Chứa: tenants, tenant_plugins, plugin_registry, schema_migrations, │
+  │ tenant_plugin_migrations, audit_log (partitioned), system_config.  │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">SharedDataDB</span> (Sharded)                                              │
+  │ Chứa business data cho 95% tenants (Standard/Pro). Partition by    │
+  │ tenant_hash. Nhiều physical nodes (Shard 1..N).                    │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">VipDataDB</span> (Isolated)                                                │
+  │ Database riêng cho từng VIP tenant (Enterprise). Physical isolation.│
+  │ Backup/Restore policy riêng biệt.                                  │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">REDIS & MQ GROUP (4) — «external»</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="gn">RedisCluster</span>                                                        │
+  │ Dữ liệu tạm: Cache session, Rate limit counters, Realtime pub/sub, │
+  │ Job queues (BullMQ). Mode: Cluster (nhân rộng write/read).         │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">PgBouncer</span>                                                           │
+  │ Connection pooling layer trước Postgres. mode=transaction.         │
+  │ Giảm overhead SSL handshake và fork process của Postgres.          │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">RabbitMQCluster</span>                                                     │
+  │ Message Broker bền vững. Exchanges: direct (webhook), topic (event),│
+  │ fanout (broadcast). Dead Letter Exchanges (failed jobs).           │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">WorkerPool</span> «singleton»                                              │
+  │ Nodejs worker processes consumption queue. Auto-scale K8s HPA.     │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">SEARCH & STORAGE GROUP (3) — «external»</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="am">ElasticsearchCluster</span>                                                │
+  │ Full-text search engine. Index riêng/chung tùy tier.               │
+  │ Log aggregation storage (cho L7).                                  │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="am">S3ObjectStore</span> (MinIO/AWS S3)                                        │
+  │ Lưu uploads, documents, media, daily backups.                      │
+  │ Encryption at rest. Lifecycle policies (move to Glacier).          │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">CDN</span> «external»                                                      │
+  │ Serve Host Shell static assets + Plugin remoteEntry.js. Edge       │
+  │ cache per-version (immutable). Fallback: origin server.            │
+  └──────────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- L6 -->
+    <div class="pnl" id="p-l6">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">L6</span>
+          <h2 class="sec-t">Cross-cutting Concerns — 10 thực thể</h2>
+        </div>
+        <div class="dg">
+          <div class="dg-label">L6 entities</div>
+          <pre>
+<span class="ty">SECURITY GROUP (3)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="hi">EncryptionService</span> «singleton»                                       │
+  │ AES-256-GCM encryption cho sensitive fields (PII). Quản lý keys    │
+  │ từ KMS/Vault. Key rotation support.                                │
+  │ methods: encrypt(val, context), decrypt(val, context)              │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">PiiRedactor</span> «singleton»                                             │
+  │ Masking log data (email, phone, credit card) trước khi write log.  │
+  │ methods: redact(obj), sanitize(string)                             │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">SecretManager</span> «singleton»                                           │
+  │ Fetch secrets từ Vault/AWS Secrets Manager lúc startup.            │
+  │ methods: getSecret(name), onSecretRotate(cb)                       │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">ERROR & RELIABILITY GROUP (4)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="gn">CrmError</span> «abstract»                                                 │
+  │ Base Unified Error class. Props: code, httpStatus, userMessage,    │
+  │ internalMessage, meta. Auto stack trace capture.                   │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">CircuitBreaker</span> «singleton»                                          │
+  │ Bảo vệ calls tới external systems (Email, PDF Gen). States: Closed │
+  │ → Open (fails) → Half-Open (probe).                                │
+  │ methods: fire(command), fallback()                                 │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="gn">RetryPolicy</span> «singleton»                                             │
+  │ Exponential backoff logic cho HTTP calls / DB queries.             │
+  │ Configs: maxRetries, baseDelay, maxDelay, jitter.                  │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">CONFIG & DI GROUP (3)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="am">ConfigResolver</span> «singleton»                                          │
+  │ Merge configs từ 3 nguồn: Environment Variables < System DB <      │
+  │ Tenant DB override. Hot-reload config changes.                     │
+  │ methods: get(key), getBool(key), getInt(key)                       │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="am">FeatureFlagService</span> «singleton»                                      │
+  │ Kiểm tra feature on/off cho tenant/user (LaunchDarkly/Internal).   │
+  │ methods: isEnabled(flag, context)                                  │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="am">DependencyResolver</span> «singleton»                                      │
+  │ Topological sort plugin dependencies. Đảm bảo Core load trước Extension.│
+  │ Updated on plugin deploy/undeploy. Shared with PluginManager.      │
+  │ methods: addNode(), removeNode(), getDependents(), getDepOrder()   │
+  └──────────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- L7 -->
+    <div class="pnl" id="p-l7">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">L7</span>
+          <h2 class="sec-t">Observability Layer — 8 thực thể</h2>
+        </div>
+        <div class="dg">
+          <div class="dg-label">L7 entities</div>
+          <pre>
+<span class="ty">CORE OBSERVABILITY (4)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="hi">ScopedLogger</span> «per-request»                                          │
+  │ Auto-bind requestId, tenantId, userId, plugin vào mọi log line.   │
+  │ JSON structured output. Levels: debug, info, warn, error.          │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">TracingManager</span> «singleton»                                          │
+  │ OpenTelemetry Wrapper. Manually create spans cho logic blocks quan │
+  │ trọng. Propagate trace context qua RabbitMQ/HTTP calls.            │
+  │ methods: startSpan(name), endSpan(), inject(), extract()           │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">MetricsCollector</span> «singleton»                                        │
+  │ Prometheus client. Custom metrics: http_request_duration,          │
+  │ db_pool_usage, active_tenants, plugin_crashes_total.               │
+  │ methods: inc(metric), observe(metric, val)                         │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="hi">AlertManager</span> «singleton»                                            │
+  │ Rule engine check ngưỡng metrics → gửi Slack/PagerDuty.            │
+  │ methods: checkThresholds(), triggerAlert(level, msg)               │
+  └──────────────────────────────────────────────────────────────────────┘
+
+<span class="ty">HEALTH & AUDIT (4)</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="gn">LivenessProbe</span> «singleton» Service còn sống không?                   │
+  │ <span class="gn">ReadinessProbe</span> «singleton» Sẵn sàng nhận traffic? (DB ok, Cache ok) │
+  │ methods: checkHealth(), getStatusDetails()                         │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="am">AuditTrailWriter</span> «singleton»                                      │
+  │ Ghi lại mọi hành động thay đổi data quan trọng (WHO did WHAT,      │
+  │ WHEN, WHERE, diff BEFORE/AFTER). Write to MetadataDB (Partitioned).│
+  │ methods: logAudit(ctx, action, target, changes)                    │
+  ├──────────────────────────────────────────────────────────────────────┤
+  │ <span class="cy">AnomalyDetector</span> «singleton»                                       │
+  │ Background job phân tích metric trends. Phát hiện bất thường:      │
+  │ spike in error rate, abnormal traffic shape. Feed → AlertManager.  │
+  │ methods: analyze(metrics), detectCrossTenant(), detectSpike()      │
+  └──────────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- RELATIONSHIPS -->
+    <div class="pnl" id="p-rel">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">REL</span>
+          <h2 class="sec-t">Quan hệ chính giữa các thực thể</h2>
+        </div>
+        <div class="nt cy"><strong>Notation:</strong> ──▶ dependency (uses), ◆──▶ composition (owns/creates), ◇──▶
+          aggregation (references), - -▶ event/async. Chỉ liệt kê quan hệ QUAN TRỌNG — không liệt kê hết để tránh
+          rối.
+        </div>
+        <div class="dg">
+          <div class="dg-label">key relationships</div>
+          <pre>
+<span class="ty">CROSS-LAYER — Request Flow (L2 → L3 → L4 → L5)</span>
+
+  TenantResolver ──▶ RedisCluster        <span class="cm">domain-map cache lookup</span>
+  TenantResolver ──▶ MetadataDB          <span class="cm">fallback tenant query</span>
+  AuthGuard      ──▶ RedisCluster        <span class="cm">blacklist check, session get</span>
+  RateLimiter    ──▶ RedisCluster        <span class="cm">sliding window counter</span>
+
+  GatewayContext ──▶ TenantContextManager <span class="cm">pass tenant info</span>
+  GatewayContext ──▶ ExecutionContextBuilder <span class="cm">pass user info</span>
+
+  ExecutionContextBuilder ◆──▶ TenantScopedDB    <span class="cm">create instance</span>
+  ExecutionContextBuilder ◆──▶ TenantScopedCache <span class="cm">create instance</span>
+  ExecutionContextBuilder ◆──▶ ScopedLogger      <span class="cm">bind context</span>
+
+  TenantScopedDB ──▶ TenantInjector      <span class="cm">inject filter before query</span>
+  TenantScopedDB ──▶ PoolRouter          <span class="cm">ask for connection</span>
+  PoolRouter     ──▶ PoolRegistry        <span class="cm">get physical pool</span>
+  PoolRegistry   ──▶ SharedDataDB        <span class="cm">actual query (most tenants)</span>
+
+<span class="ty">PLUGIN ARCHITECTURE (L3 internally)</span>
+
+  PluginManager  ◆──▶ LifecycleController <span class="cm">manages</span>
+  PluginManager  ◇──▶ PluginRegistry      <span class="cm">updates map</span>
+  PluginManager  ──▶ DependencyResolver  <span class="cm">checks order</span>
+
+  SandboxEngine  ──▶ PluginCore          <span class="cm">executes code safely</span>
+  PluginCore     ··▷ CustomerDataCore    <span class="cm">extensions depend on core</span>
+
+<span class="ty">INFRASTRUCTURE & OPS (L6, L7)</span>
+
+  ScopedLogger   ──▶ PiiRedactor         <span class="cm">mask data before write</span>
+  TracingManager ──▶ RabbitMQCluster     <span class="cm">propagate trace id</span>
+  MetricsCollector ──▶ AlertManager      <span class="cm">feed data</span>
+  
+  EncryptionService ──▶ SecretManager    <span class="cm">get keys</span>
+  FeatureFlagService ──▶ RedisCluster    <span class="cm">cache flags</span>
+
+<span class="ty">DATA ACCESS HELPERS</span>
+
+  SchemaMigrationRunner ──▶ MigrationLockManager <span class="cm">serialize</span>
+  PoolRouter            ──▶ TenantQuotaEnforcer  <span class="cm">check limits</span>
+
+<span class="ty">CLASS HIERARCHY</span>
+
+  Inheritance ──▷   │ BusinessError extends CrmError              │
+  Interface ··▷     │ All plugin cores implement PluginCore iface │
+  └───────────────────────────────────────────────────────────────────┘</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- CLASS DIAGRAM -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="pnl" id="p-diag">
+      <div class="sec">
+        <div class="sec-h"><span class="sec-n">DIAG</span>
+          <h2 class="sec-t">Class Diagram — Mermaid</h2>
+        </div>
+
+        <div style="margin-bottom:12px; display:flex; gap:8px;">
+          <button onclick="zoomDiag(0.1)"
+            style="padding:4px 12px; border:1px solid var(--bd); background:var(--sf); color:var(--tx); cursor:pointer; border-radius:4px;">Zoom
+            In +</button>
+          <button onclick="zoomDiag(-0.1)"
+            style="padding:4px 12px; border:1px solid var(--bd); background:var(--sf); color:var(--tx); cursor:pointer; border-radius:4px;">Zoom
+            Out -</button>
+          <button onclick="zoomDiag(0)"
+            style="padding:4px 12px; border:1px solid var(--bd); background:var(--sf); color:var(--tx); cursor:pointer; border-radius:4px;">Reset</button>
+        </div>
+
+        <div class="dg"
+          style="overflow:hidden; height:800px; text-align:center; position:relative; cursor:grab; user-select:none;"
+          id="diag-container">
+          <pre class="mermaid">
+classDiagram
+    direction TB
+
+    namespace L1_Presentation {
+        class HostShell {
+            <<singleton>>
+            +bootstrap()
+            +loadRemote(plugin, ver)
+            +buildNav(plugins)
+        }
+        class PluginRemote {
+            <<per-plugin>>
+            +pages[]
+            +components[]
+        }
+        class PluginArea {
+            <<singleton>>
+            +renderRemote(name)
+            +handleCrash(error)
+        }
+        class ThemeEngine {
+            <<singleton>>
+            +applyTheme(theme)
+        }
+        class ApiClient {
+            <<singleton>>
+            +get()
+            +post()
+            +refreshToken()
+        }
+        class MobileShell {
+            <<singleton>>
+            +loadFeatureModule(plugin)
+        }
+        class OfflineSyncEngine {
+            <<singleton>>
+            +syncPending()
+        }
+        class OtaUpdateManager {
+            <<singleton>>
+            +checkForUpdate()
+        }
+        class TenantAdminApp {
+            <<singleton>>
+        }
+        class SystemAdminApp {
+            <<singleton>>
+        }
+    }
+
+    HostShell *-- PluginArea
+    HostShell *-- ThemeEngine
+    HostShell o-- PluginRemote
+    HostShell --> ApiClient
+    MobileShell --> OfflineSyncEngine
+    MobileShell --> OtaUpdateManager
+
+    namespace L2_Gateway {
+        class LoadBalancer {
+            <<external>>
+        }
+        class TenantResolver {
+            <<singleton>>
+            +resolve(request)
+        }
+        class AuthGuard {
+            <<singleton>>
+            +validate(jwt)
+        }
+        class RateLimiter {
+            <<singleton>>
+            +check(tenantId)
+        }
+        class RouteMatcher {
+            <<singleton>>
+            +match(url, method)
+        }
+        class PermissionChecker {
+            <<singleton>>
+            +check(plugin, perm, tenant)
+        }
+        class GatewayContext {
+            <<per-request>>
+            +tenantId
+            +userId
+            +roles
+            +plugin
+        }
+        class TokenManager {
+            <<singleton>>
+            +issueTokenPair()
+            +revokeToken(jti)
+        }
+    }
+
+    LoadBalancer --> TenantResolver
+    TenantResolver --> AuthGuard
+    AuthGuard --> RateLimiter
+    RateLimiter --> RouteMatcher
+    RouteMatcher --> PermissionChecker
+    PermissionChecker --> GatewayContext : creates
+
+    namespace L3_BusinessLogic {
+        class PluginManager {
+            <<singleton>>
+            +deploy()
+            +upgrade()
+            +rollback()
+            +enable()
+            +disable()
+        }
+        class PluginRegistry {
+            <<singleton>>
+            +pluginMap
+            +routeTable
+            +eventMap
+        }
+        class SandboxEngine {
+            <<singleton>>
+            +execute(core, method, ctx, args)
+        }
+        class EventBus {
+            <<singleton>>
+            +emit(event, data)
+            +registerHandler()
+        }
+        class HookRegistry {
+            <<singleton>>
+            +run(hookName, data)
+        }
+        class LifecycleController {
+            <<singleton>>
+        }
+        class CanaryController {
+            <<singleton>>
+        }
+        class BroadcastManager {
+            <<singleton>>
+        }
+        class PluginCore {
+            <<abstract>>
+            +init(ctx)*
+            +destroy()*
+        }
+        class CustomerDataCore {
+            <<singleton>>
+        }
+        class CustomerCareCore {
+            <<singleton>>
+        }
+        class AutomationCore {
+            <<singleton>>
+        }
+        class AnalyticsCore {
+            <<singleton>>
+        }
+        class MarketingCore {
+            <<singleton>>
+        }
+        class TenantContextManager {
+            <<singleton>>
+            +getOrBuild(tenantId)
+            +invalidate(tenantId)
+        }
+        class ExecutionContextBuilder {
+            <<singleton>>
+            +build(tenantCtx, jwt, request)
+            +release(ctx)
+        }
+        class TenantScopedDB {
+            <<per-request>>
+            +query()
+            +insert()
+        }
+        class TenantScopedCache {
+            <<per-request>>
+            +get(key)
+            +set(key, val, ttl)
+        }
+        class ScopedEventBus {
+            <<per-request>>
+            +emit(event, data)
+        }
+        class MQPublisher {
+            <<singleton>>
+        }
+    }
+
+    PluginCore <|-- CustomerDataCore
+    PluginCore <|-- CustomerCareCore
+    PluginCore <|-- AutomationCore
+    PluginCore <|-- AnalyticsCore
+    PluginCore <|-- MarketingCore
+
+    CustomerCareCore --> CustomerDataCore : depends
+    AutomationCore --> CustomerDataCore : depends
+    AutomationCore --> CustomerCareCore : depends
+    AnalyticsCore --> CustomerDataCore : depends
+    MarketingCore --> CustomerDataCore : depends
+
+    PluginManager *-- LifecycleController
+    PluginManager *-- CanaryController
+    PluginManager *-- BroadcastManager
+    PluginManager --> PluginRegistry
+
+    SandboxEngine --> PluginRegistry
+    EventBus --> PluginRegistry
+    HookRegistry --> PluginRegistry
+
+    CustomerCareCore --> EventBus : emit
+    AnalyticsCore ..> EventBus : listen
+
+    ExecutionContextBuilder *-- TenantScopedDB : creates
+    ExecutionContextBuilder *-- TenantScopedCache : creates
+    ExecutionContextBuilder *-- ScopedEventBus : creates
+
+    EventBus --> MQPublisher : async publish
+    RouteMatcher --> PluginRegistry
+    SandboxEngine --> PluginCore : invokes
+
+    namespace L4_DataAccess {
+        class TenantInjector {
+            <<singleton>>
+            +injectSelect()
+            +injectInsert()
+        }
+        class QueryValidator {
+            <<singleton>>
+            +validate(query)
+        }
+        class QueryCounter {
+            <<per-request>>
+            +increment()
+            +isExhausted()
+        }
+        class QueryLogger {
+            <<singleton>>
+            +log(query, duration, context)
+        }
+        class PoolRegistry {
+            <<singleton>>
+            +getPool(name)
+        }
+        class PoolRouter {
+            <<singleton>>
+            +route(dbPoolName)
+        }
+        class ConnectionConfigurator {
+            <<singleton>>
+            +configure(conn, tenantId)
+            +reset(conn)
+        }
+        class TenantQuotaEnforcer {
+            <<singleton>>
+            +canAcquire(tenantId)
+        }
+        class HealthChecker {
+            <<singleton>>
+            +check()
+        }
+        class L1MemoryCache {
+            <<singleton>>
+            +get(key)
+            +set(key, val, ttl)
+        }
+        class L2RedisCache {
+            <<singleton>>
+            +get(key)
+            +set(key, val, ttl)
+        }
+        class SchemaMigrationRunner {
+            <<singleton>>
+            +runPending(plugin, version)
+        }
+        class TenantMigrationRunner {
+            <<singleton>>
+            +runForTenant(tenant, plugin)
+        }
+        class MigrationLockManager {
+            <<singleton>>
+            +acquireLock(plugin)
+            +releaseLock(plugin)
+        }
+    }
+
+    TenantScopedDB --> TenantInjector
+    TenantScopedDB --> QueryValidator
+    TenantScopedDB --> QueryCounter
+    TenantScopedDB --> QueryLogger
+
+    PoolRouter --> PoolRegistry
+    PoolRouter --> ConnectionConfigurator
+    PoolRouter --> TenantQuotaEnforcer
+    ExecutionContextBuilder --> PoolRouter
+
+    TenantContextManager --> L1MemoryCache
+    TenantScopedCache --> L2RedisCache
+
+    PluginManager --> SchemaMigrationRunner
+    PluginManager --> TenantMigrationRunner
+    SchemaMigrationRunner --> MigrationLockManager
+
+    namespace L5_Infrastructure {
+        class MetadataDB {
+            <<external>>
+        }
+        class SharedDataDB {
+            <<external>>
+        }
+        class VipDataDB {
+            <<external>>
+        }
+        class RedisCluster {
+            <<external>>
+        }
+        class PgBouncer {
+            <<external>>
+        }
+        class RabbitMQCluster {
+            <<external>>
+        }
+        class WorkerPool {
+            <<singleton>>
+        }
+        class ElasticsearchCluster {
+            <<external>>
+        }
+        class S3ObjectStore {
+            <<external>>
+        }
+        class CDN {
+            <<external>>
+        }
+    }
+
+    TenantResolver --> RedisCluster
+    TenantResolver --> MetadataDB
+    AuthGuard --> RedisCluster
+    RateLimiter --> RedisCluster
+    TenantContextManager --> MetadataDB
+    PoolRegistry --> SharedDataDB
+    PoolRegistry --> VipDataDB
+    PoolRegistry --> PgBouncer
+    PgBouncer --> SharedDataDB
+    L2RedisCache --> RedisCluster
+    MQPublisher --> RabbitMQCluster
+    BroadcastManager --> RabbitMQCluster
+    WorkerPool --> RabbitMQCluster
+
+    namespace L6_CrossCutting {
+        class EncryptionService {
+            <<singleton>>
+            +encrypt(data, key)
+            +decrypt(cipher, key)
+        }
+        class PiiRedactor {
+            <<singleton>>
+            +redact(data, fieldRules)
+        }
+        class SecretManager {
+            <<singleton>>
+            +getSecret(path)
+        }
+        class CrmError {
+            <<abstract>>
+            +code
+            +message
+            +status
+            +isRetryable
+        }
+        class BusinessError
+        class SystemError
+        class PluginError
+        class CircuitBreaker {
+            <<per-resource>>
+            +execute(fn)
+            +getState()
+        }
+        class RetryPolicy {
+            <<static>>
+            +execute(fn, options)
+        }
+        class ConfigResolver {
+            <<singleton>>
+            +resolve(key, ctx)
+        }
+        class FeatureFlagService {
+            <<singleton>>
+            +isEnabled(flag, ctx)
+        }
+        class DependencyResolver {
+            <<singleton>>
+            +resolve(plugin)
+        }
+        class DependencyGraph {
+            <<singleton>>
+            +addNode()
+            +getDependents()
+        }
+    }
+
+    CrmError <|-- BusinessError
+    CrmError <|-- SystemError
+    CrmError <|-- PluginError
+    PluginManager --> DependencyResolver
+    DependencyResolver --> DependencyGraph
+    SecretManager --> EncryptionService
+    PoolRouter --> CircuitBreaker
+    MQPublisher --> RetryPolicy
+    WorkerPool --> RetryPolicy
+    RateLimiter --> ConfigResolver
+    TenantQuotaEnforcer --> ConfigResolver
+    L2RedisCache --> ConfigResolver
+
+    namespace L7_Observability {
+        class ScopedLogger {
+            <<per-request>>
+            +info()
+            +warn()
+            +error()
+        }
+        class TracingManager {
+            <<singleton>>
+            +startSpan()
+            +endSpan()
+        }
+        class MetricsCollector {
+            <<singleton>>
+            +observe()
+            +increment()
+        }
+        class AlertManager {
+            <<singleton>>
+            +fire(alert)
+            +resolve(alert)
+        }
+        class LivenessProbe {
+            <<singleton>>
+            +check()
+        }
+        class ReadinessProbe {
+            <<singleton>>
+            +check()
+        }
+        class AuditTrailWriter {
+            <<singleton>>
+            +record(action, resource, before, after)
+        }
+        class AnomalyDetector {
+            <<singleton>>
+            +analyze(metrics)
+        }
+    }
+
+    ExecutionContextBuilder *-- ScopedLogger : creates
+    ScopedLogger --> PiiRedactor
+    ScopedLogger --> TracingManager
+    SandboxEngine --> MetricsCollector
+    MetricsCollector --> AlertManager
+    AnomalyDetector --> AlertManager
+    AuditTrailWriter --> MetadataDB
+    SandboxEngine --> AuditTrailWriter
+    HealthChecker --> ReadinessProbe
+        </pre>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /wrap -->
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: false, theme: 'dark', maxTextSize: 100000 });
+
+    // expose global functions
+    window.go = go;
+    window.zp = zp;
+
+    function go(n) {
+      document.querySelectorAll('.pnl').forEach(function (p) { p.classList.remove('on') });
+      document.querySelectorAll('.nav button').forEach(function (b) { b.classList.remove('on') });
+      var p = document.getElementById('p-' + n);
+      if (p) {
+        p.classList.add('on');
+        // Trigger mermaid render if contains .mermaid pre
+        var m = p.querySelector('pre.mermaid');
+        if (m && !m.getAttribute('data-processed')) {
+          mermaid.run({ nodes: [m] }).catch(e => console.error(e));
+        }
+      }
+      var names = ['all', 'l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'l7', 'rel', 'diag'];
+      var i = names.indexOf(n);
+      var btns = document.querySelectorAll('.nav button');
+      if (i >= 0 && btns[i]) btns[i].classList.add('on');
+      window.scrollTo({ top: 160, behavior: 'smooth' });
+    }
+
+    /* Generic zoom/pan/dblclick for all diagram viewports */
+    var vpState = {};
+    function getVp(id) {
+      if (!vpState[id]) vpState[id] = { s: 1, x: 0, y: 0, sx: 0, sy: 0, p: false };
+      return vpState[id];
+    }
+    function applyVp(id) {
+      var st = getVp(id);
+      var el = document.getElementById('dv-' + id);
+      if (!el) return;
+      var svg = el.querySelector('svg');
+      if (!svg) return;
+      svg.style.transform = 'translate(' + st.x + 'px,' + st.y + 'px) scale(' + st.s + ')';
+      svg.style.transformOrigin = 'center top';
+      svg.style.transition = st.p ? 'none' : 'transform 0.1s';
+    }
+    function zp(id, diff) {
+      var st = getVp(id);
+      if (diff === 0) { st.s = 1; st.x = 0; st.y = 0; }
+      else { st.s += diff; if (st.s < 0.1) st.s = 0.1; }
+      applyVp(id);
+    }
+    function initViewport(id) {
+      var el = document.getElementById('dv-' + id);
+      if (!el) return;
+      el.addEventListener('mousedown', function (e) {
+        if (e.button !== 0) return; e.preventDefault();
+        var st = getVp(id); st.sx = e.clientX - st.x; st.sy = e.clientY - st.y;
+        st.p = true; el.style.cursor = 'grabbing';
+      });
+      el.addEventListener('mousemove', function (e) {
+        var st = getVp(id); if (!st.p) return; e.preventDefault();
+        st.x = e.clientX - st.sx; st.y = e.clientY - st.sy; applyVp(id);
+      });
+      el.addEventListener('mouseup', function () { var st = getVp(id); st.p = false; el.style.cursor = 'grab'; });
+      el.addEventListener('mouseleave', function () { var st = getVp(id); st.p = false; el.style.cursor = 'grab'; });
+      el.addEventListener('dblclick', function (e) {
+        e.preventDefault();
+        var st = getVp(id), rect = el.getBoundingClientRect();
+        var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        var ns = st.s + 0.5;
+        st.x = mx - ((mx - st.x) / st.s) * ns;
+        st.y = my - ((my - st.y) / st.s) * ns;
+        st.s = ns; applyVp(id);
+      });
+    }
+    ['l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'l7', 'rel', 'diag'].forEach(initViewport);
+
+    // Initial render for visible tab (if any has mermaid)
+    setTimeout(() => {
+      var activePnl = document.querySelector('.pnl.on');
+      if (activePnl) {
+        var m = activePnl.querySelector('pre.mermaid');
+        if (m && !m.getAttribute('data-processed')) {
+          mermaid.run({ nodes: [m] });
+        }
+      }
+    }, 500);
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,122 @@
+classDiagram
+    direction TB
+
+    %% ═══════════════════════════════════════
+    %% QUERY INTERCEPTOR GROUP
+    %% ═══════════════════════════════════════
+
+    namespace QueryInterceptor {
+        class TenantInjector {
+            <<singleton>>
+            +injectSelect()
+            +injectInsert()
+            +injectUpdate()
+        }
+
+        class QueryValidator {
+            <<singleton>>
+            +validate(query)
+        }
+
+        class QueryCounter {
+            <<per-request>>
+            +increment()
+            +getCount()
+            +isExhausted()
+        }
+
+        class QueryLogger {
+            <<singleton>>
+            +log(query, duration, context)
+        }
+    }
+
+    %% ═══════════════════════════════════════
+    %% POOL MANAGER GROUP
+    %% ═══════════════════════════════════════
+
+    namespace PoolManager {
+        class PoolRegistry {
+            <<singleton>>
+            +getPool(name)
+            +registerPool(name, config)
+            +listPools()
+        }
+
+        class PoolRouter {
+            <<singleton>>
+            +route(dbPoolName)
+        }
+
+        class ConnectionConfigurator {
+            <<singleton>>
+            +configure(conn, tenantId)
+            +reset(conn)
+        }
+
+        class TenantQuotaEnforcer {
+            <<singleton>>
+            +canAcquire(tenantId)
+            +onAcquire()
+            +onRelease()
+        }
+
+        class HealthChecker {
+            <<singleton>>
+            +check()
+            +replaceDeadConnections()
+            +getHealth()
+        }
+    }
+
+    PoolRouter --> PoolRegistry : lookup
+    PoolRouter --> ConnectionConfigurator : SET/RESET tenant
+    PoolRouter --> TenantQuotaEnforcer : check cap
+
+    %% ═══════════════════════════════════════
+    %% CACHE MANAGER GROUP
+    %% ═══════════════════════════════════════
+
+    namespace CacheManager {
+        class L1MemoryCache {
+            <<singleton>>
+            +get(key)
+            +set(key, val, ttl)
+            +invalidate(pattern)
+        }
+
+        class L2RedisCache {
+            <<singleton>>
+            +get(key)
+            +set(key, val, ttl)
+            +delete(key)
+            +publish()
+        }
+    }
+
+    %% ═══════════════════════════════════════
+    %% MIGRATION ENGINE GROUP
+    %% ═══════════════════════════════════════
+
+    namespace MigrationEngine {
+        class SchemaMigrationRunner {
+            <<singleton>>
+            +runPending(plugin, version)
+            +getStatus(plugin)
+        }
+
+        class TenantMigrationRunner {
+            <<singleton>>
+            +runForTenant(tenant, plugin)
+            +getStatus(tenant, plugin)
+        }
+
+        class MigrationLockManager {
+            <<singleton>>
+            +acquireLock(plugin)
+            +releaseLock(plugin)
+        }
+    }
+
+    SchemaMigrationRunner --> MigrationLockManager : serialize
+    TenantMigrationRunner --> MigrationLockManager : serialize

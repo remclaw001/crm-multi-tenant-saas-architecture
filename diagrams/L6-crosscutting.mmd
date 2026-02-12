@@ -1,0 +1,98 @@
+classDiagram
+    direction TB
+
+    namespace Security {
+        class EncryptionService {
+            <<singleton>>
+            +encrypt(data, key)
+            +decrypt(cipher, key)
+        }
+
+        class PiiRedactor {
+            <<singleton>>
+            +redact(data, fieldRules)
+            +isFieldPii(fieldName)
+        }
+
+        class SecretManager {
+            <<singleton>>
+            +getSecret(path)
+            +renewLease()
+            +rotateSecret(path)
+        }
+    }
+
+    SecretManager --> EncryptionService : decrypt secrets
+
+    namespace ErrorHandling {
+        class CrmError {
+            <<abstract>>
+            +code
+            +message
+            +status
+            +isRetryable
+        }
+
+        class BusinessError {
+            permanent
+        }
+
+        class SystemError {
+            transient
+        }
+
+        class PluginError {
+            sandbox-caught
+        }
+
+        class CircuitBreaker {
+            <<per-resource>>
+            +execute(fn)
+            +getState()
+            +reset()
+        }
+
+        class RetryPolicy {
+            <<static>>
+            +execute(fn, options)
+            +withJitter(delay)
+        }
+    }
+
+    CrmError <|-- BusinessError
+    CrmError <|-- SystemError
+    CrmError <|-- PluginError
+
+    namespace ConfigManagement {
+        class ConfigResolver {
+            <<singleton>>
+            +resolve(key, ctx)
+            +reload(tenantId)
+            +getAll(ctx)
+        }
+
+        class FeatureFlagService {
+            <<singleton>>
+            +isEnabled(flag, ctx)
+            +getAllFlags(ctx)
+        }
+    }
+
+    namespace DependencyManagement {
+        class DependencyResolver {
+            <<singleton>>
+            +resolve(plugin)
+            +checkCanEnable()
+            +checkCanDisable()
+        }
+
+        class DependencyGraph {
+            <<singleton>>
+            +addNode()
+            +removeNode()
+            +getDependents()
+            +getDepOrder()
+        }
+    }
+
+    DependencyResolver --> DependencyGraph : uses

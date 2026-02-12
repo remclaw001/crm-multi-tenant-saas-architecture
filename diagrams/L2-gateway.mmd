@@ -1,0 +1,60 @@
+classDiagram
+    direction TB
+
+    namespace L2_Gateway {
+        class LoadBalancer {
+            <<external>>
+            TLS terminate
+            least-conn routing
+        }
+
+        class TenantResolver {
+            <<singleton>>
+            +resolve(request) tenantInfo
+        }
+
+        class AuthGuard {
+            <<singleton>>
+            +validate(jwt) userContext
+        }
+
+        class RateLimiter {
+            <<singleton>>
+            +check(tenantId) pass_or_429
+        }
+
+        class RouteMatcher {
+            <<singleton>>
+            +match(url, method) routeInfo
+        }
+
+        class PermissionChecker {
+            <<singleton>>
+            +check(plugin, perm, tenant) pass_or_403
+        }
+
+        class GatewayContext {
+            <<per-request>>
+            +tenantId
+            +tier
+            +userId
+            +roles
+            +plugin
+            +method
+        }
+
+        class TokenManager {
+            <<singleton>>
+            +issueTokenPair()
+            +revokeToken(jti)
+            +rotateKey()
+        }
+    }
+
+    LoadBalancer --> TenantResolver : forward
+    TenantResolver --> AuthGuard : pipeline
+    AuthGuard --> RateLimiter : pipeline
+    RateLimiter --> RouteMatcher : pipeline
+    RouteMatcher --> PermissionChecker : pipeline
+    PermissionChecker --> GatewayContext : creates
+    AuthGuard --> TokenManager : verify keys

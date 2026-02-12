@@ -1,0 +1,75 @@
+classDiagram
+    direction TB
+
+    namespace L1_Presentation {
+        class HostShell {
+            <<singleton>>
+            +bootstrap()
+            +loadRemote(plugin, ver)
+            +buildNav(plugins)
+        }
+
+        class PluginRemote {
+            <<per-plugin>>
+            +pages[]
+            +components[]
+            +navItems[]
+        }
+
+        class PluginArea {
+            <<singleton>>
+            +renderRemote(name)
+            +handleCrash(error)
+        }
+
+        class ThemeEngine {
+            <<singleton>>
+            +applyTheme(theme)
+            +resetToDefault()
+        }
+
+        class ApiClient {
+            <<singleton>>
+            +get()
+            +post()
+            +put()
+            +delete()
+            +refreshToken()
+        }
+
+        class MobileShell {
+            <<singleton>>
+            +loadFeatureModule(plugin)
+            +handlePush(notification)
+        }
+
+        class OfflineSyncEngine {
+            <<singleton>>
+            +cacheResponse()
+            +queueMutation()
+            +syncPending()
+        }
+
+        class OtaUpdateManager {
+            <<singleton>>
+            +checkForUpdate()
+            +downloadDelta()
+            +applyUpdate()
+        }
+
+        class TenantAdminApp {
+            <<singleton>>
+        }
+
+        class SystemAdminApp {
+            <<singleton>>
+        }
+    }
+
+    HostShell *-- PluginArea : owns
+    HostShell *-- ThemeEngine : owns
+    HostShell o-- PluginRemote : loads dynamically
+    HostShell --> ApiClient : uses
+
+    MobileShell --> OfflineSyncEngine : uses
+    MobileShell --> OtaUpdateManager : uses

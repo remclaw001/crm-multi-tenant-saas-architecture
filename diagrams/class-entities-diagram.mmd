@@ -1,0 +1,675 @@
+classDiagram
+    direction TB
+
+    %% ═══════════════════════════════════════
+    %% L1 — PRESENTATION LAYER
+    %% ═══════════════════════════════════════
+
+    namespace L1_Presentation {
+        class HostShell {
+            &lt;&lt;singleton&gt;&gt;
+            +bootstrap()
+            +loadRemote(plugin, ver)
+            +buildNav(plugins)
+        }
+
+        class PluginRemote {
+            &lt;&lt;per-plugin&gt;&gt;
+            +pages[]
+            +components[]
+            +navItems[]
+        }
+
+        class PluginArea {
+            &lt;&lt;singleton&gt;&gt;
+            +renderRemote(name)
+            +handleCrash(error)
+        }
+
+        class ThemeEngine {
+            &lt;&lt;singleton&gt;&gt;
+            +applyTheme(theme)
+            +resetToDefault()
+        }
+
+        class ApiClient {
+            &lt;&lt;singleton&gt;&gt;
+            +get()
+            +post()
+            +put()
+            +delete()
+            +refreshToken()
+        }
+
+        class MobileShell {
+            &lt;&lt;singleton&gt;&gt;
+            +loadFeatureModule(plugin)
+            +handlePush(notification)
+        }
+
+        class OfflineSyncEngine {
+            &lt;&lt;singleton&gt;&gt;
+            +cacheResponse()
+            +queueMutation()
+            +syncPending()
+        }
+
+        class OtaUpdateManager {
+            &lt;&lt;singleton&gt;&gt;
+            +checkForUpdate()
+            +downloadDelta()
+            +applyUpdate()
+        }
+
+        class TenantAdminApp {
+            &lt;&lt;singleton&gt;&gt;
+        }
+
+        class SystemAdminApp {
+            &lt;&lt;singleton&gt;&gt;
+        }
+    }
+
+    HostShell *-- PluginArea
+    HostShell *-- ThemeEngine
+    HostShell o-- PluginRemote
+    HostShell --> ApiClient
+    MobileShell --> OfflineSyncEngine
+    MobileShell --> OtaUpdateManager
+
+    %% ═══════════════════════════════════════
+    %% L2 — API GATEWAY LAYER
+    %% ═══════════════════════════════════════
+
+    namespace L2_Gateway {
+        class LoadBalancer {
+            &lt;&lt;external&gt;&gt;
+        }
+
+        class TenantResolver {
+            &lt;&lt;singleton&gt;&gt;
+            +resolve(request) tenantInfo
+        }
+
+        class AuthGuard {
+            &lt;&lt;singleton&gt;&gt;
+            +validate(jwt) userContext
+        }
+
+        class RateLimiter {
+            &lt;&lt;singleton&gt;&gt;
+            +check(tenantId) pass_or_429
+        }
+
+        class RouteMatcher {
+            &lt;&lt;singleton&gt;&gt;
+            +match(url, method) routeInfo
+        }
+
+        class PermissionChecker {
+            &lt;&lt;singleton&gt;&gt;
+            +check(plugin, perm, tenant) pass_or_403
+        }
+
+        class GatewayContext {
+            &lt;&lt;per-request&gt;&gt;
+            +tenantId
+            +tier
+            +userId
+            +roles
+            +plugin
+            +method
+        }
+
+        class TokenManager {
+            &lt;&lt;singleton&gt;&gt;
+            +issueTokenPair()
+            +revokeToken(jti)
+            +rotateKey()
+        }
+    }
+
+    LoadBalancer --> TenantResolver
+    TenantResolver --> AuthGuard
+    AuthGuard --> RateLimiter
+    RateLimiter --> RouteMatcher
+    RouteMatcher --> PermissionChecker
+    PermissionChecker --> GatewayContext : creates
+
+    %% ═══════════════════════════════════════
+    %% L3 — BUSINESS LOGIC LAYER
+    %% ═══════════════════════════════════════
+
+    namespace L3_BusinessLogic {
+        class PluginManager {
+            &lt;&lt;singleton&gt;&gt;
+            +deploy()
+            +upgrade()
+            +rollback()
+            +enable()
+            +disable()
+        }
+
+        class PluginRegistry {
+            &lt;&lt;singleton&gt;&gt;
+            +pluginMap
+            +routeTable
+            +eventMap
+            +hookMap
+            +permissionMap
+            +getPlugin()
+            +getRoute()
+            +getHandlers()
+        }
+
+        class SandboxEngine {
+            &lt;&lt;singleton&gt;&gt;
+            +execute(core, method, ctx, args)
+        }
+
+        class EventBus {
+            &lt;&lt;singleton&gt;&gt;
+            +emit(event, data)
+            +registerHandler()
+            +removeHandler()
+        }
+
+        class HookRegistry {
+            &lt;&lt;singleton&gt;&gt;
+            +run(hookName, data)
+            +register()
+            +unregister()
+        }
+
+        class LifecycleController {
+            &lt;&lt;singleton&gt;&gt;
+        }
+
+        class CanaryController {
+            &lt;&lt;singleton&gt;&gt;
+        }
+
+        class BroadcastManager {
+            &lt;&lt;singleton&gt;&gt;
+        }
+
+        class PluginCore {
+            &lt;&lt;abstract&gt;&gt;
+            +init(ctx)*
+            +destroy()*
+        }
+
+        class CustomerDataCore {
+            &lt;&lt;singleton&gt;&gt;
+            tier: Basic
+        }
+
+        class CustomerCareCore {
+            &lt;&lt;singleton&gt;&gt;
+            tier: Premium
+        }
+
+        class AutomationCore {
+            &lt;&lt;singleton&gt;&gt;
+            tier: Premium
+        }
+
+        class AnalyticsCore {
+            &lt;&lt;singleton&gt;&gt;
+            tier: Enterprise
+        }
+
+        class MarketingCore {
+            &lt;&lt;singleton&gt;&gt;
+            tier: Enterprise
+        }
+
+        class TenantContextManager {
+            &lt;&lt;singleton&gt;&gt;
+            +getOrBuild(tenantId)
+            +invalidate(tenantId)
+        }
+
+        class ExecutionContextBuilder {
+            &lt;&lt;singleton&gt;&gt;
+            +build(tenantCtx, jwt, request)
+            +release(ctx)
+        }
+
+        class TenantScopedDB {
+            &lt;&lt;per-request&gt;&gt;
+            +query()
+            +insert()
+            +update()
+            +delete()
+        }
+
+        class TenantScopedCache {
+            &lt;&lt;per-request&gt;&gt;
+            +get(key)
+            +set(key, val, ttl)
+            +delete(key)
+        }
+
+        class ScopedEventBus {
+            &lt;&lt;per-request&gt;&gt;
+            +emit(event, data)
+        }
+
+        class EmailService {
+            &lt;&lt;singleton&gt;&gt;
+        }
+
+        class StorageService {
+            &lt;&lt;singleton&gt;&gt;
+        }
+
+        class NotificationService {
+            &lt;&lt;singleton&gt;&gt;
+        }
+
+        class SearchService {
+            &lt;&lt;singleton&gt;&gt;
+        }
+
+        class SchedulerService {
+            &lt;&lt;singleton&gt;&gt;
+        }
+
+        class MQPublisher {
+            &lt;&lt;singleton&gt;&gt;
+        }
+    }
+
+    PluginCore <|-- CustomerDataCore
+    PluginCore <|-- CustomerCareCore
+    PluginCore <|-- AutomationCore
+    PluginCore <|-- AnalyticsCore
+    PluginCore <|-- MarketingCore
+
+    CustomerCareCore --> CustomerDataCore : depends
+    AutomationCore --> CustomerDataCore : depends
+    AutomationCore --> CustomerCareCore : depends
+    AnalyticsCore --> CustomerDataCore : depends
+    MarketingCore --> CustomerDataCore : depends
+    MarketingCore --> CustomerCareCore : depends
+
+    PluginManager *-- LifecycleController
+    PluginManager *-- CanaryController
+    PluginManager *-- BroadcastManager
+    PluginManager --> PluginRegistry
+
+    SandboxEngine --> PluginRegistry
+    EventBus --> PluginRegistry
+    HookRegistry --> PluginRegistry
+
+    CustomerCareCore --> EventBus : emit
+    CustomerCareCore --> HookRegistry : run hooks
+    AnalyticsCore ..> EventBus : listen
+
+    ExecutionContextBuilder *-- TenantScopedDB : creates
+    ExecutionContextBuilder *-- TenantScopedCache : creates
+    ExecutionContextBuilder *-- ScopedEventBus : creates
+
+    EventBus --> MQPublisher : async publish
+
+    %% ═══════════════════════════════════════
+    %% L4 — DATA ACCESS LAYER
+    %% ═══════════════════════════════════════
+
+    namespace L4_DataAccess {
+        class TenantInjector {
+            &lt;&lt;singleton&gt;&gt;
+            +injectSelect()
+            +injectInsert()
+            +injectUpdate()
+        }
+
+        class QueryValidator {
+            &lt;&lt;singleton&gt;&gt;
+            +validate(query)
+        }
+
+        class QueryCounter {
+            &lt;&lt;per-request&gt;&gt;
+            +increment()
+            +getCount()
+            +isExhausted()
+        }
+
+        class QueryLogger {
+            &lt;&lt;singleton&gt;&gt;
+            +log(query, duration, context)
+        }
+
+        class PoolRegistry {
+            &lt;&lt;singleton&gt;&gt;
+            +getPool(name)
+            +registerPool(name, config)
+        }
+
+        class PoolRouter {
+            &lt;&lt;singleton&gt;&gt;
+            +route(dbPoolName)
+        }
+
+        class ConnectionConfigurator {
+            &lt;&lt;singleton&gt;&gt;
+            +configure(conn, tenantId)
+            +reset(conn)
+        }
+
+        class TenantQuotaEnforcer {
+            &lt;&lt;singleton&gt;&gt;
+            +canAcquire(tenantId)
+            +onAcquire()
+            +onRelease()
+        }
+
+        class HealthChecker {
+            &lt;&lt;singleton&gt;&gt;
+            +check()
+            +replaceDeadConnections()
+        }
+
+        class L1MemoryCache {
+            &lt;&lt;singleton&gt;&gt;
+            +get(key)
+            +set(key, val, ttl)
+            +invalidate(pattern)
+        }
+
+        class L2RedisCache {
+            &lt;&lt;singleton&gt;&gt;
+            +get(key)
+            +set(key, val, ttl)
+            +delete(key)
+        }
+
+        class SchemaMigrationRunner {
+            &lt;&lt;singleton&gt;&gt;
+            +runPending(plugin, version)
+            +getStatus(plugin)
+        }
+
+        class TenantMigrationRunner {
+            &lt;&lt;singleton&gt;&gt;
+            +runForTenant(tenant, plugin)
+        }
+
+        class MigrationLockManager {
+            &lt;&lt;singleton&gt;&gt;
+            +acquireLock(plugin)
+            +releaseLock(plugin)
+        }
+    }
+
+    TenantScopedDB --> TenantInjector
+    TenantScopedDB --> QueryValidator
+    TenantScopedDB --> QueryCounter
+    TenantScopedDB --> QueryLogger
+
+    PoolRouter --> PoolRegistry
+    PoolRouter --> ConnectionConfigurator
+    PoolRouter --> TenantQuotaEnforcer
+    ExecutionContextBuilder --> PoolRouter
+
+    TenantContextManager --> L1MemoryCache
+    TenantScopedCache --> L2RedisCache
+
+    PluginManager --> SchemaMigrationRunner
+    PluginManager --> TenantMigrationRunner
+    SchemaMigrationRunner --> MigrationLockManager
+
+    %% ═══════════════════════════════════════
+    %% L5 — INFRASTRUCTURE LAYER
+    %% ═══════════════════════════════════════
+
+    namespace L5_Infrastructure {
+        class MetadataDB {
+            &lt;&lt;external&gt;&gt;
+            tenants
+            tenant_plugins
+            plugin_registry
+            audit_log
+        }
+
+        class SharedDataDB {
+            &lt;&lt;external&gt;&gt;
+            RLS enabled
+            PgBouncer: 200 to 50
+        }
+
+        class VipDataDB {
+            &lt;&lt;external&gt;&gt;
+            1 per VIP tenant
+        }
+
+        class RedisCluster {
+            &lt;&lt;external&gt;&gt;
+            cache
+            domain_map
+            rate_limit
+            token_blacklist
+            pub_sub
+        }
+
+        class PgBouncer {
+            &lt;&lt;external&gt;&gt;
+        }
+
+        class RabbitMQCluster {
+            &lt;&lt;external&gt;&gt;
+            exchange: crm.events
+            exchange: crm.system
+        }
+
+        class WorkerPool {
+            &lt;&lt;singleton&gt;&gt;
+        }
+
+        class ElasticsearchCluster {
+            &lt;&lt;external&gt;&gt;
+        }
+
+        class S3ObjectStore {
+            &lt;&lt;external&gt;&gt;
+        }
+
+        class CDN {
+            &lt;&lt;external&gt;&gt;
+        }
+    }
+
+    TenantResolver --> RedisCluster
+    TenantResolver --> MetadataDB
+    AuthGuard --> RedisCluster
+    RateLimiter --> RedisCluster
+    TenantContextManager --> MetadataDB
+
+    PoolRegistry --> SharedDataDB
+    PoolRegistry --> VipDataDB
+    PoolRegistry --> PgBouncer
+    PgBouncer --> SharedDataDB
+
+    L2RedisCache --> RedisCluster
+    MQPublisher --> RabbitMQCluster
+    BroadcastManager --> RabbitMQCluster
+    WorkerPool --> RabbitMQCluster
+    SearchService --> ElasticsearchCluster
+    StorageService --> S3ObjectStore
+
+    %% ═══════════════════════════════════════
+    %% L6 — CROSS-CUTTING CONCERNS
+    %% ═══════════════════════════════════════
+
+    namespace L6_CrossCutting {
+        class EncryptionService {
+            &lt;&lt;singleton&gt;&gt;
+            +encrypt(data, key)
+            +decrypt(cipher, key)
+        }
+
+        class PiiRedactor {
+            &lt;&lt;singleton&gt;&gt;
+            +redact(data, fieldRules)
+        }
+
+        class SecretManager {
+            &lt;&lt;singleton&gt;&gt;
+            +getSecret(path)
+            +renewLease()
+            +rotateSecret(path)
+        }
+
+        class CrmError {
+            &lt;&lt;abstract&gt;&gt;
+            +code
+            +message
+            +status
+            +isRetryable
+        }
+
+        class BusinessError {
+            permanent
+        }
+
+        class SystemError {
+            transient
+        }
+
+        class PluginError {
+            sandbox-caught
+        }
+
+        class CircuitBreaker {
+            &lt;&lt;per-resource&gt;&gt;
+            +execute(fn)
+            +getState()
+            +reset()
+        }
+
+        class RetryPolicy {
+            &lt;&lt;static&gt;&gt;
+            +execute(fn, options)
+            +withJitter(delay)
+        }
+
+        class ConfigResolver {
+            &lt;&lt;singleton&gt;&gt;
+            +resolve(key, ctx)
+            +reload(tenantId)
+        }
+
+        class FeatureFlagService {
+            &lt;&lt;singleton&gt;&gt;
+            +isEnabled(flag, ctx)
+            +getAllFlags(ctx)
+        }
+
+        class DependencyResolver {
+            &lt;&lt;singleton&gt;&gt;
+            +resolve(plugin)
+            +checkCanEnable()
+            +checkCanDisable()
+        }
+
+        class DependencyGraph {
+            &lt;&lt;singleton&gt;&gt;
+            +addNode()
+            +removeNode()
+            +getDependents()
+        }
+    }
+
+    CrmError <|-- BusinessError
+    CrmError <|-- SystemError
+    CrmError <|-- PluginError
+
+    PluginManager --> DependencyResolver
+    DependencyResolver --> DependencyGraph
+    SecretManager --> EncryptionService
+
+    PoolRouter --> CircuitBreaker
+    MQPublisher --> RetryPolicy
+    WorkerPool --> RetryPolicy
+
+    RateLimiter --> ConfigResolver
+    TenantQuotaEnforcer --> ConfigResolver
+    L2RedisCache --> ConfigResolver
+
+    %% ═══════════════════════════════════════
+    %% L7 — OBSERVABILITY LAYER
+    %% ═══════════════════════════════════════
+
+    namespace L7_Observability {
+        class ScopedLogger {
+            &lt;&lt;per-request&gt;&gt;
+            +debug()
+            +info()
+            +warn()
+            +error()
+        }
+
+        class TracingManager {
+            &lt;&lt;singleton&gt;&gt;
+            +startSpan()
+            +endSpan()
+            +setTag()
+        }
+
+        class MetricsCollector {
+            &lt;&lt;singleton&gt;&gt;
+            +observe()
+            +increment()
+            +gauge()
+        }
+
+        class AlertManager {
+            &lt;&lt;singleton&gt;&gt;
+            +fire(alert)
+            +resolve(alert)
+            +escalate(alert)
+        }
+
+        class LivenessProbe {
+            &lt;&lt;singleton&gt;&gt;
+            +check()
+        }
+
+        class ReadinessProbe {
+            &lt;&lt;singleton&gt;&gt;
+            +check()
+        }
+
+        class AuditTrailWriter {
+            &lt;&lt;singleton&gt;&gt;
+            +record(action, resource, before, after)
+            +flush()
+        }
+
+        class AnomalyDetector {
+            &lt;&lt;singleton&gt;&gt;
+            +analyze(metrics)
+            +detectSpike()
+        }
+    }
+
+    ExecutionContextBuilder *-- ScopedLogger : creates
+    ScopedLogger --> PiiRedactor
+    ScopedLogger --> TracingManager
+    SandboxEngine --> MetricsCollector
+    MetricsCollector --> AlertManager
+    AnomalyDetector --> AlertManager
+    AuditTrailWriter --> MetadataDB
+    SandboxEngine --> AuditTrailWriter
+    HealthChecker --> ReadinessProbe
+
+    %% ═══════════════════════════════════════
+    %% CROSS-LAYER REQUEST FLOW
+    %% ═══════════════════════════════════════
+
+    RouteMatcher --> PluginRegistry
+    GatewayContext --> TenantContextManager : forwarded to
+    GatewayContext --> ExecutionContextBuilder : forwarded to
+    SandboxEngine --> PluginCore : invokes

@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — L1 Presentation Layer Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
+  --gn:#10b981;--gnd:rgba(16,185,129,.08);
+  --am:#f59e0b;--amd:rgba(245,158,11,.08);
+  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
+  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
+  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
+  --or:#f97316;--pk:#ec4899;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(1.6rem,3.5vw,2.6rem);font-weight:800;line-height:1.15;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--bl)}
+.hero p{font-size:1rem;color:var(--td);max-width:660px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--bl)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
+.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.cm{color:#3e4460;font-style:italic}.nu{color:#f78c6c}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.pk{color:#ec4899}.or{color:#f97316}.fn{color:#82aaff}.st{color:#c3e88d}.kw{color:#c792ea}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
+.nt strong{color:inherit}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+.pnl.on .sec:nth-child(2){animation-delay:.04s}
+.pnl.on .sec:nth-child(3){animation-delay:.08s}
+.pnl.on .sec:nth-child(4){animation-delay:.12s}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Layer 1 — Presentation</div>
+    <h1>Mọi thứ bên trong <span>Presentation Layer</span></h1>
+    <p>4 thành phần: Web App (Host Shell + Plugin Remotes), Mobile App, Admin Console, Plugin UI System.</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('map')">Bản đồ L1</button>
+    <button onclick="go('web')">Web App</button>
+    <button onclick="go('fed')">Module Federation</button>
+    <button onclick="go('mob')">Mobile App</button>
+    <button onclick="go('adm')">Admin Console</button>
+    <button onclick="go('sec')">Security (L1)</button>
+    <button onclick="go('flow')">Luồng tổng hợp</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- MAP -->
+<div class="pnl on" id="p-map">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L1 — 4 thành phần</h2></div>
+    <div class="nt bl"><strong>Nguyên tắc cốt lõi:</strong> L1 là lớp DUY NHẤT user nhìn thấy. L1 hoàn toàn client-side (chạy trên browser/mobile device). Mọi tương tác đều gọi API tới L2 Gateway — L1 KHÔNG truy cập database, cache, hay MQ trực tiếp. Plugin UI được load ĐỘNG dựa trên tenant đã enable plugins nào.</div>
+    <div class="dg"><div class="dg-label">L1 overview</div><pre>
+  ┌─ <span class="ty">L1 PRESENTATION</span> ────────────────────────────────────────────────────────┐
+  │                                                                          │
+  │  <span class="hi">❶ WEB APP</span> (React SPA + Module Federation)                              │
+  │  ┌─────────────────────────────────────────────────────────────────┐    │
+  │  │  <span class="am">Host Shell</span>  ─────────────────────────────────────────────────  │    │
+  │  │  │ App frame: sidebar, topbar, auth, routing                  │    │
+  │  │  │ Theme engine: per-tenant branding                          │    │
+  │  │  │ Plugin slot: &lt;PluginArea /&gt; renders active remote module  │    │
+  │  │  │                                                             │    │
+  │  │  │  ┌─ <span class="gn">Plugin Remotes</span> (load động via Module Federation) ─────┐ │    │
+  │  │  │  │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐│ │    │
+  │  │  │  │ │customer- │ │customer- │ │analytics │ │marketing ││ │    │
+  │  │  │  │ │data UI   │ │care UI   │ │UI        │ │UI        ││ │    │
+  │  │  │  │ │          │ │          │ │          │ │          ││ │    │
+  │  │  │  │ │remoteEnt.│ │remoteEnt.│ │remoteEnt.│ │remoteEnt.││ │    │
+  │  │  │  │ └──────────┘ └──────────┘ └──────────┘ └──────────┘│ │    │
+  │  │  │  │ <span class="cm">Chỉ load remotes mà tenant đã ENABLE.</span>               │ │    │
+  │  │  │  │ <span class="cm">ACME enable data+care → chỉ load 2 remotes.</span>        │ │    │
+  │  │  │  └──────────────────────────────────────────────────────┘ │    │
+  │  │  └─────────────────────────────────────────────────────────────┘    │
+  │                                                                          │
+  │  <span class="hi">❷ MOBILE APP</span> (React Native / Flutter)                                  │
+  │  ┌─────────────────────────────────────────────────────────────────┐    │
+  │  │ Dynamic feature modules (per plugin)                            │    │
+  │  │ OTA updates cho plugin UI (CodePush / Shorebird)               │    │
+  │  │ Offline-first + sync queue (SQLite local → API batch sync)     │    │
+  │  └─────────────────────────────────────────────────────────────────┘    │
+  │                                                                          │
+  │  <span class="hi">❸ ADMIN CONSOLE</span> (React SPA, tách domain hoàn toàn)                    │
+  │  ┌────────────────────────────┐  ┌────────────────────────────────┐    │
+  │  │ <span class="am">Tenant Admin</span>               │  │ <span class="vi">System Admin</span>                   │    │
+  │  │ admin.acme.crm.com        │  │ system.crm.internal           │    │
+  │  │                            │  │                                │    │
+  │  │ Plugins: enable/disable   │  │ Tenants: CRUD, tier change    │    │
+  │  │ Users: RBAC, invite       │  │ Plugins: deploy, rollback     │    │
+  │  │ Config: per-plugin config │  │ Monitoring: health, metrics    │    │
+  │  │ Billing: plan, usage      │  │ Migration: run, status        │    │
+  │  └────────────────────────────┘  └────────────────────────────────┘    │
+  │                                                                          │
+  │  <span class="hi">❹ PLUGIN UI SYSTEM</span> (Webpack Module Federation)                        │
+  │  ┌─────────────────────────────────────────────────────────────────┐    │
+  │  │ Build: plugin UI → remoteEntry.js → CDN/S3                     │    │
+  │  │ Load:  Host Shell fetch remoteEntry.js at runtime              │    │
+  │  │ Share: React, React-DOM, UI Kit → shared deps (no duplicate)   │    │
+  │  │ Route: /sales → customer-care remote, /customers → data remote │    │
+  │  └─────────────────────────────────────────────────────────────────┘    │
+  │                                                                          │
+  └──────────────────────────────────┬───────────────────────────────────────┘
+                                     │ HTTPS
+                                     ▼
+                              L2 API Gateway
+
+
+  <span class="ty">L1 = HOÀN TOÀN CLIENT-SIDE.</span>
+  Không truy cập DB, Redis, MQ. Chỉ gọi API tới L2 Gateway.
+  Tenant isolation ở L1: chỉ load plugin UI mà tenant đã enable.
+  Security ở L1: CSP headers, XSS sanitization, CORS whitelist.</pre></div>
+</div>
+</div>
+
+<!-- WEB APP -->
+<div class="pnl" id="p-web">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Web App — Host Shell + Plugin Remotes</h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> SPA chính mà user truy cập qua browser. Gồm Host Shell (khung ứng dụng) và Plugin Remotes (UI modules load động). Host Shell luôn giống nhau cho mọi tenant — sự khác biệt nằm ở REMOTES nào được load, dựa trên enabledPlugins.</div>
+    <div class="dg"><div class="dg-label">web app architecture</div><pre>
+<span class="ty">HOST SHELL (luôn load, ~200KB gzipped):</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │  <span class="am">Host Shell</span> — React SPA, entry point cho mọi tenant                    │
+  │                                                                        │
+  │  ┌─ <span class="hi">App Frame</span> ─────────────────────────────────────────────────────┐   │
+  │  │                                                                  │   │
+  │  │  ┌─────────┐ ┌──────────────────────────────────────────────┐  │   │
+  │  │  │Sidebar  │ │ Top Bar                                      │  │   │
+  │  │  │         │ │ ┌──────┐ ┌────────────┐ ┌─────┐ ┌────────┐ │  │   │
+  │  │  │Nav items│ │ │Search│ │Notifications│ │User │ │Tenant  │ │  │   │
+  │  │  │built    │ │ │      │ │(WebSocket)  │ │Menu │ │Logo    │ │  │   │
+  │  │  │from     │ │ └──────┘ └────────────┘ └─────┘ └────────┘ │  │   │
+  │  │  │enabled  │ ├──────────────────────────────────────────────┤  │   │
+  │  │  │plugins  │ │                                              │  │   │
+  │  │  │         │ │  <span class="gn">&lt;PluginArea /&gt;</span>                             │  │   │
+  │  │  │Customers│ │                                              │  │   │
+  │  │  │Sales    │ │  Renders active plugin remote module         │  │   │
+  │  │  │Calls    │ │  based on current URL route.                 │  │   │
+  │  │  │Reports  │ │                                              │  │   │
+  │  │  │Settings │ │  /customers → customer-data remote           │  │   │
+  │  │  │         │ │  /sales     → customer-care remote           │  │   │
+  │  │  │         │ │  /reports   → analytics remote               │  │   │
+  │  │  │         │ │                                              │  │   │
+  │  │  └─────────┘ └──────────────────────────────────────────────┘  │   │
+  │  └──────────────────────────────────────────────────────────────────┘   │
+  │                                                                        │
+  │  <span class="ty">Host Shell responsibilities:</span>                                        │
+  │  ├── Auth:     JWT storage (memory, NOT localStorage), refresh flow  │
+  │  ├── Routing:  React Router, URL → plugin remote mapping             │
+  │  ├── Theme:    CSS variables per-tenant (logo, colors, fonts)        │
+  │  ├── Sidebar:  build nav items from enabledPlugins list              │
+  │  ├── Topbar:   search, notifications (WebSocket), user menu          │
+  │  ├── Loader:   loading state khi remote module đang fetch            │
+  │  ├── Error:    Error Boundary per plugin (crash → fallback UI)       │
+  │  └── API:      shared HTTP client (auto-attach JWT, tenant header)   │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">PLUGIN REMOTES (load theo nhu cầu):</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  Mỗi plugin có UI riêng, build thành <span class="fn">remoteEntry.js</span>:                  │
+  │                                                                        │
+  │  customer-data UI:                                                    │
+  │  ├── Pages: CustomerList, CustomerDetail, CompanyList                 │
+  │  ├── Components: CustomerCard, ContactForm, TagEditor                │
+  │  └── remoteEntry.js → CDN: cdn.crm.com/plugins/customer-data/v2.1/  │
+  │                                                                        │
+  │  customer-care UI:                                                    │
+  │  ├── Pages: SalesPipeline, SaleDetail, CallLog, TicketList           │
+  │  ├── Components: PipelineBoard, SaleForm, CallWidget                 │
+  │  └── remoteEntry.js → CDN: cdn.crm.com/plugins/customer-care/v1.5/  │
+  │                                                                        │
+  │  analytics UI:                                                        │
+  │  ├── Pages: Dashboard, ReportBuilder, ExportCenter                   │
+  │  ├── Components: ChartWidget, FilterPanel, DatePicker                │
+  │  └── remoteEntry.js → CDN: cdn.crm.com/plugins/analytics/v1.2/      │
+  │                                                                        │
+  │  <span class="am">Chỉ remotes mà tenant ENABLE mới được load.</span>                          │
+  │  ACME enable: data + care + analytics → load 3 remotes.              │
+  │  GLOBEX enable: data only → load 1 remote. Sales/Reports nav hidden. │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">BOOTSTRAPPING SEQUENCE:</span>
+
+  <span class="nu">1.</span> User navigates to acme.crm.com
+  <span class="nu">2.</span> CDN serves Host Shell (index.html + main.js, ~200KB gz)
+  <span class="nu">3.</span> Host Shell checks auth:
+     JWT in memory? → skip login
+     No JWT? → redirect to /login → user authenticates → JWT pair
+  <span class="nu">4.</span> Host Shell calls API: GET /api/v1/me/context
+     → Backend returns: enabledPlugins, permissions, theme, config
+  <span class="nu">5.</span> Host Shell builds sidebar nav from enabledPlugins
+  <span class="nu">6.</span> User clicks "Sales" → URL changes to /sales
+  <span class="nu">7.</span> Host Shell: /sales maps to customer-care remote
+     → <span class="fn">dynamic import()</span> → fetch remoteEntry.js from CDN
+     → ~50-150KB per plugin remote (gzipped)
+     → render SalesPipeline component inside &lt;PluginArea /&gt;
+  <span class="nu">8.</span> SalesPipeline calls API: GET /api/v1/sales → L2 Gateway
+     → normal request flow (Gateway → Context → Plugin → DB → response)
+  <span class="nu">9.</span> Subsequent navigation: remotes cached in browser → instant load</pre></div>
+</div>
+</div>
+
+<!-- MODULE FEDERATION -->
+<div class="pnl" id="p-fed">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Module Federation — Plugin UI System</h2></div>
+    <div class="nt am"><strong>Vai trò:</strong> Webpack Module Federation cho phép load plugin UI code TẠI RUNTIME mà không cần rebuild Host Shell. Plugin team build UI riêng → publish remoteEntry.js → Host Shell load động. Shared dependencies (React, UI Kit) chỉ load 1 lần.</div>
+    <div class="dg"><div class="dg-label">module federation</div><pre>
+<span class="ty">KIẾN TRÚC:</span>
+
+  ┌─ <span class="am">Host Shell</span> (Webpack config) ────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="kw">new</span> ModuleFederationPlugin({                                       │
+  │    name: <span class="st">'crmShell'</span>,                                                 │
+  │    <span class="fn">remotes</span>: {                                                        │
+  │      <span class="cm">// Loaded DYNAMICALLY based on tenant enabledPlugins</span>             │
+  │      <span class="cm">// Không hardcode — resolve at runtime</span>                           │
+  │    },                                                                  │
+  │    <span class="fn">shared</span>: {                                                         │
+  │      <span class="st">'react'</span>:         { singleton: <span class="kw">true</span>, requiredVersion: <span class="st">'^18'</span> },     │
+  │      <span class="st">'react-dom'</span>:     { singleton: <span class="kw">true</span>, requiredVersion: <span class="st">'^18'</span> },     │
+  │      <span class="st">'react-router'</span>:  { singleton: <span class="kw">true</span> },                           │
+  │      <span class="st">'@crm/ui-kit'</span>:   { singleton: <span class="kw">true</span> },  <span class="cm">← shared design system</span>  │
+  │      <span class="st">'@crm/api-client'</span>:{ singleton: <span class="kw">true</span> }, <span class="cm">← shared HTTP client</span>    │
+  │    }                                                                   │
+  │  })                                                                    │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ <span class="gn">Plugin Remote</span> (mỗi plugin build riêng) ──────────────────────────────┐
+  │                                                                        │
+  │  <span class="kw">new</span> ModuleFederationPlugin({                                       │
+  │    name: <span class="st">'customerCare'</span>,                                              │
+  │    filename: <span class="st">'remoteEntry.js'</span>,                                       │
+  │    <span class="fn">exposes</span>: {                                                        │
+  │      <span class="st">'./SalesPipeline'</span>: <span class="st">'./src/pages/SalesPipeline'</span>,                │
+  │      <span class="st">'./SaleDetail'</span>:    <span class="st">'./src/pages/SaleDetail'</span>,                    │
+  │      <span class="st">'./CallLog'</span>:       <span class="st">'./src/pages/CallLog'</span>,                       │
+  │      <span class="st">'./navItems'</span>:      <span class="st">'./src/nav.js'</span>,  <span class="cm">← sidebar items</span>            │
+  │    },                                                                  │
+  │    <span class="fn">shared</span>: {                                                         │
+  │      <span class="st">'react'</span>, <span class="st">'react-dom'</span>, <span class="st">'@crm/ui-kit'</span>, <span class="st">'@crm/api-client'</span>        │
+  │      <span class="cm">← dùng chung với Host Shell, KHÔNG bundle lại</span>                   │
+  │    }                                                                   │
+  │  })                                                                    │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">DYNAMIC REMOTE LOADING:</span>
+
+  Host Shell không hardcode remotes. Load at runtime:
+
+  <span class="kw">async function</span> <span class="fn">loadPluginRemote</span>(pluginName, version) {
+    <span class="kw">const</span> url = <span class="st">`cdn.crm.com/plugins/${pluginName}/v${version}/remoteEntry.js`</span>;
+
+    <span class="cm">// 1. Inject script tag</span>
+    <span class="kw">await</span> loadScript(url);
+
+    <span class="cm">// 2. Initialize container</span>
+    <span class="kw">const</span> container = window[pluginName];
+    <span class="kw">await</span> container.init(__webpack_share_scopes__.default);
+
+    <span class="cm">// 3. Get module factory</span>
+    <span class="kw">const</span> factory = <span class="kw">await</span> container.get(<span class="st">'./SalesPipeline'</span>);
+    <span class="kw">return</span> factory();
+  }
+
+  <span class="cm">→ Plugin team deploy UI mới → CDN update → user refresh → load new UI</span>
+  <span class="cm">→ KHÔNG cần rebuild/redeploy Host Shell</span>
+
+
+<span class="ty">SHARED DEPS — KHÔNG DUPLICATE:</span>
+
+  Không có Module Federation:
+  Host Shell:  React 18 (120KB) + ReactDOM (130KB)
+  Plugin 1:    React 18 (120KB) + ReactDOM (130KB)  ← duplicate!
+  Plugin 2:    React 18 (120KB) + ReactDOM (130KB)  ← duplicate!
+  Total: 750KB
+
+  Với Module Federation:
+  Host Shell:  React 18 (120KB) + ReactDOM (130KB)  ← load 1 lần
+  Plugin 1:    dùng chung React từ Host Shell        ← 0KB extra
+  Plugin 2:    dùng chung React từ Host Shell        ← 0KB extra
+  Total: 250KB  (<span class="gn">giảm 67%</span>)
+
+
+<span class="ty">VERSION MANAGEMENT:</span>
+  ├── Plugin remote URL chứa version: /plugins/care/v1.5/remoteEntry.js
+  ├── Tenant ACME enable care@1.5 → load v1.5 remote
+  ├── Tenant GLOBEX upgrade care@2.0 → load v2.0 remote
+  ├── Cache: CDN cache per-version (immutable), browser cache 1h
+  └── Rollback: server-side set version back → user loads old remote</pre></div>
+</div>
+</div>
+
+<!-- MOBILE APP -->
+<div class="pnl" id="p-mob">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Mobile App — Dynamic Feature Modules</h2></div>
+    <div class="nt gn"><strong>Vai trò:</strong> Native/cross-platform app cho iOS + Android. Tương tự Web App nhưng thích nghi cho mobile: dynamic feature modules (thay cho Module Federation), OTA updates, offline-first với sync queue.</div>
+    <div class="dg"><div class="dg-label">mobile app</div><pre>
+<span class="ty">KIẾN TRÚC:</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │  <span class="am">Mobile Shell</span> (React Native / Flutter)                                 │
+  │                                                                        │
+  │  ┌─ Core (always installed, ~15MB) ──────────────────────────────────┐│
+  │  │ Auth screen, navigation, push notification handler,               ││
+  │  │ offline sync engine, biometric login, tenant branding             ││
+  │  └──────────────────────────────────────────────────────────────────┘││
+  │                                                                        │
+  │  ┌─ Dynamic Feature Modules (download on demand) ────────────────────┐│
+  │  │ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐               ││
+  │  │ │customer-data │ │customer-care │ │analytics     │               ││
+  │  │ │module (~3MB) │ │module (~4MB) │ │module (~5MB) │               ││
+  │  │ │              │ │              │ │              │               ││
+  │  │ │Customer list │ │Sales pipeline│ │Dashboards    │               ││
+  │  │ │Contact form  │ │Call logger   │ │Charts        │               ││
+  │  │ │Company view  │ │Ticket list   │ │Export (PDF)  │               ││
+  │  │ └──────────────┘ └──────────────┘ └──────────────┘               ││
+  │  │ <span class="cm">Download chỉ modules mà tenant enable.</span>                            ││
+  │  │ <span class="cm">Xóa khi tenant disable → free storage.</span>                             ││
+  │  └──────────────────────────────────────────────────────────────────┘││
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">OTA UPDATES (Over-The-Air):</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │  Plugin UI update KHÔNG cần qua App Store/Play Store:                 │
+  │                                                                        │
+  │  <span class="nu">1.</span> Plugin team push UI update                                       │
+  │  <span class="nu">2.</span> Build → publish OTA bundle (CodePush / Shorebird)                │
+  │  <span class="nu">3.</span> Mobile app check for updates on launch                           │
+  │  <span class="nu">4.</span> Download delta bundle (~500KB-2MB)                               │
+  │  <span class="nu">5.</span> Apply silently → next screen load uses new code                  │
+  │                                                                        │
+  │  <span class="am">Khi nào CẦN App Store update:</span>                                       │
+  │  ├── Native module thay đổi (camera, GPS, biometric)                 │
+  │  ├── Shell navigation thay đổi                                       │
+  │  └── React Native / Flutter version upgrade                          │
+  │                                                                        │
+  │  <span class="gn">Khi nào OTA đủ:</span>                                                      │
+  │  ├── Plugin UI logic thay đổi (JS/Dart code)                        │
+  │  ├── New screens, components, styling                                │
+  │  └── Bug fixes trong plugin UI                                       │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">OFFLINE-FIRST + SYNC:</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │  Local SQLite DB ← cache recent data + pending mutations              │
+  │                                                                        │
+  │  Online:  API calls → response cache to SQLite → render              │
+  │  Offline: render from SQLite → mutations queue in pending table       │
+  │  Reconnect: sync engine → batch POST pending mutations → API         │
+  │                                                                        │
+  │  Conflict resolution:                                                 │
+  │  ├── Last-write-wins (default, simple)                               │
+  │  ├── Server-wins (cho shared resources)                              │
+  │  └── User-prompt (cho critical conflicts)                            │
+  │                                                                        │
+  │  Pending queue:                                                       │
+  │  ├── Stored in SQLite: { id, method, url, body, createdAt }         │
+  │  ├── Max queue: 1000 operations                                      │
+  │  ├── Retry on reconnect: sequential, respect order                   │
+  │  └── Fail → flag for user review (không tự động discard)             │
+  └────────────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+
+<!-- ADMIN CONSOLE -->
+<div class="pnl" id="p-adm">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Admin Console — Tenant Admin + System Admin</h2></div>
+    <div class="nt am"><strong>Vai trò:</strong> 2 ứng dụng tách biệt hoàn toàn (domain riêng, auth riêng). Tenant Admin cho quản trị viên từng tenant. System Admin cho đội vận hành platform. Cả hai đều gọi API tới cùng L2 Gateway nhưng qua các endpoint khác nhau.</div>
+    <div class="dg"><div class="dg-label">admin console</div><pre>
+<span class="ty">❶ TENANT ADMIN</span> (admin.{subdomain}.crm.com)
+
+  Ai dùng:  Admin/Manager của từng tenant (ACME admin, GLOBEX admin)
+  Domain:   admin.acme.crm.com (tách biệt khỏi app chính)
+  Auth:     Cùng JWT system nhưng yêu cầu role "tenant_admin"
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │  <span class="fn">Plugin Management</span>                                                     │
+  │  ├── Xem catalog plugins available cho tier hiện tại                  │
+  │  ├── Enable/Disable plugin → triggers API:                           │
+  │  │   POST /api/v1/admin/plugins/{name}/enable                        │
+  │  │   → L3 Plugin Manager → dependency check → tenant migration → OK │
+  │  ├── Xem plugin version, config, status                              │
+  │  └── Upgrade plugin version (nếu có bản mới)                        │
+  │                                                                        │
+  │  <span class="fn">User Management (RBAC)</span>                                                │
+  │  ├── Invite users (email invitation flow)                            │
+  │  ├── Assign roles: admin, sales_manager, support, viewer, custom     │
+  │  ├── Create custom roles (combine permissions)                       │
+  │  ├── Deactivate/remove users                                         │
+  │  └── SSO configuration (SAML/OIDC — Enterprise+)                    │
+  │                                                                        │
+  │  <span class="fn">Plugin Configuration</span>                                                  │
+  │  ├── Mỗi plugin expose config schema (manifest.json config.schema)   │
+  │  ├── Tenant Admin fill in tenant-specific values:                    │
+  │  │   customer-care: { twilioSid, slaThresholds, pipelineStages }    │
+  │  │   automation:    { emailTemplates, triggerRules }                 │
+  │  └── Validation: against schema before save                          │
+  │                                                                        │
+  │  <span class="fn">Billing & Usage</span>                                                      │
+  │  ├── Current plan, tier, billing cycle                               │
+  │  ├── Usage: storage, API calls, active users                         │
+  │  ├── Upgrade tier request                                            │
+  │  └── Invoice history                                                 │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">❷ SYSTEM ADMIN</span> (system.crm.internal — internal network only)
+
+  Ai dùng:  DevOps, Platform engineers, CTO
+  Domain:   system.crm.internal (KHÔNG public, VPN/internal only)
+  Auth:     Separate auth system, MFA required, IP whitelist
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │  <span class="fn">Tenant Management</span>                                                     │
+  │  ├── Create/suspend/delete tenants                                   │
+  │  ├── Change tier: Basic → Premium → Enterprise → VIP                │
+  │  │   VIP upgrade: trigger dedicated DB provisioning pipeline         │
+  │  ├── View all tenants, usage, health                                 │
+  │  └── Data export (GDPR compliance)                                   │
+  │                                                                        │
+  │  <span class="fn">Plugin Deployment</span>                                                     │
+  │  ├── Deploy new plugin version (from Artifact Registry)              │
+  │  ├── Canary rollout: 5% → 25% → 100%                               │
+  │  ├── Rollback to previous version                                    │
+  │  ├── Schema migration status (DDL tracking)                          │
+  │  └── Deprecate / undeploy plugin                                     │
+  │                                                                        │
+  │  <span class="fn">Monitoring & Observability</span>                                            │
+  │  ├── Health dashboard: all services, DB, Redis, MQ status           │
+  │  ├── Per-tenant metrics: latency, error rate, storage usage          │
+  │  ├── Per-plugin metrics: execution time, query count, cache hit      │
+  │  ├── Active alerts, incident history                                 │
+  │  └── Links: Grafana dashboards, Jaeger traces, Loki logs            │
+  │                                                                        │
+  │  <span class="fn">Migration Management</span>                                                  │
+  │  ├── View schema_migrations status (which DDL has run)              │
+  │  ├── View tenant_plugin_migrations per tenant                        │
+  │  ├── Manual retry failed migrations                                  │
+  │  └── Orphaned data cleanup (deprecated plugins)                     │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">TẠI SAO TÁCH DOMAIN:</span>
+  ├── Security: admin endpoints tách biệt, auth khác nhau
+  ├── System Admin: internal-only → KHÔNG thể truy cập từ internet
+  ├── CORS: main app CORS ≠ admin CORS ≠ system CORS
+  └── Deployment: admin console deploy riêng, không ảnh hưởng main app</pre></div>
+</div>
+</div>
+
+<!-- SECURITY L1 -->
+<div class="pnl" id="p-sec">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Security tại L1 — Client-side Defense</h2></div>
+    <div class="nt rd"><strong>L1 là tuyến phòng thủ đầu tiên.</strong> Mặc dù backend (L2-L7) có defense in depth, L1 vẫn cần security riêng để ngăn chặn tấn công phía client: XSS, clickjacking, data leak qua browser, token theft.</div>
+    <div class="dg"><div class="dg-label">L1 security</div><pre>
+<span class="ty">CSP (Content Security Policy) HEADERS:</span>
+
+  Served by CDN / Nginx cùng HTML:
+  Content-Security-Policy:
+    default-src 'self';
+    script-src  'self' cdn.crm.com;          <span class="cm">← chỉ load JS từ CDN</span>
+    style-src   'self' 'unsafe-inline' fonts.googleapis.com;
+    img-src     'self' data: *.crm.com s3.amazonaws.com;
+    connect-src 'self' api.crm.com wss://ws.crm.com;
+    frame-src   'none';                       <span class="cm">← no iframe embed</span>
+    object-src  'none';                       <span class="cm">← no Flash/plugins</span>
+
+  → Ngăn inline script injection (XSS), unauthorized external scripts,
+    data exfiltration qua connect-src whitelist.
+
+
+<span class="ty">XSS PREVENTION:</span>
+
+  ├── React auto-escapes JSX output (default safe)
+  ├── dangerouslySetInnerHTML: FORBIDDEN trong plugin UI code
+  │   → ESLint rule: no-dangerously-set-inner-html → build fail
+  ├── User input sanitization: DOMPurify cho rich text fields
+  ├── URL sanitization: chỉ http/https (block javascript: protocol)
+  └── Plugin UI sandboxed: chạy trong Host Shell Error Boundary
+      → plugin XSS bug → chỉ ảnh hưởng plugin area, không host
+
+
+<span class="ty">CORS (Cross-Origin Resource Sharing):</span>
+
+  API server response headers:
+  Access-Control-Allow-Origin: https://acme.crm.com   <span class="cm">← specific, not *</span>
+  Access-Control-Allow-Methods: GET, POST, PUT, DELETE
+  Access-Control-Allow-Headers: Authorization, Content-Type, X-Tenant-ID
+  Access-Control-Max-Age: 3600                         <span class="cm">← preflight cache 1h</span>
+
+  ├── CORS per-tenant: acme.crm.com chỉ call API với origin acme.crm.com
+  ├── Admin console: admin.acme.crm.com → separate CORS config
+  ├── Custom domains: crm.initech.io → added to CORS whitelist
+  └── * (wildcard) NEVER used → prevent cross-tenant request
+
+
+<span class="ty">JWT STORAGE:</span>
+
+  <span class="rd">KHÔNG dùng localStorage / sessionStorage</span> (XSS accessible)
+  <span class="rd">KHÔNG dùng cookie</span> (CSRF risk, cookie sent automatically)
+
+  <span class="gn">DÙN: In-memory variable</span> (JavaScript closure / React context)
+  ├── Access token: giữ trong memory, mất khi tab close → re-auth
+  ├── Refresh token: httpOnly secure cookie (server-set, JS cannot read)
+  │   → dùng để get new access token khi expired
+  ├── Tab close → access token mất → safe
+  ├── XSS → attacker KHÔNG thể đọc token từ memory dễ dàng
+  └── CSRF → refresh cookie httpOnly + SameSite=Strict
+
+
+<span class="ty">CLICKJACKING PROTECTION:</span>
+  X-Frame-Options: DENY
+  frame-ancestors 'none' (CSP)
+  → App KHÔNG THỂ bị embed trong iframe của site khác
+
+
+<span class="ty">ADDITIONAL:</span>
+  ├── Referrer-Policy: strict-origin-when-cross-origin
+  ├── X-Content-Type-Options: nosniff
+  ├── Strict-Transport-Security: max-age=31536000 (HSTS 1 year)
+  ├── Permissions-Policy: camera=(), microphone=(), geolocation=()
+  │   (disable browser APIs không cần → giảm attack surface)
+  └── Subresource Integrity (SRI): plugin remoteEntry.js có integrity hash
+      → CDN bị compromise → hash mismatch → browser refuse to load</pre></div>
+</div>
+</div>
+
+<!-- FLOW -->
+<div class="pnl" id="p-flow">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Luồng tổng hợp — User mở trang Sales</h2></div>
+    <div class="dg"><div class="dg-label">L1 complete flow</div><pre>
+<span class="ty">User (ACME sales_manager) mở browser → acme.crm.com → click "Sales"</span>
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ <span class="hi">PHASE 1: Initial Load</span> (~800ms first visit, ~200ms cached)             │
+│                                                                         │
+│ ① Browser → acme.crm.com → CDN serves index.html + main.js   ~100ms  │
+│   (Host Shell bundle ~200KB gzipped, CDN edge cache)                   │
+│                                                                         │
+│ ② Host Shell boots:                                                    │
+│    Check memory → no JWT → redirect /login                    ~50ms   │
+│    User enters credentials → POST /api/v1/auth/login                   │
+│    → Backend validates → returns JWT pair                     ~300ms  │
+│    Access token → memory, Refresh token → httpOnly cookie              │
+│                                                                         │
+│ ③ Host Shell: GET /api/v1/me/context                          ~100ms  │
+│    Response: {                                                          │
+│      enabledPlugins: ["customer-data", "customer-care", "analytics"],  │
+│      permissions: ["sales:write", "customers:read", ...],              │
+│      theme: { logo: "acme-logo.png", primaryColor: "#2563eb" },       │
+│      config: { ... }                                                    │
+│    }                                                                    │
+│                                                                         │
+│ ④ Build sidebar: Customers, Sales, Calls, Reports, Settings  ~10ms   │
+│    (Chỉ items từ enabledPlugins, GLOBEX không thấy Sales)             │
+│    Apply theme: logo, colors → CSS variables                           │
+│                                                                         │
+│ ⑤ Default route /customers → load customer-data remote        ~200ms  │
+│    fetch cdn.crm.com/plugins/customer-data/v2.1/remoteEntry.js         │
+│    → render CustomerList inside PluginArea                             │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ <span class="hi">PHASE 2: Navigate to Sales</span> (~250ms first, ~50ms cached)               │
+│                                                                         │
+│ ⑥ User clicks "Sales" in sidebar                                      │
+│    URL → /sales (React Router, no page reload)                ~0ms    │
+│                                                                         │
+│ ⑦ Host Shell: /sales → customer-care remote                           │
+│    First time: fetch remoteEntry.js from CDN                  ~150ms  │
+│    Cached: browser cache → instant                            ~5ms    │
+│                                                                         │
+│ ⑧ customer-care remote: render SalesPipeline component        ~50ms   │
+│    SalesPipeline calls API: GET /api/v1/sales?status=open              │
+│    → L2 Gateway → L3 Plugin → L4 DB → response               ~45ms   │
+│                                                                         │
+│ ⑨ SalesPipeline renders pipeline board with sales data        ~20ms   │
+│    (Kanban board: New → Qualifying → Proposal → Closed)               │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ <span class="hi">PHASE 3: Create Sale</span>                                                   │
+│                                                                         │
+│ ⑩ User clicks "New Sale" → SaleForm modal opens               ~10ms  │
+│    Fill: customer, title, amount → click Save                          │
+│                                                                         │
+│ ⑪ API call: POST /api/v1/sales { customerId, title, amount }          │
+│    → L2 Gateway (3.9ms) → L3 Plugin (41ms)                            │
+│    → Response: 201 Created { id: "sale-42", status: "new" }   ~50ms   │
+│                                                                         │
+│ ⑫ SalesPipeline: add new sale card to "New" column            ~5ms    │
+│    Optimistic update: card appears BEFORE API response                 │
+│    API success → confirm. API fail → rollback + error toast.          │
+│                                                                         │
+│ ⑬ WebSocket: receive "sale.created" notification               ~1s    │
+│    → Toast: "New sale created: ACME Deal $50,000"                     │
+│    (Other team members online also receive notification)              │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">TIMING SUMMARY:</span>
+
+  ┌───────────────────────────────┬──────────┬──────────────────────────┐
+  │ Action                        │ Time     │ Note                     │
+  ├───────────────────────────────┼──────────┼──────────────────────────┤
+  │ Initial page load (uncached) │ ~800ms   │ CDN + auth + context     │
+  │ Initial page load (cached)   │ ~200ms   │ Service Worker + memory  │
+  │ Navigate to new plugin page  │ ~250ms   │ Fetch remote + API call  │
+  │ Navigate (cached remote)     │ ~50ms    │ In-memory + API call     │
+  │ Create/Update action         │ ~60ms    │ Optimistic + API confirm │
+  │ Real-time notification       │ ~1s      │ WebSocket push           │
+  └───────────────────────────────┴──────────┴──────────────────────────┘
+
+  <span class="ty">L1 KHÔNG chứa business logic.</span>
+  L1 chỉ: render UI, gọi API, hiển thị response.
+  Business logic: L3. Data access: L4. Storage: L5.</pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['map','web','fed','mob','adm','sec','flow'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

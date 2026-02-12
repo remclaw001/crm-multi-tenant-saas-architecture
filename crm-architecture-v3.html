@@ -390,7 +390,6 @@
          <button class="on" onclick="go('arch')">Kiến trúc tổng quan</button>
          <button onclick="go('data')">Database Topology</button>
          <button onclick="go('deploy')">Deployment Topology</button>
-         <button onclick="go('ctx')">Dual Context</button>
          <button onclick="go('tier')">Tier Comparison</button>
 
       </div>
@@ -744,75 +743,6 @@
       </div>
    </div>
 
-   <!-- ═══════════════════════════════════════ -->
-   <!-- DUAL CONTEXT -->
-   <!-- ═══════════════════════════════════════ -->
-   <div class="pnl" id="p-ctx">
-
-      <div class="sec">
-         <div class="sec-h"><span class="sec-n">CTX</span>
-            <h2 class="sec-t">Dual Context System</h2>
-         </div>
-
-         <div class="dg">
-            <div class="dg-label">tenant context + execution context</div>
-            <pre>
-<span class="ty">TENANT CONTEXT</span> (cached, long-lived, ~10KB)
-│
-│  Tạo khi: first request from tenant (hoặc cache miss)
-│  Cache: LRU in-memory, max 1000 entries, evict 2h inactive
-│  Source: Metadata DB (tenants + tenant_plugins tables)
-│  Invalidate: plugin enable/disable → Redis Pub/Sub → all instances
-│
-│  ┌─────────────────────────────────────────────────────────────┐
-│  │  tenantId:       "acme-123"                                 │
-│  │  tier:           "premium"                                  │
-│  │  status:         "active"                                   │
-│  │  enabledPlugins: {                                          │
-│  │    "customer-data": { version: "2.1.0", config: {...} },   │
-│  │    "customer-care": { version: "1.5.0", config: {...} },   │
-│  │    "analytics":     { version: "1.0.0", config: {...} }    │
-│  │  }                                                          │
-│  │  <span class="hi">dbPool:          "shared"</span>    ← hoặc "vip-initech"          │
-│  │  cachePrefix:     "t:acme-123"                              │
-│  │  quotas:          { rateLimit: 500, storage: 50GB, ... }   │
-│  │  permissions:     Set { "sales:write", "customers:read" }  │
-│  └─────────────────────────────────────────────────────────────┘
-
-
-<span class="ty">EXECUTION CONTEXT</span> (per-request, short-lived, ~15KB)
-│
-│  Tạo khi: sau Gateway, trước Plugin execution
-│  Sống: 1 request only → GC after response
-│  Chứa: scoped wrappers quanh shared resources
-│
-│  ┌─────────────────────────────────────────────────────────────┐
-│  │  requestId:    "req-789"                                    │
-│  │  tenantId:     "acme-123"                                   │
-│  │  userId:       "user-5"                                     │
-│  │  roles:        ["sales_manager"]                            │
-│  │                                                             │
-│  │  db:           TenantScopedDB                               │
-│  │                ├── raw connection (#14 from SharedPool)     │
-│  │                └── wrapped by Query Interceptor              │
-│  │                                                             │
-│  │  cache:        TenantScopedCache (prefix "t:acme-123")     │
-│  │  logger:       ScopedLogger (auto requestId+tenantId)      │
-│  │  eventBus:     ScopedEventBus (filter by enabledPlugins)   │
-│  │  services:     { email, storage, notification, search }     │
-│  │  pluginConfig: { ... tenant-specific for current plugin }  │
-│  └─────────────────────────────────────────────────────────────┘
-
-
-<span class="ty">PLUGIN THẤY GÌ:</span>
-
-  Plugin chỉ nhận ctx (Execution Context).
-  Plugin KHÔNG biết về: connection pool, tenant_id injection, RLS,
-  cache prefix, log context, hay nó đang chạy trên shared hay VIP DB.
-  Tất cả được trừu tượng hóa bởi L4 Data Access.</pre>
-         </div>
-      </div>
-   </div>
 
    <!-- ═══════════════════════════════════════ -->
    <!-- TIER COMPARISON -->
@@ -870,7 +800,7 @@ Enterprise dùng Shared+RLS, giống Premium. Chỉ VIP có Dedicated DB.</pre>
          document.querySelectorAll('.nav button').forEach(function (b) { b.classList.remove('on') });
          var p = document.getElementById('p-' + n);
          if (p) p.classList.add('on');
-         var names = ['arch', 'data', 'deploy', 'ctx', 'tier'];
+         var names = ['arch', 'data', 'deploy', 'tier'];
          var i = names.indexOf(n);
          var btns = document.querySelectorAll('.nav button');
          if (i >= 0 && btns[i]) btns[i].classList.add('on');

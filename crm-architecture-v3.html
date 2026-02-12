@@ -1,90 +1,417 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRM SaaS — Architecture v3 (Consolidated)</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
-  --bd:#1c2038;--bda:#2a3055;
-  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
-  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
-  --gn:#10b981;--gnd:rgba(16,185,129,.08);
-  --am:#f59e0b;--amd:rgba(245,158,11,.08);
-  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
-  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
-  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
-  --or:#f97316;--pk:#ec4899;
-  --mono:'IBM Plex Mono',monospace;
-  --head:'Anybody',sans-serif;
-  --body:'Source Serif 4',Georgia,serif;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
-.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
-.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
-.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
-.hero h1{font-family:var(--head);font-size:clamp(1.8rem,4vw,3rem);font-weight:800;line-height:1.1;margin-bottom:14px;letter-spacing:-.5px}
-.hero h1 span{color:var(--bl)}
-.hero p{font-size:1rem;color:var(--td);max-width:660px;margin:0 auto}
-.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
-.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
-.nav::-webkit-scrollbar{display:none}
-.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
-.nav button:hover{color:var(--td)}
-.nav button.on{color:var(--bl)}
-.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
-.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
-.pnl{display:none}.pnl.on{display:block}
-.sec{margin-bottom:56px}
-.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
-.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
-.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
-.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
-.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
-.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
-.cm{color:#3e4460;font-style:italic}.nu{color:#f78c6c}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.pk{color:#ec4899}.or{color:#f97316}.fn{color:#82aaff}.st{color:#c3e88d}.kw{color:#c792ea}
-.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
-.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
-.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
-.nt strong{color:inherit}
-@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.pnl.on .sec{animation:fu .3s ease both}
-.pnl.on .sec:nth-child(2){animation-delay:.04s}
-.pnl.on .sec:nth-child(3){animation-delay:.08s}
-.pnl.on .sec:nth-child(4){animation-delay:.12s}
-</style>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>CRM SaaS — Architecture v3 (Consolidated)</title>
+   <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap"
+      rel="stylesheet">
+   <style>
+      :root {
+         --bg: #060810;
+         --sf: #0c0e18;
+         --sf2: #111420;
+         --bd: #1c2038;
+         --bda: #2a3055;
+         --tx: #d8dce8;
+         --td: #7880a0;
+         --tm: #484e6a;
+         --bl: #3b82f6;
+         --bld: rgba(59, 130, 246, .1);
+         --gn: #10b981;
+         --gnd: rgba(16, 185, 129, .08);
+         --am: #f59e0b;
+         --amd: rgba(245, 158, 11, .08);
+         --rd: #ef4444;
+         --rdd: rgba(239, 68, 68, .08);
+         --cy: #06b6d4;
+         --cyd: rgba(6, 182, 212, .08);
+         --vi: #8b5cf6;
+         --vid: rgba(139, 92, 246, .08);
+         --or: #f97316;
+         --pk: #ec4899;
+         --mono: 'IBM Plex Mono', monospace;
+         --head: 'Anybody', sans-serif;
+         --body: 'Source Serif 4', Georgia, serif;
+      }
+
+      * {
+         margin: 0;
+         padding: 0;
+         box-sizing: border-box
+      }
+
+      body {
+         font-family: var(--body);
+         background: var(--bg);
+         color: var(--tx);
+         line-height: 1.7;
+         -webkit-font-smoothing: antialiased
+      }
+
+      .hero {
+         padding: 72px 32px 48px;
+         text-align: center;
+         position: relative;
+         overflow: hidden
+      }
+
+      .hero::before {
+         content: '';
+         position: absolute;
+         inset: 0;
+         background: repeating-linear-gradient(0deg, transparent, transparent 59px, var(--bd) 59px, var(--bd) 60px), repeating-linear-gradient(90deg, transparent, transparent 59px, var(--bd) 59px, var(--bd) 60px);
+         opacity: .18;
+         pointer-events: none
+      }
+
+      .hero-tag {
+         font-family: var(--mono);
+         font-size: 10px;
+         letter-spacing: 3px;
+         text-transform: uppercase;
+         color: var(--bl);
+         display: inline-block;
+         padding: 5px 14px;
+         border: 1px solid var(--bd);
+         border-radius: 2px;
+         background: var(--sf);
+         margin-bottom: 20px
+      }
+
+      .hero h1 {
+         font-family: var(--head);
+         font-size: clamp(1.8rem, 4vw, 3rem);
+         font-weight: 800;
+         line-height: 1.1;
+         margin-bottom: 14px;
+         letter-spacing: -.5px
+      }
+
+      .hero h1 span {
+         color: var(--bl)
+      }
+
+      .hero p {
+         font-size: 1rem;
+         color: var(--td);
+         max-width: 660px;
+         margin: 0 auto
+      }
+
+      .nw {
+         position: sticky;
+         top: 0;
+         z-index: 50;
+         background: rgba(6, 8, 16, .9);
+         backdrop-filter: blur(14px);
+         border-bottom: 1px solid var(--bd)
+      }
+
+      .nav {
+         max-width: 1300px;
+         margin: 0 auto;
+         display: flex;
+         overflow-x: auto;
+         scrollbar-width: none;
+         padding: 0 12px
+      }
+
+      .nav::-webkit-scrollbar {
+         display: none
+      }
+
+      .nav button {
+         font-family: var(--mono);
+         font-size: 11.5px;
+         font-weight: 500;
+         padding: 13px 15px;
+         background: none;
+         border: none;
+         color: var(--tm);
+         cursor: pointer;
+         white-space: nowrap;
+         position: relative;
+         transition: color .15s;
+         letter-spacing: .3px
+      }
+
+      .nav button:hover {
+         color: var(--td)
+      }
+
+      .nav button.on {
+         color: var(--bl)
+      }
+
+      .nav button.on::after {
+         content: '';
+         position: absolute;
+         bottom: 0;
+         left: 8px;
+         right: 8px;
+         height: 2px;
+         background: var(--bl);
+         border-radius: 2px 2px 0 0
+      }
+
+      .wrap {
+         max-width: 1300px;
+         margin: 0 auto;
+         padding: 36px 16px 120px
+      }
+
+      .pnl {
+         display: none
+      }
+
+      .pnl.on {
+         display: block
+      }
+
+      .sec {
+         margin-bottom: 56px
+      }
+
+      .sec-h {
+         display: flex;
+         align-items: baseline;
+         gap: 12px;
+         margin-bottom: 24px;
+         padding-bottom: 14px;
+         border-bottom: 1px solid var(--bd)
+      }
+
+      .sec-n {
+         font-family: var(--mono);
+         font-size: 10px;
+         color: var(--bl);
+         background: var(--bld);
+         padding: 3px 9px;
+         border-radius: 2px;
+         letter-spacing: 1px
+      }
+
+      .sec-t {
+         font-family: var(--head);
+         font-size: 1.5rem;
+         font-weight: 600;
+         letter-spacing: -.3px
+      }
+
+      .dg {
+         background: var(--sf);
+         border: 1px solid var(--bd);
+         border-radius: 6px;
+         padding: 28px;
+         margin: 16px 0;
+         overflow-x: auto;
+         position: relative
+      }
+
+      .dg::before {
+         content: '';
+         position: absolute;
+         inset: 0;
+         border-radius: 6px;
+         background: repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(28, 32, 56, .22) 23px, rgba(28, 32, 56, .22) 24px), repeating-linear-gradient(90deg, transparent, transparent 23px, rgba(28, 32, 56, .22) 23px, rgba(28, 32, 56, .22) 24px);
+         pointer-events: none
+      }
+
+      .dg pre {
+         position: relative;
+         z-index: 1;
+         font-family: var(--mono);
+         font-size: 11px;
+         line-height: 1.85;
+         color: #8890b8;
+         white-space: pre;
+         margin: 0
+      }
+
+      .cm {
+         color: #3e4460;
+         font-style: italic
+      }
+
+      .nu {
+         color: #f78c6c
+      }
+
+      .ty {
+         color: #ffcb6b
+      }
+
+      .hi {
+         color: #3b82f6;
+         font-weight: 600
+      }
+
+      .gn {
+         color: #10b981
+      }
+
+      .rd {
+         color: #ef4444
+      }
+
+      .am {
+         color: #f59e0b
+      }
+
+      .cy {
+         color: #06b6d4
+      }
+
+      .vi {
+         color: #8b5cf6
+      }
+
+      .pk {
+         color: #ec4899
+      }
+
+      .or {
+         color: #f97316
+      }
+
+      .fn {
+         color: #82aaff
+      }
+
+      .st {
+         color: #c3e88d
+      }
+
+      .kw {
+         color: #c792ea
+      }
+
+      .dg-label {
+         position: absolute;
+         top: 10px;
+         right: 14px;
+         font-family: var(--mono);
+         font-size: 9px;
+         letter-spacing: 1.5px;
+         text-transform: uppercase;
+         color: var(--tm);
+         z-index: 2
+      }
+
+      .nt {
+         padding: 16px 20px;
+         border-radius: 4px;
+         margin: 14px 0;
+         font-size: .85rem;
+         border-left: 3px solid;
+         background: var(--sf2)
+      }
+
+      .nt.bl {
+         border-color: var(--bl);
+         color: #8bb8f8
+      }
+
+      .nt.gn {
+         border-color: var(--gn);
+         color: #80d8b8
+      }
+
+      .nt.am {
+         border-color: var(--am);
+         color: #f0d080
+      }
+
+      .nt.rd {
+         border-color: var(--rd);
+         color: #f0a0a0
+      }
+
+      .nt strong {
+         color: inherit
+      }
+
+      @keyframes fu {
+         from {
+            opacity: 0;
+            transform: translateY(8px)
+         }
+
+         to {
+            opacity: 1;
+            transform: translateY(0)
+         }
+      }
+
+      .pnl.on .sec {
+         animation: fu .3s ease both
+      }
+
+      .pnl.on .sec:nth-child(2) {
+         animation-delay: .04s
+      }
+
+      .pnl.on .sec:nth-child(3) {
+         animation-delay: .08s
+      }
+
+      .pnl.on .sec:nth-child(4) {
+         animation-delay: .12s
+      }
+
+      .split-layout {
+         display: grid;
+         grid-template-columns: 1fr 1fr;
+         gap: 24px;
+         align-items: start;
+      }
+
+      @media (max-width: 1024px) {
+         .split-layout {
+            grid-template-columns: 1fr;
+         }
+      }
+   </style>
 </head>
+
 <body>
 
-<div class="hero">
-    <div class="hero-tag">Architecture v3 — Consolidated</div>
-    <h1>CRM Multi-tenant <span>SaaS</span></h1>
-    <p>Kiến trúc 7 layers hợp nhất — đồng bộ với mọi tài liệu chi tiết đã xây dựng.</p>
-</div>
+   <div class="hero">
+      <div class="hero-tag">Architecture v3 — Consolidated</div>
+      <h1>CRM Multi-tenant <span>SaaS</span></h1>
+      <p>Kiến trúc 7 layers hợp nhất — đồng bộ với mọi tài liệu chi tiết đã xây dựng.</p>
+   </div>
 
-<div class="nw"><div class="nav">
-    <button class="on" onclick="go('arch')">Kiến trúc tổng quan</button>
-    <button onclick="go('layer')">Chi tiết 7 Layers</button>
-    <button onclick="go('data')">Database Topology</button>
-    <button onclick="go('ctx')">Dual Context</button>
-    <button onclick="go('tier')">Tier Comparison</button>
-    <button onclick="go('delta')">Changelog v2→v3</button>
-</div></div>
+   <div class="nw">
+      <div class="nav">
+         <button class="on" onclick="go('arch')">Kiến trúc tổng quan</button>
+         <button onclick="go('data')">Database Topology</button>
+         <button onclick="go('deploy')">Deployment Topology</button>
+         <button onclick="go('ctx')">Dual Context</button>
+         <button onclick="go('tier')">Tier Comparison</button>
 
-<div class="wrap">
+      </div>
+   </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- ARCHITECTURE OVERVIEW -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl on" id="p-arch">
+   <div class="wrap">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">ARCH</span><h2 class="sec-t">Kiến trúc 7 Layers — Sơ đồ tổng quan</h2></div>
+      <!-- ═══════════════════════════════════════ -->
+      <!-- ARCHITECTURE OVERVIEW -->
+      <!-- ═══════════════════════════════════════ -->
+      <div class="pnl on" id="p-arch">
 
-    <div class="dg"><div class="dg-label">7-layer architecture v3</div><pre>
+         <div class="sec">
+            <div class="sec-h"><span class="sec-n">ARCH</span>
+               <h2 class="sec-t">Kiến trúc 7 Layers — Sơ đồ & Vai trò</h2>
+            </div>
+
+            <div class="split-layout">
+               <div class="dg">
+                  <div class="dg-label">7-layer architecture v3</div>
+                  <pre>
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  <span class="kw">L1  PRESENTATION</span>                                                              │
 │                                                                                 │
@@ -192,13 +519,134 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <span class="fn">┃  │ ScopedLog  │ │OpenTelemetry│ │ → Grafana  │ │ Slack   │ │Live   │ │Immut.│┃</span>
 <span class="fn">┃  │ → Loki/ELK │ │ → Jaeger   │ │ per-layer  │ │ Email   │ │Ready  │ │Append│┃</span>
 <span class="fn">┃  │ PII redact │ │ 5% sample  │ │ catalog    │ │Escalate │ │Deps   │ │only  │┃</span>
-<span class="fn">┃  └────────────┘ └────────────┘ └────────────┘ └─────────┘ └───────┘ └──────┘┃</span></pre></div>
-</div>
+<span class="fn">┃  └────────────┘ └────────────┘ └────────────┘ └─────────┘ └───────┘ └──────┘┃</span></pre>
+               </div>
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">DEPLOY</span><h2 class="sec-t">Deployment Topology</h2></div>
+               <div class="dg">
+                  <div class="dg-label">layer responsibility matrix</div>
+                  <pre>
 
-    <div class="dg"><div class="dg-label">deployment topology v3</div><pre>
+<span class="kw">L1 PRESENTATION (Front-end)</span>
+  • <span class="hi">Trách nhiệm:</span> UI/UX, hiển thị dữ liệu, nhận input.
+  • <span class="hi">Đặc điểm:</span> Client-side (React/Flutter). No business logic.
+  • <span class="hi">Ví dụ:</span> Web App, Mobile App, Admin Console.
+
+
+
+
+
+
+<span class="kw">L2 API GATEWAY (Entry Point)</span>
+  • <span class="hi">Trách nhiệm:</span> AuthN, AuthZ, Rate Limit, Routing.
+  • <span class="hi">Đặc điểm:</span> Sequential middleware pipeline. Fail-fast.
+  • <span class="hi">Output:</span> Routed to Plugin/Handler.
+
+
+
+
+
+
+<span class="kw">L3 BUSINESS LOGIC (Core)</span>
+  • <span class="hi">Vai trò:</span> Trái tim của hệ thống, xử lý nghiệp vụ.
+  • <span class="hi">Trách nhiệm:</span> Thực thi logic plugin, validate nghiệp vụ,
+    tính toán, gửi event.
+  • <span class="hi">Đặc điểm:</span> Stateless. Chạy trong Sandbox (đối với plugin).
+    Tương tác qua Context.
+  • <span class="hi">Thành phần:</span> Plugin System, Execution Context,
+    Shared Services.
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+<span class="kw">L4 DATA ACCESS (Abstraction)</span>
+  • <span class="hi">Vai trò:</span> Trung gian bảo vệ và tối ưu hóa truy xuất dữ liệu.
+  • <span class="hi">Trách nhiệm:</span> Quản lý kết nối (Pooling), Caching (L1/L2),
+    Tenant Injection (RLS), Query Interception.
+  • <span class="hi">Đặc điểm:</span> Developer KHÔNG gọi trực tiếp DB Driver mà gọi
+    qua L4 abstraction.
+  • <span class="hi">Mục tiêu:</span> Che giấu sự phức tạp của hạ tầng multi-tenant.
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+<span class="kw">L5 INFRASTRUCTURE (Stateful)</span>
+  • <span class="hi">Vai trò:</span> Lưu trữ và duy trì trạng thái hệ thống.
+  • <span class="hi">Trách nhiệm:</span> Persist data (PostgreSQL), Cache (Redis),
+    Queue (RabbitMQ), File (S3).
+  • <span class="hi">Đặc điểm:</span> Là lớp duy nhất "có trạng thái" (Stateful).
+    Cần backup, replication.
+
+
+
+
+
+
+
+
+<span class="rd">L6 CROSS-CUTTING CONCERNS (System-wide)</span>
+  • <span class="hi">Vai trò:</span> Các chính sách áp dụng toàn cục.
+  • <span class="hi">Trách nhiệm:</span> Security Policy, Error Handling,
+    Config Management, Dependency Injection.
+  • <span class="hi">Đặc điểm:</span> Áp dụng lên TẤT CẢ các tầng L1-L5.
+
+
+
+
+
+
+
+
+<span class="vi">L7 OBSERVABILITY (Monitoring)</span>
+  • <span class="hi">Vai trò:</span> Giám sát sức khỏe và hành vi hệ thống.
+  • <span class="hi">Trách nhiệm:</span> Logging (Logs), Tracing (Spans),
+    Metrics (Counter/Gauge).
+  • <span class="hi">Đặc điểm:</span> Passive, overhead thấp (~1ms).
+    Trả lời câu hỏi "Tại sao?".</pre>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════ -->
+      <!-- DEPLOYMENT TOPOLOGY -->
+      <!-- ═══════════════════════════════════════ -->
+      <div class="pnl" id="p-deploy">
+
+         <div class="sec">
+            <div class="sec-h"><span class="sec-n">DEPLOY</span>
+               <h2 class="sec-t">Deployment Topology</h2>
+            </div>
+
+            <div class="dg">
+               <div class="dg-label">deployment topology v3</div>
+               <pre>
 ┌─ <span class="ty">Ingress / Load Balancer</span> (Nginx / K8s Ingress) ──────────────────────────────┐
 │   TLS termination  ·  Round-robin to instances  ·  Health-based routing      │
 └──────────────────────────────┬────────────────────────────────────────────────┘
@@ -233,214 +681,31 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │  <span class="cm">VIP: Dedicated PostgreSQL per tenant. Redis/MQ shared (dedicated optional).</span>│
 │  <span class="cm">PostgreSQL isolation = primary bottleneck → dedicated DB giải quyết.</span>       │
 │                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘</pre></div>
-</div>
-</div>
-
-<!-- ═══════════════════════════════════════ -->
-<!-- LAYER DETAILS -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-layer">
-
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">L2</span><h2 class="sec-t">API Gateway — 5 Middleware (sequential)</h2></div>
-
-    <div class="dg"><div class="dg-label">gateway pipeline</div><pre>
-  Request ──▶ <span class="hi">Load Balancer</span> ──▶ <span class="hi">Tenant Resolver</span> ──▶ <span class="hi">Auth Guard</span> ──▶ <span class="hi">Rate Limiter</span> ──▶ <span class="hi">Route Matcher</span>
-               TLS terminate     subdomain/header    JWT validate    sliding window    URL → plugin
-               round-robin       → Redis cache        + blacklist     Redis ZADD        + method
-               pick instance     → Metadata DB        + RBAC check    per-tier limit    + permission
-                                  (on miss)            + tenant match                    check
-
-  Mỗi middleware có thể REJECT request → trả lỗi ngay, không đi tiếp.
-
-  ┌──────────────────────────────────────────────────────────────────────────────┐
-  │ <span class="ty">Route Matcher output:</span>                                                       │
-  │   plugin: "customer-care", method: "createSale", permission: "sales:write" │
-  │   → L3 biết chính xác plugin nào xử lý, method nào gọi.                   │
-  └──────────────────────────────────────────────────────────────────────────────┘</pre></div>
-</div>
-
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">L3</span><h2 class="sec-t">Business Logic — Plugin System + Context + Services</h2></div>
-
-    <div class="dg"><div class="dg-label">L3 components</div><pre>
-<span class="ty">PLUGIN MANAGEMENT (system-level, singleton):</span>
-
-  Plugin Manager ────── lifecycle: deploy, upgrade, rollback, canary
-  Plugin Registry ───── manifests, routes, events, hooks, permissions, deps
-  Sandbox Engine ────── VM isolate, resource limits (5s/50MB/50 queries)
-  Event Bus ─────────── sync in-process + async MQ publish
-  Hook Registry ──────── before/after hooks, runtime filter by enabledPlugins
-
-<span class="ty">PLUGIN CORES (singleton, stateless — code chạy trong sandbox):</span>
-
-  CustomerDataCore ──── customers, companies, contacts (tables owned)
-  CustomerCareCore ──── sales, call_logs, tickets (tables owned)
-  AnalyticsCore ──────── report_snapshots, dashboards (tables owned)
-  AutomationCore ────── rules, email_templates
-  MarketingCore ─────── campaigns, segments
-
-  <span class="cm">Plugin cores KHÔNG gọi nhau trực tiếp.</span>
-  <span class="cm">Tương tác qua: events, hooks, hoặc đọc table nhau qua ctx.db.</span>
-
-<span class="ty">CONTEXT BUILDING:</span>
-
-  Tenant Context Manager ── LRU cache max 1000, TTL 2h
-                            Chứa: tier, enabledPlugins, dbPool, quotas
-                            Source: Metadata DB (on cache miss)
-
-  Execution Context Builder ── tạo per-request (~15KB)
-                               Wrap: DB conn, cache, logger, eventBus
-                               Acquire từ Pool Manager → release sau response
-
-<span class="ty">SHARED SERVICES (singleton, called via ctx.services):</span>
-
-  Email ──── template engine + MQ async delivery
-  Storage ── S3 wrapper, auto tenant-prefix /tenants/{id}/
-  Notification ── WebSocket + Push
-  Search ── Elasticsearch wrapper, auto tenant index
-  Scheduler ── cron, delayed tasks (tenant-aware)
-  MQ Publisher ── publish to RabbitMQ exchanges</pre></div>
-</div>
-
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">L4</span><h2 class="sec-t">Data Access — 4 thực thể, cổng duy nhất tới data</h2></div>
-
-    <div class="dg"><div class="dg-label">L4 detail</div><pre>
-<span class="rd">QUERY INTERCEPTOR</span> (tạo per-request, wrap quanh DB connection)
-│
-├── <span class="fn">TenantInjector</span>:    auto-add tenant_id vào SELECT/INSERT/UPDATE/DELETE
-├── <span class="fn">QueryValidator</span>:    6 safety checks (tenant_id? parameterized? allowed table?)
-├── <span class="fn">QueryCounter</span>:      [n/50] limit (sandbox), block khi vượt
-└── <span class="fn">QueryLogger</span>:       slow query &gt;100ms → WARN, &gt;500ms → ALERT
-
-  Double safety: Interceptor (L4) + PostgreSQL RLS (L5)
-  → Cần CẢ HAI bị compromised mới leak data.
+└─────────────────────────────────────────────────────────────────────────────┘</pre>
+            </div>
+         </div>
+      </div>
 
 
-<span class="am">POOL MANAGER</span> (singleton, tạo khi bootstrap)
-│
-├── <span class="fn">PoolRegistry</span>:        metadata(20), shared(200), vip-initech(30), vip-stark(30)
-├── <span class="fn">PoolRouter</span>:          tenantCtx.dbPool → đúng pool instance
-├── <span class="fn">ConnectionConfigurator</span>: SET/RESET app.current_tenant per connection
-├── <span class="fn">HealthChecker</span>:       30s ping, dead conn → replace
-└── <span class="fn">TenantQuotaEnforcer</span>: per-tenant cap 20 conns (shared pool) → chống starvation
 
+      <!-- ═══════════════════════════════════════ -->
+      <!-- LAYER DETAILS -->
+      <!-- ═══════════════════════════════════════ -->
+   </div>
 
-<span class="cy">CACHE MANAGER</span> (singleton, creates TenantScopedCache per-request)
-│
-├── L1: In-memory (per instance, 100MB, TTL 60s, LRU)       ~0.01ms
-├── L2: Redis cluster (shared, TTL 5-15min, LZ4 compressed) ~1-2ms
-├── L3: Database (source of truth)                            ~5-20ms
-└── Invalidation: write → delete L1+L2 → Pub/Sub → all instances clear L1
+   <!-- ═══════════════════════════════════════ -->
+   <!-- DATABASE TOPOLOGY -->
+   <!-- ═══════════════════════════════════════ -->
+   <div class="pnl" id="p-data">
 
+      <div class="sec">
+         <div class="sec-h"><span class="sec-n">DB</span>
+            <h2 class="sec-t">Database Topology — 3 loại DB + Connection Pools</h2>
+         </div>
 
-<span class="gn">MIGRATION ENGINE</span> (chạy khi admin operation, KHÔNG per-request)
-│
-├── <span class="hi">Schema Migrations (DDL)</span>: CREATE TABLE IF NOT EXISTS, ADD COLUMN IF NOT EXISTS
-│   → Chạy 1 lần cho toàn hệ thống khi plugin deploy/upgrade
-│   → Track: schema_migrations (plugin, version) — không có tenant
-│   → Backward compatible bắt buộc (shared tables!)
-│
-├── <span class="am">Tenant Migrations (DML)</span>: seed data, RLS policies, default configs
-│   → Chạy per-tenant mỗi lần enable plugin
-│   → Track: tenant_plugin_migrations (tenant, plugin, version)
-│
-├── Advisory Lock: pg_advisory_lock per operation → no race condition
-└── Dependency enforcement: cannot disable plugin X if Y depends on X</pre></div>
-</div>
-
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">L5</span><h2 class="sec-t">Infrastructure — 5 stateful services</h2></div>
-
-    <div class="dg"><div class="dg-label">L5 detail</div><pre>
-<span class="hi">POSTGRESQL</span> (3 loại instance)
-│
-├── <span class="am">Metadata DB</span> (#1): tenants, tenant_plugins, plugin_registry,
-│   plugin_migrations, schema_migrations, audit_log, webhooks, system_config
-│   → LOW traffic (cached), HIGH write (audit_log only, partitioned monthly)
-│
-├── <span class="gn">Shared Data DB</span> (#2): business tables của MỌI standard tenants
-│   + 3 Read Replicas (analytics, search indexing, hot standby)
-│   + PgBouncer (200 app conns → 50 DB conns)
-│   → RLS on every table, Query Interceptor double safety
-│
-└── <span class="vi">VIP Data DBs</span> (#3, #4...): 1 instance per VIP tenant
-    Same schema, custom tuning, own backup schedule
-
-
-<span class="rd">REDIS CLUSTER</span> (3 Master + Sentinel — 6 vai trò)
-│
-├── ❶ L2 Cache:          t:{tenantId}:{plugin}:{entity}:{hash}, TTL 5-15min
-├── ❷ Domain Map:         domain-map:{subdomain} → tenantId, TTL 5min
-├── ❸ Rate Limit:         rl:{tenantId} (Sorted Set, sliding window)
-├── ❹ Token Blacklist:    blacklist:{jti}, TTL = token remaining lifetime
-├── ❺ Pub/Sub:            cache:invalidate, context:invalidate, plugin:deployed
-└── ❻ Realtime Counters:  t:{tenantId}:stats:{metric} (INCR, periodic sync to DB)
-
-
-<span class="or">RABBITMQ CLUSTER</span> (3 nodes, quorum queues)
-│
-├── Exchange <span class="or">crm.events</span> (topic): routing key {entity}.{action}
-│   → Bindings: customer.* → notification, *.created → search.index, etc
-│   → 1 message → multiple queues (fan-out by routing key)
-│
-├── Exchange <span class="or">crm.system</span> (fanout): plugin.deployed, config.updated
-│
-├── Queues: notification(3w), search.index(5w), webhook(3w), analytics(2w), email(3w)
-│   → Per-queue DLQ, 3 retries with exponential backoff (5s→30s→2min)
-│
-└── VIP Priority: messages with priority 10 (VIP) / 5 (standard) / 1 (basic)
-
-
-<span class="cy">S3/MINIO</span>: /tenants/{id}/uploads|exports|backups, /system/plugin-artifacts|audit-archives
-<span class="pk">ELASTICSEARCH</span>: per-tenant indices ({tenantId}-customers, {tenantId}-sales), ~1-2s lag</pre></div>
-</div>
-
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">L6+L7</span><h2 class="sec-t">Cross-cutting + Observability</h2></div>
-
-    <div class="dg"><div class="dg-label">L6 + L7</div><pre>
-<span class="rd">L6 CROSS-CUTTING</span> (vertical, xuyên suốt L1-L5):
-
-  Security ───────── Encryption (AES-256 rest, TLS 1.3 transit), PII masking,
-                     tenant isolation enforcement, secret mgmt (Vault/KMS)
-  Error Framework ── Typed errors, circuit breaker, retry, bulkhead, fallback
-                     Plugin error boundary (no cascade crash)
-  Config ─────────── Global/Tier/Tenant levels, hot reload, feature flags
-  <span class="gn">Dependency Mgmt</span> ── Plugin dependency resolver + disable chain enforcement
-                     <span class="cm">(v2 gộp vào Plugin Manager — v3 tách ra L6 vì xuyên tầng)</span>
-
-
-<span class="vi">L7 OBSERVABILITY</span> (6 components, passive, ~1ms overhead):
-
-  <span class="gn">Logging</span> ─────── ScopedLogger per-request, auto {requestId, tenantId, userId, plugin}
-                 JSON → stdout → Promtail → Loki/ELK. PII redacted. 5 levels.
-  <span class="cy">Tracing</span> ─────── OpenTelemetry spans per operation → Jaeger. Context propagation
-                 qua HTTP → Exec Context → DB comments → MQ headers → workers.
-                 Sampling: 5% random + 100% errors + 100% slow. VIP 20%.
-  <span class="am">Metrics</span> ─────── Prometheus scrape /metrics 15s. Catalog: gateway (4), business (5),
-                 data-access (7), infrastructure (7). Histograms for P50/P95/P99.
-  <span class="rd">Alerting</span> ────── Alertmanager → PagerDuty/Slack/Email. 3 severity levels.
-                 Escalation: 0min→5min→15min→30min→60min. VIP timers ×50%.
-  <span class="vi">Health</span> ──────── Liveness (process), Readiness (dependencies), Dependency (detail).
-                 K8s probes: live 10s, ready 5s. Fail ready → remove from LB.
-  <span class="or">Audit Trail</span> ── Immutable append-only. Data mutations only. before/after state.
-                 Async batched (1s buffer). Partitioned monthly → S3 archive.
-                 <span class="rd">≠ Logging</span> (Audit = compliance/legal, Logging = debug/monitor).</pre></div>
-</div>
-</div>
-
-<!-- ═══════════════════════════════════════ -->
-<!-- DATABASE TOPOLOGY -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-data">
-
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">DB</span><h2 class="sec-t">Database Topology — 3 loại DB + Connection Pools</h2></div>
-
-    <div class="dg"><div class="dg-label">database topology</div><pre>
+         <div class="dg">
+            <div class="dg-label">database topology</div>
+            <pre>
   App Instances ────────────────────────────────────────────────────────────
         │
         ▼
@@ -474,19 +739,24 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 
   <span class="ty">Routing logic:</span>
   tenants.db_host = NULL → Shared Pool → Shared Data DB
-  tenants.db_host = "vip-initech.db" → VIP Pool INITECH → VIP DB #3</pre></div>
-</div>
-</div>
+  tenants.db_host = "vip-initech.db" → VIP Pool INITECH → VIP DB #3</pre>
+         </div>
+      </div>
+   </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- DUAL CONTEXT -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-ctx">
+   <!-- ═══════════════════════════════════════ -->
+   <!-- DUAL CONTEXT -->
+   <!-- ═══════════════════════════════════════ -->
+   <div class="pnl" id="p-ctx">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">CTX</span><h2 class="sec-t">Dual Context System</h2></div>
+      <div class="sec">
+         <div class="sec-h"><span class="sec-n">CTX</span>
+            <h2 class="sec-t">Dual Context System</h2>
+         </div>
 
-    <div class="dg"><div class="dg-label">tenant context + execution context</div><pre>
+         <div class="dg">
+            <div class="dg-label">tenant context + execution context</div>
+            <pre>
 <span class="ty">TENANT CONTEXT</span> (cached, long-lived, ~10KB)
 │
 │  Tạo khi: first request from tenant (hoặc cache miss)
@@ -539,19 +809,24 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
   Plugin chỉ nhận ctx (Execution Context).
   Plugin KHÔNG biết về: connection pool, tenant_id injection, RLS,
   cache prefix, log context, hay nó đang chạy trên shared hay VIP DB.
-  Tất cả được trừu tượng hóa bởi L4 Data Access.</pre></div>
-</div>
-</div>
+  Tất cả được trừu tượng hóa bởi L4 Data Access.</pre>
+         </div>
+      </div>
+   </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- TIER COMPARISON -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-tier">
+   <!-- ═══════════════════════════════════════ -->
+   <!-- TIER COMPARISON -->
+   <!-- ═══════════════════════════════════════ -->
+   <div class="pnl" id="p-tier">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">TIER</span><h2 class="sec-t">Tier Comparison — Infrastructure per Tier</h2></div>
+      <div class="sec">
+         <div class="sec-h"><span class="sec-n">TIER</span>
+            <h2 class="sec-t">Tier Comparison — Infrastructure per Tier</h2>
+         </div>
 
-    <div class="dg"><div class="dg-label">tier comparison v3</div><pre>
+         <div class="dg">
+            <div class="dg-label">tier comparison v3</div>
+            <pre>
 ┌───────────────────────┬──────────────┬──────────────┬──────────────┬──────────────┐
 │                       │ <span class="td">Basic</span>        │ <span class="am">Premium</span>      │ <span class="gn">Enterprise</span>   │ <span class="vi">VIP</span>          │
 ├───────────────────────┼──────────────┼──────────────┼──────────────┼──────────────┤
@@ -580,117 +855,28 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <span class="cm">  VIP isolation chủ yếu ở PostgreSQL — bottleneck chính.</span>
 
 <span class="rd">v2 BUG FIX:</span> Enterprise trước ghi "Shared (Schema)" → sai.
-Enterprise dùng Shared+RLS, giống Premium. Chỉ VIP có Dedicated DB.</pre></div>
-</div>
-</div>
-
-<!-- ═══════════════════════════════════════ -->
-<!-- CHANGELOG -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-delta">
-
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">Δ</span><h2 class="sec-t">Changelog v2 → v3 — Tất cả điểm đã chỉnh sửa</h2></div>
-
-    <div class="dg"><div class="dg-label">corrections &amp; additions</div><pre>
-<span class="rd">SỬA SAI (v2 mô tả sai so với thiết kế chi tiết):</span>
-
-  <span class="nu">①</span> <span class="rd">Enterprise tier: "Shared (Schema)"</span> → sửa thành <span class="gn">"Shared (RLS)"</span>
-     v2 ghi Enterprise dùng "Shared (Schema)" — ngụ ý schema-level isolation.
-     Thực tế Enterprise dùng shared tables + RLS, giống Premium.
-     Chỉ VIP có dedicated DB.
-
-  <span class="nu">②</span> <span class="rd">Migration Engine: "per plugin, transactional"</span> → sửa thành <span class="gn">2 loại migration</span>
-     v2 mô tả migration chỉ chạy "on plugin enable, transactional".
-     Thực tế: Schema DDL (toàn DB, 1 lần) + Tenant DML (per-tenant, mỗi enable).
-     Shared tables = KHÔNG THỂ DROP TABLE khi 1 tenant disable.
-
-  <span class="nu">③</span> <span class="rd">Migration "Down migrations on disable"</span> → sửa thành <span class="gn">soft disable (mặc định)</span>
-     v2 ghi "Down migrations on disable" → ngụ ý DROP TABLE.
-     Thực tế: soft disable = chỉ set enabled=false. Tables + data giữ nguyên.
-     Hard purge (DELETE rows, không DROP TABLE) chỉ khi tường minh yêu cầu.
-
-  <span class="nu">④</span> <span class="rd">VIP: "Separate Redis per VIP tenant"</span> → sửa thành <span class="gn">"Redis shared, dedicated optional"</span>
-     v2 Deployment Topology ghi VIP có "Separate PostgreSQL + Redis".
-     Thực tế: VIP isolation chủ yếu ở PostgreSQL (bottleneck chính).
-     Redis/MQ shared mặc định, dedicated chỉ khi workload justify.
-
-  <span class="nu">⑤</span> <span class="rd">VIP: "dedicated Redis, higher memory"</span> → inconsistent
-     Multi-tenancy panel ghi VIP = "dedicated instance, higher memory" cho Redis.
-     Tier comparison bảng thì ghi "Shared*". Mâu thuẫn → thống nhất: Shared*.
+Enterprise dùng Shared+RLS, giống Premium. Chỉ VIP có Dedicated DB.</pre>
+         </div>
+      </div>
+   </div>
 
 
-<span class="am">BỔ SUNG (v2 thiếu, v3 thêm):</span>
 
-  <span class="nu">⑥</span> <span class="am">L2 Gateway: thêm Route Matcher</span>
-     v2 có 4 middleware. Thực tế 5: Load Balancer → Tenant Resolver →
-     Auth Guard → Rate Limiter → <span class="am">Route Matcher</span> (URL → plugin + method + perm).
+   </div><!-- /wrap -->
 
-  <span class="nu">⑦</span> <span class="am">L3: thêm Context Building section</span>
-     v2 không mô tả Tenant Context Manager + Execution Context Builder.
-     Đây là thành phần quan trọng, đã có deep dive riêng.
-
-  <span class="nu">⑧</span> <span class="am">L4 Query Interceptor: thêm 4 sub-components</span>
-     v2 chỉ ghi "auto tenant_id". Thực tế: TenantInjector, QueryValidator,
-     QueryCounter (sandbox limit), QueryLogger (slow query alert).
-
-  <span class="nu">⑨</span> <span class="am">L4 Pool Manager: thêm TenantQuotaEnforcer</span>
-     v2 không mô tả per-tenant connection cap (20 conns max trong shared pool).
-     Quan trọng để chống 1 tenant starvation.
-
-  <span class="nu">⑩</span> <span class="am">L4 Migration Engine: thêm Dependency enforcement</span>
-     Cannot disable customer-data nếu customer-care vẫn enabled.
-     v2 không đề cập → thêm vào L6 Cross-cutting.
-
-  <span class="nu">⑪</span> <span class="am">L5 Redis: mở rộng từ 3 vai trò → 6 vai trò</span>
-     v2 ghi "L2 cache, Pub/Sub, Sessions". Thực tế: L2 cache, domain map,
-     rate limit (sorted set), token blacklist, Pub/Sub, realtime counters.
-
-  <span class="nu">⑫</span> <span class="am">L5 RabbitMQ: thêm exchange topology</span>
-     v2 chỉ ghi "Async events, DLQ". Thực tế: crm.events (topic exchange) +
-     crm.system (fanout), routing key patterns, VIP priority queues,
-     3-retry + exponential backoff → DLQ flow.
-
-  <span class="nu">⑬</span> <span class="am">L6: thêm Dependency Management</span>
-     Plugin dependency resolution + disable chain enforcement.
-     Xuyên tầng (L3 Plugin Manager + L4 Migration Engine) → thuộc L6.
-
-  <span class="nu">⑭</span> <span class="am">L7: mở rộng từ 4 → 6 components</span>
-     v2 có: Logging, Tracing, Metrics+Alerting (gộp).
-     v3 tách: Logging, Tracing, Metrics, Alerting, <span class="am">Health Checks, Audit Trail</span>.
-     Audit Trail trước nằm ở L6 → chuyển về L7 (observability concern).
-     Health Checks v2 không đề cập → thêm (Liveness, Readiness, Dependency).
-
-  <span class="nu">⑮</span> <span class="am">Database Topology: thêm schema_migrations + tenant_plugin_migrations</span>
-     2 bảng tracking migration mới, phản ánh dual migration design.
-
-  <span class="nu">⑯</span> <span class="am">Tenant Context: thêm dbPool field</span>
-     Field quyết định Pool Manager route tới Shared hay VIP DB.
-     v2 Tenant Context code sample không có field này.
-
-
-<span class="gn">TỔNG KẾT:</span>
-
-  Sửa sai:  5 điểm (①-⑤)
-  Bổ sung: 11 điểm (⑥-⑯)
-  Cấu trúc: giữ nguyên 7 layers, không thay đổi kiến trúc cơ bản.</pre></div>
-</div>
-</div>
-
-</div><!-- /wrap -->
-
-<script>
-function go(n){
-    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
-    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
-    var p=document.getElementById('p-'+n);
-    if(p)p.classList.add('on');
-    var names=['arch','layer','data','ctx','tier','delta'];
-    var i=names.indexOf(n);
-    var btns=document.querySelectorAll('.nav button');
-    if(i>=0&&btns[i])btns[i].classList.add('on');
-    window.scrollTo({top:160,behavior:'smooth'});
-}
-</script>
+   <script>
+      function go(n) {
+         document.querySelectorAll('.pnl').forEach(function (p) { p.classList.remove('on') });
+         document.querySelectorAll('.nav button').forEach(function (b) { b.classList.remove('on') });
+         var p = document.getElementById('p-' + n);
+         if (p) p.classList.add('on');
+         var names = ['arch', 'data', 'deploy', 'ctx', 'tier'];
+         var i = names.indexOf(n);
+         var btns = document.querySelectorAll('.nav button');
+         if (i >= 0 && btns[i]) btns[i].classList.add('on');
+         window.scrollTo({ top: 160, behavior: 'smooth' });
+      }
+   </script>
 </body>
+
 </html>

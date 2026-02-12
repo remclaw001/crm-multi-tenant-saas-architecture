@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — L2 API Gateway Layer Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--bld:rgba(59,130,246,.1);
+  --gn:#10b981;--gnd:rgba(16,185,129,.08);
+  --am:#f59e0b;--amd:rgba(245,158,11,.08);
+  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
+  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
+  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
+  --or:#f97316;--pk:#ec4899;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(1.6rem,3.5vw,2.6rem);font-weight:800;line-height:1.15;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--bl)}
+.hero p{font-size:1rem;color:var(--td);max-width:660px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--bl)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
+.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.cm{color:#3e4460;font-style:italic}.nu{color:#f78c6c}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.pk{color:#ec4899}.or{color:#f97316}.fn{color:#82aaff}.st{color:#c3e88d}.kw{color:#c792ea}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
+.nt strong{color:inherit}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+.pnl.on .sec:nth-child(2){animation-delay:.04s}
+.pnl.on .sec:nth-child(3){animation-delay:.08s}
+.pnl.on .sec:nth-child(4){animation-delay:.12s}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Layer 2 — API Gateway</div>
+    <h1>Mọi thứ bên trong <span>API Gateway Layer</span></h1>
+    <p>5 middleware tuần tự + 1 permission check — mỗi bước có thể REJECT request ngay lập tức.</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('map')">Bản đồ L2</button>
+    <button onclick="go('lb')">Load Balancer</button>
+    <button onclick="go('tr')">Tenant Resolver</button>
+    <button onclick="go('auth')">Auth Guard</button>
+    <button onclick="go('rl')">Rate Limiter</button>
+    <button onclick="go('rm')">Route Matcher</button>
+    <button onclick="go('perm')">Permission Check</button>
+    <button onclick="go('err')">Error Responses</button>
+    <button onclick="go('flow')">Luồng tổng hợp</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- MAP -->
+<div class="pnl on" id="p-map">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L2 — Pipeline tuần tự</h2></div>
+    <div class="nt bl"><strong>Nguyên tắc cốt lõi:</strong> L2 là "cổng duy nhất" vào hệ thống. MỌI request (từ Web, Mobile, API) đều đi qua 5 middleware theo đúng thứ tự. Mỗi middleware có thể REJECT request ngay — nếu pass, chuyển tiếp cho middleware sau. Qua hết 5 bước → request đạt đủ điều kiện để vào L3.</div>
+    <div class="dg"><div class="dg-label">L2 pipeline</div><pre>
+  Client (Web/Mobile/API) → HTTPS → Ingress
+                                      │
+  ┌─ <span class="ty">L2 API GATEWAY</span> ─────────────────────▼──────────────────────────────────┐
+  │                                                                          │
+  │  <span class="hi">❶ LOAD BALANCER</span>          TLS terminate, chọn instance           ~0ms  │
+  │  │  Nginx/K8s Ingress      VIP → dedicated pool                         │
+  │  │                         Standard → shared pool (least-conn)          │
+  │  │                         Health-check → loại instance chết            │
+  │  ▼                                                                       │
+  │  <span class="hi">❷ TENANT RESOLVER</span>        URL → tenant_id + tier + status        ~1ms  │
+  │  │  Redis cache → Meta DB   subdomain: acme.crm.com → "acme-123"       │
+  │  │                         custom domain: SNI routing                    │
+  │  │  <span class="rd">REJECT: 404 Not Found / 403 Suspended / 410 Gone</span>                   │
+  │  ▼                                                                       │
+  │  <span class="hi">❸ AUTH GUARD</span>             JWT validate + RBAC extract            ~1.5ms│
+  │  │  JWT decode + verify    tenant claim match? blacklist check?         │
+  │  │                         → extract userId, roles, permissions         │
+  │  │  <span class="rd">REJECT: 401 Unauthorized / 401 Expired / 403 Forbidden</span>             │
+  │  ▼                                                                       │
+  │  <span class="hi">❹ RATE LIMITER</span>           Sliding window counter (Redis)          ~1ms  │
+  │  │  Redis ZADD              Basic:100, Prem:500, Ent:2000, VIP:∞        │
+  │  │                         Burst: 2× trong 5s                           │
+  │  │  <span class="rd">REJECT: 429 Too Many Requests + Retry-After</span>                       │
+  │  ▼                                                                       │
+  │  <span class="hi">❺ ROUTE MATCHER</span>          URL → plugin + method + permission      ~0.3ms│
+  │  │  Plugin Registry         POST /api/v1/sales → care.createSale       │
+  │  │  routeTable lookup      + check plugin enabled for tenant           │
+  │  │                         + check user has required permission         │
+  │  │  <span class="rd">REJECT: 404 No Route / 403 Plugin Not Available / 403 Forbidden</span>    │
+  │  ▼                                                                       │
+  │  OUTPUT:                                                                 │
+  │  { tenantId, tier, userId, roles, plugin, method, permission }          │
+  │  → Chuyển cho L3 Context Building                                       │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  <span class="ty">TỔNG THỜI GIAN L2: ~3.8ms</span> (best case, mọi cache hit)
+  Worst case (cache miss): ~8-12ms (Metadata DB query cho tenant/domain)
+
+  <span class="ty">REJECT RATE TRUNG BÌNH:</span>
+  ├── ~0.1% bị 401 (token expired, invalid)
+  ├── ~0.01% bị 429 (rate limit, chủ yếu Basic tier)
+  ├── ~0.001% bị 403 (permission, plugin not enabled)
+  └── 99.8% requests pass qua Gateway thành công</pre></div>
+</div>
+</div>
+
+<!-- LOAD BALANCER -->
+<div class="pnl" id="p-lb">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Load Balancer + TLS Termination</h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Điểm tiếp xúc đầu tiên. Terminate HTTPS → chuyển HTTP nội bộ (within cluster). Phân phối traffic tới đúng instance pool dựa trên tenant tier. Loại instance chết khỏi rotation.</div>
+    <div class="dg"><div class="dg-label">load balancer</div><pre>
+<span class="ty">THÀNH PHẦN: Nginx / K8s Ingress Controller / AWS ALB</span>
+
+<span class="ty">TLS TERMINATION:</span>
+  HTTPS → HTTP (cluster internal, plain HTTP giữa services)
+  Certificate: wildcard *.crm.com hoặc per-tenant
+  Custom domain: acme.example.com → SNI routing → crm backend
+
+<span class="ty">ROUTING LOGIC:</span>
+
+  Request từ acme.crm.com
+    │
+    ├── Tenant ACME tier = VIP?
+    │   <span class="gn">YES</span> → route to <span class="vi">VIP instance pool</span> (crm-api-vip, 2-4 replicas)
+    │         Sticky routing: cùng VIP tenant → cùng pool
+    │
+    │   <span class="rd">NO</span>  → route to <span class="gn">shared instance pool</span> (crm-api, 3-10 replicas)
+    │         Algorithm: least-connections
+    │         → chọn instance đang ít request nhất
+    │
+    └── ACME tier = premium → <span class="gn">shared pool</span>, Instance #3 selected
+
+  <span class="cm">Lưu ý: LB chưa biết tenant tier chính xác.</span>
+  <span class="cm">VIP routing dựa trên domain/IP range configured tĩnh.</span>
+  <span class="cm">Standard domains (*.crm.com) → shared pool.</span>
+  <span class="cm">VIP domains (vip-initech.crm.com) → VIP pool.</span>
+
+<span class="ty">HEALTH CHECK:</span>
+  ├── Probe: GET /health/live mỗi 10s
+  ├── Instance fail 3 lần liên tiếp → loại khỏi rotation
+  ├── Instance recover → thêm lại vào rotation
+  └── K8s readiness probe: GET /health/ready mỗi 5s
+      → chưa ready = không nhận traffic mới
+
+<span class="ty">HPA (Horizontal Pod Autoscaler):</span>
+  ├── crm-api (shared):  scale 3→10 khi CPU &gt; 70%
+  ├── crm-api-vip:       scale 2→4 khi CPU &gt; 60%
+  └── crm-workers:       scale 2→6 khi queue depth &gt; 500</pre></div>
+</div>
+</div>
+
+<!-- TENANT RESOLVER -->
+<div class="pnl" id="p-tr">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Tenant Resolver — URL → Tenant Identity</h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Xác định request thuộc về tenant nào. Dựa vào subdomain, custom domain, hoặc header. Cache kết quả trong Redis để tránh query DB mỗi request. Output: tenantId + tier + status.</div>
+    <div class="dg"><div class="dg-label">tenant resolver</div><pre>
+<span class="ty">INPUT:</span> HTTP Host header = "acme.crm.com"
+
+<span class="ty">STRATEGY (thử lần lượt, dừng khi match):</span>
+
+  <span class="nu">①</span> <span class="hi">Subdomain resolution</span> (phổ biến nhất):
+     Extract "acme" from "acme.crm.com"
+     → Redis: GET domain-map:acme
+     → HIT:  { tenantId: "acme-123", tier: "premium", status: "active" }
+     → MISS: Query Metadata DB:
+             SELECT id, tier, status, config
+             FROM tenants WHERE subdomain = 'acme'
+             → Cache Redis (TTL 5min)
+
+  <span class="nu">②</span> <span class="hi">Custom domain resolution</span> (Enterprise/VIP):
+     Host = "crm.initech.io" (không phải *.crm.com)
+     → Redis: GET domain-map:crm.initech.io
+     → MISS: SELECT ... FROM tenants WHERE custom_domain = 'crm.initech.io'
+     → Yêu cầu: tenant setup CNAME/A record → crm platform IP
+
+  <span class="nu">③</span> <span class="hi">Header-based resolution</span> (M2M / API calls):
+     Header X-Tenant-ID: acme-123
+     → Validate tenantId exists in Redis/DB
+     → Dùng cho API keys, server-to-server calls
+     → Yêu cầu: JWT tenant claim phải khớp (double check ở Auth Guard)
+
+
+<span class="ty">OUTPUT:</span>
+  { tenantId: "acme-123", tier: "premium", status: "active" }
+  → Gắn vào request context, dùng suốt phần còn lại của pipeline
+
+<span class="ty">REDIS CACHE:</span>
+  Key: domain-map:{subdomain|domain}
+  Value: { tenantId, tier, status }
+  TTL: 5 phút
+  Invalidation: tenant update → DELETE domain-map:* cho tenant đó
+
+<span class="ty">REJECT CASES:</span>
+  ├── Subdomain/domain không tồn tại     → <span class="rd">404 Tenant Not Found</span>
+  ├── Tenant status = "suspended"         → <span class="rd">403 Account Suspended</span>
+  │   (chưa thanh toán, vi phạm TOS)       Body: { reason, contactEmail }
+  ├── Tenant status = "deleted"           → <span class="rd">410 Gone</span>
+  └── Tenant status = "pending_setup"     → <span class="rd">503 Not Ready</span> (đang setup)
+
+<span class="ty">PERFORMANCE:</span>
+  Redis HIT: ~0.5ms
+  Redis MISS + DB: ~3-5ms (hiếm, ~5% requests)
+  Trung bình: ~1ms</pre></div>
+</div>
+</div>
+
+<!-- AUTH GUARD -->
+<div class="pnl" id="p-auth">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Auth Guard — JWT Validation + RBAC Extract</h2></div>
+    <div class="nt rd"><strong>Vai trò:</strong> Xác thực người dùng (authentication) và trích xuất quyền hạn (authorization data). Validate JWT signature + expiry, kiểm tra token chưa bị revoke, đảm bảo tenant claim khớp với Tenant Resolver output. Output: userId, roles, permissions.</div>
+    <div class="dg"><div class="dg-label">auth guard</div><pre>
+<span class="ty">INPUT:</span> Header "Authorization: Bearer eyJhbG..."
+
+<span class="ty">6 BƯỚC VALIDATION:</span>
+
+  <span class="nu">①</span> <span class="hi">Decode JWT header</span> → get signing algorithm (RS256)
+     Nếu algorithm không nằm trong whitelist → reject ngay
+
+  <span class="nu">②</span> <span class="hi">Validate signature</span> using public key
+     Public key cached in-memory, rotated periodically
+     Invalid signature → token giả mạo hoặc bị sửa
+
+  <span class="nu">③</span> <span class="hi">Check expiration</span>: exp &gt; now()?
+     Access token TTL: 15 phút
+     Expired → client phải dùng refresh token (7 ngày) để lấy token mới
+     Refresh token: rotation per use (1 lần dùng → issue new pair)
+
+  <span class="nu">④</span> <span class="hi">Check tenant claim</span>: jwt.tenantId == resolved tenantId?
+     <span class="rd">CỰC KỲ QUAN TRỌNG:</span> Ngăn user Tenant A dùng token trên URL Tenant B
+     Token ACME không thể dùng trên globex.crm.com
+     → Cross-tenant access attack blocked
+
+  <span class="nu">⑤</span> <span class="hi">Check blacklist</span>: Redis GET blacklist:{jti}
+     jti = JWT ID (unique per token)
+     Token bị blacklist khi: user logout, admin revoke, password changed
+     TTL blacklist entry = thời gian còn lại của token
+     (sau khi token expire → blacklist entry tự xóa)
+
+  <span class="nu">⑥</span> <span class="hi">Extract claims</span>:
+     userId:      "user-5"
+     roles:       ["sales_manager"]
+     permissions: ["sales:read", "sales:write", "calls:read", ...]
+
+
+<span class="ty">CÁC LOẠI AUTH:</span>
+
+  ┌──────────────┬────────────────────────────────────────────────────────┐
+  │ Loại          │ Cơ chế                                                │
+  ├──────────────┼────────────────────────────────────────────────────────┤
+  │ User (Web)   │ JWT Bearer token (access 15m + refresh 7d)            │
+  │ User (Mobile)│ JWT + device fingerprint + biometric optional         │
+  │ M2M (API)    │ API Key + HMAC signature (no JWT, tenant in header)   │
+  │ SSO (Ent.)   │ SAML 2.0 / OIDC → exchange for JWT pair             │
+  │ Webhook (in) │ Signature validation (HMAC-SHA256 with shared secret) │
+  └──────────────┴────────────────────────────────────────────────────────┘
+
+
+<span class="ty">REJECT CASES:</span>
+  ├── Invalid/missing token        → <span class="rd">401 Unauthorized</span>
+  ├── Signature verify failed      → <span class="rd">401 Invalid Token</span>
+  ├── Token expired                → <span class="rd">401 Token Expired</span> + hint: refresh
+  ├── Tenant claim mismatch        → <span class="rd">403 Forbidden</span> (cross-tenant attack)
+  └── Token blacklisted (revoked)  → <span class="rd">401 Token Revoked</span>
+
+<span class="ty">PERFORMANCE:</span>
+  JWT decode + verify (cached key):  ~0.5ms
+  Redis blacklist check:             ~0.5ms
+  Tenant claim compare:              ~0ms (in-memory)
+  Total:                             ~1-1.5ms</pre></div>
+</div>
+</div>
+
+<!-- RATE LIMITER -->
+<div class="pnl" id="p-rl">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Rate Limiter — Per-Tier Throttling</h2></div>
+    <div class="nt am"><strong>Vai trò:</strong> Bảo vệ hệ thống khỏi overload — cả cố ý (DDoS) lẫn vô ý (script bug gọi API lặp). Giới hạn PER-TENANT, không per-user — tenant Basic 100 req/min, Premium 500, Enterprise 2000, VIP unlimited.</div>
+    <div class="dg"><div class="dg-label">rate limiter</div><pre>
+<span class="ty">ALGORITHM: Sliding Window Counter (Redis Sorted Set)</span>
+
+  Triển khai dùng Redis ZADD + ZREMRANGEBYSCORE:
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  Key:    rl:{tenantId}  (Sorted Set)                                  │
+  │  Member: requestId (unique per request)                               │
+  │  Score:  timestamp (Unix milliseconds)                                │
+  │                                                                        │
+  │  Mỗi request:                                                         │
+  │  <span class="nu">1.</span> ZREMRANGEBYSCORE rl:acme-123 0 (now - 60000)                     │
+  │     → Xóa entries cũ hơn 60 giây (clean expired)                     │
+  │                                                                        │
+  │  <span class="nu">2.</span> ZCARD rl:acme-123                                                │
+  │     → Đếm entries còn lại = số request trong window                   │
+  │     → current = 147                                                    │
+  │                                                                        │
+  │  <span class="nu">3.</span> 147 &lt; 500 (premium limit)?                                       │
+  │     <span class="gn">YES → ZADD rl:acme-123 {now} {requestId}</span>                         │
+  │           EXPIRE rl:acme-123 61  (auto cleanup)                       │
+  │           → PASS                                                       │
+  │                                                                        │
+  │     <span class="rd">NO  → REJECT 429 Too Many Requests</span>                                │
+  │           Retry-After: {seconds until oldest entry expires}           │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">TIER LIMITS:</span>
+
+  ┌───────────────┬───────────┬───────────────┬────────────────────────────┐
+  │ Tier           │ Limit     │ Burst         │ Note                       │
+  ├───────────────┼───────────┼───────────────┼────────────────────────────┤
+  │ Basic         │ 100/min   │ 200 trong 5s  │ Solo users, small teams    │
+  │ Premium       │ 500/min   │ 1000 trong 5s │ Growing businesses         │
+  │ Enterprise    │ 2000/min  │ 4000 trong 5s │ Large teams                │
+  │ VIP           │ Unlimited │ N/A           │ Dedicated infrastructure   │
+  └───────────────┴───────────┴───────────────┴────────────────────────────┘
+
+  <span class="am">Burst:</span> cho phép gấp đôi limit trong cửa sổ 5 giây.
+  Ví dụ: Premium = 500/min, nhưng 1000 req trong 5s đầu OK.
+  Giúp handle spikes tự nhiên (batch import, page load).
+
+
+<span class="ty">RESPONSE HEADERS (mọi response, kể cả khi pass):</span>
+  X-RateLimit-Limit:     500
+  X-RateLimit-Remaining: 353
+  X-RateLimit-Reset:     1707567600  (Unix timestamp window reset)
+
+<span class="ty">METRICS:</span>
+  rate_limit_hits_total{tenant_id} — Counter (đếm số lần bị 429)
+  → Alert: rate_limit_hits &gt; 0 for 5min → WARNING Slack #alerts</pre></div>
+</div>
+</div>
+
+<!-- ROUTE MATCHER -->
+<div class="pnl" id="p-rm">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Route Matcher — URL → Plugin + Method</h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Map URL + HTTP method vào đúng plugin + handler method. Dùng routeTable từ Plugin Registry (populated khi plugin deploy). Output là tín hiệu cho L3 biết chính xác plugin nào xử lý, method nào gọi, permission nào cần.</div>
+    <div class="dg"><div class="dg-label">route matcher</div><pre>
+<span class="ty">INPUT:</span> POST /api/v1/sales
+
+<span class="ty">ROUTE TABLE (in-memory, from Plugin Registry):</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  HTTP    URL Pattern              Plugin          Method             │
+  │  ──────  ────────────────────    ─────────────   ────────────────   │
+  │  GET     /api/v1/customers       customer-data   listCustomers      │
+  │  POST    /api/v1/customers       customer-data   createCustomer     │
+  │  GET     /api/v1/customers/:id   customer-data   getCustomer        │
+  │  PUT     /api/v1/customers/:id   customer-data   updateCustomer     │
+  │  DELETE  /api/v1/customers/:id   customer-data   deleteCustomer     │
+  │                                                                      │
+  │  GET     /api/v1/sales           customer-care   listSales          │
+  │  <span class="hi">POST    /api/v1/sales           customer-care   createSale</span>  ◀ match │
+  │  GET     /api/v1/sales/:id       customer-care   getSale            │
+  │  PUT     /api/v1/sales/:id       customer-care   updateSale         │
+  │                                                                      │
+  │  GET     /api/v1/calls           customer-care   listCalls          │
+  │  POST    /api/v1/calls           customer-care   createCall         │
+  │                                                                      │
+  │  GET     /api/v1/reports         analytics       listReports        │
+  │  POST    /api/v1/reports         analytics       createReport       │
+  │  ...                                                                 │
+  └──────────────────────────────────────────────────────────────────────┘
+
+  Matching: trie-based prefix tree → O(path length), ~0.1ms
+  Parametric: /api/v1/sales/:id → extract params { id: "sale-42" }
+
+<span class="ty">OUTPUT:</span>
+  {
+    plugin:             "customer-care",
+    method:             "createSale",
+    requiredPermission: "sales:write",
+    params:             {}
+  }
+
+
+<span class="ty">ROUTE TABLE LIFECYCLE:</span>
+  ├── Xây dựng khi: app bootstrap (load tất cả plugin manifests)
+  ├── Cập nhật khi: plugin deploy/upgrade/undeploy
+  │   → MQ broadcast "plugin.deployed" → all instances rebuild
+  ├── In-memory: không query DB/Redis per-request
+  └── Collision detection: 2 plugins register cùng route → reject deploy
+
+<span class="ty">REJECT CASES:</span>
+  └── No route match → <span class="rd">404 Not Found</span></pre></div>
+</div>
+</div>
+
+<!-- PERMISSION CHECK -->
+<div class="pnl" id="p-perm">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Permission Check — Plugin + User + Tenant</h2></div>
+    <div class="nt am"><strong>Vai trò:</strong> Kiểm tra 3 lớp quyền: plugin có enabled cho tenant? User có quyền? Tenant tier có bao gồm feature? Đây là bước cuối trước khi request vào L3. Dùng data đã extract từ Tenant Resolver + Auth Guard + Route Matcher.</div>
+    <div class="dg"><div class="dg-label">permission check</div><pre>
+<span class="ty">3 LỚP KIỂM TRA:</span>
+
+  Route requires: "sales:write" (from Route Matcher)
+  Tenant: acme-123, premium (from Tenant Resolver)
+  User: user-5, roles: ["sales_manager"] (from Auth Guard)
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="nu">Check 1:</span> <span class="hi">Plugin enabled cho tenant?</span>                                   │
+  │                                                                        │
+  │    Route target: plugin "customer-care"                                │
+  │    Cần biết: ACME có enable customer-care?                            │
+  │                                                                        │
+  │    Ở giai đoạn này, Tenant Context chưa load đầy đủ.                 │
+  │    → Quick check: Redis cache hoặc Metadata DB                        │
+  │      SELECT 1 FROM tenant_plugins                                     │
+  │      WHERE tenant_id='acme-123' AND plugin='customer-care'            │
+  │      AND enabled=true                                                  │
+  │    → <span class="gn">EXISTS → PASS</span>                                                     │
+  │    → <span class="rd">NOT EXISTS → 403 Plugin Not Available</span>                             │
+  │                                                                        │
+  │                                                                        │
+  │  <span class="nu">Check 2:</span> <span class="hi">User có permission cần thiết?</span>                                │
+  │                                                                        │
+  │    Required: "sales:write"                                            │
+  │    User roles: ["sales_manager"]                                      │
+  │    Role "sales_manager" grants: sales:read, sales:write,              │
+  │                                  calls:read, calls:write              │
+  │    "sales:write" ∈ role permissions?                                  │
+  │    → <span class="gn">YES → PASS</span>                                                       │
+  │    → <span class="rd">NO  → 403 Forbidden</span> ("You don't have sales:write permission")   │
+  │                                                                        │
+  │                                                                        │
+  │  <span class="nu">Check 3:</span> <span class="hi">Tenant-level permission?</span>                                     │
+  │                                                                        │
+  │    Tenant aggregatedPermissions = union of all enabled plugins' perms │
+  │    "sales:write" ∈ aggregatedPermissions?                             │
+  │    → <span class="gn">YES → PASS</span>                                                       │
+  │    → <span class="rd">NO  → 403 Feature Not Included In Your Plan</span>                      │
+  │    (xảy ra khi plugin enabled nhưng cụ thể feature bị restrict       │
+  │     dựa trên tier config — ví dụ: Premium có sales nhưng không có    │
+  │     sales:export vì export chỉ Enterprise trở lên)                   │
+  │                                                                        │
+  │                                                                        │
+  │  <span class="gn">All 3 checks pass → PROCEED to L3</span>                                   │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">RBAC MODEL:</span>
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                                                                     │
+  │  Tenant has Roles:                                                 │
+  │  ├── admin:          * (all permissions)                           │
+  │  ├── sales_manager:  sales:*, calls:*, customers:read             │
+  │  ├── support:        tickets:*, calls:read, customers:read        │
+  │  ├── viewer:         *.read (read-only across all)                │
+  │  └── custom roles:   tenant-defined, any combination              │
+  │                                                                     │
+  │  User has Roles (assigned per-tenant):                             │
+  │  user-5 → ["sales_manager"]                                       │
+  │  user-8 → ["admin"]                                               │
+  │  user-12 → ["support", "viewer"]                                  │
+  │                                                                     │
+  │  Permission format: {resource}:{action}                            │
+  │  Actions: read, write, delete, export, admin                      │
+  │  Wildcard: sales:* = all actions on sales                         │
+  │                                                                     │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  Cost: ~0.1ms (in-memory role lookup, no I/O)</pre></div>
+</div>
+</div>
+
+<!-- ERROR RESPONSES -->
+<div class="pnl" id="p-err">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Error Responses — Bảng tổng hợp</h2></div>
+    <div class="dg"><div class="dg-label">gateway errors</div><pre>
+<span class="ty">MỖI MIDDLEWARE CÓ THỂ TRẢ LỖI RIÊNG:</span>
+
+┌────────────────────┬──────┬────────────────────────────┬─────────────────────────┐
+│ Middleware          │ HTTP │ Error                      │ Nguyên nhân             │
+├────────────────────┼──────┼────────────────────────────┼─────────────────────────┤
+│                    │      │                            │                         │
+│ <span class="hi">Tenant Resolver</span>   │ 404  │ Tenant Not Found           │ Subdomain/domain invalid│
+│                    │ 403  │ Account Suspended          │ Billing/TOS issue       │
+│                    │ 410  │ Gone                       │ Tenant deleted          │
+│                    │ 503  │ Not Ready                  │ Tenant đang setup       │
+│                    │      │                            │                         │
+│ <span class="hi">Auth Guard</span>        │ 401  │ Unauthorized               │ Missing/invalid token   │
+│                    │ 401  │ Token Expired              │ Access token hết hạn    │
+│                    │ 401  │ Token Revoked              │ Đã logout/bị revoke    │
+│                    │ 403  │ Forbidden                  │ Tenant claim mismatch   │
+│                    │      │                            │                         │
+│ <span class="hi">Rate Limiter</span>      │ 429  │ Too Many Requests          │ Vượt quota per-tier    │
+│                    │      │ + Retry-After header       │                         │
+│                    │      │                            │                         │
+│ <span class="hi">Route Matcher</span>     │ 404  │ Not Found                  │ URL không khớp route   │
+│                    │      │                            │                         │
+│ <span class="hi">Permission Check</span>  │ 403  │ Plugin Not Available       │ Plugin chưa enable     │
+│                    │ 403  │ Forbidden                  │ User thiếu permission  │
+│                    │ 403  │ Feature Not In Plan        │ Tier không đủ          │
+│                    │      │                            │                         │
+└────────────────────┴──────┴────────────────────────────┴─────────────────────────┘
+
+
+<span class="ty">RESPONSE FORMAT (nhất quán cho mọi error):</span>
+
+  {
+    "error": {
+      "code":    "RATE_LIMIT_EXCEEDED",
+      "message": "Too many requests. Please retry after 23 seconds.",
+      "status":  429,
+      "details": {
+        "limit":     500,
+        "remaining": 0,
+        "resetAt":   "2025-07-01T10:00:00Z"
+      }
+    },
+    "requestId": "req-789",
+    "timestamp": "2025-07-01T09:59:37Z"
+  }
+
+  <span class="cm">Mọi error đều có requestId → correlate với logs/traces.</span>
+  <span class="cm">Không leak internal details (stack trace, DB error, etc.)</span></pre></div>
+</div>
+</div>
+
+<!-- FLOW -->
+<div class="pnl" id="p-flow">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Luồng tổng hợp — POST /api/v1/sales qua L2</h2></div>
+    <div class="dg"><div class="dg-label">L2 complete flow</div><pre>
+<span class="ty">POST /api/v1/sales — ACME (Premium) — User: sales_manager</span>
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ <span class="hi">❶ Load Balancer</span>                                               ~0ms    │
+│   TLS terminate acme.crm.com (wildcard *.crm.com cert)                 │
+│   *.crm.com → shared pool → least-connections → Instance #3            │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ <span class="hi">❷ Tenant Resolver</span>                                            ~1ms    │
+│   Extract "acme" from Host header                                      │
+│   Redis GET domain-map:acme → <span class="gn">HIT</span>                                     │
+│   → { tenantId: "acme-123", tier: "premium", status: "active" }       │
+│   Status active → <span class="gn">PASS</span>                                                │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ <span class="hi">❸ Auth Guard</span>                                                 ~1.5ms  │
+│   Decode JWT Bearer token                                              │
+│   Verify RS256 signature (cached public key)         → <span class="gn">valid</span>           │
+│   Check exp > now()                                  → <span class="gn">not expired</span>     │
+│   Check jwt.tenantId == "acme-123" (resolved)        → <span class="gn">match</span>           │
+│   Redis GET blacklist:{jti}                          → <span class="gn">not blacklisted</span> │
+│   Extract: userId="user-5", roles=["sales_manager"]                    │
+│   → <span class="gn">PASS</span>                                                              │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ <span class="hi">❹ Rate Limiter</span>                                               ~1ms    │
+│   ZREMRANGEBYSCORE rl:acme-123 0 (now-60000)  → clean old             │
+│   ZCARD rl:acme-123 → 147                                             │
+│   147 < 500 (premium limit) → <span class="gn">PASS</span>                                    │
+│   ZADD rl:acme-123 {now} {requestId}                                  │
+│   Response headers: X-RateLimit-Remaining: 352                        │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ <span class="hi">❺ Route Matcher</span>                                              ~0.3ms  │
+│   POST /api/v1/sales → trie lookup routeTable                         │
+│   → { plugin: "customer-care", method: "createSale",                  │
+│       requiredPermission: "sales:write" }                              │
+│                                                                         │
+│   <span class="hi">Permission Check:</span>                                          ~0.1ms  │
+│   Check 1: customer-care enabled for acme-123?       → <span class="gn">YES</span>             │
+│   Check 2: sales_manager has sales:write?            → <span class="gn">YES</span>             │
+│   Check 3: premium tier includes sales:write?        → <span class="gn">YES</span>             │
+│   → <span class="gn">ALL PASS</span>                                                          │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     ▼
+                          <span class="ty">→ L3 Context Building</span>
+                          { tenantId: "acme-123",
+                            tier: "premium",
+                            userId: "user-5",
+                            roles: ["sales_manager"],
+                            plugin: "customer-care",
+                            method: "createSale" }
+
+
+<span class="ty">TIMING BREAKDOWN:</span>
+
+  ┌───────────────────────────┬─────────┬─────────────────────────────────┐
+  │ Component                 │ Time    │ I/O                             │
+  ├───────────────────────────┼─────────┼─────────────────────────────────┤
+  │ Load Balancer + TLS      │ ~0ms    │ None (handled by Nginx/K8s)     │
+  │ Tenant Resolver          │ ~1ms    │ Redis GET (cache hit)           │
+  │ Auth Guard               │ ~1.5ms  │ JWT verify + Redis blacklist    │
+  │ Rate Limiter             │ ~1ms    │ Redis ZADD + ZCARD             │
+  │ Route Matcher            │ ~0.3ms  │ None (in-memory trie)          │
+  │ Permission Check         │ ~0.1ms  │ None (in-memory lookup)        │
+  ├───────────────────────────┼─────────┼─────────────────────────────────┤
+  │ <span class="hi">TOTAL L2</span>                 │ <span class="hi">~3.9ms</span>  │ 3 Redis calls                   │
+  └───────────────────────────┴─────────┴─────────────────────────────────┘
+
+  L2 dependency duy nhất: <span class="rd">Redis</span> (3 calls: domain-map + blacklist + rate-limit)
+  Redis down → fallback: query Metadata DB (chậm hơn ~5ms mỗi call)
+  DB down → L2 vẫn chạy nếu cache còn valid (graceful degradation)</pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['map','lb','tr','auth','rl','rm','perm','err','flow'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

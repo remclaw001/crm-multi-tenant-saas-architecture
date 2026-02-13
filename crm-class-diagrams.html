@@ -1,0 +1,1939 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Class Diagrams + Descriptions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            background: #060810;
+            color: #d8dce8;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.7
+        }
+
+        .hero {
+            padding: 48px 24px 32px;
+            text-align: center
+        }
+
+        .hero h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 8px
+        }
+
+        .hero h1 span {
+            color: #06b6d4
+        }
+
+        .hero p {
+            font-size: .85rem;
+            color: #7880a0;
+            max-width: 600px;
+            margin: 0 auto
+        }
+
+        .nw {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(6, 8, 16, .92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #1c2038
+        }
+
+        .nav {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding: 0 8px
+        }
+
+        .nav::-webkit-scrollbar {
+            display: none
+        }
+
+        .nav button {
+            font-family: monospace;
+            font-size: 11px;
+            padding: 12px 14px;
+            background: none;
+            border: none;
+            color: #484e6a;
+            cursor: pointer;
+            white-space: nowrap;
+            position: relative
+        }
+
+        .nav button:hover {
+            color: #7880a0
+        }
+
+        .nav button.on {
+            color: #06b6d4
+        }
+
+        .nav button.on::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 6px;
+            right: 6px;
+            height: 2px;
+            background: #06b6d4;
+            border-radius: 2px 2px 0 0
+        }
+
+        .wrap {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 24px 16px 100px
+        }
+
+        .pnl {
+            display: none
+        }
+
+        .pnl.on {
+            display: block
+        }
+
+        .diagram-box {
+            background: #0c0e18;
+            border: 1px solid #1c2038;
+            border-radius: 8px;
+            padding: 32px 20px;
+            overflow-x: auto;
+            min-height: 300px;
+            margin-bottom: 32px
+        }
+
+        .desc {
+            background: #0c0e18;
+            border: 1px solid #1c2038;
+            border-radius: 8px;
+            padding: 32px 28px
+        }
+
+        .desc h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #06b6d4;
+            margin: 24px 0 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #1c2038
+        }
+
+        .desc h3:first-child {
+            margin-top: 0
+        }
+
+        .desc p {
+            font-size: .85rem;
+            color: #9ca3c0;
+            margin-bottom: 12px
+        }
+
+        .desc p strong {
+            color: #d8dce8
+        }
+
+        .desc code {
+            font-family: monospace;
+            font-size: .8rem;
+            color: #06b6d4;
+            background: #111420;
+            padding: 1px 6px;
+            border-radius: 3px
+        }
+
+        .desc table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0 20px;
+            font-size: .8rem
+        }
+
+        .desc th {
+            text-align: left;
+            padding: 8px 10px;
+            background: #111420;
+            color: #06b6d4;
+            border: 1px solid #1c2038;
+            font-weight: 600;
+            font-size: .75rem;
+            letter-spacing: .3px
+        }
+
+        .desc td {
+            padding: 8px 10px;
+            border: 1px solid #1c2038;
+            color: #9ca3c0;
+            vertical-align: top
+        }
+
+        .desc td:first-child {
+            color: #d8dce8;
+            font-family: monospace;
+            font-size: .78rem;
+            white-space: nowrap
+        }
+
+        .desc .code {
+            font-family: monospace;
+            font-size: .8rem;
+            background: #111420;
+            border: 1px solid #1c2038;
+            border-radius: 4px;
+            padding: 14px 18px;
+            color: #8890b8;
+            margin: 12px 0
+        }
+    </style>
+</head>
+
+<body>
+    <div class="hero">
+        <h1>10 Class Diagrams <span>SOLID-aligned</span></h1>
+        <p>14 interfaces, ~90 entities. Mỗi sơ đồ kèm mô tả vai trò + quan hệ chi tiết.</p>
+    </div>
+    <div class="nw">
+        <div class="nav">
+            <button class=on onclick="go(0)">Interfaces (14)</button>
+            <button onclick="go(1)">L2 Gateway</button>
+            <button onclick="go(2)">L3 Plugin Mgmt</button>
+            <button onclick="go(3)">L3 Cores + Context</button>
+            <button onclick="go(4)">L4 Data Access</button>
+            <button onclick="go(5)">L5 Infra (DIP)</button>
+            <button onclick="go(6)">L6 Cross-cutting</button>
+            <button onclick="go(7)">L7 Observability</button>
+            <button onclick="go(8)">L1 Presentation</button>
+            <button onclick="go(9)">Cross-layer DIP</button>
+        </div>
+    </div>
+    <div class="wrap">
+        <div class="pnl on" id="p-0">
+            <div class="diagram-box">
+                <pre class="mermaid">
+classDiagram
+    direction TB
+
+    class IPluginCore {
+        &lt;&lt;interface&gt;&gt;
+        +getName() string
+        +getVersion() string
+        +handleRoute(method, ctx, args) Result
+        +handleEvent(event, ctx, data) void
+        +handleHook(hook, ctx, data) data
+    }
+
+    class IPluginRegistry {
+        &lt;&lt;interface&gt;&gt;
+        +getPlugin(name) IPluginCore
+        +getRoute(method, url) RouteEntry
+        +getEventHandlers(event) list
+        +getHookConsumers(hook) list
+    }
+
+    class IDbContext {
+        &lt;&lt;interface&gt;&gt;
+        +query(table) QueryBuilder
+        +insert(table, data) Record
+        +update(table, where, data) number
+        +delete(table, where) number
+        +transaction(fn) Result
+    }
+
+    class ICacheContext {
+        &lt;&lt;interface&gt;&gt;
+        +get(key) any
+        +set(key, value, ttl) void
+        +delete(key) void
+        +invalidate(pattern) void
+    }
+
+    class IEventContext {
+        &lt;&lt;interface&gt;&gt;
+        +emit(event, data) void
+        +runHook(hookName, data) data
+    }
+
+    class IServiceContext {
+        &lt;&lt;interface&gt;&gt;
+        +email IEmailService
+        +storage IStorageService
+        +notification INotificationService
+        +search ISearchService
+        +scheduler ISchedulerService
+        +mq IMQPublisher
+    }
+
+    class IExecutionContext {
+        &lt;&lt;interface&gt;&gt;
+        +db IDbContext
+        +cache ICacheContext
+        +events IEventContext
+        +services IServiceContext
+        +logger ILogger
+        +pluginConfig object
+    }
+
+    class IConnectionPool {
+        &lt;&lt;interface&gt;&gt;
+        +acquire() Connection
+        +release(conn) void
+        +getHealth() PoolHealth
+    }
+
+    class ICacheProvider {
+        &lt;&lt;interface&gt;&gt;
+        +get(key) any
+        +set(key, value, ttl) void
+        +delete(key) void
+        +publish(channel, msg) void
+    }
+
+    class IMessageBroker {
+        &lt;&lt;interface&gt;&gt;
+        +publish(exchange, key, payload) void
+        +subscribe(queue, handler) void
+        +ack(message) void
+    }
+
+    class ISearchEngine {
+        &lt;&lt;interface&gt;&gt;
+        +index(entity, tenantId, data) void
+        +search(entity, tenantId, query) list
+    }
+
+    class ILogger {
+        &lt;&lt;interface&gt;&gt;
+        +debug(msg, meta) void
+        +info(msg, meta) void
+        +warn(msg, meta) void
+        +error(msg, err, meta) void
+        +withContext(extra) ILogger
+    }
+
+    class IAuditWriter {
+        &lt;&lt;interface&gt;&gt;
+        +record(action, resource, before, after) void
+        +flush() void
+    }
+
+    IExecutionContext *-- IDbContext
+    IExecutionContext *-- ICacheContext
+    IExecutionContext *-- IEventContext
+    IExecutionContext *-- IServiceContext
+    IExecutionContext *-- ILogger
+</pre>
+            </div>
+            <div class="desc">
+
+                <h3>Vai trò</h3>
+                <p>14 interfaces là <strong>hợp đồng trung tâm</strong> của toàn bộ kiến trúc. Chúng tạo thành ranh giới
+                    abstraction giữa các layer — plugin (L3) chỉ biết interface, không biết implementation cụ thể ở
+                    L4/L5.</p>
+
+                <h3>IExecutionContext — ISP Composition</h3>
+                <p><code>IExecutionContext</code> KHÔNG phải 1 interface khổng lồ — nó là <strong>composition của 5
+                        interfaces nhỏ</strong>: IDbContext, ICacheContext, IEventContext, IServiceContext, ILogger.
+                    Plugin method chỉ khai báo interface nó CẦN:
+                    <code>createSale(db: IDbContext, events: IEventContext)</code> thay vì nhận toàn bộ context.</p>
+
+                <h3>Quan hệ chính</h3>
+                <table>
+                    <tr>
+                        <th>Interface</th>
+                        <th>Implement bởi</th>
+                        <th>Consumed bởi</th>
+                    </tr>
+                    <tr>
+                        <td>IPluginCore</td>
+                        <td>CustomerDataCore, CustomerCareCore, AutomationCore, AnalyticsCore, MarketingCore</td>
+                        <td>SandboxEngine (L3)</td>
+                    </tr>
+                    <tr>
+                        <td>IDbContext</td>
+                        <td>TenantScopedDB (L4)</td>
+                        <td>Mọi Plugin Core qua ctx.db</td>
+                    </tr>
+                    <tr>
+                        <td>ICacheContext</td>
+                        <td>TenantScopedCache (L4)</td>
+                        <td>Plugin Core qua ctx.cache</td>
+                    </tr>
+                    <tr>
+                        <td>IEventContext</td>
+                        <td>ScopedEventBus, ScopedHookRunner (L3)</td>
+                        <td>Plugin Core qua ctx.events</td>
+                    </tr>
+                    <tr>
+                        <td>IServiceContext</td>
+                        <td>ServiceContainer (L3)</td>
+                        <td>Plugin Core qua ctx.services</td>
+                    </tr>
+                    <tr>
+                        <td>IConnectionPool</td>
+                        <td>SharedPool, VipPool (L4)</td>
+                        <td>PoolRouter (L4)</td>
+                    </tr>
+                    <tr>
+                        <td>ICacheProvider</td>
+                        <td>L1MemoryCache, L2RedisCache (L4)</td>
+                        <td>TenantResolver, AuthGuard, RateLimiter (L2)</td>
+                    </tr>
+                    <tr>
+                        <td>IMessageBroker</td>
+                        <td>RabbitMQAdapter (L5)</td>
+                        <td>EventBus (L3), BroadcastManager (L3), WorkerPool (L5)</td>
+                    </tr>
+                    <tr>
+                        <td>ISearchEngine</td>
+                        <td>ElasticsearchAdapter (L5)</td>
+                        <td>SearchService (L3)</td>
+                    </tr>
+                    <tr>
+                        <td>ILogger</td>
+                        <td>ScopedLogger (L7)</td>
+                        <td>Mọi Plugin Core qua ctx.logger</td>
+                    </tr>
+                    <tr>
+                        <td>IAuditWriter</td>
+                        <td>AuditTrailWriter (L7)</td>
+                        <td>SandboxEngine sau mỗi mutation (L3)</td>
+                    </tr>
+                    <tr>
+                        <td>IPluginRegistry</td>
+                        <td>PluginRegistry (L3)</td>
+                        <td>RouteMatcher (L2), SandboxEngine, EventBus, HookRegistry (L3)</td>
+                    </tr>
+                </table>
+
+            </div>
+        </div>
+        <div class="pnl" id="p-1">
+            <div class="diagram-box">
+                <pre class="mermaid">
+classDiagram
+    direction LR
+
+    class LoadBalancer {
+        &lt;&lt;external&gt;&gt;
+        +terminateTLS() void
+        +routeToPool(tier) Instance
+    }
+
+    class TenantResolver {
+        &lt;&lt;singleton&gt;&gt;
+        +resolve(host) TenantInfo
+        -extractSubdomain(host) string
+        -queryDomainMap(key) TenantInfo
+    }
+
+    class AuthGuard {
+        &lt;&lt;singleton&gt;&gt;
+        +validate(token) AuthInfo
+        -verifySignature(jwt) bool
+        -checkBlacklist(jti) bool
+    }
+
+    class RateLimiter {
+        &lt;&lt;singleton&gt;&gt;
+        +check(tenantId, tier) RateResult
+        -slidingWindowCount(key) number
+    }
+
+    class RouteMatcher {
+        &lt;&lt;singleton&gt;&gt;
+        +match(httpMethod, url) RouteEntry
+        -trieLookup(path) TrieNode
+    }
+
+    class PermissionChecker {
+        &lt;&lt;singleton&gt;&gt;
+        +check(plugin, roles, tenant) bool
+    }
+
+    class GatewayContext {
+        &lt;&lt;per-request&gt;&gt;
+        +tenantId string
+        +tier string
+        +userId string
+        +plugin string
+        +method string
+    }
+
+    class TokenManager {
+        &lt;&lt;singleton&gt;&gt;
+        +issueTokenPair(user) TokenPair
+        +revokeToken(jti) void
+    }
+
+    class IPluginRegistry {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class ICacheProvider {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class ConfigResolver {
+        &lt;&lt;L6&gt;&gt;
+    }
+    class SecretManager {
+        &lt;&lt;L6&gt;&gt;
+    }
+
+    LoadBalancer ..> TenantResolver : forwards
+    TenantResolver ..> AuthGuard : next
+    AuthGuard ..> RateLimiter : next
+    RateLimiter ..> RouteMatcher : next
+    RouteMatcher ..> PermissionChecker : delegates
+
+    TenantResolver --> ICacheProvider : domain-map
+    AuthGuard --> ICacheProvider : blacklist
+    AuthGuard --> SecretManager : signing key
+    RateLimiter --> ICacheProvider : sorted set
+    RateLimiter --> ConfigResolver : tier limits
+    RouteMatcher --> IPluginRegistry : routeTable
+    TokenManager --> SecretManager : JWT key
+</pre>
+            </div>
+            <div class="desc">
+
+                <h3>Vai trò</h3>
+                <p>5 middleware chạy <strong>tuần tự</strong> mỗi request: LoadBalancer → TenantResolver → AuthGuard →
+                    RateLimiter → RouteMatcher → PermissionChecker. Mỗi middleware có quyền <strong>REJECT sớm</strong>
+                    — request không hợp lệ bị chặn ngay, không tốn resource L3/L4/L5. Total latency: ~3.9ms best case.
+                </p>
+
+                <h3>Vai trò từng thực thể</h3>
+                <table>
+                    <tr>
+                        <th>Class</th>
+                        <th>Vai trò</th>
+                        <th>Depend on</th>
+                    </tr>
+                    <tr>
+                        <td>LoadBalancer</td>
+                        <td>TLS terminate, route VIP/shared pool, health check</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td>TenantResolver</td>
+                        <td>Subdomain/domain/header → tenantId + tier + status</td>
+                        <td>ICacheProvider (Redis domain-map)</td>
+                    </tr>
+                    <tr>
+                        <td>AuthGuard</td>
+                        <td>JWT verify (RS256), expiry, tenant claim match, blacklist</td>
+                        <td>ICacheProvider (blacklist), SecretManager (signing key)</td>
+                    </tr>
+                    <tr>
+                        <td>RateLimiter</td>
+                        <td>Sliding window counter per-tenant. Tier limits: 100/500/2000/∞</td>
+                        <td>ICacheProvider (sorted set), ConfigResolver (tier limits)</td>
+                    </tr>
+                    <tr>
+                        <td>RouteMatcher</td>
+                        <td>Trie-based URL lookup → plugin + method + requiredPermission</td>
+                        <td>IPluginRegistry (routeTable)</td>
+                    </tr>
+                    <tr>
+                        <td>PermissionChecker</td>
+                        <td>3 checks: plugin enabled? user has perm? tier includes feature?</td>
+                        <td>IPluginRegistry (permissionMap)</td>
+                    </tr>
+                    <tr>
+                        <td>GatewayContext</td>
+                        <td>DTO per-request: tổng hợp output 5 middleware, chuyển cho L3</td>
+                        <td>—</td>
+                    </tr>
+                    <tr>
+                        <td>TokenManager</td>
+                        <td>Issue/revoke/rotate JWT. Refresh token rotation</td>
+                        <td>SecretManager, ICacheProvider</td>
+                    </tr>
+                </table>
+
+                <h3>Quan hệ đặc biệt</h3>
+                <p><strong>Pipeline chain</strong> (..>): LoadBalancer → TenantResolver → AuthGuard → RateLimiter →
+                    RouteMatcher — mỗi bước forward output cho bước tiếp.<br>
+                    <strong>DIP</strong>: L2 middleware depend on <code>ICacheProvider</code> và
+                    <code>IPluginRegistry</code> (abstraction), không phụ thuộc Redis hay PluginRegistry cụ thể.
+                </p>
+
+            </div>
+        </div>
+        <div class="pnl" id="p-2">
+            <div class="diagram-box">
+                <pre class="mermaid">
+classDiagram
+    direction TB
+
+    class PluginManager {
+        &lt;&lt;singleton&gt;&gt;
+        +deploy(artifact) void
+        +upgrade(plugin, ver) void
+        +rollback(plugin) void
+        +enable(tenant, plugin) void
+        +disable(tenant, plugin) void
+    }
+
+    class PluginRegistry {
+        &lt;&lt;singleton&gt;&gt;
+        -pluginMap Map
+        -routeTable Map
+        -eventMap Map
+        -hookMap Map
+    }
+
+    class IPluginRegistry {
+        &lt;&lt;interface&gt;&gt;
+    }
+
+    class SandboxEngine {
+        &lt;&lt;singleton&gt;&gt;
+        +execute(core, method, ctx, args) Result
+        -enforceTimeout(ms) void
+        -enforceMemory(mb) void
+    }
+
+    class EventBus {
+        &lt;&lt;singleton&gt;&gt;
+        +emit(event, data) void
+        +registerHandler(event, handler) void
+    }
+
+    class HookRegistry {
+        &lt;&lt;singleton&gt;&gt;
+        +run(hookName, data, ctx) data
+        +register(hookPoint, consumer) void
+    }
+
+    class LifecycleController {
+        &lt;&lt;singleton&gt;&gt;
+        +deployPipeline(artifact) void
+    }
+
+    class CanaryController {
+        &lt;&lt;singleton&gt;&gt;
+        +start(plugin, percent) void
+        +promote(plugin) void
+        +abort(plugin) void
+    }
+
+    class BroadcastManager {
+        &lt;&lt;singleton&gt;&gt;
+        +notify(systemEvent) void
+    }
+
+    class IMessageBroker {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class DependencyResolver {
+        &lt;&lt;L6&gt;&gt;
+    }
+    class SchemaMigrationRunner {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class TenantMigrationRunner {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class MetricsCollector {
+        &lt;&lt;L7&gt;&gt;
+    }
+
+    PluginRegistry ..|> IPluginRegistry
+
+    PluginManager *-- LifecycleController
+    PluginManager *-- CanaryController
+    PluginManager *-- BroadcastManager
+    PluginManager --> IPluginRegistry : register
+    PluginManager --> DependencyResolver : check deps
+    PluginManager --> SchemaMigrationRunner : DDL
+    PluginManager --> TenantMigrationRunner : DML
+
+    SandboxEngine --> IPluginRegistry : get core
+    SandboxEngine --> MetricsCollector : observe
+    EventBus --> IPluginRegistry : eventMap
+    EventBus --> IMessageBroker : async publish
+    HookRegistry --> IPluginRegistry : hookMap
+    BroadcastManager --> IMessageBroker : fanout
+</pre>
+            </div>
+            <div class="desc">
+
+                <h3>Vai trò</h3>
+                <p>Quản lý <strong>lifecycle toàn bộ plugin system</strong>: deploy, upgrade, rollback, enable/disable
+                    per-tenant. PluginManager là orchestrator chính, phối hợp nhiều component nội bộ và cross-layer.</p>
+
+                <h3>Vai trò từng thực thể</h3>
+                <table>
+                    <tr>
+                        <th>Class</th>
+                        <th>Vai trò</th>
+                        <th>Quan hệ</th>
+                    </tr>
+                    <tr>
+                        <td>PluginManager</td>
+                        <td>Orchestrator lifecycle. Deploy/upgrade/rollback/enable/disable</td>
+                        <td>Composition (◆): LifecycleController, CanaryController, BroadcastManager</td>
+                    </tr>
+                    <tr>
+                        <td>PluginRegistry</td>
+                        <td>In-memory metadata: 5 maps (plugin, route, event, hook, permission). Implements
+                            IPluginRegistry</td>
+                        <td>Consumed bởi RouteMatcher (L2), SandboxEngine, EventBus, HookRegistry</td>
+                    </tr>
+                    <tr>
+                        <td>SandboxEngine</td>
+                        <td>VM isolation. Enforce timeout/memory/queries. Error boundary per-execution</td>
+                        <td>Depends: IPluginRegistry (lấy core), MetricsCollector (L7, observe)</td>
+                    </tr>
+                    <tr>
+                        <td>EventBus</td>
+                        <td>Dual-mode: sync in-process + async qua IMessageBroker</td>
+                        <td>Depends: IPluginRegistry (eventMap), IMessageBroker (async publish)</td>
+                    </tr>
+                    <tr>
+                        <td>HookRegistry</td>
+                        <td>before/after/filter hooks. Priority sort, tenant-aware filter</td>
+                        <td>Depends: IPluginRegistry (hookMap)</td>
+                    </tr>
+                    <tr>
+                        <td>LifecycleController</td>
+                        <td>Orchestrate deploy pipeline: artifact → validate → register → migrate → broadcast</td>
+                        <td>Owned by PluginManager (composition)</td>
+                    </tr>
+                    <tr>
+                        <td>CanaryController</td>
+                        <td>Gradual rollout: 5%→25%→100%. Auto-rollback if error &gt;5%</td>
+                        <td>Depends: MetricsCollector (L7) để monitor</td>
+                    </tr>
+                    <tr>
+                        <td>BroadcastManager</td>
+                        <td>Fanout system events (plugin.deployed, config.updated) qua MQ</td>
+                        <td>Depends: IMessageBroker</td>
+                    </tr>
+                </table>
+
+                <h3>Cross-layer dependencies</h3>
+                <p>PluginManager → <strong>DependencyResolver (L6)</strong> kiểm tra deps trước enable/disable. →
+                    <strong>SchemaMigrationRunner (L4)</strong> chạy DDL. → <strong>TenantMigrationRunner (L4)</strong>
+                    chạy DML per-tenant.</p>
+
+            </div>
+        </div>
+        <div class="pnl" id="p-3">
+            <div class="diagram-box">
+                <pre class="mermaid">
+classDiagram
+    direction TB
+
+    class IPluginCore {
+        &lt;&lt;interface&gt;&gt;
+        +getName() string
+        +handleRoute(method, ctx, args) Result
+        +handleEvent(event, ctx, data) void
+        +handleHook(hook, ctx, data) data
+    }
+
+    class CustomerDataCore {
+        &lt;&lt;singleton&gt;&gt;
+        +listCustomers(ctx) list
+        +createCustomer(ctx, input) Customer
+    }
+    class CustomerCareCore {
+        &lt;&lt;singleton&gt;&gt;
+        +createSale(ctx, input) Sale
+        +listSales(ctx) list
+    }
+    class AutomationCore {
+        &lt;&lt;singleton&gt;&gt;
+        +evaluateRules(ctx, trigger) list
+    }
+    class AnalyticsCore {
+        &lt;&lt;singleton&gt;&gt;
+        +generateReport(ctx, cfg) Report
+    }
+    class MarketingCore {
+        &lt;&lt;singleton&gt;&gt;
+        +launchCampaign(ctx, cfg) Campaign
+    }
+
+    class ExecutionContextBuilder {
+        &lt;&lt;singleton&gt;&gt;
+        +build(tenantCtx, jwt, req) IExecutionContext
+        +release(ctx) void
+    }
+
+    class TenantScopedDB {
+        &lt;&lt;per-request&gt;&gt;
+    }
+    class TenantScopedCache {
+        &lt;&lt;per-request&gt;&gt;
+    }
+    class ScopedEventBus {
+        &lt;&lt;per-request&gt;&gt;
+    }
+    class ScopedLogger {
+        &lt;&lt;per-request&gt;&gt;
+    }
+    class ServiceContainer {
+        &lt;&lt;singleton&gt;&gt;
+    }
+
+    class IExecutionContext {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IDbContext {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class ICacheContext {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IEventContext {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IServiceContext {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class ILogger {
+        &lt;&lt;interface&gt;&gt;
+    }
+
+    CustomerDataCore ..|> IPluginCore
+    CustomerCareCore ..|> IPluginCore
+    AutomationCore ..|> IPluginCore
+    AnalyticsCore ..|> IPluginCore
+    MarketingCore ..|> IPluginCore
+
+    TenantScopedDB ..|> IDbContext
+    TenantScopedCache ..|> ICacheContext
+    ScopedEventBus ..|> IEventContext
+    ServiceContainer ..|> IServiceContext
+    ScopedLogger ..|> ILogger
+
+    IExecutionContext *-- IDbContext
+    IExecutionContext *-- ICacheContext
+    IExecutionContext *-- IEventContext
+    IExecutionContext *-- IServiceContext
+    IExecutionContext *-- ILogger
+
+    ExecutionContextBuilder ..> TenantScopedDB : creates
+    ExecutionContextBuilder ..> TenantScopedCache : creates
+    ExecutionContextBuilder ..> ScopedEventBus : creates
+    ExecutionContextBuilder ..> ScopedLogger : creates
+
+    CustomerDataCore --> IDbContext : ctx.db
+    CustomerCareCore --> IDbContext : ctx.db
+    AnalyticsCore --> IDbContext : ctx.db
+    MarketingCore --> IServiceContext : ctx.services
+</pre>
+            </div>
+            <div class="desc">
+
+                <h3>Vai trò</h3>
+                <p>5 Plugin Cores chứa <strong>business logic thuần</strong>. ExecutionContextBuilder tạo per-request
+                    context theo ISP — mỗi core chỉ nhận interfaces mà nó cần. <strong>LSP</strong>: SandboxEngine chạy
+                    bất kỳ IPluginCore nào mà không cần biết đó là plugin gì.</p>
+
+                <h3>Plugin Cores (implement IPluginCore)</h3>
+                <table>
+                    <tr>
+                        <th>Core</th>
+                        <th>Business domain</th>
+                        <th>Dependency plugin</th>
+                        <th>Interfaces consumed</th>
+                    </tr>
+                    <tr>
+                        <td>CustomerDataCore</td>
+                        <td>CRUD customers, companies, contacts, tags</td>
+                        <td>— (root)</td>
+                        <td>IDbContext, IEventContext</td>
+                    </tr>
+                    <tr>
+                        <td>CustomerCareCore</td>
+                        <td>Sales pipeline, call logs, tickets, SLA</td>
+                        <td>customer-data</td>
+                        <td>IDbContext, IEventContext</td>
+                    </tr>
+                    <tr>
+                        <td>AutomationCore</td>
+                        <td>Rules engine, workflows, email templates</td>
+                        <td>customer-data, customer-care</td>
+                        <td>IDbContext, IEventContext</td>
+                    </tr>
+                    <tr>
+                        <td>AnalyticsCore</td>
+                        <td>Reports, dashboards, metric snapshots</td>
+                        <td>customer-data</td>
+                        <td>IDbContext</td>
+                    </tr>
+                    <tr>
+                        <td>MarketingCore</td>
+                        <td>Campaigns, segments, lead scoring</td>
+                        <td>customer-data, customer-care</td>
+                        <td>IDbContext, IServiceContext</td>
+                    </tr>
+                </table>
+
+                <h3>Context Building — ISP in action</h3>
+                <p><code>ExecutionContextBuilder</code> tạo 5 scoped wrappers per-request (◆ composition):</p>
+                <table>
+                    <tr>
+                        <th>Scoped Wrapper</th>
+                        <th>Implements</th>
+                        <th>Wraps</th>
+                    </tr>
+                    <tr>
+                        <td>TenantScopedDB</td>
+                        <td>IDbContext</td>
+                        <td>DB connection + TenantInjector + QueryValidator + QueryCounter</td>
+                    </tr>
+                    <tr>
+                        <td>TenantScopedCache</td>
+                        <td>ICacheContext</td>
+                        <td>Redis client, auto-prefix t:{tenantId}</td>
+                    </tr>
+                    <tr>
+                        <td>ScopedEventBus</td>
+                        <td>IEventContext</td>
+                        <td>EventBus + HookRegistry, filter by enabledPlugins</td>
+                    </tr>
+                    <tr>
+                        <td>ServiceContainer</td>
+                        <td>IServiceContext</td>
+                        <td>6 shared services: Email, Storage, Notification, Search, Scheduler, MQ</td>
+                    </tr>
+                    <tr>
+                        <td>ScopedLogger</td>
+                        <td>ILogger</td>
+                        <td>Logger + auto-bind requestId/tenantId/userId + PiiRedactor</td>
+                    </tr>
+                </table>
+
+                <h3>DIP — Plugin không biết infrastructure</h3>
+                <p>Cores depend on <strong>IDbContext</strong> (abstraction) — không biết PostgreSQL, Connection Pool,
+                    hay RLS. Đổi PostgreSQL sang MySQL = chỉ đổi implementation TenantScopedDB, plugin code không đổi
+                    dòng nào.</p>
+
+            </div>
+        </div>
+        <div class="pnl" id="p-4">
+            <div class="diagram-box">
+                <pre class="mermaid">
+classDiagram
+    direction TB
+
+    class IDbContext {
+        &lt;&lt;interface&gt;&gt;
+    }
+
+    class TenantScopedDB {
+        &lt;&lt;per-request&gt;&gt;
+        +query(table) QueryBuilder
+        +insert(table, data) Record
+        +transaction(fn) Result
+    }
+
+    class TenantInjector {
+        &lt;&lt;singleton&gt;&gt;
+        +injectSelect(query, tid) Query
+        +injectInsert(query, tid) Query
+    }
+
+    class QueryValidator {
+        &lt;&lt;singleton&gt;&gt;
+        +validate(query) void
+    }
+
+    class QueryCounter {
+        &lt;&lt;per-request&gt;&gt;
+        +increment() void
+        +isExhausted() bool
+    }
+
+    class QueryLogger {
+        &lt;&lt;singleton&gt;&gt;
+        +log(query, ms, ctx) void
+    }
+
+    class IConnectionPool {
+        &lt;&lt;interface&gt;&gt;
+    }
+
+    class PoolRegistry {
+        &lt;&lt;singleton&gt;&gt;
+        +getPool(name) IConnectionPool
+    }
+
+    class PoolRouter {
+        &lt;&lt;singleton&gt;&gt;
+        +route(dbPoolName) IConnectionPool
+        +acquireFor(ctx) Connection
+    }
+
+    class SharedPool {
+        &lt;&lt;singleton&gt;&gt;
+    }
+    class VipPool {
+        &lt;&lt;singleton&gt;&gt;
+    }
+    class ConnectionConfigurator {
+        &lt;&lt;singleton&gt;&gt;
+        +configure(conn, tenantId) void
+        +reset(conn) void
+    }
+    class TenantQuotaEnforcer {
+        &lt;&lt;singleton&gt;&gt;
+        +canAcquire(tenantId) bool
+    }
+
+    class ICacheProvider {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class L1MemoryCache {
+        &lt;&lt;singleton&gt;&gt;
+    }
+    class L2RedisCache {
+        &lt;&lt;singleton&gt;&gt;
+    }
+
+    class SchemaMigrationRunner {
+        &lt;&lt;singleton&gt;&gt;
+        +runPending(plugin, ver) void
+    }
+    class TenantMigrationRunner {
+        &lt;&lt;singleton&gt;&gt;
+        +runForTenant(tenant, plugin) void
+    }
+    class MigrationLockManager {
+        &lt;&lt;singleton&gt;&gt;
+        +acquireLock(plugin) bool
+    }
+
+    class CircuitBreaker {
+        &lt;&lt;L6&gt;&gt;
+    }
+
+    TenantScopedDB ..|> IDbContext
+    TenantScopedDB *-- TenantInjector
+    TenantScopedDB *-- QueryValidator
+    TenantScopedDB *-- QueryCounter
+    TenantScopedDB *-- QueryLogger
+
+    SharedPool ..|> IConnectionPool
+    VipPool ..|> IConnectionPool
+    L1MemoryCache ..|> ICacheProvider
+    L2RedisCache ..|> ICacheProvider
+
+    PoolRegistry o-- SharedPool
+    PoolRegistry o-- VipPool
+    PoolRouter --> PoolRegistry : lookup
+    PoolRouter --> ConnectionConfigurator : SET tenant
+    PoolRouter --> TenantQuotaEnforcer : cap check
+    PoolRouter --> CircuitBreaker : fast-fail
+</pre>
+            </div>
+            <div class="desc">
+
+                <h3>Vai trò</h3>
+                <p>3 nhóm chức năng: <strong>Query Interceptor</strong> (tenant isolation + safety), <strong>Pool
+                        Manager</strong> (connection lifecycle), <strong>Cache + Migration</strong>. Đây là lớp bảo vệ
+                    data — plugin không bao giờ truy cập DB trực tiếp.</p>
+
+                <h3>Query Interceptor Group</h3>
+                <table>
+                    <tr>
+                        <th>Class</th>
+                        <th>Vai trò</th>
+                        <th>Quan hệ</th>
+                    </tr>
+                    <tr>
+                        <td>TenantScopedDB</td>
+                        <td>Wraps DB connection. Implements IDbContext. Plugin gọi ctx.db → mọi query tự động đi qua 4
+                            bộ lọc</td>
+                        <td>Composition (◆): TenantInjector, QueryValidator, QueryCounter, QueryLogger</td>
+                    </tr>
+                    <tr>
+                        <td>TenantInjector</td>
+                        <td>Auto-inject tenant_id vào WHERE (SELECT/UPDATE/DELETE) và column list (INSERT)</td>
+                        <td>Consumed bởi TenantScopedDB</td>
+                    </tr>
+                    <tr>
+                        <td>QueryValidator</td>
+                        <td>6 safety checks: tenant filter? no DDL? no system table? no raw SQL? no cross-schema?
+                            parameterized?</td>
+                        <td>Consumed bởi TenantScopedDB</td>
+                    </tr>
+                    <tr>
+                        <td>QueryCounter</td>
+                        <td>Đếm queries per-request [n/50]. Exceed → QueryLimitError</td>
+                        <td>Per-request, consumed bởi TenantScopedDB</td>
+                    </tr>
+                    <tr>
+                        <td>QueryLogger</td>
+                        <td>Log slow queries: &gt;100ms WARN, &gt;500ms ALERT</td>
+                        <td>Consumed bởi TenantScopedDB</td>
+                    </tr>
+                </table>
+
+                <h3>Pool Manager Group</h3>
+                <table>
+                    <tr>
+                        <th>Class</th>
+                        <th>Vai trò</th>
+                        <th>Quan hệ</th>
+                    </tr>
+                    <tr>
+                        <td>PoolRegistry</td>
+                        <td>Holds tất cả pools (bootstrap). Aggregation: SharedPool, VipPool</td>
+                        <td>PoolRouter lookup từ đây</td>
+                    </tr>
+                    <tr>
+                        <td>PoolRouter</td>
+                        <td>Route tenant → đúng pool. "shared" → SharedPool, "vip-x" → VipPool</td>
+                        <td>Depends: PoolRegistry, ConnectionConfigurator, TenantQuotaEnforcer, CircuitBreaker (L6)</td>
+                    </tr>
+                    <tr>
+                        <td>SharedPool</td>
+                        <td>PgBouncer → SharedDataDB. 200 max, per-tenant cap 20. Implements IConnectionPool</td>
+                        <td>Aggregated by PoolRegistry</td>
+                    </tr>
+                    <tr>
+                        <td>VipPool</td>
+                        <td>Direct → VipDataDB. Dedicated per VIP. Implements IConnectionPool</td>
+                        <td>Aggregated by PoolRegistry</td>
+                    </tr>
+                    <tr>
+                        <td>ConnectionConfigurator</td>
+                        <td>SET/RESET app.current_tenant trên mỗi connection (RLS context)</td>
+                        <td>Consumed bởi PoolRouter</td>
+                    </tr>
+                    <tr>
+                        <td>TenantQuotaEnforcer</td>
+                        <td>Per-tenant 20 connection cap. 1 tenant spike ≠ starve others</td>
+                        <td>Consumed bởi PoolRouter</td>
+                    </tr>
+                </table>
+
+                <h3>Cache + Migration</h3>
+                <p><strong>L1MemoryCache</strong> (ICacheProvider, in-process LRU, 60s TTL) →
+                    <strong>L2RedisCache</strong> (ICacheProvider, Redis cluster, 5-15min TTL). Invalidation: write →
+                    delete L2 → Pub/Sub → all instances clear L1.</p>
+                <p><strong>SchemaMigrationRunner</strong> (DDL, system-wide) depends on <strong>DependencyGraph
+                        (L6)</strong> cho execution order. <strong>MigrationLockManager</strong> dùng pg_advisory_lock
+                    serialize concurrent enables.</p>
+
+            </div>
+        </div>
+        <div class="pnl" id="p-5">
+            <div class="diagram-box">
+                <pre class="mermaid">
+classDiagram
+    direction TB
+
+    class IConnectionPool {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class ICacheProvider {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IMessageBroker {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class ISearchEngine {
+        &lt;&lt;interface&gt;&gt;
+    }
+
+    class SharedPool {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class VipPool {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class L1MemoryCache {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class L2RedisCache {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class RabbitMQAdapter {
+        &lt;&lt;singleton&gt;&gt;
+    }
+    class ElasticsearchAdapter {
+        &lt;&lt;singleton&gt;&gt;
+    }
+    class WorkerPool {
+        &lt;&lt;singleton&gt;&gt;
+        +consume(queue) void
+    }
+
+    class MetadataDB {
+        &lt;&lt;external&gt;&gt;
+    }
+    class SharedDataDB {
+        &lt;&lt;external&gt;&gt;
+    }
+    class VipDataDB {
+        &lt;&lt;external&gt;&gt;
+    }
+    class PgBouncer {
+        &lt;&lt;external&gt;&gt;
+    }
+    class RedisCluster {
+        &lt;&lt;external&gt;&gt;
+    }
+    class S3ObjectStore {
+        &lt;&lt;external&gt;&gt;
+    }
+    class CDN_Edge {
+        &lt;&lt;external&gt;&gt;
+    }
+
+    class RetryPolicy {
+        &lt;&lt;L6&gt;&gt;
+    }
+
+    SharedPool ..|> IConnectionPool
+    VipPool ..|> IConnectionPool
+    L1MemoryCache ..|> ICacheProvider
+    L2RedisCache ..|> ICacheProvider
+    RabbitMQAdapter ..|> IMessageBroker
+    ElasticsearchAdapter ..|> ISearchEngine
+
+    SharedPool --> PgBouncer
+    PgBouncer --> SharedDataDB
+    VipPool --> VipDataDB
+    L2RedisCache --> RedisCluster
+    WorkerPool --> IMessageBroker : consume
+    WorkerPool --> RetryPolicy : retry
+</pre>
+            </div>
+            <div class="desc">
+
+                <h3>Vai trò</h3>
+                <p>Adapter layer: concrete implementations wrap external systems và implement interfaces ở L4. Đây là
+                    nơi <strong>Dependency Inversion</strong> hoàn thành — L3/L4 depend on interfaces, L5 provides
+                    implementations.</p>
+
+                <h3>DIP — Interface ← Implementation</h3>
+                <table>
+                    <tr>
+                        <th>Interface</th>
+                        <th>L5 Implementation</th>
+                        <th>External System</th>
+                    </tr>
+                    <tr>
+                        <td>IConnectionPool</td>
+                        <td>SharedPool, VipPool</td>
+                        <td>PgBouncer → SharedDataDB, VipDataDB</td>
+                    </tr>
+                    <tr>
+                        <td>ICacheProvider</td>
+                        <td>L1MemoryCache, L2RedisCache</td>
+                        <td>RedisCluster</td>
+                    </tr>
+                    <tr>
+                        <td>IMessageBroker</td>
+                        <td>RabbitMQAdapter</td>
+                        <td>RabbitMQ (crm.events + crm.system exchanges)</td>
+                    </tr>
+                    <tr>
+                        <td>ISearchEngine</td>
+                        <td>ElasticsearchAdapter</td>
+                        <td>Elasticsearch (per-tenant index)</td>
+                    </tr>
+                </table>
+
+                <h3>External Systems</h3>
+                <table>
+                    <tr>
+                        <th>System</th>
+                        <th>Vai trò</th>
+                    </tr>
+                    <tr>
+                        <td>MetadataDB</td>
+                        <td>tenants, tenant_plugins, plugin_registry, audit_log, system_config</td>
+                    </tr>
+                    <tr>
+                        <td>SharedDataDB</td>
+                        <td>Business tables cho Basic/Premium/Enterprise. RLS enabled. 3 read replicas</td>
+                    </tr>
+                    <tr>
+                        <td>VipDataDB</td>
+                        <td>Dedicated per VIP tenant. Same schema, custom tuning</td>
+                    </tr>
+                    <tr>
+                        <td>PgBouncer</td>
+                        <td>Connection multiplexer: 200 app conns → 50 DB conns</td>
+                    </tr>
+                    <tr>
+                        <td>RedisCluster</td>
+                        <td>6 roles: cache, domain-map, rate-limit, blacklist, Pub/Sub, counters</td>
+                    </tr>
+                    <tr>
+                        <td>S3ObjectStore</td>
+                        <td>File storage per-tenant, SSE-KMS encrypted, Object Lock (WORM) cho audit</td>
+                    </tr>
+                    <tr>
+                        <td>CDN</td>
+                        <td>Serve Host Shell + Plugin remoteEntry.js. Edge cache per-version</td>
+                    </tr>
+                </table>
+                <p><strong>WorkerPool</strong> consumes từ IMessageBroker (queues: notification, search.index, webhook,
+                    email). Dùng <strong>RetryPolicy (L6)</strong>: retry 3x exponential → DLQ.</p>
+
+            </div>
+        </div>
+        <div class="pnl" id="p-6">
+            <div class="diagram-box">
+                <pre class="mermaid">
+classDiagram
+    direction TB
+
+    class CrmError {
+        &lt;&lt;abstract&gt;&gt;
+        +code string
+        +message string
+        +status int
+        +isRetryable bool
+    }
+    class BusinessError {
+        +isRetryable bool
+    }
+    class SystemError {
+        +isRetryable bool
+    }
+    class PluginError {
+        +isRetryable bool
+    }
+
+    class CircuitBreaker {
+        &lt;&lt;per-resource&gt;&gt;
+        -state string
+        -failureCount int
+        +execute(fn) Result
+        +getState() string
+    }
+    class RetryPolicy {
+        &lt;&lt;static&gt;&gt;
+        +execute(fn, options) Result
+        +withJitter(delay) int
+    }
+
+    class EncryptionService {
+        &lt;&lt;singleton&gt;&gt;
+        +encrypt(data, key) string
+        +decrypt(cipher, key) string
+    }
+    class PiiRedactor {
+        &lt;&lt;singleton&gt;&gt;
+        +redact(data, rules) data
+    }
+    class SecretManager {
+        &lt;&lt;singleton&gt;&gt;
+        +getSecret(path) string
+        +renewLease() void
+    }
+
+    class ConfigResolver {
+        &lt;&lt;singleton&gt;&gt;
+        +resolve(key, ctx) any
+        +reload(tenantId) void
+    }
+    class FeatureFlagService {
+        &lt;&lt;singleton&gt;&gt;
+        +isEnabled(flag, ctx) bool
+    }
+
+    class DependencyResolver {
+        &lt;&lt;singleton&gt;&gt;
+        +checkCanEnable(tenant, plugin) Result
+        +checkCanDisable(tenant, plugin) Result
+    }
+    class DependencyGraph {
+        &lt;&lt;singleton&gt;&gt;
+        +addNode(plugin, deps) void
+        +getDependents(plugin) list
+        +detectCycle() bool
+    }
+
+    BusinessError --|> CrmError
+    SystemError --|> CrmError
+    PluginError --|> CrmError
+    DependencyResolver --> DependencyGraph
+    SecretManager --> EncryptionService
+</pre>
+            </div>
+            <div class="desc">
+
+                <h3>Vai trò</h3>
+                <p>4 concerns <strong>xuyên suốt L1→L5</strong>: Error hierarchy, Resilience patterns, Security, Config,
+                    Dependency. L6 không xử lý request — nó cung cấp <strong>policies, patterns, libraries</strong> mà
+                    L1→L5 consume.</p>
+
+                <h3>Error Hierarchy (LSP)</h3>
+                <table>
+                    <tr>
+                        <th>Class</th>
+                        <th>isRetryable</th>
+                        <th>HTTP Status</th>
+                        <th>Xử lý</th>
+                    </tr>
+                    <tr>
+                        <td>CrmError (abstract)</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>Base class, mọi error kế thừa. code + message + status + isRetryable</td>
+                    </tr>
+                    <tr>
+                        <td>BusinessError</td>
+                        <td>false</td>
+                        <td>400, 403, 404, 409</td>
+                        <td>Permanent. Client KHÔNG retry. VD: CUSTOMER_NOT_FOUND</td>
+                    </tr>
+                    <tr>
+                        <td>SystemError</td>
+                        <td>true</td>
+                        <td>502, 503, 504</td>
+                        <td>Transient. Client CÓ THỂ retry. VD: DB_TIMEOUT</td>
+                    </tr>
+                    <tr>
+                        <td>PluginError</td>
+                        <td>varies</td>
+                        <td>500, 504</td>
+                        <td>Sandbox catches. VD: PLUGIN_CRASH, MEMORY_EXCEEDED</td>
+                    </tr>
+                </table>
+                <p><strong>LSP</strong>: error handler chỉ cần check <code>error.isRetryable</code> — bất kỳ subclass
+                    nào cũng xử lý đúng mà không cần biết loại cụ thể.</p>
+
+                <h3>Resilience Patterns</h3>
+                <table>
+                    <tr>
+                        <th>Class</th>
+                        <th>Vai trò</th>
+                        <th>Consumed bởi</th>
+                    </tr>
+                    <tr>
+                        <td>CircuitBreaker</td>
+                        <td>CLOSED → OPEN → HALF-OPEN. Fast-fail khi downstream lỗi</td>
+                        <td>PoolRouter (L4 DB), external API clients</td>
+                    </tr>
+                    <tr>
+                        <td>RetryPolicy</td>
+                        <td>Exponential backoff + jitter: 5s→30s→2min. Chỉ retry isRetryable=true</td>
+                        <td>WorkerPool (L5), MQPublisher (L3)</td>
+                    </tr>
+                </table>
+
+                <h3>Security + Config + Dependency</h3>
+                <table>
+                    <tr>
+                        <th>Class</th>
+                        <th>Vai trò</th>
+                        <th>Consumed bởi</th>
+                    </tr>
+                    <tr>
+                        <td>EncryptionService</td>
+                        <td>AES-256-GCM encrypt/decrypt</td>
+                        <td>pgcrypto columns, S3 SSE, backup</td>
+                    </tr>
+                    <tr>
+                        <td>PiiRedactor</td>
+                        <td>Auto-mask PII (email, phone, token) trước khi log</td>
+                        <td>ScopedLogger (L7)</td>
+                    </tr>
+                    <tr>
+                        <td>SecretManager</td>
+                        <td>Vault/KMS client. Lease TTL 8h, auto-renew</td>
+                        <td>AuthGuard (L2), TokenManager (L2), ConnectionConfigurator (L4)</td>
+                    </tr>
+                    <tr>
+                        <td>ConfigResolver</td>
+                        <td>3-level cascade: Global → Tier → Tenant. Hot reload</td>
+                        <td>RateLimiter (L2), TenantQuotaEnforcer (L4), L2RedisCache (L4)</td>
+                    </tr>
+                    <tr>
+                        <td>FeatureFlagService</td>
+                        <td>Per-flag: global + tier + tenant override</td>
+                        <td>HostShell (L1), Plugin Cores (L3)</td>
+                    </tr>
+                    <tr>
+                        <td>DependencyResolver</td>
+                        <td>checkCanEnable/checkCanDisable. Topological sort</td>
+                        <td>PluginManager (L3)</td>
+                    </tr>
+                    <tr>
+                        <td>DependencyGraph</td>
+                        <td>In-memory DAG plugin → deps</td>
+                        <td>DependencyResolver, SchemaMigrationRunner (L4)</td>
+                    </tr>
+                </table>
+
+            </div>
+        </div>
+        <div class="pnl" id="p-7">
+            <div class="diagram-box">
+                <pre class="mermaid">
+classDiagram
+    direction TB
+
+    class ILogger {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IAuditWriter {
+        &lt;&lt;interface&gt;&gt;
+    }
+
+    class ScopedLogger {
+        &lt;&lt;per-request&gt;&gt;
+        -requestId string
+        -tenantId string
+        +debug(msg, meta) void
+        +info(msg, meta) void
+        +warn(msg, meta) void
+        +error(msg, err, meta) void
+    }
+
+    class TracingManager {
+        &lt;&lt;singleton&gt;&gt;
+        +startSpan(name) Span
+        +endSpan(span) void
+        +inject(carrier) void
+    }
+
+    class MetricsCollector {
+        &lt;&lt;singleton&gt;&gt;
+        +observe(name, value, labels) void
+        +increment(name, labels) void
+    }
+
+    class AlertManager {
+        &lt;&lt;singleton&gt;&gt;
+        +fire(alert) void
+        +resolve(alertId) void
+        +escalate(alertId) void
+    }
+
+    class LivenessProbe {
+        &lt;&lt;singleton&gt;&gt;
+        +check() HealthResult
+    }
+    class ReadinessProbe {
+        &lt;&lt;singleton&gt;&gt;
+        +check() HealthResult
+    }
+
+    class AuditTrailWriter {
+        &lt;&lt;singleton&gt;&gt;
+        +record(action, resource, before, after) void
+        +flush() void
+    }
+
+    class AnomalyDetector {
+        &lt;&lt;singleton&gt;&gt;
+        +analyze(metrics) list
+        +detectCrossTenant() list
+    }
+
+    class PiiRedactor {
+        &lt;&lt;L6&gt;&gt;
+    }
+
+    ScopedLogger ..|> ILogger
+    AuditTrailWriter ..|> IAuditWriter
+    ScopedLogger --> PiiRedactor : redact
+    ScopedLogger --> TracingManager : traceId
+    MetricsCollector --> AlertManager : threshold
+    AnomalyDetector --> AlertManager : pattern
+</pre>
+            </div>
+            <div class="desc">
+
+                <h3>Vai trò</h3>
+                <p>Quan sát toàn bộ hệ thống: <strong>Log</strong> (what happened), <strong>Trace</strong> (request
+                    journey), <strong>Metrics</strong> (how much), <strong>Alert</strong> (when bad),
+                    <strong>Audit</strong> (who changed what), <strong>Health</strong> (is it alive).</p>
+
+                <h3>Core Observability</h3>
+                <table>
+                    <tr>
+                        <th>Class</th>
+                        <th>Vai trò</th>
+                        <th>Quan hệ</th>
+                    </tr>
+                    <tr>
+                        <td>ScopedLogger</td>
+                        <td>Per-request. Auto-bind requestId/tenantId/userId. JSON → stdout → Loki. Implements ILogger
+                        </td>
+                        <td>Depends: PiiRedactor (L6, redact PII), TracingManager (inject traceId). Consumed bởi mọi
+                            Plugin Core</td>
+                    </tr>
+                    <tr>
+                        <td>TracingManager</td>
+                        <td>OpenTelemetry. Auto-instrument HTTP, DB, Redis, MQ. Sampling: 5% normal, 100% errors, VIP
+                            20%</td>
+                        <td>Export → Jaeger. ScopedLogger inject traceId vào log lines</td>
+                    </tr>
+                    <tr>
+                        <td>MetricsCollector</td>
+                        <td>Prometheus client. Histograms: request_duration, plugin_execution. Counters: request_total,
+                            error_total</td>
+                        <td>Feed → AlertManager khi threshold vượt ngưỡng</td>
+                    </tr>
+                    <tr>
+                        <td>AlertManager</td>
+                        <td>3 severity: WARNING (Slack), CRITICAL (PagerDuty), FATAL (Phone). Escalation 0→5→15→30→60min
+                        </td>
+                        <td>Nhận từ MetricsCollector (threshold) và AnomalyDetector (pattern)</td>
+                    </tr>
+                </table>
+
+                <h3>Health + Audit</h3>
+                <table>
+                    <tr>
+                        <th>Class</th>
+                        <th>Vai trò</th>
+                        <th>Note</th>
+                    </tr>
+                    <tr>
+                        <td>LivenessProbe</td>
+                        <td>/health/live (10s). Process alive? Fail → K8s restart container</td>
+                        <td>Lightweight, no external deps</td>
+                    </tr>
+                    <tr>
+                        <td>ReadinessProbe</td>
+                        <td>/health/ready (5s). DB? Redis? Plugins loaded? Not ready → LB skip</td>
+                        <td>Check tất cả dependencies</td>
+                    </tr>
+                    <tr>
+                        <td>AuditTrailWriter</td>
+                        <td>Immutable compliance record. Chỉ data mutations. Buffer 1s → batch INSERT. Implements
+                            IAuditWriter</td>
+                        <td>Partitioned monthly → S3 WORM. NO UPDATE/DELETE</td>
+                    </tr>
+                    <tr>
+                        <td>AnomalyDetector</td>
+                        <td>Pattern analysis: cross-tenant attempts, error rate spike, traffic anomaly</td>
+                        <td>Feed → AlertManager</td>
+                    </tr>
+                </table>
+
+            </div>
+        </div>
+        <div class="pnl" id="p-8">
+            <div class="diagram-box">
+                <pre class="mermaid">
+classDiagram
+    direction TB
+
+    class HostShell {
+        &lt;&lt;singleton&gt;&gt;
+        +bootstrap() void
+        +loadRemote(plugin, ver) Module
+        +buildNav(plugins) list
+    }
+    class PluginRemote {
+        &lt;&lt;per-plugin&gt;&gt;
+        +pages list
+        +components list
+    }
+    class PluginArea {
+        &lt;&lt;singleton&gt;&gt;
+        +renderRemote(name) void
+        +handleCrash(error) void
+    }
+    class ThemeEngine {
+        &lt;&lt;singleton&gt;&gt;
+        +applyTheme(theme) void
+    }
+    class ApiClient {
+        &lt;&lt;singleton&gt;&gt;
+        +get(url) Response
+        +post(url, body) Response
+        +refreshToken() TokenPair
+    }
+
+    class MobileShell {
+        &lt;&lt;singleton&gt;&gt;
+        +loadFeatureModule(plugin) Module
+        +handlePush(notif) void
+    }
+    class OfflineSyncEngine {
+        &lt;&lt;singleton&gt;&gt;
+        +queueMutation(m, url, body) void
+        +syncPending() SyncResult
+    }
+    class OtaUpdateManager {
+        &lt;&lt;singleton&gt;&gt;
+        +checkForUpdate() UpdateInfo
+        +applyUpdate() void
+    }
+    class TenantAdminApp {
+        &lt;&lt;singleton&gt;&gt;
+        +managePlugins() void
+        +manageUsers() void
+    }
+    class SystemAdminApp {
+        &lt;&lt;singleton&gt;&gt;
+        +manageTenants() void
+        +deployPlugin(artifact) void
+    }
+
+    HostShell *-- PluginArea
+    HostShell *-- ThemeEngine
+    HostShell *-- ApiClient
+    HostShell o-- PluginRemote : loads dynamically
+    MobileShell *-- OfflineSyncEngine
+    MobileShell *-- OtaUpdateManager
+</pre>
+            </div>
+            <div class="desc">
+
+                <h3>Vai trò</h3>
+                <p>Lớp DUY NHẤT user nhìn thấy. Hoàn toàn <strong>client-side</strong> — không truy cập DB, Redis, MQ.
+                    Chỉ gọi API tới L2 Gateway. Plugin UI loaded ĐỘNG qua Module Federation.</p>
+
+                <h3>Vai trò từng thực thể</h3>
+                <table>
+                    <tr>
+                        <th>Class</th>
+                        <th>Vai trò</th>
+                        <th>Quan hệ</th>
+                    </tr>
+                    <tr>
+                        <td>HostShell</td>
+                        <td>React SPA frame: sidebar, topbar, auth (JWT memory), React Router, theme, remote loading
+                        </td>
+                        <td>Composition (◆): PluginArea, ThemeEngine, ApiClient. Aggregation (◇): PluginRemote (load
+                            động)</td>
+                    </tr>
+                    <tr>
+                        <td>PluginRemote</td>
+                        <td>Module Federation remote (remoteEntry.js). Pages + components cho 1 plugin. CDN per-version
+                        </td>
+                        <td>Loaded dynamically bởi HostShell khi navigate</td>
+                    </tr>
+                    <tr>
+                        <td>PluginArea</td>
+                        <td>React slot. Render active remote based on URL. ErrorBoundary per-plugin</td>
+                        <td>Owned by HostShell</td>
+                    </tr>
+                    <tr>
+                        <td>ThemeEngine</td>
+                        <td>Apply tenant theme (logo, colors) via CSS variables</td>
+                        <td>Owned by HostShell</td>
+                    </tr>
+                    <tr>
+                        <td>ApiClient</td>
+                        <td>HTTP client. Auto-attach JWT + X-Tenant-ID. Handle 401 → auto refresh</td>
+                        <td>Owned by HostShell</td>
+                    </tr>
+                    <tr>
+                        <td>MobileShell</td>
+                        <td>RN/Flutter shell. Navigation, push, biometric, feature module loader</td>
+                        <td>Composition: OfflineSyncEngine, OtaUpdateManager</td>
+                    </tr>
+                    <tr>
+                        <td>OfflineSyncEngine</td>
+                        <td>SQLite cache + pending mutation queue. Batch sync on reconnect</td>
+                        <td>Owned by MobileShell</td>
+                    </tr>
+                    <tr>
+                        <td>OtaUpdateManager</td>
+                        <td>CodePush/Shorebird. Download + apply OTA delta without App Store</td>
+                        <td>Owned by MobileShell</td>
+                    </tr>
+                    <tr>
+                        <td>TenantAdminApp</td>
+                        <td>SPA cho tenant admin: plugin enable/disable, user RBAC, plugin config, billing</td>
+                        <td>Standalone (admin.{sub}.crm.com)</td>
+                    </tr>
+                    <tr>
+                        <td>SystemAdminApp</td>
+                        <td>SPA cho platform ops: tenant CRUD, deploy, monitoring (VPN + MFA only)</td>
+                        <td>Standalone (system.crm.internal)</td>
+                    </tr>
+                </table>
+
+            </div>
+        </div>
+        <div class="pnl" id="p-9">
+            <div class="diagram-box">
+                <pre class="mermaid">
+classDiagram
+    direction TB
+
+    class IPluginCore {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IDbContext {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class ICacheContext {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IEventContext {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IConnectionPool {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class ICacheProvider {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IMessageBroker {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class ISearchEngine {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class ILogger {
+        &lt;&lt;interface&gt;&gt;
+    }
+    class IAuditWriter {
+        &lt;&lt;interface&gt;&gt;
+    }
+
+    class CustomerDataCore {
+        &lt;&lt;L3&gt;&gt;
+    }
+    class CustomerCareCore {
+        &lt;&lt;L3&gt;&gt;
+    }
+    class AnalyticsCore {
+        &lt;&lt;L3&gt;&gt;
+    }
+    class TenantScopedDB {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class TenantScopedCache {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class ScopedEventBus {
+        &lt;&lt;L3&gt;&gt;
+    }
+    class SharedPool {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class VipPool {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class L1MemoryCache {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class L2RedisCache {
+        &lt;&lt;L4&gt;&gt;
+    }
+    class RabbitMQAdapter {
+        &lt;&lt;L5&gt;&gt;
+    }
+    class ElasticsearchAdapter {
+        &lt;&lt;L5&gt;&gt;
+    }
+    class ScopedLogger {
+        &lt;&lt;L7&gt;&gt;
+    }
+    class AuditTrailWriter {
+        &lt;&lt;L7&gt;&gt;
+    }
+
+    CustomerDataCore ..|> IPluginCore
+    CustomerCareCore ..|> IPluginCore
+    AnalyticsCore ..|> IPluginCore
+    TenantScopedDB ..|> IDbContext
+    TenantScopedCache ..|> ICacheContext
+    ScopedEventBus ..|> IEventContext
+    SharedPool ..|> IConnectionPool
+    VipPool ..|> IConnectionPool
+    L1MemoryCache ..|> ICacheProvider
+    L2RedisCache ..|> ICacheProvider
+    RabbitMQAdapter ..|> IMessageBroker
+    ElasticsearchAdapter ..|> ISearchEngine
+    ScopedLogger ..|> ILogger
+    AuditTrailWriter ..|> IAuditWriter
+
+    CustomerDataCore --> IDbContext
+    CustomerCareCore --> IDbContext
+    AnalyticsCore --> IDbContext
+</pre>
+            </div>
+            <div class="desc">
+
+                <h3>Vai trò</h3>
+                <p>Tổng hợp <strong>Dependency Inversion Principle</strong> xuyên toàn bộ kiến trúc. Mũi tên dependency
+                    luôn hướng VÀO abstraction (interface) từ CẢ HAI phía: high-level (L3 Plugin) → interface ←
+                    low-level (L4/L5 implementation).</p>
+
+                <h3>Pattern</h3>
+                <div class="code">
+                    Plugin Core (L3) ──depends on──▶ Interface ◁──implements── Concrete (L4/L5)<br><br>
+                    VD: CustomerDataCore ──▶ IDbContext ◁── TenantScopedDB ── ▶ SharedPool ──▶ PgBouncer ──▶ PostgreSQL
+                </div>
+
+                <h3>Ý nghĩa thực tiễn</h3>
+                <table>
+                    <tr>
+                        <th>Khi cần</th>
+                        <th>Chỉ cần đổi</th>
+                        <th>Không đổi</th>
+                    </tr>
+                    <tr>
+                        <td>Swap PostgreSQL → MySQL</td>
+                        <td>TenantScopedDB implementation, SharedPool adapter</td>
+                        <td>Mọi Plugin Core, ExecutionContextBuilder, SandboxEngine</td>
+                    </tr>
+                    <tr>
+                        <td>Swap Redis → Memcached</td>
+                        <td>L2RedisCache implementation</td>
+                        <td>TenantScopedCache, mọi consumer ICacheProvider</td>
+                    </tr>
+                    <tr>
+                        <td>Swap RabbitMQ → Kafka</td>
+                        <td>RabbitMQAdapter → KafkaAdapter</td>
+                        <td>EventBus, BroadcastManager, WorkerPool</td>
+                    </tr>
+                    <tr>
+                        <td>Swap Elasticsearch → Typesense</td>
+                        <td>ElasticsearchAdapter → TypesenseAdapter</td>
+                        <td>SearchService, mọi plugin dùng ctx.services.search</td>
+                    </tr>
+                    <tr>
+                        <td>Thêm plugin mới</td>
+                        <td>Tạo class implement IPluginCore</td>
+                        <td>SandboxEngine, EventBus, HookRegistry, PluginManager</td>
+                    </tr>
+                </table>
+
+                <h3>15 concrete implements 11 interfaces</h3>
+                <p>Mỗi đường ..|> (implements) trong diagram thể hiện 1 DIP boundary. Total 15 implementation
+                    relationships — đủ để swap bất kỳ infrastructure component nào mà business logic không đổi.</p>
+
+            </div>
+        </div>
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: false, theme: 'dark', themeVariables: { primaryColor: '#1e293b', primaryTextColor: '#e2e8f0', primaryBorderColor: '#334155', lineColor: '#64748b', secondaryColor: '#0f172a', tertiaryColor: '#1e293b' } });
+        var rendered = {};
+        function renderPanel(n) { if (rendered[n]) return; var pnl = document.getElementById('p-' + n); if (!pnl) return; var pre = pnl.querySelector('pre.mermaid'); if (!pre) return; rendered[n] = true; mermaid.run({ nodes: [pre] }); }
+        function go(n) { document.querySelectorAll('.pnl').forEach(function (p) { p.classList.remove('on') }); document.querySelectorAll('.nav button').forEach(function (b) { b.classList.remove('on') }); var p = document.getElementById('p-' + n); if (p) p.classList.add('on'); var btns = document.querySelectorAll('.nav button'); if (btns[n]) btns[n].classList.add('on'); setTimeout(function () { renderPanel(n) }, 50); window.scrollTo({ top: 120, behavior: 'smooth' }); }
+        document.addEventListener('DOMContentLoaded', function () { renderPanel(0) });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM — Query Builder & Pipeline (DIP Architecture)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060810;--sf:#0c0e18;--sf2:#111420;
+  --bd:#1c2038;--bda:#2a3055;
+  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
+  --bl:#3b82f6;--gn:#10b981;--am:#f59e0b;--rd:#ef4444;--cy:#06b6d4;--vi:#8b5cf6;--or:#f97316;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Anybody',sans-serif;
+  --body:'Source Serif 4',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);opacity:.18;pointer-events:none}
+.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--vi);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
+.hero h1{font-family:var(--head);font-size:clamp(1.5rem,3.5vw,2.4rem);font-weight:800;line-height:1.15;margin-bottom:14px;letter-spacing:-.5px}
+.hero h1 span{color:var(--vi)}
+.hero p{font-size:1rem;color:var(--td);max-width:720px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
+.nav{max-width:1300px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
+.nav button:hover{color:var(--td)}
+.nav button.on{color:var(--vi)}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--vi);border-radius:2px 2px 0 0}
+.wrap{max-width:1300px;margin:0 auto;padding:36px 16px 120px}
+.pnl{display:none}.pnl.on{display:block}
+.sec{margin-bottom:56px}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+.sec-n{font-family:var(--mono);font-size:10px;color:var(--vi);background:rgba(139,92,246,.08);padding:3px 9px;border-radius:2px;letter-spacing:1px}
+.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
+.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px),repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.22) 23px,rgba(28,32,56,.22) 24px);pointer-events:none}
+.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
+.cm{color:#3e4460;font-style:italic}.ty{color:#ffcb6b}.hi{color:#3b82f6;font-weight:600}.gn{color:#10b981}.rd{color:#ef4444}.am{color:#f59e0b}.cy{color:#06b6d4}.vi{color:#8b5cf6}.or{color:#f97316}.fn{color:#82aaff}.st{color:#c3e88d}.kw{color:#c792ea}
+.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
+.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}.nt.vi{border-color:var(--vi);color:#c0a0f0}
+.nt strong{color:inherit}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.pnl.on .sec{animation:fu .3s ease both}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-tag">Query Builder & Pipeline — DIP Architecture</div>
+    <h1><span>CrmQueryBuilder</span> Deep Dive</h1>
+    <p>Plugin → fluent builder → AST (DB-agnostic) → ISQLDialect (multi-DB) → ITenantStrategy (tenant isolation) → 4 bộ lọc tự động → parameterized SQL. Swap DB = tạo implementation mới, zero plugin change.</p>
+</div>
+
+<div class="nw"><div class="nav">
+    <button class="on" onclick="go('arch')">Kiến trúc DIP</button>
+    <button onclick="go('iface')">Interfaces</button>
+    <button onclick="go('impl')">Implementations</button>
+    <button onclick="go('pipe')">Query Pipeline</button>
+    <button onclick="go('gen')">SQL Generation</button>
+    <button onclick="go('adv')">Advanced Queries</button>
+    <button onclick="go('sec')">Security</button>
+    <button onclick="go('perf')">Performance</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- ① KIẾN TRÚC DIP -->
+<div class="pnl on" id="p-arch">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Kiến trúc DIP — 3-layer Query Architecture</h2></div>
+    <div class="nt vi"><strong>Nguyên tắc:</strong> Plugin KHÔNG BAO GIỜ viết raw SQL. Mọi truy vấn đi qua CrmQueryBuilder (fluent API) → QueryAST (DB-agnostic) → ISQLDialect (DB-specific). Plugin chỉ biết IDbContext — không biết đang dùng PostgreSQL, MySQL, hay SQLite.</div>
+    <div class="dg"><div class="dg-label">3-layer architecture</div><pre>
+<span class="ty">3 LAYER TÁCH BIỆT:</span>
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │                                                                 │
+  │  <span class="vi">Layer 1: CrmQueryBuilder</span> «per-query» (plugin-facing)          │
+  │  Fluent API: .where(), .join(), .orderBy(), .limit()...        │
+  │  Build → <span class="am">QueryAST</span>. KHÔNG biết DB nào. KHÔNG generate SQL.       │
+  │                                                                 │
+  │  <span class="am">Layer 2: QueryAST</span> «value object» (shared data model)           │
+  │  Pure data: { table, operation, where[], join[],               │
+  │               orderBy[], groupBy[], limit, offset,             │
+  │               insertData, updateData, returning }              │
+  │  Không behavior. Serializable. Testable.                       │
+  │                                                                 │
+  │  <span class="cy">Layer 3: ISQLDialect + ITenantStrategy</span> (DB-specific)           │
+  │  AST → DB-specific parameterized SQL + tenant isolation        │
+  │                                                                 │
+  └─────────────────────────────────────────────────────────────────┘
+
+  Plugin → CrmQueryBuilder → QueryAST → <span class="vi">ISQLDialect</span> ◁── PostgresDialect
+                                                       ◁── MySQLDialect
+                                                       ◁── SQLiteDialect
+                                  │
+                                  └──▶ <span class="vi">ITenantStrategy</span> ◁── PostgresRLSStrategy
+                                                        ◁── MySQLTenantStrategy
+                                                        ◁── SQLiteTenantStrategy
+
+
+<span class="ty">TẠI SAO TÁCH NHƯ VẬY:</span>
+
+  <span class="nu">①</span> <span class="rd">Security</span> — Plugin không viết SQL = không thể inject.
+     Builder tạo AST typed. TenantInjector duyệt AST → inject tenant_id.
+     QueryValidator duyệt AST → validate structure. Structural safety.
+
+  <span class="nu">②</span> <span class="am">Multi-DB</span> — Cùng AST, khác SQL output:
+     PostgresDialect: $1, $2, RETURNING *, ON CONFLICT, ILIKE
+     MySQLDialect:    ?, ?, LAST_INSERT_ID(), ON DUPLICATE KEY, LIKE
+     SQLiteDialect:   ?, ?, last_insert_rowid(), limited feature set
+
+  <span class="nu">③</span> <span class="cy">DX (Developer Experience)</span> — Fluent, composable, testable:
+     ctx.db.query('customers').where({ status: 'active' }).limit(20)
+     IDE autocomplete. Type-safe. Mock ctx.db cho unit test.
+
+
+<span class="ty">CLASS DIAGRAM TỔNG THỂ:</span>
+
+  ┌───────────────────────────────────────────────────────────────────┐
+  │                                                                   │
+  │  <span class="vi">CrmQueryBuilder</span>  «per-query»                                   │
+  │  │  select(), where(), whereIn(), join(), leftJoin(),            │
+  │  │  orderBy(), groupBy(), having(), limit(), offset()            │
+  │  │  Terminal: execute(), first(), count(), exists(), paginate()  │
+  │  │  Internal: toAST() → QueryAST                                 │
+  │  │                                                                │
+  │  ▼ produces                                                       │
+  │                                                                   │
+  │  <span class="am">QueryAST</span>  «value object»                                       │
+  │  │  { table, operation, selectFields, whereConditions[],         │
+  │  │    joinClauses[], orderByFields[], groupByFields[],           │
+  │  │    havingConditions[], limit, offset, insertData,             │
+  │  │    updateData, returning }                                     │
+  │  │                                                                │
+  │  ├──▶ consumed by <span class="cy">ITenantStrategy</span>.injectTenant(ast, tenantId)      │
+  │  │                 ▲ implements                                   │
+  │  │                 ├── <span class="hi">PostgresRLSStrategy</span>  (AST + RLS + SET)   │
+  │  │                 ├── <span class="gn">MySQLTenantStrategy</span>  (AST + @variable)  │
+  │  │                 └── <span class="or">SQLiteTenantStrategy</span> (AST only)         │
+  │  │                                                                │
+  │  └──▶ consumed by <span class="cy">ISQLDialect</span>.generateXxx(ast)                   │
+  │                    ▲ implements                                   │
+  │                    ├── <span class="hi">PostgresDialect</span>  ($N, RETURNING, JSONB) │
+  │                    ├── <span class="gn">MySQLDialect</span>     (?, LAST_INSERT_ID)    │
+  │                    └── <span class="or">SQLiteDialect</span>    (?, last_insert_rowid) │
+  │                                                                   │
+  │  + <span class="cy">IMigrationDialect</span> (DDL generation per DB)                    │
+  │                    ▲ implements                                   │
+  │                    ├── <span class="hi">PostgresMigrationDialect</span> (CREATE POLICY)│
+  │                    ├── <span class="gn">MySQLMigrationDialect</span> (no RLS)          │
+  │                    └── <span class="or">SQLiteMigrationDialect</span> (limited ALTER)  │
+  │                                                                   │
+  └───────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">DEPENDENCY INJECTION — bootstrap:</span>
+
+  container.register('ISQLDialect',      new PostgresDialect());
+  container.register('ITenantStrategy',  new PostgresRLSTenantStrategy());
+  container.register('IMigrationDialect', new PostgresMigrationDialect());
+
+  <span class="cm">Per-request (ExecutionContextBuilder):</span>
+  const dialect  = container.resolve('ISQLDialect');
+  const strategy = container.resolve('ITenantStrategy');
+  const db = new TenantScopedDB(conn, tenantId, dialect, strategy);
+  ctx.db = db;   <span class="cm">← plugin nhận IDbContext, không biết gì bên trong.</span></pre></div>
+</div>
+</div>
+
+<!-- ② INTERFACES -->
+<div class="pnl" id="p-iface">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Interfaces — ISQLDialect, ITenantStrategy, CrmQueryBuilder API</h2></div>
+    <div class="dg"><div class="dg-label">interfaces + builder API</div><pre>
+<span class="ty">ISQLDialect — SQL generation contract</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ <span class="kw">«interface»</span> <span class="vi">ISQLDialect</span>                                         │
+  │──────────────────────────────────────────────────────────────────│
+  │ + generateSelect(ast: QueryAST): SqlOutput                      │
+  │ + generateInsert(ast: QueryAST): SqlOutput                      │
+  │ + generateInsertMany(ast: QueryAST): SqlOutput                  │
+  │ + generateUpdate(ast: QueryAST): SqlOutput                      │
+  │ + generateDelete(ast: QueryAST): SqlOutput                      │
+  │ + generateCount(ast: QueryAST): SqlOutput                       │
+  │ + generateExists(ast: QueryAST): SqlOutput                      │
+  │ + generateUpsert(ast: QueryAST): SqlOutput                     │
+  │ + getPlaceholder(index: number): string    <span class="cm">$1 vs ? vs :p1</span>      │
+  │ + supportsReturning(): boolean             <span class="cm">PG=true MySQL=false</span> │
+  │ + escapeIdentifier(name: string): string   <span class="cm">"col" vs `col`</span>      │
+  │ + getLastInsertIdQuery(): string | null                        │
+  │──────────────────────────────────────────────────────────────────│
+  │ <span class="cm">SqlOutput = { text: string, params: any[] }</span>                     │
+  │ <span class="gn">Impl:</span> PostgresDialect, MySQLDialect, SQLiteDialect              │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">ITenantStrategy — tenant isolation contract</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ <span class="kw">«interface»</span> <span class="vi">ITenantStrategy</span>                                     │
+  │──────────────────────────────────────────────────────────────────│
+  │ + injectTenant(ast: QueryAST, tenantId): QueryAST              │
+  │ + validateTenant(ast: QueryAST, tenantId): void                │
+  │ + configureConnection(conn, tenantId): Promise                  │
+  │ + resetConnection(conn): Promise                                │
+  │ + supportsDatabaseLevelIsolation(): boolean                     │
+  │──────────────────────────────────────────────────────────────────│
+  │ <span class="gn">Impl:</span> PostgresRLSStrategy, MySQLTenantStrategy, SQLiteStrategy  │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">IMigrationDialect — schema migration contract</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ <span class="kw">«interface»</span> <span class="vi">IMigrationDialect</span>                                   │
+  │──────────────────────────────────────────────────────────────────│
+  │ + generateCreateTable(schema: TableDef): string                 │
+  │ + generateAddColumn(table, column: ColumnDef): string           │
+  │ + generateDropColumn(table, column): string                     │
+  │ + generateCreateIndex(table, columns, unique?): string          │
+  │ + generateRLSPolicy(table, tenantCol): string | null            │
+  │ + supportsTransactionalDDL(): boolean                           │
+  │ + getAdvisoryLockQuery(key): string                            │
+  │──────────────────────────────────────────────────────────────────│
+  │ <span class="gn">Impl:</span> PostgresMigrationDialect, MySQLMigrationDialect,          │
+  │       SQLiteMigrationDialect                                    │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">CrmQueryBuilder — Plugin-facing fluent API</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ <span class="kw">«per-query»</span> CrmQueryBuilder                                     │
+  │──────────────────────────────────────────────────────────────────│
+  │ - _table: string                                                 │
+  │ - _operation: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE'         │
+  │ - _selectFields, _whereConditions, _joinClauses                  │
+  │ - _orderByFields, _groupByFields, _havingConditions              │
+  │ - _limitValue, _offsetValue, _insertData, _updateData            │
+  │ - _returning                                                     │
+  │──────────────────────────────────────────────────────────────────│
+  │ <span class="ty">CHAIN METHODS</span> (return this)                                     │
+  │ <span class="fn">+ select(fields)</span>             chọn columns                       │
+  │ <span class="fn">+ where(conditions)</span>          AND conditions                      │
+  │ <span class="fn">+ whereIn(field, values)</span>     WHERE field IN (...)                 │
+  │ <span class="fn">+ whereNot(conditions)</span>       WHERE NOT ...                       │
+  │ <span class="fn">+ whereNull(field)</span>           WHERE field IS NULL                  │
+  │ <span class="fn">+ whereNotNull(field)</span>        WHERE field IS NOT NULL              │
+  │ <span class="fn">+ whereBetween(field, a, b)</span>  WHERE field BETWEEN                  │
+  │ <span class="fn">+ whereLike(field, pattern)</span>  WHERE field LIKE (escaped)           │
+  │ <span class="fn">+ whereRaw(expr, params)</span>     <span class="am">parameterized only</span>                  │
+  │ <span class="fn">+ orWhere(conditions)</span>        OR group                             │
+  │ <span class="fn">+ join(table, on, type?)</span>     INNER/LEFT/RIGHT JOIN                │
+  │ <span class="fn">+ leftJoin(table, on)</span>        LEFT JOIN shorthand                  │
+  │ <span class="fn">+ orderBy(field, dir)</span>        ORDER BY                             │
+  │ <span class="fn">+ groupBy(fields)</span>            GROUP BY                             │
+  │ <span class="fn">+ having(conditions)</span>         HAVING (after GROUP BY)              │
+  │ <span class="fn">+ limit(n)</span>                   LIMIT n                              │
+  │ <span class="fn">+ offset(n)</span>                  OFFSET n                             │
+  │ <span class="fn">+ returning(fields)</span>          RETURNING (if dialect supports)      │
+  │──────────────────────────────────────────────────────────────────│
+  │ <span class="ty">TERMINAL METHODS</span> (trigger pipeline, return Result)               │
+  │ <span class="gn">+ execute()</span>    → Row[]           run query, return all rows        │
+  │ <span class="gn">+ first()</span>      → Row | null      run + LIMIT 1                     │
+  │ <span class="gn">+ count()</span>      → number          SELECT COUNT(*)                   │
+  │ <span class="gn">+ exists()</span>     → boolean         SELECT EXISTS(...)                │
+  │ <span class="gn">+ paginate(page, perPage)</span> → PaginatedResult                      │
+  │──────────────────────────────────────────────────────────────────│
+  │ <span class="ty">INTERNAL</span> (plugin không gọi trực tiếp)                            │
+  │ <span class="vi">- toAST()</span>      → QueryAST        build abstract syntax tree        │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">IDbContext — entry points trên TenantScopedDB:</span>
+
+  ctx.db.<span class="fn">query</span>(table)              → CrmQueryBuilder (SELECT mode)
+  ctx.db.<span class="fn">insert</span>(table, data)       → auto INSERT, return record
+  ctx.db.<span class="fn">insertMany</span>(table, rows)   → batch INSERT, return records
+  ctx.db.<span class="fn">update</span>(table, where, data) → auto UPDATE, return count
+  ctx.db.<span class="fn">delete</span>(table, where)      → auto DELETE, return count
+  ctx.db.<span class="fn">transaction</span>(fn)           → BEGIN/COMMIT/ROLLBACK wrapper
+  ctx.db.<span class="fn">queryBuilder</span>(table)       → CrmQueryBuilder (generic mode)</pre></div>
+</div>
+</div>
+
+<!-- ③ IMPLEMENTATIONS -->
+<div class="pnl" id="p-impl">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Implementations — PostgreSQL vs MySQL vs SQLite</h2></div>
+    <div class="dg"><div class="dg-label">dialect comparison</div><pre>
+<span class="ty">ISQLDialect — 3 implementations</span>
+
+  ┌──────────────────────┬───────────────────┬──────────────────┬──────────────────┐
+  │ Feature              │ <span class="hi">PostgresDialect</span>   │ <span class="gn">MySQLDialect</span>      │ <span class="or">SQLiteDialect</span>    │
+  ├──────────────────────┼───────────────────┼──────────────────┼──────────────────┤
+  │ Placeholder          │ $1, $2, $3        │ ?, ?, ?          │ ?, ?, ?          │
+  │ Identifier escape    │ "column"          │ `column`         │ "column"         │
+  │ RETURNING            │ RETURNING *       │ <span class="rd">✗</span> (emulated)     │ <span class="rd">✗</span> (emulated)     │
+  │ INSERT → get id      │ RETURNING id      │ LAST_INSERT_ID() │ last_insert_rowid│
+  │ Upsert               │ ON CONFLICT DO    │ ON DUPLICATE KEY │ ON CONFLICT DO   │
+  │ JSON access          │ col->>'key'       │ JSON_EXTRACT()   │ json_extract()   │
+  │ ILIKE (case-insens.) │ ILIKE             │ LIKE (default CI)│ LIKE + COLLATE   │
+  │ Boolean              │ TRUE / FALSE      │ 1 / 0            │ 1 / 0            │
+  │ Array                │ ANY(ARRAY[...])   │ <span class="rd">✗</span> (JSON array)   │ <span class="rd">✗</span> (JSON array)   │
+  │ Full-text search     │ to_tsvector()     │ MATCH AGAINST    │ FTS5             │
+  └──────────────────────┴───────────────────┴──────────────────┴──────────────────┘
+
+
+<span class="ty">ITenantStrategy — 3 implementations</span>
+
+  ┌──────────────────────┬─────────────────────┬───────────────────┬──────────────────┐
+  │ Feature              │ <span class="hi">PostgresRLSStrategy</span> │ <span class="gn">MySQLStrategy</span>     │ <span class="or">SQLiteStrategy</span>   │
+  ├──────────────────────┼─────────────────────┼───────────────────┼──────────────────┤
+  │ AST injection        │ <span class="gn">✓</span> WHERE/INSERT      │ <span class="gn">✓</span> WHERE/INSERT    │ <span class="gn">✓</span> WHERE/INSERT   │
+  │ Connection config    │ SET app.tenant      │ SET @app_tenant   │ N/A (in-process) │
+  │ DB-level isolation   │ <span class="gn">✓</span> RLS policies       │ <span class="rd">✗</span>                 │ <span class="rd">✗</span>                │
+  │ Defense layers       │ 3 (AST+RLS+audit)   │ 2 (AST+audit)     │ 1 (AST only)     │
+  ├──────────────────────┼─────────────────────┼───────────────────┼──────────────────┤
+  │ <span class="cm">Use case</span>             │ <span class="cm">Production primary</span>  │ <span class="cm">Enterprise custom</span> │ <span class="cm">Mobile + Test</span>    │
+  └──────────────────────┴─────────────────────┴───────────────────┴──────────────────┘
+
+  <span class="am">MySQL không có RLS → chỉ 2 tầng bảo vệ.</span>
+  <span class="am">ITenantStrategy.supportsDatabaseLevelIsolation() trả false</span>
+  <span class="am">→ hệ thống enforce stricter QueryValidator rules để bù.</span>
+
+
+<span class="ty">Ví dụ — cùng AST, khác output:</span>
+
+  AST: { table: 'sales', op: 'INSERT',
+         insertData: { title: 'Deal', amount: 50000 },
+         returning: ['*'] }
+
+  <span class="hi">PostgresDialect:</span>
+  INSERT INTO sales (<span class="gn">tenant_id</span>, title, amount) VALUES ($1, $2, $3) RETURNING *
+  params: ['acme-123', 'Deal', 50000]
+
+  <span class="gn">MySQLDialect:</span>
+  INSERT INTO sales (<span class="gn">tenant_id</span>, title, amount) VALUES (?, ?, ?)
+  params: ['acme-123', 'Deal', 50000]
+  <span class="cm">+ follow-up: SELECT * FROM sales WHERE id = LAST_INSERT_ID()</span>
+
+  <span class="or">SQLiteDialect:</span>
+  INSERT INTO sales (<span class="gn">tenant_id</span>, title, amount) VALUES (?, ?, ?)
+  params: ['acme-123', 'Deal', 50000]
+  <span class="cm">+ follow-up: SELECT * FROM sales WHERE rowid = last_insert_rowid()</span>
+
+
+<span class="ty">SWAP DB — chỉ cần 3 implementations + 1 config:</span>
+
+  ┌────────────────────────────────────────────────────────────────┐
+  │  <span class="am">Tạo mới:</span>  (ví dụ thêm MySQL support)                        │
+  │  ├── MySQLDialect              implements ISQLDialect  ~300 LOC│
+  │  ├── MySQLTenantStrategy       implements ITenantStrategy ~80  │
+  │  ├── MySQLMigrationDialect     implements IMigrationDialect~150│
+  │  └── Config bootstrap                                    ~5   │
+  │                                                                │
+  │  <span class="gn">KHÔNG đổi:</span>                                                  │
+  │  ├── CrmQueryBuilder, QueryAST                                │
+  │  ├── QueryValidator, QueryCounter, QueryLogger                │
+  │  ├── TenantScopedDB (IDbContext)                              │
+  │  ├── Mọi Plugin Core code                                     │
+  │  └── L2 Gateway, L3 Logic, L7 Observability                  │
+  │                                                                │
+  │  <span class="vi">~535 LOC new code. Zero existing code modified.</span>              │
+  └────────────────────────────────────────────────────────────────┘
+
+  <span class="cm">Mixed-DB deployment: tenant ACME → PG, tenant MEGACORP → MySQL,</span>
+  <span class="cm">mobile offline → SQLite. TenantContextManager resolve per-tenant.</span></pre></div>
+</div>
+</div>
+
+<!-- ④ QUERY PIPELINE -->
+<div class="pnl" id="p-pipe">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Query Pipeline — 7 bước tự động</h2></div>
+    <div class="nt rd"><strong>Mọi query đi qua 7 bước.</strong> Plugin chỉ thấy bước 1 (gọi builder) và bước 7 (nhận result). Bước 2→6 hoàn toàn tự động, plugin KHÔNG CAN THIỆP được.</div>
+    <div class="dg"><div class="dg-label">full pipeline</div><pre>
+<span class="ty">PLUGIN CODE:</span>
+
+  const sales = await ctx.db.query('sales')
+    .where({ status: 'new' })
+    .select(['id', 'title', 'amount'])
+    .orderBy('created_at', 'desc')
+    .limit(20)
+    .execute();                        <span class="cm">← terminal method triggers pipeline</span>
+
+
+<span class="ty">7 BƯỚC TỰ ĐỘNG:</span>
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                                                                         │
+  │  <span class="nu">①</span> <span class="fn">CrmQueryBuilder.toAST()</span>                           <span class="gn">DB-agnostic</span>    │
+  │  │  Chain methods → internal state → QueryAST                          │
+  │  │  { table: 'sales', operation: 'SELECT',                             │
+  │  │    select: ['id', 'title', 'amount'],                               │
+  │  │    where: [{ field: 'status', op: '=', value: 'new' }],            │
+  │  │    orderBy: [{ field: 'created_at', dir: 'desc' }],                │
+  │  │    limit: 20 }                                                       │
+  │  ▼                                                                      │
+  │  <span class="nu">②</span> <span class="rd">ITenantStrategy.injectTenant(ast, tenantId)</span>    <span class="vi">Strategy Pattern</span>  │
+  │  │  PostgresRLS / MySQL / SQLite: inject tenant_id vào AST.where[]     │
+  │  │  INSERT: thêm tenant_id vào data columns                            │
+  │  │  JOIN: inject tenant_id cho MỌI joined table                        │
+  │  ▼                                                                      │
+  │  <span class="nu">③</span> <span class="am">QueryValidator.validate(ast)</span>                      <span class="gn">DB-agnostic</span>    │
+  │  │  6 safety checks trên AST:                                           │
+  │  │  ✓ tenant_id present?  ✓ Table in allowedTables?                    │
+  │  │  ✓ No DDL?  ✓ No system tables?  ✓ All parameterized?              │
+  │  │  ✓ JOIN tables have tenant filter?                                   │
+  │  │  ANY FAIL → SecurityError thrown, query BLOCKED.                     │
+  │  ▼                                                                      │
+  │  <span class="nu">④</span> <span class="vi">QueryCounter.increment()</span>                          <span class="gn">DB-agnostic</span>    │
+  │  │  count++ → [n/50]. n ≥ 50 → QueryLimitError.                        │
+  │  ▼                                                                      │
+  │  <span class="nu">⑤</span> <span class="cy">ISQLDialect.generateSelect(ast)</span>                  <span class="vi">Strategy Pattern</span>  │
+  │  │  PostgresDialect → $1, $2, RETURNING                                │
+  │  │  MySQLDialect    → ?, ?, LAST_INSERT_ID                             │
+  │  │  { text: "SELECT id, title, amount FROM sales                       │
+  │  │           WHERE tenant_id = $1 AND status = $2                      │
+  │  │           ORDER BY created_at DESC LIMIT $3",                       │
+  │  │    params: ['acme-123', 'new', 20] }                                │
+  │  │                                                                      │
+  │  │  <span class="gn">100% parameterized. Zero interpolation. SQL injection = impossible.</span>│
+  │  ▼                                                                      │
+  │  <span class="nu">⑥</span> <span class="hi">IConnectionPool.query(text, params)</span>               <span class="gn">abstracted</span>     │
+  │  │  pg driver / mysql2 driver / better-sqlite3 driver                   │
+  │  │  Connection đã configured bởi ITenantStrategy.configureConnection() │
+  │  ▼                                                                      │
+  │  <span class="nu">⑦</span> <span class="fn">QueryLogger.log()</span>                                 <span class="gn">DB-agnostic</span>    │
+  │  │  { table, op, duration, rows, tenant, plugin, requestId }           │
+  │  │  duration > 100ms → WARN.  > 500ms → ALERT.                        │
+  │  ▼                                                                      │
+  │  <span class="gn">Return Result → plugin nhận Row[]</span>                                    │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">TIMING (typical, PostgreSQL):</span>
+
+  ① toAST()                 ~0.01ms   <span class="cm">in-memory object build</span>
+  ② ITenantStrategy.inject   ~0.01ms   <span class="cm">AST node manipulation</span>
+  ③ QueryValidator            ~0.02ms   <span class="cm">6 rule checks on AST</span>
+  ④ QueryCounter              ~0.001ms  <span class="cm">increment integer</span>
+  ⑤ ISQLDialect.generate      ~0.02ms   <span class="cm">AST → string generation</span>
+  ⑥ DB round-trip             ~3-15ms   <span class="cm">network + query execution</span>
+  ⑦ QueryLogger               ~0.01ms   <span class="cm">async log emit</span>
+  ─────────────────────────────────────
+  Pipeline overhead (①→⑤⑦): <span class="gn">~0.07ms</span>    <span class="cm">negligible vs ⑥ DB round-trip</span>
+
+
+<span class="ty">DB-AGNOSTIC vs DB-SPECIFIC:</span>
+
+  ┌─────────────────────────────────┬──────────────────────────────────┐
+  │ <span class="gn">DB-AGNOSTIC (không đổi khi swap)</span>│ <span class="am">DB-SPECIFIC (swap via interface)</span> │
+  ├─────────────────────────────────┼──────────────────────────────────┤
+  │ CrmQueryBuilder (fluent API)   │ ISQLDialect implementations      │
+  │ QueryAST (data structure)      │ ITenantStrategy implementations  │
+  │ QueryValidator (AST rules)     │ IMigrationDialect implementations│
+  │ QueryCounter (budget)          │ IConnectionPool implementations  │
+  │ QueryLogger (observability)    │ DB driver (pg, mysql2, sqlite3)  │
+  │ Plugin code (100%)             │                                  │
+  ├─────────────────────────────────┼──────────────────────────────────┤
+  │ <span class="gn">~70% codebase</span>                   │ <span class="am">~30% codebase</span>                   │
+  └─────────────────────────────────┴──────────────────────────────────┘</pre></div>
+</div>
+</div>
+<div class="pnl" id="p-gen">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">SQL Generation — AST → Parameterized SQL</h2></div>
+    <div class="nt gn"><strong>Nguyên tắc:</strong> SQLGenerator KHÔNG BAO GIỜ interpolate giá trị vào SQL string. Mọi value → $N placeholder. Params array truyền riêng cho pg driver. SQL injection = impossible ở tầng structural.</div>
+    <div class="dg"><div class="dg-label">SQL generation examples</div><pre>
+<span class="ty">① SELECT — cơ bản</span>
+
+  <span class="fn">Plugin:</span>
+  ctx.db.query('customers')
+    .where({ status: 'active', tier: 'premium' })
+    .select(['id', 'name', 'email'])
+    .orderBy('name', 'asc')
+    .limit(50)
+    .execute()
+
+  <span class="fn">AST sau TenantInjector:</span>
+  { table: 'customers', operation: 'SELECT',
+    select: ['id', 'name', 'email'],
+    where: [
+      { field: 'tenant_id', op: '=', value: 'acme-123' },
+      { field: 'status', op: '=', value: 'active' },
+      { field: 'tier', op: '=', value: 'premium' }
+    ],
+    orderBy: [{ field: 'name', dir: 'ASC' }],
+    limit: 50 }
+
+  <span class="fn">Generated SQL:</span>
+  <span class="st">SELECT id, name, email FROM customers</span>
+  <span class="st">WHERE tenant_id = $1 AND status = $2 AND tier = $3</span>
+  <span class="st">ORDER BY name ASC LIMIT $4</span>
+  params: [<span class="gn">'acme-123'</span>, 'active', 'premium', 50]
+
+
+<span class="ty">② INSERT — single record</span>
+
+  <span class="fn">Plugin:</span>
+  ctx.db.insert('sales', {
+    title: 'Enterprise Deal',
+    amount: 50000,
+    customer_id: 'cust-42',
+    stage: 'qualification'
+  })
+
+  <span class="fn">Generated SQL:</span>
+  <span class="st">INSERT INTO sales (tenant_id, title, amount, customer_id, stage)</span>
+  <span class="st">VALUES ($1, $2, $3, $4, $5)</span>
+  <span class="st">RETURNING *</span>
+  params: [<span class="gn">'acme-123'</span>, 'Enterprise Deal', 50000, 'cust-42', 'qualification']
+
+  <span class="cm">tenant_id auto-injected as first column. Plugin KHÔNG specify.</span>
+
+
+<span class="ty">③ INSERT MANY — batch</span>
+
+  <span class="fn">Plugin:</span>
+  ctx.db.insertMany('contacts', [
+    { name: 'Alice', email: '<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="46272a2f252306233e6825292b">[email&#160;protected]</a>' },
+    { name: 'Bob', email: '<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3c5e535e7c5944125f5351">[email&#160;protected]</a>' },
+    { name: 'Carol', email: '<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ceadafbca1a28eabb6e0ada1a3">[email&#160;protected]</a>' }
+  ])
+
+  <span class="fn">Generated SQL:</span>
+  <span class="st">INSERT INTO contacts (tenant_id, name, email)</span>
+  <span class="st">VALUES ($1, $2, $3), ($4, $5, $6), ($7, $8, $9)</span>
+  <span class="st">RETURNING *</span>
+  params: [<span class="gn">'acme-123'</span>, 'Alice', '<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="781914111b1d381d00561b1715">[email&#160;protected]</a>',
+           <span class="gn">'acme-123'</span>, 'Bob', '<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="54363b3614312c7a373b39">[email&#160;protected]</a>',
+           <span class="gn">'acme-123'</span>, 'Carol', '<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="543735263b3814312c7a373b39">[email&#160;protected]</a>']
+
+  <span class="cm">tenant_id injected cho MỖI row. 1 round-trip cho N rows.</span>
+
+
+<span class="ty">④ UPDATE — with conditions</span>
+
+  <span class="fn">Plugin:</span>
+  ctx.db.update('sales',
+    { id: 'sale-42' },                          <span class="cm">← WHERE</span>
+    { stage: 'closed-won', closed_at: new Date() }  <span class="cm">← SET</span>
+  )
+
+  <span class="fn">Generated SQL:</span>
+  <span class="st">UPDATE sales SET stage = $1, closed_at = $2</span>
+  <span class="st">WHERE tenant_id = $3 AND id = $4</span>
+  <span class="st">RETURNING *</span>
+  params: ['closed-won', '2026-02-14T...', <span class="gn">'acme-123'</span>, 'sale-42']
+
+
+<span class="ty">⑤ DELETE — with conditions</span>
+
+  <span class="fn">Plugin:</span>
+  ctx.db.delete('contacts', { id: 'contact-99' })
+
+  <span class="fn">Generated SQL:</span>
+  <span class="st">DELETE FROM contacts</span>
+  <span class="st">WHERE tenant_id = $1 AND id = $2</span>
+  params: [<span class="gn">'acme-123'</span>, 'contact-99']
+
+  <span class="cm">Soft delete? Plugin quyết định: ctx.db.update(table, where, { deleted_at: now })</span>
+  <span class="cm">Hoặc hard delete: ctx.db.delete(). Cả 2 đều bị tenant_id lock.</span>
+
+
+<span class="ty">⑥ TRANSACTION — multi-statement atomic</span>
+
+  <span class="fn">Plugin:</span>
+  const result = await ctx.db.transaction(async (trx) => {
+    <span class="cm">// trx là IDbContext scoped trong transaction</span>
+    const sale = await trx.insert('sales', { title: 'Big Deal', amount: 100000 });
+    await trx.update('customers', { id: 'cust-42' }, { last_sale: sale.id });
+    await trx.insert('activities', { type: 'sale_created', ref_id: sale.id });
+    return sale;
+  });
+
+  <span class="fn">Generated SQL sequence:</span>
+  <span class="st">BEGIN</span>
+  <span class="st">INSERT INTO sales (tenant_id, title, amount) VALUES ($1,$2,$3) RETURNING *</span>
+  <span class="st">UPDATE customers SET last_sale = $1 WHERE tenant_id = $2 AND id = $3 RETURNING *</span>
+  <span class="st">INSERT INTO activities (tenant_id, type, ref_id) VALUES ($1,$2,$3) RETURNING *</span>
+  <span class="st">COMMIT</span>
+
+  <span class="cm">Nếu bất kỳ statement nào throw → auto ROLLBACK.</span>
+  <span class="cm">Cùng 1 connection trong toàn bộ transaction (no pool release giữa chừng).</span>
+  <span class="cm">Mỗi statement vẫn đi qua full pipeline: inject → validate → count → log.</span></pre></div>
+</div>
+</div>
+<div class="pnl" id="p-adv">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Advanced Queries — JOIN, subquery, aggregation</h2></div>
+    <div class="dg"><div class="dg-label">advanced patterns</div><pre>
+<span class="ty">① JOIN — auto-inject tenant_id cho CẢ HAI bảng</span>
+
+  <span class="fn">Plugin:</span>
+  ctx.db.query('sales')
+    .select(['sales.title', 'sales.amount', 'customers.name'])
+    .join('customers', { 'sales.customer_id': 'customers.id' })
+    .where({ 'sales.stage': 'closed-won' })
+    .orderBy('sales.amount', 'desc')
+    .limit(10)
+    .execute()
+
+  <span class="fn">Generated SQL:</span>
+  <span class="st">SELECT sales.title, sales.amount, customers.name</span>
+  <span class="st">FROM sales</span>
+  <span class="st">INNER JOIN customers ON sales.customer_id = customers.id</span>
+  <span class="st">  AND customers.tenant_id = $1</span>      <span class="gn">← auto-injected cho joined table</span>
+  <span class="st">WHERE sales.tenant_id = $2</span>           <span class="gn">← auto-injected cho main table</span>
+  <span class="st">  AND sales.stage = $3</span>
+  <span class="st">ORDER BY sales.amount DESC LIMIT $4</span>
+  params: ['acme-123', 'acme-123', 'closed-won', 10]
+
+  <span class="rd">CRITICAL: TenantInjector inject tenant_id cho MỌI table trong JOIN.</span>
+  <span class="rd">Nếu không → cross-tenant data leak qua joined table.</span>
+  <span class="rd">QueryValidator check: mọi JOIN table PHẢI có tenant_id filter. Thiếu → BLOCK.</span>
+
+
+<span class="ty">② LEFT JOIN — nullable relationship</span>
+
+  <span class="fn">Plugin:</span>
+  ctx.db.query('customers')
+    .select(['customers.name', 'sales.title', 'sales.amount'])
+    .leftJoin('sales', { 'customers.id': 'sales.customer_id' })
+    .where({ 'customers.status': 'active' })
+    .execute()
+
+  <span class="fn">Generated SQL:</span>
+  <span class="st">SELECT customers.name, sales.title, sales.amount</span>
+  <span class="st">FROM customers</span>
+  <span class="st">LEFT JOIN sales ON customers.id = sales.customer_id</span>
+  <span class="st">  AND sales.tenant_id = $1</span>
+  <span class="st">WHERE customers.tenant_id = $2 AND customers.status = $3</span>
+  params: ['acme-123', 'acme-123', 'active']
+
+
+<span class="ty">③ GROUP BY + Aggregation</span>
+
+  <span class="fn">Plugin:</span>
+  ctx.db.query('sales')
+    .select(['stage', 'COUNT(*) as count', 'SUM(amount) as total'])
+    .groupBy(['stage'])
+    .having({ 'COUNT(*)': { '>': 5 } })
+    .execute()
+
+  <span class="fn">Generated SQL:</span>
+  <span class="st">SELECT stage, COUNT(*) as count, SUM(amount) as total</span>
+  <span class="st">FROM sales</span>
+  <span class="st">WHERE tenant_id = $1</span>
+  <span class="st">GROUP BY stage</span>
+  <span class="st">HAVING COUNT(*) > $2</span>
+  params: ['acme-123', 5]
+
+
+<span class="ty">④ Pagination</span>
+
+  <span class="fn">Plugin:</span>
+  const result = await ctx.db.query('customers')
+    .where({ status: 'active' })
+    .orderBy('created_at', 'desc')
+    .paginate(3, 20)     <span class="cm">← page 3, 20 per page</span>
+
+  <span class="fn">Paginate thực hiện 2 queries:</span>
+
+  <span class="cm">Query 1: COUNT</span>
+  <span class="st">SELECT COUNT(*) FROM customers WHERE tenant_id = $1 AND status = $2</span>
+
+  <span class="cm">Query 2: DATA</span>
+  <span class="st">SELECT * FROM customers WHERE tenant_id = $1 AND status = $2</span>
+  <span class="st">ORDER BY created_at DESC LIMIT $3 OFFSET $4</span>
+  params: ['acme-123', 'active', 20, 40]    <span class="cm">← offset = (page-1) * perPage</span>
+
+  <span class="fn">Return:</span>
+  {
+    data: Row[],          <span class="cm">← 20 rows</span>
+    total: 158,           <span class="cm">← total matching records</span>
+    page: 3,
+    perPage: 20,
+    totalPages: 8,
+    hasNext: true,
+    hasPrev: true
+  }
+
+
+<span class="ty">⑤ Complex WHERE — OR groups, nested conditions</span>
+
+  <span class="fn">Plugin:</span>
+  ctx.db.query('customers')
+    .where({ status: 'active' })
+    .where(q => {
+      q.where({ tier: 'premium' })
+       .orWhere({ 'total_revenue': { '>': 100000 } })
+    })
+    .whereNotNull('email')
+    .execute()
+
+  <span class="fn">Generated SQL:</span>
+  <span class="st">SELECT * FROM customers</span>
+  <span class="st">WHERE tenant_id = $1</span>
+  <span class="st">  AND status = $2</span>
+  <span class="st">  AND (tier = $3 OR total_revenue > $4)</span>
+  <span class="st">  AND email IS NOT NULL</span>
+  params: ['acme-123', 'active', 'premium', 100000]
+
+
+<span class="ty">⑥ whereRaw — parameterized escape hatch</span>
+
+  <span class="fn">Plugin:</span>
+  ctx.db.query('customers')
+    .whereRaw('created_at > NOW() - INTERVAL $1', ['30 days'])
+    .execute()
+
+  <span class="fn">Generated SQL:</span>
+  <span class="st">SELECT * FROM customers</span>
+  <span class="st">WHERE tenant_id = $1 AND created_at > NOW() - INTERVAL $2</span>
+  params: ['acme-123', '30 days']
+
+  <span class="am">whereRaw CHỈ chấp nhận parameterized expressions ($1, $2...).</span>
+  <span class="am">String interpolation trong whereRaw → QueryValidator BLOCK.</span>
+  <span class="am">VD bị block: .whereRaw(`name = '${userInput}'`) → SECURITY ERROR.</span></pre></div>
+</div>
+</div>
+<div class="pnl" id="p-sec">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Security Layer — 3 tầng bảo vệ</h2></div>
+    <div class="nt rd"><strong>Defense in Depth:</strong> Nếu 1 tầng có bug, 2 tầng còn lại vẫn chặn. Xác suất cả 3 fail đồng thời ≈ 0.</div>
+    <div class="dg"><div class="dg-label">3-layer security</div><pre>
+<span class="ty">TẦNG 1 — CrmQueryBuilder + ITenantStrategy (Application Level)</span>
+
+  Plugin code → CrmQueryBuilder → AST → ITenantStrategy.injectTenant().
+
+  Bảo vệ:
+  ├── Plugin KHÔNG viết SQL trực tiếp → không thể inject
+  ├── Builder tạo AST typed → structural safety
+  ├── ITenantStrategy.injectTenant() thêm tenant_id vào AST TRƯỚC KHI generate SQL
+  ├── tenant_id lấy từ ExecutionContext (set bởi Gateway, not plugin)
+  └── Plugin KHÔNG THỂ override tenant_id trong AST
+
+  Attack vector bị chặn:
+  <span class="rd">✗</span> Plugin cố set tenant_id = 'other-tenant' trong where:
+    → ITenantStrategy LUÔN prepend tenant_id = ctx.tenantId
+    → QueryValidator verify: tenant_id value = ctx.tenantId. Mismatch → BLOCK.
+
+  <span class="rd">✗</span> Plugin cố dùng .whereRaw('tenant_id = $1', ['other-tenant']):
+    → QueryValidator scan AST: whereRaw node chứa 'tenant_id' → BLOCK.
+    → Lý do: plugin không bao giờ được tự specify tenant_id.
+
+  <span class="rd">✗</span> Plugin cố truy cập table không thuộc manifest:
+    → QueryValidator check table against plugin.manifest.allowedTables.
+    → customer-care plugin query 'plugin_registry' → BLOCK.
+
+
+<span class="ty">TẦNG 2 — QueryValidator (Validation Level)</span>
+
+  6 rules, kiểm tra SAU inject, TRƯỚC execute:
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ Rule                        │ Chặn gì                          │
+  ├──────────────────────────────────────────────────────────────────┤
+  │ 1. tenant_id in WHERE       │ Cross-tenant data access          │
+  │ 2. Table in allowedTables   │ Unauthorized table access         │
+  │ 3. No DDL (ALTER/DROP)      │ Schema destruction                │
+  │ 4. No system tables         │ Metadata leak (pg_catalog)        │
+  │ 5. All values parameterized │ SQL injection                     │
+  │ 6. JOIN tables have tenant  │ Cross-tenant via JOIN             │
+  ├──────────────────────────────────────────────────────────────────┤
+  │ <span class="rd">ANY rule FAIL → SecurityError thrown, query BLOCKED.</span>            │
+  │ <span class="rd">Log: security_alert + full AST dump for forensic.</span>              │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">TẦNG 3 — PostgreSQL RLS (Database Level)</span>
+
+  Backup layer. Nếu Tầng 1 + Tầng 2 đều có bug → RLS vẫn chặn.
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ <span class="vi">CREATE POLICY</span> tenant_isolation ON sales                        │
+  │   USING (tenant_id = current_setting('app.current_tenant'));    │
+  │                                                                  │
+  │ <span class="cm">ConnectionConfigurator: SET app.current_tenant = 'acme-123'</span>    │
+  │ <span class="cm">trên mỗi connection TRƯỚC KHI query chạy.</span>                     │
+  │                                                                  │
+  │ Kết quả:                                                         │
+  │ ├── PostgreSQL ENGINE filter rows theo RLS policy                │
+  │ ├── Kể cả query thiếu tenant_id trong WHERE                     │
+  │ │   → RLS tự thêm filter ở engine level                         │
+  │ ├── Kể cả ITenantStrategy inject SAI tenant_id                   │
+  │ │   → RLS override: chỉ trả rows match current_setting          │
+  │ └── RLS evaluated by DB engine, KHÔNG bypass từ application     │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">BẢNG TÓM TẮT — Mỗi attack cần vượt 3 tầng:</span>
+
+  ┌────────────────────────────────────────────────────────────────┐
+  │ Attack                │ Tầng 1     │ Tầng 2     │ Tầng 3     │
+  │                       │ QB+Strategy│ Validator  │ RLS        │
+  ├────────────────────────────────────────────────────────────────┤
+  │ Cross-tenant SELECT   │ <span class="gn">BLOCK</span>      │ <span class="gn">BLOCK</span>      │ <span class="gn">BLOCK</span>      │
+  │ Cross-tenant via JOIN │ <span class="gn">BLOCK</span>      │ <span class="gn">BLOCK</span>      │ <span class="gn">BLOCK</span>      │
+  │ SQL injection         │ <span class="gn">BLOCK</span>      │ <span class="gn">BLOCK</span>      │ n/a        │
+  │ DDL (DROP TABLE)      │ n/a        │ <span class="gn">BLOCK</span>      │ n/a        │
+  │ System table access   │ n/a        │ <span class="gn">BLOCK</span>      │ n/a        │
+  │ Unauthorized table    │ n/a        │ <span class="gn">BLOCK</span>      │ n/a        │
+  │ N+1 / infinite loop   │ n/a        │ n/a        │ n/a        │
+  │   → QueryCounter      │ <span class="gn">BLOCK@50</span>   │            │            │
+  └────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
+<div class="pnl" id="p-perf">
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Performance — Cache, N+1, Prepared Statements</h2></div>
+    <div class="dg"><div class="dg-label">performance patterns</div><pre>
+<span class="ty">① QUERY RESULT CACHING — 2-layer</span>
+
+  Plugin gọi ctx.db.query() → pipeline chạy → SQL thực thi.
+  Nhưng NẾU kết quả đã có trong cache:
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  ctx.db.query('customers').where({ id: 'cust-42' }).first()    │
+  │       │                                                         │
+  │       ▼                                                         │
+  │  TenantScopedDB check cache TRƯỚC pipeline:                    │
+  │       │                                                         │
+  │       ├──▶ L1 Memory (0.01ms) → HIT? → return cached           │
+  │       │                                                         │
+  │       ├──▶ L2 Redis (0.5ms) → HIT? → populate L1, return      │
+  │       │                                                         │
+  │       └──▶ MISS → run full pipeline → cache result             │
+  │            cache key: t:acme-123:sales:SELECT:hash(AST)        │
+  └──────────────────────────────────────────────────────────────────┘
+
+  <span class="am">Cache invalidation:</span>
+  - INSERT/UPDATE/DELETE trên table → invalidate all cached SELECTs cho table đó
+  - Invalidation qua Redis Pub/Sub → tất cả instances clear L1
+  - TTL per-tier: Basic 5min, Premium 10min, Enterprise 15min
+
+  <span class="am">Cache scope:</span>
+  - Cache key LUÔN chứa tenant_id prefix → zero cross-tenant cache leak
+  - Key format: t:{tenantId}:{plugin}:{table}:{hash(AST)}
+  - Plugin A cache ≠ Plugin B cache (khác plugin prefix)
+
+
+<span class="ty">② N+1 DETECTION + PREVENTION</span>
+
+  QueryCounter không chỉ đếm — nó phát hiện PATTERN:
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  <span class="rd">N+1 Pattern detected:</span>                                        │
+  │                                                                  │
+  │  Request req-789:                                                │
+  │    query #1: SELECT * FROM sales WHERE tenant_id=$1 LIMIT 20   │
+  │    query #2: SELECT * FROM customers WHERE id=$1 AND tenant..  │
+  │    query #3: SELECT * FROM customers WHERE id=$1 AND tenant..  │
+  │    query #4: SELECT * FROM customers WHERE id=$1 AND tenant..  │
+  │    ...                                                           │
+  │    query #21: SELECT * FROM customers WHERE id=$1 AND tenant.. │
+  │                                                                  │
+  │  QueryLogger detects: 20 queries same table+structure, diff id │
+  │  → <span class="am">WARNING: N+1 detected on 'customers' (20 queries)</span>           │
+  │  → Log: suggestion "Use .whereIn() or JOIN instead"            │
+  └──────────────────────────────────────────────────────────────────┘
+
+  <span class="gn">Giải pháp plugin nên dùng:</span>
+
+  <span class="rd">Thay vì (N+1):</span>
+  const sales = await ctx.db.query('sales').limit(20).execute();
+  for (const sale of sales) {
+    sale.customer = await ctx.db.query('customers')
+      .where({ id: sale.customer_id }).first();   <span class="cm">← 20 queries!</span>
+  }
+
+  <span class="gn">Dùng whereIn (2 queries):</span>
+  const sales = await ctx.db.query('sales').limit(20).execute();
+  const customerIds = sales.map(s => s.customer_id);
+  const customers = await ctx.db.query('customers')
+    .whereIn('id', customerIds).execute();         <span class="cm">← 1 query!</span>
+
+  <span class="gn">Hoặc JOIN (1 query):</span>
+  const result = await ctx.db.query('sales')
+    .select(['sales.*', 'customers.name as customer_name'])
+    .join('customers', { 'sales.customer_id': 'customers.id' })
+    .limit(20).execute();                          <span class="cm">← 1 query!</span>
+
+
+<span class="ty">③ PREPARED STATEMENT CACHING</span>
+
+  PostgreSQL (via pg driver) tự cache prepared statements:
+
+  First call:
+    PREPARE stmt_abc AS SELECT * FROM sales WHERE tenant_id=$1 AND status=$2
+    EXECUTE stmt_abc('acme-123', 'new')
+
+  Subsequent calls (same query shape):
+    EXECUTE stmt_abc('acme-123', 'active')      <span class="cm">← skip PREPARE, reuse plan</span>
+
+  Benefit: ~30% faster cho repeated query shapes.
+  CrmQueryBuilder giúp maximize prepared stmt reuse vì:
+  - Cùng builder chain → cùng AST shape → cùng SQL template
+  - Chỉ khác params → PostgreSQL reuse execution plan
+
+
+<span class="ty">④ QUERY BUDGET PER REQUEST</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                    Query Budget: 50                              │
+  │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░  [18/50]           │
+  │                                                                  │
+  │  Allocation per typical request:                                 │
+  │  ├── Auth/validation queries:     2-3                            │
+  │  ├── Business logic (CRUD):       5-15                           │
+  │  ├── Hook consumers:              2-5                            │
+  │  ├── Event handlers:              2-5                            │
+  │  ├── Cache misses (fallback):     1-3                            │
+  │  └── Overhead (audit, etc):       1-2                            │
+  │  ────────────────────────────────────────                        │
+  │  Typical total:                   13-33 queries per request      │
+  │  Budget headroom:                 17-37 queries remaining        │
+  │                                                                  │
+  │  <span class="am">Approaching limit (40+) → WARNING log</span>                         │
+  │  <span class="rd">Hit limit (50) → QueryLimitError thrown</span>                        │
+  │  <span class="cm">Plugin nên target: &lt;30 queries per request</span>                    │
+  │  <span class="cm">paginate() counts as 2 queries (count + data)</span>                 │
+  │  <span class="cm">transaction() counts each statement inside</span>                    │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">⑤ SLOW QUERY HANDLING</span>
+
+  QueryLogger phân loại:
+
+  duration ≤ 100ms   → <span class="gn">NORMAL</span>   log: debug level
+  100ms < d ≤ 500ms  → <span class="am">SLOW</span>     log: warn + include EXPLAIN plan
+  500ms < d          → <span class="rd">CRITICAL</span>  log: error + alert ops team
+                                  + include EXPLAIN ANALYZE output
+
+  Slow query auto-remediation:
+  ├── EXPLAIN plan attached to log → DBA can optimize
+  ├── Repeated slow query (same shape, >5x in 1hr) → auto-alert
+  ├── MetricsCollector track: p50/p95/p99 query duration per plugin
+  └── Dashboard: top 10 slowest queries per tenant per day</pre></div>
+</div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+function go(n){
+    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
+    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
+    var p=document.getElementById('p-'+n);
+    if(p)p.classList.add('on');
+    var names=['arch','iface','impl','pipe','gen','adv','sec','perf'];
+    var i=names.indexOf(n);
+    var btns=document.querySelectorAll('.nav button');
+    if(i>=0&&btns[i])btns[i].classList.add('on');
+    window.scrollTo({top:160,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

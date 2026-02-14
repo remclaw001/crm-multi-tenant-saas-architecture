@@ -70,8 +70,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
     <button onclick="go('pg')">PostgreSQL</button>
     <button onclick="go('redis')">Redis</button>
     <button onclick="go('mq')">RabbitMQ</button>
-    <button onclick="go('s3')">Object Storage</button>
-    <button onclick="go('es')">Elasticsearch</button>
+    <button onclick="go('s3')">S3 + Elasticsearch</button>
+    <button onclick="go('dip')">Dialect & Strategy</button>
     <button onclick="go('tier')">Cấu hình per-Tier</button>
     <button onclick="go('req')">Tham gia Request</button>
 </div></div>
@@ -84,70 +84,63 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl on" id="p-map">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L5 — 5 thành phần hạ tầng</h2></div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L5 — 5 thành phần + DIP Boundary</h2></div>
 
     <div class="dg"><div class="dg-label">L5 full map</div><pre>
 ┌───────────────────────────────────────────────────────────────────────────────┐
 │  <span class="hi">L4 DATA ACCESS</span>                                                              │
 │                                                                               │
-│  Query Interceptor    Pool Manager    Cache Manager    Migration Engine       │
+│  Query Builder+Pipeline  Pool Manager    Cache Manager    Migration Engine    │
 │        │                   │               │                │                 │
-│        │ SQL queries       │ connections   │ get/set        │ DDL             │
+│        │ QueryAST          │ connections   │ get/set        │ DDL schema      │
 └────────┼───────────────────┼───────────────┼────────────────┼─────────────────┘
          │                   │               │                │
          ▼                   ▼               ▼                ▼
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║                                                                               ║
 ║                          <span class="vi">L5 INFRASTRUCTURE LAYER</span>                             ║
 ║                                                                               ║
+║  ┌─────────────────────────────────────────────────────────────────────────┐ ║
+║  │                    <span class="kw">DIP BOUNDARY (Query Builder)</span>                         │ ║
+║  │                                                                         │ ║
+║  │  ISQLDialect implementations:                                           │ ║
+║  │    PostgresDialect │ MySQLDialect │ SQLiteDialect                      │ ║
+║  │                                                                         │ ║
+║  │  ITenantStrategy implementations:                                       │ ║
+║  │    PostgresRLSStrategy │ MySQLTenantStrategy │ SQLiteTenantStrategy    │ ║
+║  │                                                                         │ ║
+║  │  IMigrationDialect implementations:                                     │ ║
+║  │    PostgresMigrationDialect │ MySQLMigration │ SQLiteMigration         │ ║
+║  └─────────────────────────────────────────────────────────────────────────┘ ║
 ║                                                                               ║
 ║  ┌─────────────────────────────────────────────────────────────────────────┐ ║
-║  │                                                                         │ ║
 ║  │                        <span class="hi">① POSTGRESQL</span>                                   │ ║
 ║  │                        (Persistent Data Store)                          │ ║
 ║  │                                                                         │ ║
 ║  │  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────────────┐ │ ║
-║  │  │              │  │                  │  │                          │ │ ║
 ║  │  │  <span class="am">Metadata</span>    │  │  <span class="gn">Shared Data</span>     │  │  <span class="vi">VIP Dedicated</span>          │ │ ║
 ║  │  │  Instance    │  │  Instance        │  │  Instance(s)            │ │ ║
-║  │  │              │  │  + Read Replicas  │  │  1 per VIP tenant       │ │ ║
-║  │  │  tenants     │  │  customers       │  │  same schema            │ │ ║
-║  │  │  plugins     │  │  sales           │  │  custom tuning          │ │ ║
-║  │  │  audit_log   │  │  (all tenants)   │  │  own backups            │ │ ║
-║  │  │              │  │                  │  │                          │ │ ║
+║  │  │  tenants     │  │  + Read Replicas  │  │  1 per VIP tenant       │ │ ║
+║  │  │  plugins     │  │  customers       │  │  same schema            │ │ ║
+║  │  │  audit_log   │  │  sales (all)     │  │  custom tuning          │ │ ║
 ║  │  └──────────────┘  └──────────────────┘  └──────────────────────────┘ │ ║
-║  │                                                                         │ ║
 ║  └─────────────────────────────────────────────────────────────────────────┘ ║
 ║                                                                               ║
 ║  ┌──────────────────────┐  ┌──────────────────────────────────────────────┐ ║
-║  │                      │  │                                              │ ║
 ║  │   <span class="rd">② REDIS CLUSTER</span>    │  │   <span class="or">③ RABBITMQ CLUSTER</span>                       │ ║
 ║  │   (Cache + Pub/Sub   │  │   (Async Message Broker)                     │ ║
 ║  │    + Session + Rate)  │  │                                              │ ║
-║  │                      │  │  ┌───────────┐ ┌───────────┐ ┌───────────┐ │ ║
-║  │  ┌────┐┌────┐┌────┐ │  │  │ Exchange  │ │  Queues   │ │   DLQ     │ │ ║
-║  │  │ M  ││ R1 ││ R2 │ │  │  │ crm.events│ │ notif.    │ │ (retries  │ │ ║
-║  │  │    ││    ││    │ │  │  │ (topic)   │ │ search.   │ │  failed)  │ │ ║
-║  │  └────┘└────┘└────┘ │  │  │           │ │ webhook.  │ │           │ │ ║
+║  │  ┌────┐┌────┐┌────┐ │  │  ┌───────────┐ ┌───────────┐ ┌───────────┐ │ ║
+║  │  │ M  ││ R1 ││ R2 │ │  │  │ crm.events│ │ notif.    │ │   DLQ     │ │ ║
+║  │  └────┘└────┘└────┘ │  │  │ crm.system│ │ search.   │ │ (retries) │ │ ║
 ║  │  + Sentinel HA       │  │  └───────────┘ └───────────┘ └───────────┘ │ ║
-║  │                      │  │                                              │ ║
 ║  └──────────────────────┘  └──────────────────────────────────────────────┘ ║
 ║                                                                               ║
 ║  ┌──────────────────────┐  ┌──────────────────────────────────────────────┐ ║
-║  │                      │  │                                              │ ║
 ║  │   <span class="cy">④ OBJECT STORAGE</span>   │  │   <span class="pk">⑤ ELASTICSEARCH</span>                          │ ║
 ║  │   (S3-compatible)    │  │   (Full-text Search)                         │ ║
-║  │                      │  │                                              │ ║
-║  │  /tenants/           │  │  Indices per tenant:                         │ ║
-║  │    acme-123/         │  │    acme-123-customers                        │ ║
-║  │      uploads/        │  │    acme-123-sales                            │ ║
-║  │      exports/        │  │    globex-456-customers                      │ ║
-║  │      backups/        │  │    ...                                       │ ║
-║  │    globex-456/       │  │  OR shared index + tenant filter             │ ║
-║  │      ...             │  │                                              │ ║
-║  │                      │  │                                              │ ║
+║  │  /tenants/acme-123/  │  │   Indices per tenant:                        │ ║
+║  │    uploads/exports/  │  │   acme-123-customers, sales...               │ ║
 ║  └──────────────────────┘  └──────────────────────────────────────────────┘ ║
-║                                                                               ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 
 
@@ -156,8 +149,12 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
   ┌────────────────────┬───────────┬──────────────────────────────────────────┐
   │ Component          │ Loại      │ Chức năng chính                         │
   ├────────────────────┼───────────┼──────────────────────────────────────────┤
-  │ <span class="hi">PostgreSQL</span>         │ Stateful  │ Source of truth. Mọi business data,     │
-  │                    │           │ metadata, audit. ACID transactions.     │
+  │ <span class="kw">DIP Boundary</span>       │ Adapter   │ ISQLDialect (SQL per DB), ITenantStrategy│
+  │                    │           │ (isolation per DB), IMigrationDialect    │
+  │                    │           │ (DDL per DB). Swap DB = swap impls.      │
+  ├────────────────────┼───────────┼──────────────────────────────────────────┤
+  │ <span class="hi">PostgreSQL</span>         │ Stateful  │ Source of truth. Business data, metadata,│
+  │                    │           │ audit. ACID. RLS tenant isolation.       │
   ├────────────────────┼───────────┼──────────────────────────────────────────┤
   │ <span class="rd">Redis</span>              │ Stateful  │ Cache L2, session, rate limit counter,  │
   │                    │           │ domain map, Pub/Sub cross-instance.     │
@@ -165,7 +162,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
   │ <span class="or">RabbitMQ</span>           │ Stateful  │ Async event delivery. Decouple sync     │
   │                    │           │ request from heavy operations.          │
   ├────────────────────┼───────────┼──────────────────────────────────────────┤
-  │ <span class="cy">Object Storage</span>     │ Stateful  │ File uploads, CSV exports, backups.     │
+  │ <span class="cy">Object Storage</span>     │ Stateful  │ File uploads, exports, backups.         │
   │                    │           │ Tenant-isolated by path prefix.         │
   ├────────────────────┼───────────┼──────────────────────────────────────────┤
   │ <span class="pk">Elasticsearch</span>      │ Stateful  │ Full-text search. Fast queries across   │
@@ -173,10 +170,6 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
   └────────────────────┴───────────┴──────────────────────────────────────────┘</pre></div>
 </div>
 </div>
-
-<!-- ═══════════════════════════════════════ -->
-<!-- POSTGRESQL -->
-<!-- ═══════════════════════════════════════ -->
 <div class="pnl" id="p-pg">
 
 <div class="sec">
@@ -678,10 +671,121 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- ═══════════════════════════════════════ -->
 <!-- TIER CONFIG -->
 <!-- ═══════════════════════════════════════ -->
+<div class="pnl" id="p-dip">
+
+<div class="sec">
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Dialect & Strategy — DIP Implementations</h2></div>
+
+    <div class="nt vi"><strong>Dependency Inversion:</strong> L4 (Query Builder, Migration Engine) depend on interfaces (ISQLDialect, ITenantStrategy, IMigrationDialect). L5 cung cấp implementations. Swap DB = tạo 3 implementations mới ở L5, zero code change ở L4.</div>
+
+    <div class="dg"><div class="dg-label">ISQLDialect implementations</div><pre>
+<span class="ty">ISQLDialect — AST → Parameterized SQL per DB</span>
+
+  L4 TenantScopedDB gọi: dialect.generateSelect(ast) → { text, params }
+
+  ┌──────────────────────┬───────────────────┬──────────────────┬──────────────────┐
+  │ Feature              │ <span class="hi">PostgresDialect</span>   │ <span class="gn">MySQLDialect</span>      │ <span class="or">SQLiteDialect</span>    │
+  ├──────────────────────┼───────────────────┼──────────────────┼──────────────────┤
+  │ Placeholder          │ $1, $2, $3        │ ?, ?, ?          │ ?, ?, ?          │
+  │ Identifier escape    │ "column"          │ `column`         │ "column"         │
+  │ RETURNING            │ RETURNING *       │ <span class="rd">✗</span> (emulated)     │ <span class="rd">✗</span> (emulated)     │
+  │ INSERT get id        │ RETURNING id      │ LAST_INSERT_ID() │ last_insert_rowid│
+  │ Upsert               │ ON CONFLICT DO    │ ON DUPLICATE KEY │ ON CONFLICT DO   │
+  │ JSON access          │ col->>'key'       │ JSON_EXTRACT()   │ json_extract()   │
+  │ ILIKE                │ ILIKE             │ LIKE (default CI)│ LIKE + COLLATE   │
+  │ Boolean              │ TRUE / FALSE      │ 1 / 0            │ 1 / 0            │
+  │ Full-text search     │ to_tsvector()     │ MATCH AGAINST    │ FTS5             │
+  └──────────────────────┴───────────────────┴──────────────────┴──────────────────┘
+
+  <span class="cm">Ví dụ cùng AST: { table:'sales', op:'INSERT', data:{title:'Deal',amount:50000} }</span>
+
+  <span class="hi">PostgresDialect:</span>  INSERT INTO sales (tenant_id,title,amount) VALUES ($1,$2,$3) RETURNING *
+  <span class="gn">MySQLDialect:</span>     INSERT INTO sales (tenant_id,title,amount) VALUES (?,?,?)
+                    <span class="cm">+ SELECT * FROM sales WHERE id = LAST_INSERT_ID()</span>
+  <span class="or">SQLiteDialect:</span>    INSERT INTO sales (tenant_id,title,amount) VALUES (?,?,?)
+                    <span class="cm">+ SELECT * FROM sales WHERE rowid = last_insert_rowid()</span></pre></div>
+
+    <div class="dg"><div class="dg-label">ITenantStrategy implementations</div><pre>
+<span class="ty">ITenantStrategy — Tenant Isolation per DB</span>
+
+  L4 TenantScopedDB gọi: strategy.injectTenant(ast, tid) → modified AST
+                          strategy.configureConnection(conn, tid)
+
+  ┌──────────────────────┬─────────────────────┬───────────────────┬──────────────────┐
+  │ Feature              │ <span class="hi">PostgresRLSStrategy</span> │ <span class="gn">MySQLStrategy</span>     │ <span class="or">SQLiteStrategy</span>   │
+  ├──────────────────────┼─────────────────────┼───────────────────┼──────────────────┤
+  │ AST injection        │ <span class="gn">✓</span> WHERE + INSERT    │ <span class="gn">✓</span> WHERE + INSERT  │ <span class="gn">✓</span> WHERE + INSERT │
+  │ JOIN injection       │ <span class="gn">✓</span> all joined tables │ <span class="gn">✓</span> all joined      │ <span class="gn">✓</span> all joined     │
+  │ configureConnection  │ SET app.tenant = tid│ SET @app_tenant   │ N/A (in-process) │
+  │ resetConnection      │ RESET app.tenant    │ SET @app_tenant=''│ N/A              │
+  │ DB-level isolation   │ <span class="gn">✓ RLS policies</span>      │ <span class="rd">✗ (no RLS)</span>        │ <span class="rd">✗ (no RLS)</span>       │
+  │ Defense layers       │ 3 (AST+RLS+audit)   │ 2 (AST+audit)     │ 1 (AST only)     │
+  ├──────────────────────┼─────────────────────┼───────────────────┼──────────────────┤
+  │ <span class="cm">Use case</span>             │ <span class="cm">Production primary</span>  │ <span class="cm">Enterprise custom</span> │ <span class="cm">Mobile + Test</span>    │
+  └──────────────────────┴─────────────────────┴───────────────────┴──────────────────┘
+
+  <span class="am">MySQL không có RLS → chỉ 2 tầng bảo vệ.</span>
+  <span class="am">ITenantStrategy.supportsDBLevelIsolation() → false</span>
+  <span class="am">→ hệ thống enforce stricter QueryValidator rules để bù.</span></pre></div>
+
+    <div class="dg"><div class="dg-label">IMigrationDialect implementations</div><pre>
+<span class="ty">IMigrationDialect — DDL Generation per DB</span>
+
+  L4 SchemaMigrationRunner gọi: migDialect.generateCreateTable(schema)
+                                 migDialect.generateRLSPolicy(table, col)
+
+  ┌──────────────────────┬─────────────────────┬───────────────────┬──────────────────┐
+  │ Feature              │ <span class="hi">PostgresMigration</span>   │ <span class="gn">MySQLMigration</span>    │ <span class="or">SQLiteMigration</span>  │
+  ├──────────────────────┼─────────────────────┼───────────────────┼──────────────────┤
+  │ CREATE TABLE         │ Standard + gen_uuid │ Standard + UUID() │ Standard         │
+  │ RLS Policy           │ <span class="gn">CREATE POLICY ...</span>   │ <span class="rd">null (no RLS)</span>     │ <span class="rd">null (no RLS)</span>    │
+  │ Transactional DDL    │ <span class="gn">✓ atomic rollback</span>   │ <span class="rd">✗ implicit commit</span>│ <span class="gn">✓</span>                │
+  │ Advisory lock        │ pg_advisory_lock()  │ GET_LOCK()        │ file-level lock  │
+  │ ALTER TABLE          │ Full support        │ Full support      │ Limited          │
+  └──────────────────────┴─────────────────────┴───────────────────┴──────────────────┘
+
+
+<span class="ty">BOOTSTRAP — Ai inject gì:</span>
+
+  <span class="cm">// App startup (config/database.ts)</span>
+  if (dbType === 'postgres') {
+    container.register('ISQLDialect',      new PostgresDialect());
+    container.register('ITenantStrategy',  new PostgresRLSStrategy());
+    container.register('IMigrationDialect', new PostgresMigrationDialect());
+  } else if (dbType === 'mysql') {
+    container.register('ISQLDialect',      new MySQLDialect());
+    container.register('ITenantStrategy',  new MySQLTenantStrategy());
+    container.register('IMigrationDialect', new MySQLMigrationDialect());
+  }
+
+  <span class="cm">// Per-request (ExecutionContextBuilder)</span>
+  const dialect  = container.resolve('ISQLDialect');
+  const strategy = container.resolve('ITenantStrategy');
+  ctx.db = new TenantScopedDB(conn, tenantId, dialect, strategy);
+  <span class="gn">// Plugin nhận ctx.db (IDbContext) — không biết DB nào bên dưới.</span>
+
+
+<span class="ty">SWAP DB = tạo 3 implementations ở L5:</span>
+
+  ┌────────────────────────────────────────────────────────────────┐
+  │  <span class="am">Tạo mới ở L5:</span>     (~535 LOC)                                │
+  │  ├── MySQLDialect              implements ISQLDialect         │
+  │  ├── MySQLTenantStrategy       implements ITenantStrategy     │
+  │  └── MySQLMigrationDialect     implements IMigrationDialect   │
+  │                                                                │
+  │  <span class="gn">KHÔNG đổi ở L4:</span>                                              │
+  │  ├── CrmQueryBuilder, QueryAST, QueryValidator                │
+  │  ├── TenantScopedDB, PoolRouter, Cache Manager                │
+  │  └── SchemaMigrationRunner, TenantMigrationRunner             │
+  │                                                                │
+  │  <span class="gn">KHÔNG đổi ở L3:</span>   Mọi Plugin Core code                      │
+  └────────────────────────────────────────────────────────────────┘</pre></div>
+</div>
+</div>
 <div class="pnl" id="p-tier">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Cấu hình Infrastructure per Tier</h2></div>
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Cấu hình Infrastructure per Tier</h2></div>
 
     <div class="dg"><div class="dg-label">tier comparison</div><pre>
 ┌──────────────────────┬──────────────┬──────────────┬──────────────┬──────────────┐
@@ -734,7 +838,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-req">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">L5 tham gia xử lý request — Trace đầy đủ</h2></div>
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">L5 tham gia xử lý request — Trace đầy đủ</h2></div>
 
     <div class="dg"><div class="dg-label">L5 request trace</div><pre>
 <span class="hi">POST /api/v1/sales</span> — ACME (Premium)
@@ -758,25 +862,30 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
   <span class="ty">② POSTGRESQL</span> — Plugin execution phase (3 queries, ~20ms)
   │
   │  Connection: Shared Pool → conn #14
-  │  Configured: app.current_tenant = 'acme-123'
+  │  ITenantStrategy.configureConnection(conn, 'acme-123')
+  │  PostgresRLSStrategy: SET app.current_tenant = 'acme-123'
   │
   │  <span class="nu">Query 1:</span> Read customer (validate)
+  │  ISQLDialect.generateSelect(ast) →
   │  SELECT * FROM customers
-  │  WHERE id = 'cust-99' AND tenant_id = 'acme-123'
+  │  WHERE tenant_id = 'acme-123' AND id = 'cust-99'
   │  → Shared Data DB Primary
   │  → Index scan idx_customers_pk                        <span class="nu">~5ms</span>
   │
   │  <span class="nu">Query 2:</span> Insert sale
+  │  ISQLDialect.generateInsert(ast) →
   │  INSERT INTO sales (tenant_id, customer_id, ...)
-  │  VALUES ('acme-123', 'cust-99', ...)
+  │  VALUES ($1, $2, ...) RETURNING *
   │  → Shared Data DB Primary                             <span class="nu">~8ms</span>
   │
   │  <span class="nu">Query 3:</span> Update customer lastActivity
-  │  UPDATE customers SET last_activity = now()
-  │  WHERE id = 'cust-99' AND tenant_id = 'acme-123'
+  │  ISQLDialect.generateUpdate(ast) →
+  │  UPDATE customers SET last_activity = $1
+  │  WHERE tenant_id = $2 AND id = $3 RETURNING *
   │  → Shared Data DB Primary                             <span class="nu">~5ms</span>
   │
-  │  Release: RESET app.current_tenant → return conn #14 to pool
+  │  ITenantStrategy.resetConnection(conn) → return conn #14 to pool
+  │  PostgresRLSStrategy: RESET app.current_tenant
   │
   │
   <span class="ty">③ REDIS</span> — Sync event phase (4 ops, ~4ms)
@@ -844,6 +953,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 </div>
 </div>
 
+
+
 </div><!-- /wrap -->
 
 <script>
@@ -852,7 +963,7 @@ function go(n){
     document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
     var p=document.getElementById('p-'+n);
     if(p)p.classList.add('on');
-    var names=['map','pg','redis','mq','s3','es','tier','req'];
+    var names=['map','pg','redis','mq','s3','dip','tier','req'];
     var i=names.indexOf(n);
     var btns=document.querySelectorAll('.nav button');
     if(i>=0&&btns[i])btns[i].classList.add('on');

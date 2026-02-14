@@ -140,7 +140,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │   │  • audit_log                      │    │  • tickets                      │  │
 │   │  • webhooks                       │    │  • ... all plugin tables        │  │
 │   │  • system config                  │    │                                 │  │
-│   │                                   │    │  Không cần RLS                  │  │
+│   │                                   │    │  Không cần RLS (single-tenant)                  │  │
 │   │  <span class="cm">KHÔNG chứa business data</span>        │    │  (single tenant DB)             │  │
 │   │                                   │    │  Custom pg configs              │  │
 │   │                                   │    │  Own backup schedule            │  │
@@ -160,7 +160,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │   │                                   │     │                                 │ │
 │   │  Row Level Security (RLS)         │     │    (same structure,             │ │
 │   │  tenant_id trên mọi table         │     │     STARK tenant only)          │ │
-│   │  Query Interceptor enforce        │     │                                 │ │
+│   │  Query Builder Pipeline enforce        │     │                                 │ │
 │   │                                   │     └─────────────────────────────────┘ │
 │   │  ┌─ Read Replica ──────────────┐ │                                         │
 │   │  │  Reporting / Analytics      │ │                                         │
@@ -179,7 +179,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
   │                 │ Mọi app instance đều kết nối. Ít write, nhiều read.     │
   ├─────────────────┼──────────────────────────────────────────────────────────┤
   │ <span class="gn">Shared Data DB</span>  │ 1 instance + replicas. Business data tất cả standard      │
-  │                 │ tenants. RLS + Query Interceptor isolation. Heavy I/O.   │
+  │                 │ tenants. RLS + Query Builder Pipeline + ITenantStrategy isolation. Heavy I/O.   │
   ├─────────────────┼──────────────────────────────────────────────────────────┤
   │ <span class="vi">VIP Data DB(s)</span>  │ 1 instance PER VIP tenant. Dedicated resources.           │
   │                 │ Same schema, no RLS needed. Custom tuning.              │
@@ -374,7 +374,7 @@ Config Manager                system_config      READ      Hot reload configs
     <div class="dg"><div class="dg-label">shared data db schema</div><pre>
 ┌─ <span class="gn">SHARED DATA DATABASE</span> ── PostgreSQL Instance #2 ──────────────────────────┐
 │                                                                            │
-│  <span class="rd">RLS ENABLED trên MỌI table. Query Interceptor auto-inject tenant_id.</span>    │
+│  <span class="rd">ITenantStrategy auto-inject tenant_id vào QueryAST. RLS ENABLED (nếu PostgreSQL).</span>    │
 │                                                                            │
 │                                                                            │
 │  ┌─ <span class="ty">Plugin: customer-data</span> ── tables ──────────────────────────────────┐  │
@@ -466,7 +466,7 @@ Config Manager                system_config      READ      Hot reload configs
 │                                                                          │
 │  <span class="am">FK giữa tables thuộc plugins KHÁC NHAU: cho phép.</span>                     │
 │  <span class="am">Cả 2 plugins cùng nằm trong 1 DB → FK constraint hoạt động.</span>           │
-│  <span class="am">Query Interceptor đảm bảo mọi JOIN đều scoped by tenant_id.</span>           │
+│  <span class="am">ITenantStrategy.injectTenant() đảm bảo mọi JOIN đều scoped by tenant_id.</span>           │
 │                                                                          │
 │                                                                          │
 │  <span class="ty">ROW LEVEL SECURITY (mọi table):</span>                                       │
@@ -477,7 +477,7 @@ Config Manager                system_config      READ      Hot reload configs
 │  │    USING (tenant_id = current_setting('app.tenant_id')::UUID); │      │
 │  │                                                                │      │
 │  │  <span class="cm">Áp dụng CÙNG policy cho TOÀN BỘ tables.</span>                      │      │
-│  │  <span class="cm">Double safety: Interceptor (L4) + RLS (L5).</span>                   │      │
+│  │  <span class="cm">3 tầng: Builder+ITenantStrategy (L4) + QueryValidator (L4) + RLS (L5, nếu PG).</span>                   │      │
 │  └────────────────────────────────────────────────────────────────┘      │
 │                                                                          │
 │  <span class="ty">DATA CÙNG TABLE NHƯNG KHÁC TENANT:</span>                                    │
@@ -487,11 +487,11 @@ Config Manager                system_config      READ      Hot reload configs
 │  │                                                                  │    │
 │  │  id       │ tenant_id    │ name          │ email                 │    │
 │  │  ─────────┼──────────────┼───────────────┼───────────────────    │    │
-│  │  cust-99  │ <span class="gn">acme-123</span>     │ Alice Nguyen  │ alice@acme.com        │    │
-│  │  cust-100 │ <span class="gn">acme-123</span>     │ Bob Tran      │ bob@acme.com          │    │
-│  │  cust-201 │ <span class="cy">globex-456</span>   │ Carol Le      │ carol@globex.com      │    │
-│  │  cust-202 │ <span class="cy">globex-456</span>   │ Dan Pham      │ dan@globex.com        │    │
-│  │  cust-305 │ <span class="am">wayne-789</span>    │ Eve Vo        │ eve@wayne.com         │    │
+│  │  cust-99  │ <span class="gn">acme-123</span>     │ Alice Nguyen  │ <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="20414c4943456041434d450e434f4d">[email&#160;protected]</a>        │    │
+│  │  cust-100 │ <span class="gn">acme-123</span>     │ Bob Tran      │ <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bcded3defcdddfd1d992dfd3d1">[email&#160;protected]</a>          │    │
+│  │  cust-201 │ <span class="cy">globex-456</span>   │ Carol Le      │ <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2b484a5944476b4c4744494e5305484446">[email&#160;protected]</a>      │    │
+│  │  cust-202 │ <span class="cy">globex-456</span>   │ Dan Pham      │ <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5d393c331d3a31323f3825733e3230">[email&#160;protected]</a>        │    │
+│  │  cust-305 │ <span class="am">wayne-789</span>    │ Eve Vo        │ <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bbdecddefbccdac2d5de95d8d4d6">[email&#160;protected]</a>         │    │
 │  │                                                                  │    │
 │  │  ACME query: SELECT * FROM customers                            │    │
 │  │  → Interceptor: WHERE tenant_id = 'acme-123'                    │    │
@@ -557,9 +557,11 @@ Config Manager                system_config      READ      Hot reload configs
   │  │  Connection lifecycle per request:                              │    │
   │  │  ┌──────────────────────────────────────────────────────────┐  │    │
   │  │  │  1. Pool.acquire()           → get idle connection       │  │    │
-  │  │  │  2. SET app.tenant_id = X    → configure for tenant      │  │    │
+  │  │  │  2. ITenantStrategy.configureConnection(conn, tid)
+  │  │  │     PostgresRLS: SET app.tenant_id = X      │  │    │
   │  │  │  3. Plugin executes queries  → interceptor active        │  │    │
-  │  │  │  4. RESET app.tenant_id      → clear tenant context      │  │    │
+  │  │  │  4. ITenantStrategy.resetConnection(conn)
+  │  │  │     PostgresRLS: RESET app.tenant_id      │  │    │
   │  │  │  5. Pool.release()           → return to idle pool       │  │    │
   │  │  └──────────────────────────────────────────────────────────┘  │    │
   │  │                                                                │    │
@@ -665,7 +667,7 @@ Config Manager                system_config      READ      Hot reload configs
 │   │   tables: customers, sales, call_logs, ... (plugin-owned)
 │   │   READ + WRITE business data
 │   │
-│   └── <span class="rd">Luôn qua Query Interceptor (L4) — không bao giờ trực tiếp</span>
+│   └── <span class="rd">Luôn qua Query Builder Pipeline (L4) — không bao giờ trực tiếp</span>
 │
 └── Shared Services
     ├── Email Service ────────────────────▶ (không DB — dùng MQ)
@@ -675,7 +677,7 @@ Config Manager                system_config      READ      Hot reload configs
 
 <span class="hi">L4 DATA ACCESS</span>
 │
-├── <span class="rd">Query Interceptor</span> ─── <span class="cm">TRUNG GIAN bắt buộc giữa L3 và L5</span>
+├── <span class="rd">Query Builder Pipeline</span> ─── <span class="cm">TRUNG GIAN bắt buộc giữa L3 và L5</span>
 │   │
 │   │  Mọi query từ plugin cores đều ĐI QUA đây.
 │   │  Auto-inject: WHERE tenant_id = $current
@@ -803,53 +805,59 @@ Config Manager                system_config      READ      Hot reload configs
     <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Luồng Query — Từ plugin code đến disk</h2></div>
 
     <div class="dg"><div class="dg-label">query flow through layers</div><pre>
-<span class="ty">Plugin code gọi:</span>  ctx.db.query('sales').where({ status: 'new' }).limit(10)
+<span class="ty">Plugin code gọi:</span>  ctx.db.query('sales').where({ status: 'new' }).limit(10).execute()
 
 
   <span class="hi">L3 BUSINESS LOGIC</span> ── Plugin Core
   │
-  │  ctx.db là <span class="fn">TenantScopedDB</span> wrapper
-  │  Plugin không biết DB connection thật bên dưới
+  │  ctx.db là <span class="fn">TenantScopedDB</span> (implements IDbContext)
+  │  Plugin không biết DB nào, dialect nào, hay tenant isolation bên dưới
   │
   ▼
-  <span class="hi">L4 DATA ACCESS</span> ── TenantScopedDB
+  <span class="hi">L4 DATA ACCESS</span> ── Query Builder Pipeline (7 bước)
   │
-  ├── <span class="rd">Query Interceptor</span>
-  │   │
-  │   │  Input:   SELECT * FROM sales WHERE status = 'new' LIMIT 10
-  │   │
-  │   │  Step 1: Inject tenant_id
-  │   │  Output:  SELECT * FROM sales
-  │   │           WHERE status = 'new'
-  │   │           <span class="gn">AND tenant_id = 'acme-123'</span>
-  │   │           LIMIT 10
-  │   │
-  │   │  Step 2: Count query (for sandbox tracking)
-  │   │  queryCount++  → [4/50]
-  │   │
-  │   │  Step 3: Check query safety
-  │   │  ├── Has tenant_id filter? ✓
-  │   │  ├── No raw SQL bypass? ✓
-  │   │  └── Within allowed tables? ✓
-  │   │
-  │   └── Forward to pool connection
+  │  <span class="rd">① CrmQueryBuilder.toAST()</span>
+  │  │  Fluent chain → QueryAST (DB-agnostic value object):
+  │  │  { table:'sales', op:'SELECT',
+  │  │    where:[{field:'status', op:'=', value:'new'}], limit:10 }
+  │  │
+  │  <span class="rd">② ITenantStrategy.injectTenant(ast, 'acme-123')</span>
+  │  │  Duyệt AST → prepend tenant_id node:
+  │  │  where: [<span class="gn">{field:'tenant_id', op:'=', value:'acme-123'}</span>,
+  │  │          {field:'status', op:'=', value:'new'}]
+  │  │
+  │  <span class="rd">③ QueryValidator.validate(ast)</span>
+  │  │  6 checks: tenant_id? allowedTables? no DDL? parameterized? → <span class="gn">PASS</span>
+  │  │
+  │  <span class="rd">④ QueryCounter.increment()</span>
+  │  │  queryCount++ → [4/50]
+  │  │
+  │  <span class="rd">⑤ ISQLDialect.generateSelect(ast)</span>
+  │  │  <span class="hi">PostgresDialect:</span>
+  │  │  { text: "SELECT * FROM sales WHERE tenant_id = $1 AND status = $2 LIMIT $3",
+  │  │    params: ['acme-123', 'new', 10] }
+  │  │  <span class="gn">MySQLDialect (nếu tenant dùng MySQL):</span>
+  │  │  { text: "SELECT * FROM sales WHERE tenant_id = ? AND status = ? LIMIT ?",
+  │  │    params: ['acme-123', 'new', 10] }
+  │  │
+  │  └── Forward { text, params } to pool connection
   │
   ├── <span class="am">Cache Manager</span> (optional — if caching enabled for this query)
   │   │
-  │   │  Cache key: t:acme-123:sales:status=new:limit=10
-  │   │
+  │   │  Cache key: t:acme-123:sales:hash(AST)
   │   │  L1 (in-memory): check → <span class="am">MISS</span>
   │   │  L2 (Redis):     check → <span class="am">MISS</span>
   │   │  → proceed to DB
-  │   │
-  │   └── (after DB response: store in L2 Redis, TTL 5min → store in L1, TTL 60s)
+  │   │  (after DB response: store in L2 Redis, TTL 5min → store in L1, TTL 60s)
   │
   ▼
   <span class="hi">L4 DATA ACCESS</span> ── Pool Manager
   │
   │  tenantCtx.dbPool = "shared"
   │  → Use existing connection #14 (already acquired for this request)
-  │  → Connection already has: SET app.tenant_id = 'acme-123'
+  │  → Connection configured by ITenantStrategy.configureConnection():
+  │    PostgresRLSStrategy: SET app.tenant_id = 'acme-123'
+  │    MySQLTenantStrategy: SET @app_tenant = 'acme-123'
   │
   ▼
   <span class="hi">L5 INFRASTRUCTURE</span> ── PostgreSQL (Shared Data DB)
@@ -857,40 +865,34 @@ Config Manager                system_config      READ      Hot reload configs
   │  ┌── <span class="gn">PostgreSQL execution</span> ──────────────────────────────────────┐
   │  │                                                              │
   │  │  Receive: SELECT * FROM sales                                │
-  │  │           WHERE status = 'new'                               │
-  │  │           AND tenant_id = 'acme-123'                         │
-  │  │           LIMIT 10                                           │
+  │  │           WHERE tenant_id = $1 AND status = $2 LIMIT $3     │
+  │  │           params: ['acme-123', 'new', 10]                   │
   │  │                                                              │
-  │  │  <span class="nu">1.</span> RLS check (backup enforcement):                         │
+  │  │  <span class="nu">1.</span> RLS check (tầng 3 — backup enforcement, PG only):       │
   │  │     Policy: tenant_id = current_setting('app.tenant_id')    │
   │  │     'acme-123' = 'acme-123' → <span class="gn">PASS</span>                         │
   │  │                                                              │
   │  │  <span class="nu">2.</span> Query plan:                                              │
   │  │     Use index: idx_sales_tenant_status                      │
-  │  │     (tenant_id, status, created_at DESC)                    │
   │  │     → Index scan, very efficient                            │
   │  │                                                              │
-  │  │  <span class="nu">3.</span> Execute:                                                 │
-  │  │     Read from disk/buffer cache                             │
-  │  │     → 4 rows match                                          │
+  │  │  <span class="nu">3.</span> Execute: read from buffer cache → 4 rows match           │
   │  │                                                              │
   │  │  <span class="nu">4.</span> Return result set → connection #14                      │
-  │  │                                                              │
   │  └──────────────────────────────────────────────────────────────┘
+  │
+  │  <span class="rd">⑥ DB execute complete</span>
+  │  <span class="rd">⑦ QueryLogger.log({ table:sales, op:SELECT, duration:5ms })</span>
   │
   ▼
   Result bubbles back up:
 
-  PostgreSQL → Pool conn #14 → Cache Manager (store) → TenantScopedDB → Plugin Core
+  PostgreSQL → Pool conn → Cache (store) → TenantScopedDB → Plugin Core
 
   Plugin receives: [{ id: "sale-42", title: "Enterprise deal", ... }, ...]
-  Plugin does not know about tenant_id injection, RLS, or caching.</pre></div>
+  Plugin does not know about QueryAST, ISQLDialect, ITenantStrategy, RLS, or caching.</pre></div>
 </div>
 </div>
-
-<!-- ═══════════════════════════════════════ -->
-<!-- SCALING -->
-<!-- ═══════════════════════════════════════ -->
 <div class="pnl" id="p-scale">
 
 <div class="sec">

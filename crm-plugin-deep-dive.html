@@ -1,139 +1,624 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRM Plugin System — Deep Dive</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#060810;--sf:#0c0e18;--sf2:#111420;--sf3:#171a28;
-  --bd:#1c2038;--bda:#2a3055;
-  --tx:#d8dce8;--td:#7880a0;--tm:#484e6a;
-  --bl:#3b82f6;--bld:rgba(59,130,246,.1);--blg:rgba(59,130,246,.25);
-  --gn:#10b981;--gnd:rgba(16,185,129,.08);
-  --am:#f59e0b;--amd:rgba(245,158,11,.08);
-  --rd:#ef4444;--rdd:rgba(239,68,68,.08);
-  --cy:#06b6d4;--cyd:rgba(6,182,212,.08);
-  --vi:#8b5cf6;--vid:rgba(139,92,246,.08);
-  --or:#f97316;--ord:rgba(249,115,22,.08);
-  --pk:#ec4899;--pkd:rgba(236,72,153,.08);
-  --mono:'IBM Plex Mono',monospace;
-  --head:'Anybody',sans-serif;
-  --body:'Source Serif 4',Georgia,serif;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.7;-webkit-font-smoothing:antialiased}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Plugin System — Deep Dive</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Anybody:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #060810;
+            --sf: #0c0e18;
+            --sf2: #111420;
+            --sf3: #171a28;
+            --bd: #1c2038;
+            --bda: #2a3055;
+            --tx: #d8dce8;
+            --td: #7880a0;
+            --tm: #484e6a;
+            --bl: #3b82f6;
+            --bld: rgba(59, 130, 246, .1);
+            --blg: rgba(59, 130, 246, .25);
+            --gn: #10b981;
+            --gnd: rgba(16, 185, 129, .08);
+            --am: #f59e0b;
+            --amd: rgba(245, 158, 11, .08);
+            --rd: #ef4444;
+            --rdd: rgba(239, 68, 68, .08);
+            --cy: #06b6d4;
+            --cyd: rgba(6, 182, 212, .08);
+            --vi: #8b5cf6;
+            --vid: rgba(139, 92, 246, .08);
+            --or: #f97316;
+            --ord: rgba(249, 115, 22, .08);
+            --pk: #ec4899;
+            --pkd: rgba(236, 72, 153, .08);
+            --mono: 'IBM Plex Mono', monospace;
+            --head: 'Anybody', sans-serif;
+            --body: 'Source Serif 4', Georgia, serif;
+        }
 
-/* hero */
-.hero{padding:72px 32px 48px;text-align:center;position:relative;overflow:hidden}
-.hero::before{content:'';position:absolute;inset:0;background:
-  radial-gradient(ellipse 600px 300px at 50% 0%,rgba(59,130,246,.05),transparent),
-  repeating-linear-gradient(0deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px),
-  repeating-linear-gradient(90deg,transparent,transparent 59px,var(--bd) 59px,var(--bd) 60px);
-  opacity:.3;pointer-events:none}
-.hero-tag{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--bl);display:inline-block;padding:5px 14px;border:1px solid var(--bd);border-radius:2px;background:var(--sf);margin-bottom:20px}
-.hero h1{font-family:var(--head);font-size:clamp(2rem,4.5vw,3.4rem);font-weight:800;line-height:1.1;margin-bottom:14px;letter-spacing:-.5px}
-.hero h1 span{color:var(--bl)}
-.hero p{font-size:1rem;color:var(--td);max-width:640px;margin:0 auto;font-family:var(--body)}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
 
-/* nav */
-.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd)}
-.nav{max-width:1280px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 12px}
-.nav::-webkit-scrollbar{display:none}
-.nav button{font-family:var(--mono);font-size:11.5px;font-weight:500;padding:13px 15px;background:none;border:none;color:var(--tm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s;letter-spacing:.3px}
-.nav button:hover{color:var(--td)}
-.nav button.on{color:var(--bl)}
-.nav button.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--bl);border-radius:2px 2px 0 0}
+        body {
+            font-family: var(--body);
+            background: var(--bg);
+            color: var(--tx);
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased
+        }
 
-/* layout */
-.wrap{max-width:1280px;margin:0 auto;padding:36px 16px 120px}
-.pnl{display:none}.pnl.on{display:block}
-.sec{margin-bottom:56px}
-.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
-.sec-n{font-family:var(--mono);font-size:10px;color:var(--bl);background:var(--bld);padding:3px 9px;border-radius:2px;letter-spacing:1px}
-.sec-t{font-family:var(--head);font-size:1.5rem;font-weight:600;letter-spacing:-.3px}
+        /* hero */
+        .hero {
+            padding: 72px 32px 48px;
+            text-align: center;
+            position: relative;
+            overflow: hidden
+        }
 
-/* diagram box */
-.dg{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:28px;margin:16px 0;overflow-x:auto;position:relative}
-.dg::before{content:'';position:absolute;inset:0;border-radius:6px;background:
-  repeating-linear-gradient(0deg,transparent,transparent 23px,rgba(28,32,56,.3) 23px,rgba(28,32,56,.3) 24px),
-  repeating-linear-gradient(90deg,transparent,transparent 23px,rgba(28,32,56,.3) 23px,rgba(28,32,56,.3) 24px);
-  pointer-events:none}
-.dg pre{position:relative;z-index:1;font-family:var(--mono);font-size:11px;line-height:1.85;color:#8890b8;white-space:pre;margin:0}
-.dg .kw{color:#c792ea}.dg .fn{color:#82aaff}.dg .st{color:#c3e88d}.dg .cm{color:#3e4460;font-style:italic}.dg .nu{color:#f78c6c}.dg .ty{color:#ffcb6b}.dg .hi{color:#3b82f6;font-weight:600}.dg .gn{color:#10b981}.dg .rd{color:#ef4444}.dg .am{color:#f59e0b}.dg .cy{color:#06b6d4}.dg .vi{color:#8b5cf6}.dg .pk{color:#ec4899}.dg .or{color:#f97316}
-.dg-label{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tm);z-index:2}
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 600px 300px at 50% 0%, rgba(59, 130, 246, .05), transparent),
+                repeating-linear-gradient(0deg, transparent, transparent 59px, var(--bd) 59px, var(--bd) 60px),
+                repeating-linear-gradient(90deg, transparent, transparent 59px, var(--bd) 59px, var(--bd) 60px);
+            opacity: .3;
+            pointer-events: none
+        }
 
-/* card */
-.c{background:var(--sf);border:1px solid var(--bd);border-radius:6px;padding:22px;margin-bottom:12px;transition:border-color .15s}
-.c:hover{border-color:var(--bda)}
-.c-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.dot.bl{background:var(--bl)}.dot.gn{background:var(--gn)}.dot.am{background:var(--am)}.dot.rd{background:var(--rd)}.dot.cy{background:var(--cy)}.dot.vi{background:var(--vi)}.dot.or{background:var(--or)}.dot.pk{background:var(--pk)}
-.c h3{font-family:var(--head);font-size:.88rem;font-weight:600}
-.c p,.c li{font-size:.88rem;color:var(--td);line-height:1.75}
-.c ul{padding-left:16px}.c li{margin-bottom:4px}
-.c li strong{color:var(--tx)}
+        .hero-tag {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--bl);
+            display: inline-block;
+            padding: 5px 14px;
+            border: 1px solid var(--bd);
+            border-radius: 2px;
+            background: var(--sf);
+            margin-bottom: 20px
+        }
 
-/* note callout */
-.nt{padding:16px 20px;border-radius:4px;margin:14px 0;font-size:.85rem;border-left:3px solid;background:var(--sf2)}
-.nt.bl{border-color:var(--bl);color:#8bb8f8}.nt.gn{border-color:var(--gn);color:#80d8b8}.nt.am{border-color:var(--am);color:#f0d080}.nt.rd{border-color:var(--rd);color:#f0a0a0}
-.nt strong{color:inherit}
+        .hero h1 {
+            font-family: var(--head);
+            font-size: clamp(2rem, 4.5vw, 3.4rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 14px;
+            letter-spacing: -.5px
+        }
 
-/* grids */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-@media(max-width:960px){.g3{grid-template-columns:1fr 1fr}}
-@media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
+        .hero h1 span {
+            color: var(--bl)
+        }
 
-/* tag */
-.tag{display:inline-block;font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:2px;margin-left:6px;vertical-align:middle;letter-spacing:.5px}
-.tag.req{background:var(--rdd);color:var(--rd)}.tag.opt{background:var(--gnd);color:var(--gn)}.tag.new{background:var(--bld);color:var(--bl)}
+        .hero p {
+            font-size: 1rem;
+            color: var(--td);
+            max-width: 640px;
+            margin: 0 auto;
+            font-family: var(--body)
+        }
 
-/* anim */
-@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.pnl.on .sec{animation:fu .3s ease both}
-.pnl.on .sec:nth-child(2){animation-delay:.04s}
-.pnl.on .sec:nth-child(3){animation-delay:.08s}
-.pnl.on .sec:nth-child(4){animation-delay:.12s}
-.pnl.on .sec:nth-child(5){animation-delay:.16s}
+        /* nav */
+        .nw {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(6, 8, 16, .9);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--bd)
+        }
 
-/* step indicator */
-.steps{display:flex;gap:2px;margin:16px 0}
-.stp{flex:1;text-align:center;padding:10px 6px;background:var(--sf2);font-family:var(--mono);font-size:10px;color:var(--tm);border:1px solid var(--bd);position:relative}
-.stp:first-child{border-radius:4px 0 0 4px}.stp:last-child{border-radius:0 4px 4px 0}
-.stp .sn{display:block;font-size:16px;font-weight:600;margin-bottom:2px}
-.stp.bl .sn{color:var(--bl)}.stp.gn .sn{color:var(--gn)}.stp.am .sn{color:var(--am)}.stp.rd .sn{color:var(--rd)}.stp.cy .sn{color:var(--cy)}.stp.vi .sn{color:var(--vi)}.stp.or .sn{color:var(--or)}
-</style>
+        .nav {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding: 0 12px
+        }
+
+        .nav::-webkit-scrollbar {
+            display: none
+        }
+
+        .nav button {
+            font-family: var(--mono);
+            font-size: 11.5px;
+            font-weight: 500;
+            padding: 13px 15px;
+            background: none;
+            border: none;
+            color: var(--tm);
+            cursor: pointer;
+            white-space: nowrap;
+            position: relative;
+            transition: color .15s;
+            letter-spacing: .3px
+        }
+
+        .nav button:hover {
+            color: var(--td)
+        }
+
+        .nav button.on {
+            color: var(--bl)
+        }
+
+        .nav button.on::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 8px;
+            right: 8px;
+            height: 2px;
+            background: var(--bl);
+            border-radius: 2px 2px 0 0
+        }
+
+        /* layout */
+        .wrap {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 36px 16px 120px
+        }
+
+        .pnl {
+            display: none
+        }
+
+        .pnl.on {
+            display: block
+        }
+
+        .sec {
+            margin-bottom: 56px
+        }
+
+        .sec-h {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--bd)
+        }
+
+        .sec-n {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--bl);
+            background: var(--bld);
+            padding: 3px 9px;
+            border-radius: 2px;
+            letter-spacing: 1px
+        }
+
+        .sec-t {
+            font-family: var(--head);
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -.3px
+        }
+
+        /* diagram box */
+        .dg {
+            background: var(--sf);
+            border: 1px solid var(--bd);
+            border-radius: 6px;
+            padding: 28px;
+            margin: 16px 0;
+            overflow-x: auto;
+            position: relative
+        }
+
+        .dg::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 6px;
+            background:
+                repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(28, 32, 56, .3) 23px, rgba(28, 32, 56, .3) 24px),
+                repeating-linear-gradient(90deg, transparent, transparent 23px, rgba(28, 32, 56, .3) 23px, rgba(28, 32, 56, .3) 24px);
+            pointer-events: none
+        }
+
+        .dg pre {
+            position: relative;
+            z-index: 1;
+            font-family: var(--mono);
+            font-size: 11px;
+            line-height: 1.85;
+            color: #8890b8;
+            white-space: pre;
+            margin: 0
+        }
+
+        .dg .kw {
+            color: #c792ea
+        }
+
+        .dg .fn {
+            color: #82aaff
+        }
+
+        .dg .st {
+            color: #c3e88d
+        }
+
+        .dg .cm {
+            color: #3e4460;
+            font-style: italic
+        }
+
+        .dg .nu {
+            color: #f78c6c
+        }
+
+        .dg .ty {
+            color: #ffcb6b
+        }
+
+        .dg .hi {
+            color: #3b82f6;
+            font-weight: 600
+        }
+
+        .dg .gn {
+            color: #10b981
+        }
+
+        .dg .rd {
+            color: #ef4444
+        }
+
+        .dg .am {
+            color: #f59e0b
+        }
+
+        .dg .cy {
+            color: #06b6d4
+        }
+
+        .dg .vi {
+            color: #8b5cf6
+        }
+
+        .dg .pk {
+            color: #ec4899
+        }
+
+        .dg .or {
+            color: #f97316
+        }
+
+        .dg-label {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            font-family: var(--mono);
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--tm);
+            z-index: 2
+        }
+
+        /* card */
+        .c {
+            background: var(--sf);
+            border: 1px solid var(--bd);
+            border-radius: 6px;
+            padding: 22px;
+            margin-bottom: 12px;
+            transition: border-color .15s
+        }
+
+        .c:hover {
+            border-color: var(--bda)
+        }
+
+        .c-h {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0
+        }
+
+        .dot.bl {
+            background: var(--bl)
+        }
+
+        .dot.gn {
+            background: var(--gn)
+        }
+
+        .dot.am {
+            background: var(--am)
+        }
+
+        .dot.rd {
+            background: var(--rd)
+        }
+
+        .dot.cy {
+            background: var(--cy)
+        }
+
+        .dot.vi {
+            background: var(--vi)
+        }
+
+        .dot.or {
+            background: var(--or)
+        }
+
+        .dot.pk {
+            background: var(--pk)
+        }
+
+        .c h3 {
+            font-family: var(--head);
+            font-size: .88rem;
+            font-weight: 600
+        }
+
+        .c p,
+        .c li {
+            font-size: .88rem;
+            color: var(--td);
+            line-height: 1.75
+        }
+
+        .c ul {
+            padding-left: 16px
+        }
+
+        .c li {
+            margin-bottom: 4px
+        }
+
+        .c li strong {
+            color: var(--tx)
+        }
+
+        /* note callout */
+        .nt {
+            padding: 16px 20px;
+            border-radius: 4px;
+            margin: 14px 0;
+            font-size: .85rem;
+            border-left: 3px solid;
+            background: var(--sf2)
+        }
+
+        .nt.bl {
+            border-color: var(--bl);
+            color: #8bb8f8
+        }
+
+        .nt.gn {
+            border-color: var(--gn);
+            color: #80d8b8
+        }
+
+        .nt.am {
+            border-color: var(--am);
+            color: #f0d080
+        }
+
+        .nt.rd {
+            border-color: var(--rd);
+            color: #f0a0a0
+        }
+
+        .nt strong {
+            color: inherit
+        }
+
+        /* grids */
+        .g2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px
+        }
+
+        .g3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px
+        }
+
+        @media(max-width:960px) {
+            .g3 {
+                grid-template-columns: 1fr 1fr
+            }
+        }
+
+        @media(max-width:640px) {
+
+            .g2,
+            .g3 {
+                grid-template-columns: 1fr
+            }
+        }
+
+        /* tag */
+        .tag {
+            display: inline-block;
+            font-family: var(--mono);
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            margin-left: 6px;
+            vertical-align: middle;
+            letter-spacing: .5px
+        }
+
+        .tag.req {
+            background: var(--rdd);
+            color: var(--rd)
+        }
+
+        .tag.opt {
+            background: var(--gnd);
+            color: var(--gn)
+        }
+
+        .tag.new {
+            background: var(--bld);
+            color: var(--bl)
+        }
+
+        /* anim */
+        @keyframes fu {
+            from {
+                opacity: 0;
+                transform: translateY(8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .pnl.on .sec {
+            animation: fu .3s ease both
+        }
+
+        .pnl.on .sec:nth-child(2) {
+            animation-delay: .04s
+        }
+
+        .pnl.on .sec:nth-child(3) {
+            animation-delay: .08s
+        }
+
+        .pnl.on .sec:nth-child(4) {
+            animation-delay: .12s
+        }
+
+        .pnl.on .sec:nth-child(5) {
+            animation-delay: .16s
+        }
+
+        /* step indicator */
+        .steps {
+            display: flex;
+            gap: 2px;
+            margin: 16px 0
+        }
+
+        .stp {
+            flex: 1;
+            text-align: center;
+            padding: 10px 6px;
+            background: var(--sf2);
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--tm);
+            border: 1px solid var(--bd);
+            position: relative
+        }
+
+        .stp:first-child {
+            border-radius: 4px 0 0 4px
+        }
+
+        .stp:last-child {
+            border-radius: 0 4px 4px 0
+        }
+
+        .stp .sn {
+            display: block;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 2px
+        }
+
+        .stp.bl .sn {
+            color: var(--bl)
+        }
+
+        .stp.gn .sn {
+            color: var(--gn)
+        }
+
+        .stp.am .sn {
+            color: var(--am)
+        }
+
+        .stp.rd .sn {
+            color: var(--rd)
+        }
+
+        .stp.cy .sn {
+            color: var(--cy)
+        }
+
+        .stp.vi .sn {
+            color: var(--vi)
+        }
+
+        .stp.or .sn {
+            color: var(--or)
+        }
+    </style>
 </head>
+
 <body>
 
-<div class="hero">
-    <div class="hero-tag">Plugin System Deep Dive</div>
-    <h1>Giải phẫu <span>Plugin</span></h1>
-    <p>Cấu trúc, vòng đời, cơ chế scan, mối quan hệ phụ thuộc, luồng hoạt động — trình bày qua biểu đồ.</p>
-</div>
+    <div class="hero">
+        <div class="hero-tag">Plugin System Deep Dive</div>
+        <h1>Giải phẫu <span>Plugin</span></h1>
+        <p>Cấu trúc, vòng đời, cơ chế scan, mối quan hệ phụ thuộc, luồng hoạt động</p>
+    </div>
 
-<div class="nw"><div class="nav">
-    <button class="on" onclick="go('anatomy')">Cấu trúc Plugin</button>
-    <button onclick="go('create')">Tạo Plugin</button>
-    <button onclick="go('scan')">Cơ chế Scan</button>
-    <button onclick="go('deps')">Quan hệ & Phụ thuộc</button>
-    <button onclick="go('use')">Sử dụng Plugin</button>
-    <button onclick="go('flow')">Luồng Runtime</button>
-</div></div>
+    <div class="nw">
+        <div class="nav">
+            <button class="on" onclick="go('anatomy')">Cấu trúc Plugin</button>
+            <button onclick="go('create')">Tạo Plugin</button>
+            <button onclick="go('scan')">Cơ chế Scan</button>
+            <button onclick="go('deps')">Quan hệ & Phụ thuộc</button>
+            <button onclick="go('use')">Sử dụng Plugin</button>
+            <button onclick="go('flow')">Luồng Runtime</button>
+        </div>
+    </div>
 
-<div class="wrap">
+    <div class="wrap">
 
-<!-- ═══════════════════════════════════════ -->
-<!-- 1. ANATOMY -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl on" id="p-anatomy">
+        <!-- ═══════════════════════════════════════ -->
+        <!-- 1. ANATOMY -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="pnl on" id="p-anatomy">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Cấu trúc tổng quan của một Plugin</h2></div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">01</span>
+                    <h2 class="sec-t">Cấu trúc tổng quan của một Plugin</h2>
+                </div>
 
-    <div class="dg"><div class="dg-label">plugin anatomy</div><pre>
+                <div class="dg">
+                    <div class="dg-label">plugin anatomy</div>
+                    <pre>
 ┌─────────────────────────────────────────────────────────────────────┐
 │                                                                     │
 │   📦  <span class="hi">customer-care-plugin/</span>                                       │
@@ -177,13 +662,18 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │   │  needs       │  │              │  │                      │     │
 │   └──────────────┘  └──────────────┘  └──────────────────────┘     │
 │                                                                     │
-└─────────────────────────────────────────────────────────────────────┘</pre></div>
-</div>
+└─────────────────────────────────────────────────────────────────────┘</pre>
+                </div>
+            </div>
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Vai trò từng thành phần</h2></div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">02</span>
+                    <h2 class="sec-t">Vai trò từng thành phần</h2>
+                </div>
 
-    <div class="dg"><div class="dg-label">component roles</div><pre>
+                <div class="dg">
+                    <div class="dg-label">component roles</div>
+                    <pre>
 <span class="ty">plugin.manifest.json</span>
 │
 ├── <span class="hi">Identity</span>          name, version, description
@@ -248,29 +738,34 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
                   │
                   ├── Mỗi tenant có config RIÊNG cho plugin này
                   ├── Schema đảm bảo config hợp lệ
-                  └── VD: Twilio SID, email templates, SLA thresholds</pre></div>
-</div>
-</div>
+                  └── VD: Twilio SID, email templates, SLA thresholds</pre>
+                </div>
+            </div>
+        </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- 2. CREATE -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-create">
+        <!-- ═══════════════════════════════════════ -->
+        <!-- 2. CREATE -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="pnl" id="p-create">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Quy trình tạo một Plugin mới</h2></div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">03</span>
+                    <h2 class="sec-t">Quy trình tạo một Plugin mới</h2>
+                </div>
 
-    <div class="steps">
-        <div class="stp bl"><span class="sn">①</span>Scaffold</div>
-        <div class="stp gn"><span class="sn">②</span>Develop</div>
-        <div class="stp am"><span class="sn">③</span>Test</div>
-        <div class="stp cy"><span class="sn">④</span>Build</div>
-        <div class="stp vi"><span class="sn">⑤</span>Publish</div>
-        <div class="stp or"><span class="sn">⑥</span>Approve</div>
-        <div class="stp rd"><span class="sn">⑦</span>Deploy</div>
-    </div>
+                <div class="steps">
+                    <div class="stp bl"><span class="sn">①</span>Scaffold</div>
+                    <div class="stp gn"><span class="sn">②</span>Develop</div>
+                    <div class="stp am"><span class="sn">③</span>Test</div>
+                    <div class="stp cy"><span class="sn">④</span>Build</div>
+                    <div class="stp vi"><span class="sn">⑤</span>Publish</div>
+                    <div class="stp or"><span class="sn">⑥</span>Approve</div>
+                    <div class="stp rd"><span class="sn">⑦</span>Deploy</div>
+                </div>
 
-    <div class="dg"><div class="dg-label">creation pipeline</div><pre>
+                <div class="dg">
+                    <div class="dg-label">creation pipeline</div>
+                    <pre>
 <span class="hi">① SCAFFOLD</span>
 │
 │   Developer chạy CLI tool:
@@ -374,21 +869,27 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │   Plugin giờ <span class="gn">available</span> trong hệ thống
 │   Nhưng chưa tenant nào dùng — cần ENABLE
 │
-└── <span class="cm">End of creation pipeline</span></pre></div>
-</div>
-</div>
+└── <span class="cm">End of creation pipeline</span></pre>
+                </div>
+            </div>
+        </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- 3. SCAN -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-scan">
+        <!-- ═══════════════════════════════════════ -->
+        <!-- 3. SCAN -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="pnl" id="p-scan">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Cơ chế Scan & Load Plugin</h2></div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">04</span>
+                    <h2 class="sec-t">Cơ chế Scan & Load Plugin</h2>
+                </div>
 
-    <div class="nt bl"><strong>Khi nào scan xảy ra?</strong> (1) Application bootstrap, (2) Hot deploy plugin mới, (3) Plugin update broadcast từ instance khác.</div>
+                <div class="nt bl"><strong>Khi nào scan xảy ra?</strong> (1) Application bootstrap, (2) Hot deploy
+                    plugin mới, (3) Plugin update broadcast từ instance khác.</div>
 
-    <div class="dg"><div class="dg-label">bootstrap scan flow</div><pre>
+                <div class="dg">
+                    <div class="dg-label">bootstrap scan flow</div>
+                    <pre>
 <span class="hi">APPLICATION BOOTSTRAP</span>
 │
 │  <span class="ty">Phase 1: Discovery</span>
@@ -492,12 +993,17 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │  │   └─────────────────────────────────────────────────────┘
 │  │
 │  ▼
-│  <span class="gn">✓ All plugins loaded. System ready.</span></pre></div>
-</div>
+│  <span class="gn">✓ All plugins loaded. System ready.</span></pre>
+                </div>
+            </div>
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Hot Deploy Scan (runtime)</h2></div>
-    <div class="dg"><div class="dg-label">hot deploy scan</div><pre>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">05</span>
+                    <h2 class="sec-t">Hot Deploy Scan (runtime)</h2>
+                </div>
+                <div class="dg">
+                    <div class="dg-label">hot deploy scan</div>
+                    <pre>
 <span class="hi">NEW PLUGIN DEPLOYED TO INSTANCE 1</span>
 │
 │  Instance 1:
@@ -523,19 +1029,24 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │    └─────────┘   └─────────┘   └─────────┘
 │
 │  <span class="cm">Tất cả instances sync trong ~5 giây</span>
-│  <span class="cm">Existing requests không bị ảnh hưởng</span></pre></div>
-</div>
-</div>
+│  <span class="cm">Existing requests không bị ảnh hưởng</span></pre>
+                </div>
+            </div>
+        </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- 4. DEPENDENCIES -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-deps">
+        <!-- ═══════════════════════════════════════ -->
+        <!-- 4. DEPENDENCIES -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="pnl" id="p-deps">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Mối quan hệ giữa các Plugin</h2></div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">06</span>
+                    <h2 class="sec-t">Mối quan hệ giữa các Plugin</h2>
+                </div>
 
-    <div class="dg"><div class="dg-label">relationship types</div><pre>
+                <div class="dg">
+                    <div class="dg-label">relationship types</div>
+                    <pre>
 Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ gọi trực tiếp nhau:
 
 
@@ -585,13 +1096,18 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
    • Plugins không biết về nhau
    • Nhưng share cùng infrastructure services
-   • Services đảm bảo tenant isolation</pre></div>
-</div>
+   • Services đảm bảo tenant isolation</pre>
+                </div>
+            </div>
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Dependency Graph — Full System</h2></div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">07</span>
+                    <h2 class="sec-t">Dependency Graph — Full System</h2>
+                </div>
 
-    <div class="dg"><div class="dg-label">dependency graph</div><pre>
+                <div class="dg">
+                    <div class="dg-label">dependency graph</div>
+                    <pre>
 <span class="cm">Legend:  ───▶ hard dependency    - - ▶ event subscription    ═══▶ hook</span>
 
                           ┌──────────────────┐
@@ -680,19 +1196,24 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   Disable customer-data → <span class="rd">cascade disable</span>: care, analytics, automation, marketing
   Disable customer-care → <span class="rd">cascade disable</span>: automation, marketing
   Disable analytics     → <span class="gn">no cascade</span> (nothing depends on it)
-  Disable marketing     → <span class="gn">no cascade</span> (leaf node)</pre></div>
-</div>
-</div>
+  Disable marketing     → <span class="gn">no cascade</span> (leaf node)</pre>
+                </div>
+            </div>
+        </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- 5. USAGE -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-use">
+        <!-- ═══════════════════════════════════════ -->
+        <!-- 5. USAGE -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="pnl" id="p-use">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Cách sử dụng Plugin (Tenant Admin)</h2></div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">08</span>
+                    <h2 class="sec-t">Cách sử dụng Plugin (Tenant Admin)</h2>
+                </div>
 
-    <div class="dg"><div class="dg-label">enable flow</div><pre>
+                <div class="dg">
+                    <div class="dg-label">enable flow</div>
+                    <pre>
 <span class="hi">TENANT ADMIN muốn enable "customer-care" cho tenant ACME</span>
 │
 │  <span class="ty">Step 1: Kiểm tra điều kiện</span>
@@ -759,15 +1280,23 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 │  ├── Query DB → now includes customer-care in enabledPlugins
 │  ├── Context now references CustomerCareCore singleton
 │  ├── Routes /api/v1/sales, /api/v1/calls now accessible
-│  └── UI shell loads customer-care remote module</pre></div>
-</div>
+│  └── UI shell loads customer-care remote module</pre>
+                </div>
+            </div>
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">09</span><h2 class="sec-t">Disable & Upgrade Flows</h2></div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">09</span>
+                    <h2 class="sec-t">Disable & Upgrade Flows</h2>
+                </div>
 
-    <div class="g2">
-        <div class="c"><div class="c-h"><div class="dot rd"></div><h3>Disable Plugin</h3></div>
-            <div class="dg" style="margin:0"><pre>
+                <div class="g2">
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="dot rd"></div>
+                            <h3>Disable Plugin</h3>
+                        </div>
+                        <div class="dg" style="margin:0">
+                            <pre>
 <span class="rd">DISABLE customer-care cho ACME</span>
 │
 ├─ Check: có plugin nào depend vào care?
@@ -783,10 +1312,17 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 │
 ├─ Update tenant_plugins: enabled=false
 ├─ Invalidate context cache
-└─ <span class="gn">Done</span> — routes no longer accessible</pre></div></div>
+└─ <span class="gn">Done</span> — routes no longer accessible</pre>
+                        </div>
+                    </div>
 
-        <div class="c"><div class="c-h"><div class="dot am"></div><h3>Upgrade Plugin Version</h3></div>
-            <div class="dg" style="margin:0"><pre>
+                    <div class="c">
+                        <div class="c-h">
+                            <div class="dot am"></div>
+                            <h3>Upgrade Plugin Version</h3>
+                        </div>
+                        <div class="dg" style="margin:0">
+                            <pre>
 <span class="am">UPGRADE care 1.5.0 → 2.0.0 cho ACME</span>
 │
 ├─ Check: new version compatible?
@@ -803,20 +1339,26 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 ├─ Invalidate context cache
 └─ <span class="gn">Done</span> — tenant uses new version
    <span class="cm">Plugin core singleton already updated</span>
-   <span class="cm">(system-wide deploy happened earlier)</span></pre></div></div>
-    </div>
-</div>
-</div>
+   <span class="cm">(system-wide deploy happened earlier)</span></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<!-- ═══════════════════════════════════════ -->
-<!-- 6. RUNTIME FLOW -->
-<!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-flow">
+        <!-- ═══════════════════════════════════════ -->
+        <!-- 6. RUNTIME FLOW -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="pnl" id="p-flow">
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">10</span><h2 class="sec-t">Luồng Runtime — Từ Request đến Response</h2></div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">10</span>
+                    <h2 class="sec-t">Luồng Runtime — Từ Request đến Response</h2>
+                </div>
 
-    <div class="dg"><div class="dg-label">runtime flow</div><pre>
+                <div class="dg">
+                    <div class="dg-label">runtime flow</div>
+                    <pre>
 <span class="hi">ACME gửi request: POST /api/v1/sales</span>   (tạo sales opportunity mới)
 │
 │
@@ -914,13 +1456,18 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   │───────────│─────────────│─────────│─────│            │
   Gateway     Context       Core      Hooks Response     Async workers
   + Auth      Build         Logic     +Sync             finish
-                                      Events            (email, notif)</pre></div>
-</div>
+                                      Events            (email, notif)</pre>
+                </div>
+            </div>
 
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">11</span><h2 class="sec-t">Plugin Interaction trong 1 Request</h2></div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">11</span>
+                    <h2 class="sec-t">Plugin Interaction trong 1 Request</h2>
+                </div>
 
-    <div class="dg"><div class="dg-label">interaction map — single request</div><pre>
+                <div class="dg">
+                    <div class="dg-label">interaction map — single request</div>
+                    <pre>
 <span class="hi">POST /api/v1/sales</span>  (customer-care plugin handles this)
 
   ┌──────────────────┐
@@ -976,24 +1523,26 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   │  Tổng plugins involved: <span class="hi">5</span>                             │
   │  Plugins gọi trực tiếp nhau: <span class="hi">0</span>                       │
   │  Coupling: <span class="gn">ZERO</span> — chỉ qua events, hooks, MQ           │
-  └────────────────────────────────────────────────────────┘</pre></div>
-</div>
-</div>
+  └────────────────────────────────────────────────────────┘</pre>
+                </div>
+            </div>
+        </div>
 
-</div><!-- /wrap -->
+    </div><!-- /wrap -->
 
-<script>
-function go(n){
-    document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});
-    document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
-    var p=document.getElementById('p-'+n);
-    if(p)p.classList.add('on');
-    var names=['anatomy','create','scan','deps','use','flow'];
-    var i=names.indexOf(n);
-    var btns=document.querySelectorAll('.nav button');
-    if(i>=0&&btns[i])btns[i].classList.add('on');
-    window.scrollTo({top:160,behavior:'smooth'});
-}
-</script>
+    <script>
+        function go(n) {
+            document.querySelectorAll('.pnl').forEach(function (p) { p.classList.remove('on') });
+            document.querySelectorAll('.nav button').forEach(function (b) { b.classList.remove('on') });
+            var p = document.getElementById('p-' + n);
+            if (p) p.classList.add('on');
+            var names = ['anatomy', 'create', 'scan', 'deps', 'use', 'flow'];
+            var i = names.indexOf(n);
+            var btns = document.querySelectorAll('.nav button');
+            if (i >= 0 && btns[i]) btns[i].classList.add('on');
+            window.scrollTo({ top: 160, behavior: 'smooth' });
+        }
+    </script>
 </body>
+
 </html>

@@ -74,7 +74,6 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
     <button onclick="go('rm')">Route Matcher</button>
     <button onclick="go('perm')">Permission Check</button>
     <button onclick="go('err')">Error Responses</button>
-    <button onclick="go('flow')">Luồng tổng hợp</button>
 </div></div>
 
 <div class="wrap">
@@ -556,88 +555,6 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 </div>
 
 <!-- FLOW -->
-<div class="pnl" id="p-flow">
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Luồng tổng hợp — POST /api/v1/sales qua L2</h2></div>
-    <div class="dg"><div class="dg-label">L2 complete flow</div><pre>
-<span class="ty">POST /api/v1/sales — ACME (Premium) — User: sales_manager</span>
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│ <span class="hi">❶ Load Balancer</span>                                               ~0ms    │
-│   TLS terminate acme.crm.com (wildcard *.crm.com cert)                 │
-│   *.crm.com → shared pool → least-connections → Instance #3            │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│ <span class="hi">❷ Tenant Resolver</span>                                            ~1ms    │
-│   Extract "acme" from Host header                                      │
-│   Redis GET domain-map:acme → <span class="gn">HIT</span>                                     │
-│   → { tenantId: "acme-123", tier: "premium", status: "active" }       │
-│   Status active → <span class="gn">PASS</span>                                                │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│ <span class="hi">❸ Auth Guard</span>                                                 ~1.5ms  │
-│   Decode JWT Bearer token                                              │
-│   Verify RS256 signature (cached public key)         → <span class="gn">valid</span>           │
-│   Check exp > now()                                  → <span class="gn">not expired</span>     │
-│   Check jwt.tenantId == "acme-123" (resolved)        → <span class="gn">match</span>           │
-│   Redis GET blacklist:{jti}                          → <span class="gn">not blacklisted</span> │
-│   Extract: userId="user-5", roles=["sales_manager"]                    │
-│   → <span class="gn">PASS</span>                                                              │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│ <span class="hi">❹ Rate Limiter</span>                                               ~1ms    │
-│   ZREMRANGEBYSCORE rl:acme-123 0 (now-60000)  → clean old             │
-│   ZCARD rl:acme-123 → 147                                             │
-│   147 < 500 (premium limit) → <span class="gn">PASS</span>                                    │
-│   ZADD rl:acme-123 {now} {requestId}                                  │
-│   Response headers: X-RateLimit-Remaining: 352                        │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│ <span class="hi">❺ Route Matcher</span>                                              ~0.3ms  │
-│   POST /api/v1/sales → trie lookup routeTable                         │
-│   → { plugin: "customer-care", method: "createSale",                  │
-│       requiredPermission: "sales:write" }                              │
-│                                                                         │
-│   <span class="hi">Permission Check:</span>                                          ~0.1ms  │
-│   Check 1: customer-care enabled for acme-123?       → <span class="gn">YES</span>             │
-│   Check 2: sales_manager has sales:write?            → <span class="gn">YES</span>             │
-│   Check 3: premium tier includes sales:write?        → <span class="gn">YES</span>             │
-│   → <span class="gn">ALL PASS</span>                                                          │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     ▼
-                          <span class="ty">→ L3 Context Building</span>
-                          { tenantId: "acme-123",
-                            tier: "premium",
-                            userId: "user-5",
-                            roles: ["sales_manager"],
-                            plugin: "customer-care",
-                            method: "createSale" }
-
-
-<span class="ty">TIMING BREAKDOWN:</span>
-
-  ┌───────────────────────────┬─────────┬─────────────────────────────────┐
-  │ Component                 │ Time    │ I/O                             │
-  ├───────────────────────────┼─────────┼─────────────────────────────────┤
-  │ Load Balancer + TLS      │ ~0ms    │ None (handled by Nginx/K8s)     │
-  │ Tenant Resolver          │ ~1ms    │ Redis GET (cache hit)           │
-  │ Auth Guard               │ ~1.5ms  │ JWT verify + Redis blacklist    │
-  │ Rate Limiter             │ ~1ms    │ Redis ZADD + ZCARD             │
-  │ Route Matcher            │ ~0.3ms  │ None (in-memory trie)          │
-  │ Permission Check         │ ~0.1ms  │ None (in-memory lookup)        │
-  ├───────────────────────────┼─────────┼─────────────────────────────────┤
-  │ <span class="hi">TOTAL L2</span>                 │ <span class="hi">~3.9ms</span>  │ 3 Redis calls                   │
-  └───────────────────────────┴─────────┴─────────────────────────────────┘
-
-  L2 dependency duy nhất: <span class="rd">Redis</span> (3 calls: domain-map + blacklist + rate-limit)
-  Redis down → fallback: query Metadata DB (chậm hơn ~5ms mỗi call)
-  DB down → L2 vẫn chạy nếu cache còn valid (graceful degradation)</pre></div>
-</div>
-</div>
 
 </div><!-- /wrap -->
 
@@ -647,7 +564,7 @@ function go(n){
     document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
     var p=document.getElementById('p-'+n);
     if(p)p.classList.add('on');
-    var names=['map','lb','tr','auth','rl','rm','perm','err','flow'];
+    var names=['map','lb','tr','auth','rl','rm','perm','err'];
     var i=names.indexOf(n);
     var btns=document.querySelectorAll('.nav button');
     if(i>=0&&btns[i])btns[i].classList.add('on');

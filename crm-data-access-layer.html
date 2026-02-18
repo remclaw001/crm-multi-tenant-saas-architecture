@@ -71,7 +71,6 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
     <button onclick="go('pm')">Pool Manager</button>
     <button onclick="go('cm')">Cache Manager</button>
     <button onclick="go('me')">Migration Engine</button>
-    <button onclick="go('xref')">Liên kết xuyên tầng</button>
     <button onclick="go('req')">Tham gia xử lý Request</button>
 </div></div>
 
@@ -733,150 +732,6 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 └──────────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
-<div class="pnl" id="p-xref">
-
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Liên kết xuyên tầng — Ai gọi ai, ai cung cấp gì</h2></div>
-
-    <div class="dg"><div class="dg-label">cross-layer dependencies</div><pre>
-<span class="ty">L4 CUNG CẤP (Interfaces) CHO CÁC TẦNG KHÁC:</span>
-
-  ┌──────────────────────────────────────────────────────────────────────┐
-  │                                                                      │
-  │ <span class="fn">IDbContext</span> (TenantScopedDB)                                         │
-  │   → Plugin Cores (L3) gọi ctx.db.query(), insert(), update()       │
-  │   → Bên trong: CrmQueryBuilder → QueryAST → ISQLDialect            │
-  │   → Plugin KHÔNG BIẾT pipeline, DB type, hay tenant isolation       │
-  │                                                                      │
-  │ <span class="fn">ICacheProvider</span> (L1MemoryCache, L2RedisCache)                         │
-  │   → Gateway (L2): TenantResolver, AuthGuard, RateLimiter           │
-  │                                                                      │
-  │ <span class="fn">IConnectionPool</span> (SharedPool, VipPool)                                │
-  │   → Query Builder pipeline dùng để execute SQL                      │
-  │                                                                      │
-  └──────────────────────────────────────────────────────────────────────┘
-
-
-<span class="ty">L4 CONSUME TỪ CÁC TẦNG KHÁC:</span>
-
-  ┌──────────────────────────────────────────────────────────────────────┐
-  │                                                                      │
-  │ <span class="fn">ISQLDialect</span> (L5: PostgresDialect, MySQLDialect, SQLiteDialect)      │
-  │   → TenantScopedDB inject qua DI. Dùng để generate SQL per DB.     │
-  │                                                                      │
-  │ <span class="fn">ITenantStrategy</span> (L5: PostgresRLSStrategy, MySQLTenantStrategy...)    │
-  │   → TenantScopedDB inject qua DI. Inject tenant_id + configure conn│
-  │                                                                      │
-  │ <span class="fn">IMigrationDialect</span> (L5: PostgresMigrationDialect, MySQL..., SQLite)  │
-  │   → SchemaMigrationRunner dùng để generate DDL per DB type          │
-  │                                                                      │
-  │ <span class="fn">CircuitBreaker</span> (L6)                                                  │
-  │   → PoolRouter dùng để fast-fail khi DB down                        │
-  │                                                                      │
-  │ <span class="fn">DependencyGraph</span> (L6)                                                 │
-  │   → SchemaMigrationRunner dùng để order migration execution          │
-  │                                                                      │
-  │ <span class="fn">ConfigResolver</span> (L6)                                                  │
-  │   → L2RedisCache: TTL per tier. TenantQuotaEnforcer: cap per tier.  │
-  │                                                                      │
-  │ <span class="fn">MetricsCollector</span> (L7)                                                │
-  │   → Query Builder pipeline emit: query duration, slow query alerts  │
-  │                                                                      │
-  └──────────────────────────────────────────────────────────────────────┘
-
-
-<span class="ty">L4 NỘI BỘ — QUAN HỆ GIỮA 5 THỰC THỂ:</span>
-
-  ┌──────────────────────────────────────────────────────────────────────┐
-  │                                                                      │
-  │  Query Builder Pipeline                                              │
-  │  ├── Dùng Pool Manager: acquireFor(ctx) → connection                │
-  │  ├── Dùng Cache Manager: check cache TRƯỚC query, cache SAU result  │
-  │  └── Query result → invalidate relevant cache entries               │
-  │                                                                      │
-  │  Pool Manager                                                        │
-  │  ├── ConnectionConfigurator: ITenantStrategy.configureConnection()  │
-  │  └── TenantQuotaEnforcer: limit per-tenant connection count         │
-  │                                                                      │
-  │  Cache Manager                                                       │
-  │  ├── L1 check → L2 check → DB (query via Pipeline) → cache result  │
-  │  └── Write (INSERT/UPDATE/DELETE) → invalidate cache entries        │
-  │                                                                      │
-  │  Migration Engine                                                    │
-  │  ├── Dùng IMigrationDialect: generate DDL per DB type               │
-  │  ├── Dùng Pool Manager: acquire connection cho DDL execution        │
-  │  └── Dùng MigrationLockManager: serialize concurrent migrations     │
-  │                                                                      │
-  │  DIP Boundary                                                        │
-  │  ├── ISQLDialect: injected vào TenantScopedDB per-request           │
-  │  ├── ITenantStrategy: injected vào TenantScopedDB per-request       │
-  │  └── IMigrationDialect: injected vào SchemaMigrationRunner          │
-  │                                                                      │
-  └──────────────────────────────────────────────────────────────────────┘</pre></div>
-</div>
-
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Bản đồ liên kết đầy đủ</h2></div>
-
-    <div class="dg"><div class="dg-label">full dependency map</div><pre>
-    ┌───────────────────────────────────────────────────────────────┐
-    │  <span class="hi">L3 Plugin Cores</span>                                              │
-    │  ctx.db.query('sales').where({status:'new'}).execute()       │
-    └────────────────────────────┬──────────────────────────────────┘
-                                 │ IDbContext
-                                 ▼
-    ┌───────────────────────────────────────────────────────────────┐
-    │  <span class="rd">TenantScopedDB</span> (implements IDbContext)                        │
-    │  │                                                           │
-    │  │  ┌──────────────────────────────────────────────────┐     │
-    │  │  │ <span class="fn">CrmQueryBuilder</span> → <span class="fn">QueryAST</span>                      │     │
-    │  │  │        │                                         │     │
-    │  │  │        ▼                                         │     │
-    │  │  │ <span class="rd">ITenantStrategy</span>  → <span class="am">QueryValidator</span>              │     │
-    │  │  │ (.injectTenant)     (.validate)                  │     │
-    │  │  │        │                                         │     │
-    │  │  │        ▼                                         │     │
-    │  │  │ <span class="vi">QueryCounter</span> → <span class="cy">ISQLDialect</span>                    │     │
-    │  │  │                  (.generateXxx)                   │     │
-    │  │  │        │                                         │     │
-    │  │  │        ▼                                         │     │
-    │  │  │   DB execute → <span class="gn">QueryLogger</span>                      │     │
-    │  │  └──────────────────────────────────────────────────┘     │
-    │  │                                                           │
-    │  │  depends (injected via DI):                               │
-    │  │  ├── ISQLDialect ◁── PostgresDialect/MySQL/SQLite        │
-    │  │  └── ITenantStrategy ◁── PostgresRLS/MySQL/SQLite        │
-    │  │                                                           │
-    └──┤───────────────────────────────────────────────────────────┘
-       │
-       │ acquire connection
-       ▼
-    ┌───────────────────────────────────────────────────────────────┐
-    │  <span class="am">PoolRouter</span> → <span class="am">PoolRegistry</span>                                     │
-    │  │ depends: CircuitBreaker (L6), TenantQuotaEnforcer         │
-    │  │ ConnectionConfigurator: ITenantStrategy.configureConn()   │
-    │  │                                                           │
-    │  ├── SharedPool → PgBouncer → SharedDataDB                   │
-    │  └── VipPool → VipDataDB                                     │
-    └───────────────────────────────────────────────────────────────┘
-
-    ┌───────────────────────────────────────────────────────────────┐
-    │  <span class="cy">Cache Manager</span>                                                │
-    │  L1 Memory (0.01ms) → L2 Redis (0.5ms) → DB (3-15ms)       │
-    │  Invalidation: write → delete L2 → Pub/Sub → clear L1       │
-    └───────────────────────────────────────────────────────────────┘
-
-    ┌───────────────────────────────────────────────────────────────┐
-    │  <span class="gn">Migration Engine</span>                                              │
-    │  SchemaMigrationRunner → <span class="vi">IMigrationDialect</span>                    │
-    │  │ ◁── PostgresMigrationDialect (RLS + transactional DDL)   │
-    │  │ ◁── MySQLMigrationDialect (no RLS, implicit DDL commit)  │
-    │  │ ◁── SQLiteMigrationDialect (limited ALTER)               │
-    │  │                                                           │
-    │  TenantMigrationRunner → DML qua Query Builder pipeline     │
-    └───────────────────────────────────────────────────────────────┘</pre></div>
-</div>
-</div>
 <div class="pnl" id="p-req">
 
 <div class="sec">
@@ -1020,7 +875,7 @@ function go(n){
     document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
     var p=document.getElementById('p-'+n);
     if(p)p.classList.add('on');
-    var names=['map','qi','pm','cm','me','xref','req'];
+    var names=['map','qi','pm','cm','me','req'];
     var i=names.indexOf(n);
     var btns=document.querySelectorAll('.nav button');
     if(i>=0&&btns[i])btns[i].classList.add('on');

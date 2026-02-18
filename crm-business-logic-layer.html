@@ -75,7 +75,6 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
     <button onclick="go('core')">Plugin Cores</button>
     <button onclick="go('ctx')">Context Building</button>
     <button onclick="go('svc')">Shared Services</button>
-    <button onclick="go('flow')">Luồng tổng hợp</button>
 </div></div>
 
 <div class="wrap">
@@ -632,74 +631,6 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 </div>
 
 <!-- FLOW -->
-<div class="pnl" id="p-flow">
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">09</span><h2 class="sec-t">Luồng tổng hợp — POST /api/v1/sales qua L3</h2></div>
-    <div class="dg"><div class="dg-label">complete L3 flow</div><pre>
-<span class="ty">POST /api/v1/sales — ACME (Premium) — User: sales_manager</span>
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│  <span class="vi">PHASE 1: Context Building</span> (~3ms)                                      │
-│                                                                         │
-│  ① Tenant Context: LRU hit                                  ~0.01ms   │
-│  ② Execution Context: pool acquire conn #14                  ~1ms     │
-│     SET app.current_tenant, wrap DB/cache/logger/eventBus    ~1ms     │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│  <span class="rd">PHASE 2: Sandbox Execution</span> (~37ms)                                    │
-│                                                                         │
-│  ③ Sandbox: limits 5000ms/50MB/50queries                               │
-│  ④ CustomerCareCore.createSale(ctx, input):                            │
-│     a. Validate input                                        ~0.5ms   │
-│     b. Hook before:saleCreate → 0 consumers → skip          ~0.5ms   │
-│     c. ctx.db.query('customers')  [1/50]                     ~5ms     │
-│     d. ctx.db.insert('sales')     [2/50]                     ~8ms     │
-│     e. ctx.db.update('customers') [3/50]                     ~5ms     │
-│     f. Hook after:saleCreate → 0 consumers → skip           ~0.5ms   │
-│     g. Event sales.created:                                            │
-│        Sync: analytics.onSaleCreated (enabled) → run         ~8ms     │
-│              automation (NOT enabled for ACME) → SKIP                  │
-│        Async: MQ publish crm.events "sales.created"          ~2ms     │
-│     h. ctx.logger.info('Sale created')                       ~0ms     │
-│  ⑤ Sandbox: within limits ✓                                          │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│  <span class="gn">PHASE 3: Cleanup</span> (~1ms)                                               │
-│                                                                         │
-│  ⑥ RESET tenant, release conn #14, GC context                         │
-│  ⑦ Return 201 Created to Gateway → User                               │
-└─────────────────────────────────────────────────────────────────────────┘
-
-  Async (không ảnh hưởng response):
-  ⑧ Worker: notification → email "New sale"
-  ⑨ Worker: search.index → update ES
-  ⑩ Worker: webhook → POST to ACME webhook URL
-
-
-<span class="ty">TỔNG KẾT:</span>
-
-  ┌───────────────────────────┬─────────┬─────────────────────────────────┐
-  │ Component                 │ Time    │ Action                          │
-  ├───────────────────────────┼─────────┼─────────────────────────────────┤
-  │ Tenant Context Manager   │ ~0.01ms │ LRU cache hit                   │
-  │ Execution Context Builder│ ~2ms    │ Pool acquire + wrap             │
-  │ Sandbox Engine           │ ~0ms    │ Set limits, monitor             │
-  │ Plugin Core (care)       │ ~27ms   │ Validate, DB, business logic    │
-  │ Hook Registry            │ ~1ms    │ Lookup + filter (0 consumers)   │
-  │ Event Bus (sync)         │ ~8ms    │ analytics.onSaleCreated         │
-  │ Event Bus (async)        │ ~2ms    │ MQ publish (fire &amp; forget)      │
-  │ Cleanup                  │ ~1ms    │ Release conn, GC context        │
-  ├───────────────────────────┼─────────┼─────────────────────────────────┤
-  │ <span class="hi">TOTAL L3</span>                 │ <span class="hi">~41ms</span>   │                                 │
-  └───────────────────────────┴─────────┴─────────────────────────────────┘
-
-  L3 chiếm phần lớn thời gian (business logic NẰM ở đây).
-  Nhưng ~18ms là I/O wait (DB queries), không phải CPU.
-  L3 code thuần ~5ms. DB wait ~18ms. Event/hook ~9ms. Overhead ~9ms.</pre></div>
-</div>
-</div>
 
 </div><!-- /wrap -->
 
@@ -709,7 +640,7 @@ function go(n){
     document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
     var p=document.getElementById('p-'+n);
     if(p)p.classList.add('on');
-    var names=['map','mgr','reg','sand','evt','hook','core','ctx','svc','flow'];
+    var names=['map','mgr','reg','sand','evt','hook','core','ctx','svc'];
     var i=names.indexOf(n);
     var btns=document.querySelectorAll('.nav button');
     if(i>=0&&btns[i])btns[i].classList.add('on');

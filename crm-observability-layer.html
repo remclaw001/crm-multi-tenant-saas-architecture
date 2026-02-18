@@ -73,7 +73,6 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
     <button onclick="go('alert')">Alerting</button>
     <button onclick="go('health')">Health Checks</button>
     <button onclick="go('audit')">Audit Trail</button>
-    <button onclick="go('req')">Tham gia Request</button>
 </div></div>
 
 <div class="wrap">
@@ -819,117 +818,6 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- ═══════════════════════════════════════ -->
 <!-- REQUEST PARTICIPATION -->
 <!-- ═══════════════════════════════════════ -->
-<div class="pnl" id="p-req">
-
-<div class="sec">
-    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">L7 tham gia xử lý request — Trace đầy đủ</h2></div>
-
-    <div class="dg"><div class="dg-label">L7 request participation</div><pre>
-<span class="hi">POST /api/v1/sales</span> — ACME (Premium)
-<span class="cm">Chỉ focus những gì L7 LÀM trong request này.</span>
-
-
-<span class="ty">① REQUEST BẮT ĐẦU</span>
-
-  <span class="cy">Tracing</span>:   Tạo root span "gateway", traceId = "req-789"
-  <span class="gn">Logging</span>:   (chưa — chưa có ScopedLogger)
-  <span class="am">Metrics</span>:   Start timer cho http_request_duration_seconds
-
-
-<span class="ty">② GATEWAY</span>
-
-  <span class="cy">Tracing</span>:   Child spans: tenant.resolve (1ms), auth.validate (1ms),
-             rate.check (1ms), route.match (1ms)
-             Mỗi span ghi tags: tenantId, userId, plugin, etc
-
-  <span class="gn">Logging</span>:   Gateway logger (system-level, not scoped):
-             INFO "Incoming POST /api/v1/sales tenant=acme subdomain=acme"
-
-  <span class="am">Metrics</span>:   rate_limit_hits_total — không tăng (chưa bị limit)
-
-
-<span class="ty">③ BUILD CONTEXT</span>
-
-  <span class="cy">Tracing</span>:   Span: context.build (4ms)
-             Tags: { source: "lru_cache", pool: "shared", connId: 14 }
-
-  <span class="gn">Logging</span>:   ScopedLogger created, bind { req-789, acme-123, user-5 }
-             DEBUG "Tenant context from LRU cache"
-             DEBUG "DB connection #14 acquired from shared pool"
-
-  <span class="am">Metrics</span>:   pool_connections_active{pool="shared"} += 1
-
-
-<span class="ty">④ PLUGIN EXECUTION</span>
-
-  <span class="cy">Tracing</span>:   Span: plugin.customer-care.createSale (37ms)
-             Child spans: db.query (5ms), db.insert (8ms), db.update (5ms)
-             Child spans: hook.before (0.5ms), hook.after (0.5ms)
-             Mỗi DB span: tags { table, operation, rows, duration }
-
-  <span class="gn">Logging</span>:   INFO  "Validating sale input"
-             DEBUG "Customer cust-99 found" { customerId: "cust-99" }
-             INFO  "Sale created" { saleId: "sale-42", amount: 50000 }
-             DEBUG "Hook before:saleCreate: 0 handlers active"
-
-  <span class="am">Metrics</span>:   plugin_execution_duration_seconds{plugin="care"} observe 37ms
-             db_query_duration_seconds{table="customers",op="SELECT"} 5ms
-             db_query_duration_seconds{table="sales",op="INSERT"} 8ms
-             db_queries_per_request{plugin="care"} observe 3
-
-  <span class="vi">Health</span>:    (passive — không check trong request)
-
-
-<span class="ty">⑤ EVENTS</span>
-
-  <span class="cy">Tracing</span>:   Span: event.sync.sales.created (8ms)
-             Child: analytics.onSalesCreated (8ms)
-             Tags: { handlers_called: 1, handlers_skipped: 1 }
-             Span: mq.publish (2ms)
-             Tags: { exchange: "crm.events", routing: "sales.created" }
-
-  <span class="gn">Logging</span>:   INFO  "Sync event sales.created → 1 handler executed"
-             DEBUG "Analytics: sales_count incremented to 149"
-             INFO  "Async message published to sales.lifecycle"
-
-  <span class="am">Metrics</span>:   event_handlers_executed_total{event="sales.created",
-                handler="analytics",sync="true"} += 1
-
-
-<span class="ty">⑥ RESPONSE & CLEANUP</span>
-
-  <span class="cy">Tracing</span>:   Close root span. Total duration: 59ms.
-             Ship all spans → Jaeger collector (async UDP).
-
-  <span class="gn">Logging</span>:   INFO  "Response 201 Created" { duration: 59, queries: 3 }
-             (All logs already shipped via stdout → Promtail → Loki)
-
-  <span class="am">Metrics</span>:   http_requests_total{method="POST",plugin="care",status="201"} += 1
-             http_request_duration_seconds observe 0.059
-             pool_connections_active{pool="shared"} -= 1
-
-  <span class="or">Audit</span>:     Push to buffer: { tenant: acme-123, user: user-5,
-               action: sales.created, resource: sale-42,
-               before: null, after: { title, amount, status } }
-             Buffer will flush within 1 second.
-
-
-<span class="ty">TỔNG KẾT L7 TRONG 1 REQUEST:</span>
-
-  ┌─────────────────────┬─────────┬────────────────────────────────────────┐
-  │ Component           │ Actions │ Performance impact                     │
-  ├─────────────────────┼─────────┼────────────────────────────────────────┤
-  │ <span class="gn">Logging</span>             │ ~8 logs │ ~0ms  (stdout async, non-blocking)     │
-  │ <span class="cy">Tracing</span>             │~12 spans│ ~1ms  (in-memory spans, async ship)     │
-  │ <span class="am">Metrics</span>             │~10 obs. │ ~0ms  (in-memory counters, scraped)     │
-  │ <span class="rd">Alerting</span>            │   0     │  0ms  (evaluates on Prometheus side)    │
-  │ <span class="vi">Health Check</span>        │   0     │  0ms  (not called during requests)      │
-  │ <span class="or">Audit Trail</span>         │ 1 record│ ~0ms  (buffered, batch write later)     │
-  ├─────────────────────┼─────────┼────────────────────────────────────────┤
-  │ <span class="hi">Total L7 overhead</span>   │   <span class="hi">~31</span>   │ <span class="gn">~1ms</span>  (negligible — by design)           │
-  └─────────────────────┴─────────┴────────────────────────────────────────┘</pre></div>
-</div>
-</div>
 
 </div><!-- /wrap -->
 
@@ -939,7 +827,7 @@ function go(n){
     document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
     var p=document.getElementById('p-'+n);
     if(p)p.classList.add('on');
-    var names=['map','log','trace','metric','alert','health','audit','req'];
+    var names=['map','log','trace','metric','alert','health','audit'];
     var i=names.indexOf(n);
     var btns=document.querySelectorAll('.nav button');
     if(i>=0&&btns[i])btns[i].classList.add('on');

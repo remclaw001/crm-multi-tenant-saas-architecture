@@ -208,8 +208,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <span class="ty">CANARY + AUTO-ROLLBACK:</span>
 
   Upgrade 1.5 → 2.0:
-  Phase 1: 5% tenants → monitor 15min
-  Phase 2: 25% → monitor 15min
+  Phase 1: 5% tenants → monitor 1h
+  Phase 2: 25% → monitor 1h
   Phase 3: 100% → stable
   <span class="rd">AUTO-ROLLBACK:</span> error &gt;5% in 5min → restore v1.5 → PagerDuty + Slack</pre></div>
 </div>

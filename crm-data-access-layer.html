@@ -416,7 +416,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │  │  │  ├───────────────────┼────────────────────────────────────────┤  │  │
 │  │  │  │ "shared"          │ PostgresPool → Shared Data DB         │  │  │
 │  │  │  │                   │ min: 20, max: 200                     │  │  │
-│  │  │  │                   │ per-tenant cap: 20                    │  │  │
+│  │  │  │                   │ per-tenant cap: Basic 10, Prem 20,    │  │  │
+│  │  │                   │                 Ent 30                │  │  │
 │  │  │  ├───────────────────┼────────────────────────────────────────┤  │  │
 │  │  │  │ "vip-initech"     │ PostgresPool → VIP DB INITECH         │  │  │
 │  │  │  │                   │ min: 5, max: 30                       │  │  │
@@ -488,7 +489,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 │  │                                                                      │  │
 │  │  <span class="fn">TenantQuotaEnforcer</span>                                               │  │
 │  │  │                                                                   │  │
-│  │  │  Shared Pool: max 200 total, nhưng per-tenant cap 20             │  │
+│  │  │  Shared Pool: max 200 total. Per-tenant cap theo tier:           │  │
+│  │  │    Basic: 10, Premium: 20, Enterprise: 30                        │  │
 │  │  │                                                                   │  │
 │  │  │  Track per-tenant active connections:                             │  │
 │  │  │    acme-123:  5/20   ✓                                           │  │

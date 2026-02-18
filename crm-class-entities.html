@@ -656,7 +656,7 @@
   ├──────────────────────────────────────────────────────────────────────┤
   │ <span class="hi">SandboxEngine</span> «singleton»                                           │
   │ Wrapper an toàn để execute plugin code. Catch unhandled errors,    │
-  │ timeout protection (30s), resource usage tracking.                 │
+  │ timeout protection (5s, VIP: 10s), resource usage tracking.        │
   │ methods: execute(core, method, ctx, args)                          │
   ├──────────────────────────────────────────────────────────────────────┤
   │ <span class="hi">LifecycleController</span> «singleton»                                     │
@@ -750,11 +750,11 @@
   │ Ensures no cross-schema access.                                    │
   ├──────────────────────────────────────────────────────────────────────┤
   │ <span class="hi">QueryCounter</span> «per-request»                                          │
-  │ Đếm số lượng query trong 1 request. Warning nếu > 50, Error > 100. │
+  │ Đếm số lượng query trong 1 request. Warning nếu > 40, Block = 50.  │
   │ methods: increment(), isExhausted()                                │
   ├──────────────────────────────────────────────────────────────────────┤
   │ <span class="hi">QueryLogger</span> «singleton»                                             │
-  │ Log slow queries (>200ms) + explain plan. Sample 1% normal queries.│
+  │ Log slow queries (>100ms WARN, >500ms ALERT). Sample 1% normal.   │
   └──────────────────────────────────────────────────────────────────────┘
 
 <span class="ty">POOL MANAGER GROUP (5) — quản lý connection database</span>
@@ -781,7 +781,7 @@
 
   ┌──────────────────────────────────────────────────────────────────────┐
   │ <span class="am">L1MemoryCache</span> «singleton»                                           │
-  │ LRU Cache (In-process). Cache nhỏ, TTL ngắn (5s). Configs, rules.  │
+  │ LRU Cache (In-process). Business data TTL: 60s, 100MB per instance.│
   ├──────────────────────────────────────────────────────────────────────┤
   │ <span class="am">L2RedisCache</span> «singleton»                                            │
   │ Redis Client wrapper. Consistent Hashing cho Redis Cluster.        │

@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Tech Stack</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#060810;color:#d8dce8;font-family:'Segoe UI',sans-serif}
+.hero{padding:48px 24px 32px;text-align:center}
+.hero h1{font-size:1.6rem;font-weight:700;margin-bottom:8px}
+.hero h1 span{color:#818cf8}
+.hero p{font-size:.85rem;color:#7880a0;max-width:640px;margin:0 auto}
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.92);backdrop-filter:blur(12px);border-bottom:1px solid #1c2038}
+.nav{max-width:1400px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 8px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:monospace;font-size:11px;padding:12px 14px;background:none;border:none;color:#484e6a;cursor:pointer;white-space:nowrap;position:relative}
+.nav button:hover{color:#7880a0}
+.nav button.on{color:#818cf8}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:6px;right:6px;height:2px;background:#818cf8;border-radius:2px 2px 0 0}
+.wrap{max-width:1400px;margin:0 auto;padding:24px 16px 100px}
+.pnl{display:none}.pnl.on{display:block}
+
+/* Cards grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-bottom:32px}
+.card{background:#0c0e18;border:1px solid #1c2038;border-radius:8px;padding:24px}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #1c2038}
+.layer-badge{font-family:monospace;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.5px;flex-shrink:0}
+.card-header h3{font-size:.95rem;font-weight:600;color:#d8dce8}
+.card-header p{font-size:.75rem;color:#7880a0;margin-top:2px}
+
+/* 3-column comparison table */
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th{text-align:left;padding:7px 10px;background:#111420;border:1px solid #1c2038;font-weight:600;font-size:.72rem;letter-spacing:.3px}
+th:first-child{color:#818cf8;width:28%}
+th.col-p{color:#34d399}   /* primary */
+th.col-a{color:#fb923c}   /* alternative */
+td{padding:7px 10px;border:1px solid #1c2038;vertical-align:top;line-height:1.5}
+td:first-child{color:#d8dce8;font-family:monospace;font-size:.76rem;white-space:nowrap}
+td.cell-p{color:#c8d0e8}  /* primary cell */
+td.cell-a{color:#8890a8}  /* alt cell — slightly dimmer */
+td strong{color:#34d399}
+td.cell-a strong{color:#fb923c}
+
+.chip{display:inline-block;font-size:.68rem;background:#111420;border:1px solid #1c2038;border-radius:3px;padding:1px 5px;color:#7880a0;margin-top:3px;line-height:1.4}
+.chip-a{border-color:#2a1e10;color:#6a5a40}
+
+/* Summary box */
+.summary{background:#0c0e18;border:1px solid #1c2038;border-radius:8px;padding:32px 28px;margin-bottom:32px}
+.summary h3{font-size:1rem;font-weight:600;color:#818cf8;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid #1c2038}
+.summary h3:first-child{margin-top:0}
+.summary p{font-size:.85rem;color:#9ca3c0;margin-bottom:12px}
+.summary p strong{color:#d8dce8}
+code{font-family:monospace;font-size:.8rem;color:#818cf8;background:#111420;padding:1px 5px;border-radius:3px}
+.code{font-family:monospace;font-size:.8rem;background:#111420;border:1px solid #1c2038;border-radius:4px;padding:16px 18px;color:#8890b8;margin:12px 0;line-height:1.8}
+.code .k{color:#818cf8}
+.code .v{color:#06b6d4}
+.code .c{color:#484e6a}
+
+.legend{display:flex;gap:16px;margin-bottom:20px;font-size:.78rem}
+.legend-item{display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot-p{background:#34d399}
+.dot-a{background:#fb923c}
+
+.note{font-size:.78rem;color:#7880a0;font-style:italic;margin-top:10px;padding:8px 12px;border-left:2px solid #1c2038}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Tech Stack <span>Đề xuất</span></h1>
+  <p>Lựa chọn công nghệ cho từng layer — mỗi thành phần có <span style="color:#34d399">lựa chọn 1</span> (khuyến nghị) và <span style="color:#fb923c">lựa chọn 2</span> (thay thế khả thi).</p>
+</div>
+
+<div class="nw"><div class="nav">
+  <button class="on" onclick="go(0)">Tổng quan</button>
+  <button onclick="go(1)">L1 Presentation</button>
+  <button onclick="go(2)">L2 Gateway</button>
+  <button onclick="go(3)">L3 Business Logic</button>
+  <button onclick="go(4)">L4 Data Access</button>
+  <button onclick="go(5)">L5 Infrastructure</button>
+  <button onclick="go(6)">L6 Cross-Cutting</button>
+  <button onclick="go(7)">L7 Observability</button>
+  <button onclick="go(8)">DevOps</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- ===== PANEL 0: TỔNG QUAN ===== -->
+<div class="pnl on" id="p-0">
+  <div class="summary">
+    <h3>Stack khuyến nghị</h3>
+    <div class="code">
+<span class="k">Frontend  :</span>  <span class="v">React 18</span> + <span class="v">Next.js 15</span> + <span class="v">Module Federation</span>          <span class="c"># L1</span>
+<span class="k">Backend   :</span>  <span class="v">Node.js 22 LTS</span> + <span class="v">Fastify v5</span> + <span class="v">TypeScript 5</span>     <span class="c"># L2–L3</span>
+<span class="k">Database  :</span>  <span class="v">PostgreSQL 16</span> + <span class="v">Redis 7</span>                              <span class="c"># L5</span>
+<span class="k">Broker    :</span>  <span class="v">RabbitMQ</span>                                                  <span class="c"># L5</span>
+<span class="k">Search    :</span>  <span class="v">Elasticsearch 8</span>                                           <span class="c"># L5</span>
+<span class="k">Storage   :</span>  <span class="v">MinIO</span>                                                      <span class="c"># L5</span>
+<span class="k">Gateway   :</span>  <span class="v">Kong</span>                                                       <span class="c"># L2</span>
+<span class="k">Observ    :</span>  <span class="v">Pino</span> + <span class="v">OpenTelemetry</span> + <span class="v">Prometheus</span> + <span class="v">Grafana</span>         <span class="c"># L7</span>
+<span class="k">Deploy    :</span>  <span class="v">Docker</span> + <span class="v">Kubernetes</span> + <span class="v">Terraform</span>                      <span class="c"># DevOps</span>
+    </div>
+
+    <h3>Nguyên tắc lựa chọn</h3>
+    <p><strong>Type safety xuyên suốt</strong> — TypeScript từ frontend đến backend, Zod cho runtime validation tại mọi system boundary.</p>
+    <p><strong>Khớp kiến trúc đã thiết kế</strong> — Plugin sandbox dùng Isolated-VM; Query Interceptor hook vào Knex.js; cache key pattern <code>t:&lt;id&gt;:&lt;type&gt;:&lt;id&gt;</code> tường minh với ioredis.</p>
+    <p><strong>Tách biệt mối lo ngại</strong> — Mỗi layer chỉ phụ thuộc interface, không phụ thuộc implementation trực tiếp (DIP).</p>
+    <p><strong>Quan sát được từ ngày đầu</strong> — OpenTelemetry + Pino + Prometheus cấu hình ngay từ đầu, không bổ sung sau.</p>
+
+    <h3>Ánh xạ quyết định kiến trúc → tech</h3>
+    <table>
+      <tr><th style="color:#818cf8">Quyết định kiến trúc</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+      <tr><td>RLS + tenant_id isolation</td><td class="cell-p"><strong>PostgreSQL 16</strong> native RLS</td><td class="cell-a"><strong>CockroachDB</strong> multi-region</td></tr>
+      <tr><td>VIP pool 30 / Standard pool 200</td><td class="cell-p"><strong>pg-pool</strong> per-instance config</td><td class="cell-a"><strong>PgBouncer</strong> transaction mode</td></tr>
+      <tr><td>Plugin sandbox 5s/50MB/50 queries</td><td class="cell-p"><strong>Isolated-VM</strong> + resource tracker</td><td class="cell-a"><strong>Worker Threads</strong> + AbortController</td></tr>
+      <tr><td>Cache key <code>t:&lt;id&gt;:&lt;type&gt;:&lt;id&gt;</code></td><td class="cell-p"><strong>ioredis</strong> namespace pattern</td><td class="cell-a"><strong>node-redis v4</strong></td></tr>
+      <tr><td>Module Federation (Plugin UI)</td><td class="cell-p"><strong>Webpack 5 MF</strong> + React 18</td><td class="cell-a"><strong>Single-SPA</strong> + Vite</td></tr>
+      <tr><td>Hook registry before/after/filter</td><td class="cell-p">Custom EventEmitter + priority queue</td><td class="cell-a"><strong>Mitt</strong> + middleware chain</td></tr>
+      <tr><td>Async workers (notify/index/webhook)</td><td class="cell-p"><strong>RabbitMQ</strong> + BullMQ</td><td class="cell-a"><strong>Kafka</strong> + BullMQ</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===== PANEL 1: L1 PRESENTATION ===== -->
+<div class="pnl" id="p-1">
+  <div class="legend">
+    <span class="legend-item"><span class="dot dot-p"></span>Lựa chọn 1 (khuyến nghị)</span>
+    <span class="legend-item"><span class="dot dot-a"></span>Lựa chọn 2 (thay thế)</span>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(129,140,248,.15);color:#818cf8">L1</span>
+        <div><h3>Web Application</h3><p>Giao diện chính người dùng CRM</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Framework</td>
+          <td class="cell-p"><strong>React 18</strong> + TypeScript<br><span class="chip">Concurrent rendering, RSC</span></td>
+          <td class="cell-a"><strong>Vue 3</strong> + TypeScript<br><span class="chip chip-a">Composition API, nhẹ hơn</span></td>
+        </tr>
+        <tr>
+          <td>Meta-framework</td>
+          <td class="cell-p"><strong>Next.js 15</strong><br><span class="chip">SSR, App Router, RSC</span></td>
+          <td class="cell-a"><strong>Remix</strong><br><span class="chip chip-a">Web-standard, nested routes</span></td>
+        </tr>
+        <tr>
+          <td>UI Library</td>
+          <td class="cell-p"><strong>Shadcn/ui</strong> + Tailwind<br><span class="chip">Headless, themeable per-tenant</span></td>
+          <td class="cell-a"><strong>Ant Design</strong><br><span class="chip chip-a">Component-rich, enterprise-ready</span></td>
+        </tr>
+        <tr>
+          <td>State (global)</td>
+          <td class="cell-p"><strong>Zustand</strong><br><span class="chip">Minimal boilerplate</span></td>
+          <td class="cell-a"><strong>Redux Toolkit</strong><br><span class="chip chip-a">Mature, devtools mạnh</span></td>
+        </tr>
+        <tr>
+          <td>State (server)</td>
+          <td class="cell-p"><strong>TanStack Query v5</strong><br><span class="chip">Cache-aware, background refetch</span></td>
+          <td class="cell-a"><strong>RTK Query</strong><br><span class="chip chip-a">Tích hợp tốt với Redux</span></td>
+        </tr>
+        <tr>
+          <td>Forms</td>
+          <td class="cell-p"><strong>React Hook Form</strong> + Zod<br><span class="chip">Zero re-render, type-safe</span></td>
+          <td class="cell-a"><strong>Formik</strong> + Yup<br><span class="chip chip-a">Mature, nhiều tài liệu</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(129,140,248,.15);color:#818cf8">L1</span>
+        <div><h3>Plugin UI</h3><p>Dynamic micro-frontend per plugin</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Module system</td>
+          <td class="cell-p"><strong>Webpack 5 MF</strong><br><span class="chip">Dynamic remote loading</span></td>
+          <td class="cell-a"><strong>Single-SPA</strong> + Vite<br><span class="chip chip-a">Framework-agnostic</span></td>
+        </tr>
+        <tr>
+          <td>Plugin shell</td>
+          <td class="cell-p"><strong>React.lazy + Suspense</strong><br><span class="chip">Graceful fallback</span></td>
+          <td class="cell-a"><strong>React Error Boundary</strong><br><span class="chip chip-a">Granular error isolation</span></td>
+        </tr>
+        <tr>
+          <td>Shared deps</td>
+          <td class="cell-p"><strong>Singleton scope</strong> (React, ReactDOM)<br><span class="chip">Tránh duplicate instance</span></td>
+          <td class="cell-a"><strong>Import maps</strong> (browser-native)<br><span class="chip chip-a">Không cần bundler config</span></td>
+        </tr>
+        <tr>
+          <td>Plugin registry</td>
+          <td class="cell-p">Custom manifest loader (Zod-validated)</td>
+          <td class="cell-a"><strong>SystemJS</strong> dynamic import</td>
+        </tr>
+      </table>
+      <p class="note">Mỗi plugin expose RemoteEntry.js riêng; host app lazy-load theo plugin.manifest.json.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(129,140,248,.15);color:#818cf8">L1</span>
+        <div><h3>Mobile</h3><p>iOS & Android</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Framework</td>
+          <td class="cell-p"><strong>React Native</strong><br><span class="chip">Code sharing với web</span></td>
+          <td class="cell-a"><strong>Flutter</strong><br><span class="chip chip-a">Perf tốt hơn, Dart</span></td>
+        </tr>
+        <tr>
+          <td>Navigation</td>
+          <td class="cell-p"><strong>React Navigation v6</strong></td>
+          <td class="cell-a"><strong>Expo Router</strong><br><span class="chip chip-a">File-based, dễ hơn</span></td>
+        </tr>
+        <tr>
+          <td>UI</td>
+          <td class="cell-p"><strong>NativeWind</strong> (Tailwind RN)</td>
+          <td class="cell-a"><strong>Gluestack UI</strong><br><span class="chip chip-a">Headless, universal</span></td>
+        </tr>
+        <tr>
+          <td>State</td>
+          <td class="cell-p"><strong>Zustand</strong> + MMKV persist</td>
+          <td class="cell-a"><strong>Jotai</strong> + AsyncStorage</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(129,140,248,.15);color:#818cf8">L1</span>
+        <div><h3>Admin Console</h3><p>Quản trị hệ thống & tenant</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Framework</td>
+          <td class="cell-p"><strong>Next.js</strong> + Shadcn/ui</td>
+          <td class="cell-a"><strong>Refine</strong> (admin framework)<br><span class="chip chip-a">CRUD generation, headless</span></td>
+        </tr>
+        <tr>
+          <td>Charts</td>
+          <td class="cell-p"><strong>Recharts</strong><br><span class="chip">React-native, composable</span></td>
+          <td class="cell-a"><strong>Apache ECharts</strong><br><span class="chip chip-a">Phong phú hơn, SVG/Canvas</span></td>
+        </tr>
+        <tr>
+          <td>Tables</td>
+          <td class="cell-p"><strong>TanStack Table v8</strong><br><span class="chip">Headless, virtual scroll</span></td>
+          <td class="cell-a"><strong>AG Grid Community</strong><br><span class="chip chip-a">Enterprise-grade, built-in filter</span></td>
+        </tr>
+        <tr>
+          <td>Date/Time</td>
+          <td class="cell-p"><strong>Day.js</strong><br><span class="chip">Nhẹ, Moment.js compat</span></td>
+          <td class="cell-a"><strong>date-fns</strong><br><span class="chip chip-a">Tree-shakeable, functional</span></td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== PANEL 2: L2 GATEWAY ===== -->
+<div class="pnl" id="p-2">
+  <div class="legend">
+    <span class="legend-item"><span class="dot dot-p"></span>Lựa chọn 1 (khuyến nghị)</span>
+    <span class="legend-item"><span class="dot dot-a"></span>Lựa chọn 2 (thay thế)</span>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(6,182,212,.15);color:#06b6d4">L2</span>
+        <div><h3>API Gateway</h3><p>Điểm vào duy nhất của hệ thống</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Gateway</td>
+          <td class="cell-p"><strong>Kong Gateway</strong><br><span class="chip">Plugin ecosystem, Lua extensible</span></td>
+          <td class="cell-a"><strong>Traefik v3</strong><br><span class="chip chip-a">Kubernetes-native, auto-discovery</span></td>
+        </tr>
+        <tr>
+          <td>Load Balancer</td>
+          <td class="cell-p"><strong>NGINX</strong><br><span class="chip">SSL termination, upstream config</span></td>
+          <td class="cell-a"><strong>Caddy</strong><br><span class="chip chip-a">Auto HTTPS, zero config TLS</span></td>
+        </tr>
+        <tr>
+          <td>Tenant resolution</td>
+          <td class="cell-p">Custom Kong plugin (Lua)<br><span class="chip">Subdomain/header → tenant_id</span></td>
+          <td class="cell-a">Fastify middleware (app-level)<br><span class="chip chip-a">Đơn giản hơn, ít infra hơn</span></td>
+        </tr>
+        <tr>
+          <td>Route matching</td>
+          <td class="cell-p">Kong declarative config (YAML)</td>
+          <td class="cell-a">Traefik dynamic config</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(6,182,212,.15);color:#06b6d4">L2</span>
+        <div><h3>Authentication</h3><p>JWT + Identity Provider</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Auth server</td>
+          <td class="cell-p"><strong>Keycloak</strong> (self-hosted)<br><span class="chip">Multi-realm, OIDC/OAuth2, SAML</span></td>
+          <td class="cell-a"><strong>Auth0</strong> / <strong>Clerk</strong><br><span class="chip chip-a">Managed, nhanh bootstrap</span></td>
+        </tr>
+        <tr>
+          <td>Token format</td>
+          <td class="cell-p"><strong>JWT</strong> + JWKS endpoint<br><span class="chip">Tenant claims trong payload</span></td>
+          <td class="cell-a"><strong>Paseto v4</strong><br><span class="chip chip-a">Bảo mật hơn JWT, không alg confusion</span></td>
+        </tr>
+        <tr>
+          <td>Session store</td>
+          <td class="cell-p"><strong>Redis</strong> — refresh token<br><span class="chip">Shared infra với L5</span></td>
+          <td class="cell-a"><strong>PostgreSQL</strong> sessions table<br><span class="chip chip-a">Persistent, auditable</span></td>
+        </tr>
+        <tr>
+          <td>MFA</td>
+          <td class="cell-p">Keycloak built-in TOTP</td>
+          <td class="cell-a"><strong>Twilio Verify</strong> / <strong>Authy</strong></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(6,182,212,.15);color:#06b6d4">L2</span>
+        <div><h3>Rate Limiting</h3><p>Chống noisy-neighbor problem</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Algorithm</td>
+          <td class="cell-p"><strong>Sliding window</strong> (Redis Lua)<br><span class="chip">Chính xác, atomic</span></td>
+          <td class="cell-a"><strong>Token bucket</strong> (leaky bucket)<br><span class="chip chip-a">Burst-friendly hơn</span></td>
+        </tr>
+        <tr>
+          <td>Implementation</td>
+          <td class="cell-p"><strong>Kong Rate Limiting plugin</strong><br><span class="chip">Per-tenant, per-endpoint</span></td>
+          <td class="cell-a"><strong>@fastify/rate-limit</strong><br><span class="chip chip-a">App-level, không cần Kong</span></td>
+        </tr>
+        <tr>
+          <td>Quota store</td>
+          <td class="cell-p"><strong>Redis 7</strong> + Lua scripts<br><span class="chip">Atomic increment + TTL</span></td>
+          <td class="cell-a"><strong>Redis + Dragonfly</strong><br><span class="chip chip-a">Thông lượng cao hơn Redis</span></td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== PANEL 3: L3 BUSINESS LOGIC ===== -->
+<div class="pnl" id="p-3">
+  <div class="legend">
+    <span class="legend-item"><span class="dot dot-p"></span>Lựa chọn 1 (khuyến nghị)</span>
+    <span class="legend-item"><span class="dot dot-a"></span>Lựa chọn 2 (thay thế)</span>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(52,211,153,.15);color:#34d399">L3</span>
+        <div><h3>Application Server</h3><p>Core runtime & framework</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Runtime</td>
+          <td class="cell-p"><strong>Node.js 22 LTS</strong><br><span class="chip">V8 isolates, ecosystem rộng</span></td>
+          <td class="cell-a"><strong>Bun 1.x</strong><br><span class="chip chip-a">3–5× nhanh hơn Node, built-in TS</span></td>
+        </tr>
+        <tr>
+          <td>Framework</td>
+          <td class="cell-p"><strong>Fastify v5</strong><br><span class="chip">Plugin model, schema validation, perf</span></td>
+          <td class="cell-a"><strong>NestJS</strong><br><span class="chip chip-a">Decorator-heavy, opinionated DI</span></td>
+        </tr>
+        <tr>
+          <td>Language</td>
+          <td class="cell-p"><strong>TypeScript 5.x</strong><br><span class="chip">Type-safe end-to-end</span></td>
+          <td class="cell-a"><strong>Go 1.22</strong><br><span class="chip chip-a">Perf vượt trội, goroutines</span></td>
+        </tr>
+        <tr>
+          <td>DI Container</td>
+          <td class="cell-p"><strong>TSyringe</strong><br><span class="chip">Lightweight, decorator-based</span></td>
+          <td class="cell-a"><strong>InversifyJS</strong><br><span class="chip chip-a">Mature, rich feature set</span></td>
+        </tr>
+      </table>
+      <p class="note">Fastify plugin architecture khớp tự nhiên với Plugin System đã thiết kế.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(52,211,153,.15);color:#34d399">L3</span>
+        <div><h3>Plugin Sandbox</h3><p>Hard resource limits per plugin</p></div>
+      </div>
+      <table>
+        <tr><th>Giới hạn</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Sandbox engine</td>
+          <td class="cell-p"><strong>Isolated-VM</strong><br><span class="chip">True V8 isolate, không share heap</span></td>
+          <td class="cell-a"><strong>Worker Threads</strong> + AbortController<br><span class="chip chip-a">Node.js built-in, ít overhead hơn</span></td>
+        </tr>
+        <tr>
+          <td>5s timeout</td>
+          <td class="cell-p"><code>timeout</code> option Isolated-VM</td>
+          <td class="cell-a"><code>AbortSignal.timeout(5000)</code></td>
+        </tr>
+        <tr>
+          <td>50 MB memory</td>
+          <td class="cell-p"><code>memoryLimitMb: 50</code> Isolated-VM</td>
+          <td class="cell-a">RSS monitor + kill signal</td>
+        </tr>
+        <tr>
+          <td>50 queries/req</td>
+          <td class="cell-p">Custom <strong>QueryCounterMiddleware</strong> L4</td>
+          <td class="cell-a">AsyncLocalStorage counter</td>
+        </tr>
+        <tr>
+          <td>Manifest validate</td>
+          <td class="cell-p"><strong>Zod</strong> schema cho plugin.manifest.json</td>
+          <td class="cell-a"><strong>Ajv</strong> JSON Schema</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(52,211,153,.15);color:#34d399">L3</span>
+        <div><h3>Async Workers</h3><p>Background job processing</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>AMQP client</td>
+          <td class="cell-p"><strong>amqplib</strong> + custom wrapper<br><span class="chip">Lightweight, battle-tested</span></td>
+          <td class="cell-a"><strong>rhea-promise</strong> (AMQP 1.0)<br><span class="chip chip-a">Azure Service Bus compatible</span></td>
+        </tr>
+        <tr>
+          <td>Job queue</td>
+          <td class="cell-p"><strong>BullMQ</strong> (Redis-backed)<br><span class="chip">Retry, delay, priority, UI</span></td>
+          <td class="cell-a"><strong>Agenda</strong> (MongoDB-backed)<br><span class="chip chip-a">Human-readable scheduling</span></td>
+        </tr>
+        <tr>
+          <td>Scheduler</td>
+          <td class="cell-p"><strong>node-cron</strong><br><span class="chip">Cron syntax, lightweight</span></td>
+          <td class="cell-a"><strong>Bree</strong><br><span class="chip chip-a">Worker threads, human-interval</span></td>
+        </tr>
+        <tr>
+          <td>Retry strategy</td>
+          <td class="cell-p">BullMQ exponential backoff</td>
+          <td class="cell-a">RabbitMQ dead-letter exchange</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(52,211,153,.15);color:#34d399">L3</span>
+        <div><h3>Hook Registry</h3><p>before / after / filter hooks</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Event core</td>
+          <td class="cell-p">Custom EventEmitter + priority queue<br><span class="chip">Full control, zero deps</span></td>
+          <td class="cell-a"><strong>EventEmitter2</strong><br><span class="chip chip-a">Wildcard, namespacing built-in</span></td>
+        </tr>
+        <tr>
+          <td>Priority sort</td>
+          <td class="cell-p"><strong>TinyQueue</strong> (min-heap)<br><span class="chip">O(log n) insert, O(1) peek</span></td>
+          <td class="cell-a">Sorted array + binary insert<br><span class="chip chip-a">Đơn giản hơn, đủ cho &lt;100 hooks</span></td>
+        </tr>
+        <tr>
+          <td>Filter chain</td>
+          <td class="cell-p">Async middleware pipeline (Koa-style)</td>
+          <td class="cell-a"><strong>Middie</strong> (Fastify's middleware)</td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== PANEL 4: L4 DATA ACCESS ===== -->
+<div class="pnl" id="p-4">
+  <div class="legend">
+    <span class="legend-item"><span class="dot dot-p"></span>Lựa chọn 1 (khuyến nghị)</span>
+    <span class="legend-item"><span class="dot dot-a"></span>Lựa chọn 2 (thay thế)</span>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(251,146,60,.15);color:#fb923c">L4</span>
+        <div><h3>Query Builder & ORM</h3><p>Tenant-aware data access</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Query builder</td>
+          <td class="cell-p"><strong>Knex.js</strong><br><span class="chip">Raw SQL control, hook để intercept</span></td>
+          <td class="cell-a"><strong>Drizzle ORM</strong><br><span class="chip chip-a">Type-safe SQL, zero runtime overhead</span></td>
+        </tr>
+        <tr>
+          <td>ORM</td>
+          <td class="cell-p"><strong>Prisma</strong><br><span class="chip">Dev productivity, type-safe client</span></td>
+          <td class="cell-a"><strong>MikroORM</strong><br><span class="chip chip-a">Unit of Work, Identity Map pattern</span></td>
+        </tr>
+        <tr>
+          <td>Tenant interceptor</td>
+          <td class="cell-p">Knex <code>queryBuilder</code> hook<br><span class="chip">Auto-inject tenant_id WHERE</span></td>
+          <td class="cell-a">Drizzle custom dialect wrapper</td>
+        </tr>
+        <tr>
+          <td>Query counter</td>
+          <td class="cell-p">Custom middleware (AsyncLocalStorage)</td>
+          <td class="cell-a">Knex <code>query</code> event listener</td>
+        </tr>
+      </table>
+      <p class="note">Query Interceptor tự động scope theo tenant — business logic không cần filter thủ công.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(251,146,60,.15);color:#fb923c">L4</span>
+        <div><h3>Connection Pool</h3><p>Quản lý kết nối DB</p></div>
+      </div>
+      <table>
+        <tr><th>Pool</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Pool library</td>
+          <td class="cell-p"><strong>pg-pool</strong><br><span class="chip">Fine-grained control, per-instance</span></td>
+          <td class="cell-a"><strong>PgBouncer</strong> (sidecar)<br><span class="chip chip-a">Connection multiplexing, transaction mode</span></td>
+        </tr>
+        <tr>
+          <td>Shared pool</td>
+          <td class="cell-p">pg-pool max=<strong>200</strong> (all standard tenants)</td>
+          <td class="cell-a">PgBouncer pool_size=200</td>
+        </tr>
+        <tr>
+          <td>VIP pool</td>
+          <td class="cell-p">pg-pool max=<strong>30</strong> per VIP tenant</td>
+          <td class="cell-a">Dedicated PgBouncer per VIP</td>
+        </tr>
+        <tr>
+          <td>Pool registry</td>
+          <td class="cell-p">Custom <strong>PoolRegistry</strong> singleton</td>
+          <td class="cell-a">Dependency-injected factory (TSyringe)</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(251,146,60,.15);color:#fb923c">L4</span>
+        <div><h3>Cache Manager</h3><p>Redis tenant-scoped keys</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Redis client</td>
+          <td class="cell-p"><strong>ioredis</strong><br><span class="chip">Cluster, pipeline, Lua, auto-reconnect</span></td>
+          <td class="cell-a"><strong>node-redis v4</strong><br><span class="chip chip-a">Official client, promise-based</span></td>
+        </tr>
+        <tr>
+          <td>Key pattern</td>
+          <td class="cell-p"><code>t:&lt;tenantId&gt;:&lt;type&gt;:&lt;id&gt;</code></td>
+          <td class="cell-a"><code>&lt;tenantId&gt;/&lt;type&gt;/&lt;id&gt;</code> (slash-separated)</td>
+        </tr>
+        <tr>
+          <td>Serialization</td>
+          <td class="cell-p"><strong>MessagePack</strong><br><span class="chip">~40% nhỏ hơn JSON</span></td>
+          <td class="cell-a"><strong>JSON</strong><br><span class="chip chip-a">Human-readable, debug dễ hơn</span></td>
+        </tr>
+        <tr>
+          <td>L2 cache</td>
+          <td class="cell-p">In-process LRU (<strong>lru-cache</strong>)</td>
+          <td class="cell-a">Không dùng — tránh stale data</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(251,146,60,.15);color:#fb923c">L4</span>
+        <div><h3>Migration Engine</h3><p>Schema versioning</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Engine</td>
+          <td class="cell-p"><strong>Flyway</strong><br><span class="chip">Multi-schema, repeatable migrations</span></td>
+          <td class="cell-a"><strong>Liquibase</strong><br><span class="chip chip-a">XML/YAML-based, rollback support</span></td>
+        </tr>
+        <tr>
+          <td>Dev migration</td>
+          <td class="cell-p"><strong>Prisma Migrate</strong><br><span class="chip">Rapid prototyping, auto-diff</span></td>
+          <td class="cell-a"><strong>Knex migrations</strong><br><span class="chip chip-a">Thuần JS, không cần JVM</span></td>
+        </tr>
+        <tr>
+          <td>Tenant strategy</td>
+          <td class="cell-p">Script iterate tenant list → Flyway per schema</td>
+          <td class="cell-a">Flyway community placeholders</td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== PANEL 5: L5 INFRASTRUCTURE ===== -->
+<div class="pnl" id="p-5">
+  <div class="legend">
+    <span class="legend-item"><span class="dot dot-p"></span>Lựa chọn 1 (khuyến nghị)</span>
+    <span class="legend-item"><span class="dot dot-a"></span>Lựa chọn 2 (thay thế)</span>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(250,204,21,.15);color:#facc15">L5</span>
+        <div><h3>Primary Database</h3><p>PostgreSQL</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>DB engine</td>
+          <td class="cell-p"><strong>PostgreSQL 16</strong><br><span class="chip">RLS native, mạnh nhất open-source</span></td>
+          <td class="cell-a"><strong>CockroachDB</strong><br><span class="chip chip-a">Distributed, PostgreSQL-compatible</span></td>
+        </tr>
+        <tr>
+          <td>Tenant isolation</td>
+          <td class="cell-p">Row-Level Security (RLS) policy</td>
+          <td class="cell-a">Schema-per-tenant (riêng biệt hơn)</td>
+        </tr>
+        <tr>
+          <td>Read replica</td>
+          <td class="cell-p">PostgreSQL streaming replication</td>
+          <td class="cell-a"><strong>Citus</strong> (horizontal sharding)</td>
+        </tr>
+        <tr>
+          <td>HA/Failover</td>
+          <td class="cell-p"><strong>Patroni</strong> + etcd</td>
+          <td class="cell-a"><strong>AWS RDS Multi-AZ</strong></td>
+        </tr>
+        <tr>
+          <td>Extensions</td>
+          <td class="cell-p">pg_stat_statements, pgcrypto, uuid-ossp</td>
+          <td class="cell-a">+ pgvector (AI embeddings)</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(250,204,21,.15);color:#facc15">L5</span>
+        <div><h3>Cache Layer</h3><p>Redis</p></div>
+      </div>
+      <table>
+        <tr><th>Use case</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Engine</td>
+          <td class="cell-p"><strong>Redis 7</strong> Cluster<br><span class="chip">De-facto standard, ecosystem tốt</span></td>
+          <td class="cell-a"><strong>Valkey</strong> (Redis fork, OSS)<br><span class="chip chip-a">License-free, Redis 7 compat</span></td>
+        </tr>
+        <tr>
+          <td>Cache</td>
+          <td class="cell-p">Tenant data, session, plugin config</td>
+          <td class="cell-a"><strong>Dragonfly</strong> (high-throughput)<br><span class="chip chip-a">25× throughput hơn Redis</span></td>
+        </tr>
+        <tr>
+          <td>Pub/Sub</td>
+          <td class="cell-p">Redis Pub/Sub channels</td>
+          <td class="cell-a">Redis Streams (ordered, persistent)</td>
+        </tr>
+        <tr>
+          <td>Persistence</td>
+          <td class="cell-p">RDB + AOF hybrid</td>
+          <td class="cell-a">AOF only (safer, more disk)</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(250,204,21,.15);color:#facc15">L5</span>
+        <div><h3>Message Broker</h3><p>Async event processing</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Broker</td>
+          <td class="cell-p"><strong>RabbitMQ 3.x</strong><br><span class="chip">AMQP, flexible routing, DLX</span></td>
+          <td class="cell-a"><strong>Apache Kafka</strong><br><span class="chip chip-a">Event sourcing, replay, high throughput</span></td>
+        </tr>
+        <tr>
+          <td>Exchanges</td>
+          <td class="cell-p">notifications, search.index, webhooks, audit</td>
+          <td class="cell-a">Kafka topics tương đương</td>
+        </tr>
+        <tr>
+          <td>Dead letter</td>
+          <td class="cell-p">RabbitMQ DLX + DLQ</td>
+          <td class="cell-a">Kafka retry topics</td>
+        </tr>
+        <tr>
+          <td>Lightweight alt</td>
+          <td class="cell-p">—</td>
+          <td class="cell-a"><strong>NATS JetStream</strong><br><span class="chip chip-a">Rất nhẹ, Go-native</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(250,204,21,.15);color:#facc15">L5</span>
+        <div><h3>Storage & Search</h3></div>
+      </div>
+      <table>
+        <tr><th>Service</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Object storage</td>
+          <td class="cell-p"><strong>MinIO</strong> (self-hosted S3-compat)<br><span class="chip">S3 API, on-premise</span></td>
+          <td class="cell-a"><strong>Cloudflare R2</strong><br><span class="chip chip-a">Zero egress cost, S3-compat</span></td>
+        </tr>
+        <tr>
+          <td>Search engine</td>
+          <td class="cell-p"><strong>Elasticsearch 8</strong><br><span class="chip">Tenant-scoped index alias</span></td>
+          <td class="cell-a"><strong>OpenSearch</strong> (ES fork, OSS)<br><span class="chip chip-a">License-free, ES 7 compat</span></td>
+        </tr>
+        <tr>
+          <td>Lightweight search</td>
+          <td class="cell-p">—</td>
+          <td class="cell-a"><strong>Meilisearch</strong><br><span class="chip chip-a">Typo-tolerant, dễ self-host</span></td>
+        </tr>
+        <tr>
+          <td>CDN</td>
+          <td class="cell-p"><strong>Cloudflare</strong></td>
+          <td class="cell-a"><strong>AWS CloudFront</strong></td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== PANEL 6: L6 CROSS-CUTTING ===== -->
+<div class="pnl" id="p-6">
+  <div class="legend">
+    <span class="legend-item"><span class="dot dot-p"></span>Lựa chọn 1 (khuyến nghị)</span>
+    <span class="legend-item"><span class="dot dot-a"></span>Lựa chọn 2 (thay thế)</span>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(192,132,252,.15);color:#c084fc">L6</span>
+        <div><h3>Dependency Injection</h3></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>DI container</td>
+          <td class="cell-p"><strong>TSyringe</strong><br><span class="chip">Lightweight, decorator-based</span></td>
+          <td class="cell-a"><strong>InversifyJS</strong><br><span class="chip chip-a">Mature, symbol tokens, rich API</span></td>
+        </tr>
+        <tr>
+          <td>Singleton scope</td>
+          <td class="cell-p">Plugin cores, pool registry, config</td>
+          <td class="cell-a">NestJS provider scope=DEFAULT</td>
+        </tr>
+        <tr>
+          <td>Transient scope</td>
+          <td class="cell-p">Request handlers, use cases</td>
+          <td class="cell-a">Factory functions (no DI overhead)</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(192,132,252,.15);color:#c084fc">L6</span>
+        <div><h3>Config & Validation</h3></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Config loader</td>
+          <td class="cell-p"><strong>dotenv</strong> + env overrides<br><span class="chip">Đơn giản, universal</span></td>
+          <td class="cell-a"><strong>convict</strong><br><span class="chip chip-a">Schema-based, multi-source</span></td>
+        </tr>
+        <tr>
+          <td>Runtime validation</td>
+          <td class="cell-p"><strong>Zod</strong><br><span class="chip">Infer TypeScript types, composable</span></td>
+          <td class="cell-a"><strong>Valibot</strong><br><span class="chip chip-a">~10× nhỏ hơn Zod bundle</span></td>
+        </tr>
+        <tr>
+          <td>Secrets store</td>
+          <td class="cell-p"><strong>HashiCorp Vault</strong><br><span class="chip">Dynamic secrets, lease rotation</span></td>
+          <td class="cell-a"><strong>AWS Secrets Manager</strong><br><span class="chip chip-a">Managed, tích hợp IAM</span></td>
+        </tr>
+        <tr>
+          <td>Feature flags</td>
+          <td class="cell-p"><strong>Unleash</strong> (self-hosted)<br><span class="chip">Per-tenant canary rollout</span></td>
+          <td class="cell-a"><strong>Flagsmith</strong><br><span class="chip chip-a">OSS, remote evaluation</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(192,132,252,.15);color:#c084fc">L6</span>
+        <div><h3>Security</h3></div>
+      </div>
+      <table>
+        <tr><th>Concern</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>HTTP headers</td>
+          <td class="cell-p"><strong>Helmet.js</strong><br><span class="chip">CSP, HSTS, X-Frame-Options</span></td>
+          <td class="cell-a"><strong>@fastify/helmet</strong> (same underlying)</td>
+        </tr>
+        <tr>
+          <td>Password</td>
+          <td class="cell-p"><strong>bcrypt</strong> (cost 12)<br><span class="chip">Proven, slow-by-design</span></td>
+          <td class="cell-a"><strong>Argon2id</strong><br><span class="chip chip-a">Memory-hard, OWASP recommended</span></td>
+        </tr>
+        <tr>
+          <td>Encryption</td>
+          <td class="cell-p"><strong>AES-256-GCM</strong> cho PII<br><span class="chip">Authenticated encryption</span></td>
+          <td class="cell-a"><strong>libsodium</strong> (XChaCha20-Poly1305)<br><span class="chip chip-a">Harder to misuse</span></td>
+        </tr>
+        <tr>
+          <td>Input validation</td>
+          <td class="cell-p">Zod schema tại mọi API boundary</td>
+          <td class="cell-a">Fastify JSON Schema (Ajv)</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(192,132,252,.15);color:#c084fc">L6</span>
+        <div><h3>Error Handling</h3></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Error hierarchy</td>
+          <td class="cell-p">Custom classes: AppError → DomainError → PluginError</td>
+          <td class="cell-a"><strong>http-errors</strong> + custom extends</td>
+        </tr>
+        <tr>
+          <td>Global handler</td>
+          <td class="cell-p">Fastify <code>setErrorHandler</code><br><span class="chip">Chuẩn hóa RFC 7807 Problem Details</span></td>
+          <td class="cell-a">Express <code>app.use((err, req, res, next))</code></td>
+        </tr>
+        <tr>
+          <td>Unhandled reject</td>
+          <td class="cell-p">Process-level listener → Pino log + alert</td>
+          <td class="cell-a"><strong>@sentry/node</strong> auto-capture</td>
+        </tr>
+        <tr>
+          <td>Error tracking</td>
+          <td class="cell-p"><strong>Sentry</strong> (self-hosted)<br><span class="chip">Stack trace, breadcrumbs</span></td>
+          <td class="cell-a"><strong>GlitchTip</strong> (Sentry-compat, OSS)</td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== PANEL 7: L7 OBSERVABILITY ===== -->
+<div class="pnl" id="p-7">
+  <div class="legend">
+    <span class="legend-item"><span class="dot dot-p"></span>Lựa chọn 1 (khuyến nghị)</span>
+    <span class="legend-item"><span class="dot dot-a"></span>Lựa chọn 2 (thay thế)</span>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(6,182,212,.15);color:#06b6d4">L7</span>
+        <div><h3>Logging</h3><p>Structured JSON logs</p></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Logger</td>
+          <td class="cell-p"><strong>Pino</strong><br><span class="chip">Nhanh nhất Node.js, JSON native, Fastify built-in</span></td>
+          <td class="cell-a"><strong>Winston</strong><br><span class="chip chip-a">Mature, nhiều transport, phổ biến hơn</span></td>
+        </tr>
+        <tr>
+          <td>Log aggregation</td>
+          <td class="cell-p"><strong>Grafana Loki</strong><br><span class="chip">Nhẹ, không index full-text</span></td>
+          <td class="cell-a"><strong>ELK Stack</strong> (Elasticsearch đã có ở L5)<br><span class="chip chip-a">Full-text search, Kibana dashboard</span></td>
+        </tr>
+        <tr>
+          <td>Log shipping</td>
+          <td class="cell-p"><strong>Promtail</strong> → Loki</td>
+          <td class="cell-a"><strong>Fluentd</strong> / <strong>Fluent Bit</strong></td>
+        </tr>
+        <tr>
+          <td>Context fields</td>
+          <td class="cell-p">tenant_id, request_id, user_id, trace_id mỗi entry</td>
+          <td class="cell-a">AsyncLocalStorage correlation ID</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(6,182,212,.15);color:#06b6d4">L7</span>
+        <div><h3>Distributed Tracing</h3></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>SDK</td>
+          <td class="cell-p"><strong>OpenTelemetry</strong> (OTEL)<br><span class="chip">Vendor-neutral, auto-instrument</span></td>
+          <td class="cell-a"><strong>Zipkin</strong> client<br><span class="chip chip-a">Đơn giản hơn, ít overhead</span></td>
+        </tr>
+        <tr>
+          <td>Trace backend</td>
+          <td class="cell-p"><strong>Jaeger</strong><br><span class="chip">UI tốt, service graph</span></td>
+          <td class="cell-a"><strong>Grafana Tempo</strong><br><span class="chip chip-a">Tích hợp tốt với Grafana stack</span></td>
+        </tr>
+        <tr>
+          <td>Propagation</td>
+          <td class="cell-p">W3C TraceContext header</td>
+          <td class="cell-a">B3 multi-header (Zipkin compat)</td>
+        </tr>
+        <tr>
+          <td>Sampling</td>
+          <td class="cell-p">Head-based 10% + tail-based errors</td>
+          <td class="cell-a">Adaptive sampling (Jaeger)</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(6,182,212,.15);color:#06b6d4">L7</span>
+        <div><h3>Metrics & Alerting</h3></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Metrics store</td>
+          <td class="cell-p"><strong>Prometheus</strong><br><span class="chip">Pull-based, prom-client cho Node.js</span></td>
+          <td class="cell-a"><strong>VictoriaMetrics</strong><br><span class="chip chip-a">Prometheus-compat, ít RAM hơn</span></td>
+        </tr>
+        <tr>
+          <td>Dashboard</td>
+          <td class="cell-p"><strong>Grafana</strong><br><span class="chip">Kết hợp metrics + logs + traces</span></td>
+          <td class="cell-a"><strong>DataDog</strong><br><span class="chip chip-a">All-in-one managed, tốn tiền hơn</span></td>
+        </tr>
+        <tr>
+          <td>Alerting</td>
+          <td class="cell-p"><strong>Grafana Alertmanager</strong></td>
+          <td class="cell-a"><strong>PagerDuty</strong> integration</td>
+        </tr>
+        <tr>
+          <td>SLI/SLO</td>
+          <td class="cell-p">p95 latency, error rate, saturation per tenant</td>
+          <td class="cell-a"><strong>Sloth</strong> (SLO generator cho Prometheus)</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(6,182,212,.15);color:#06b6d4">L7</span>
+        <div><h3>Audit Trail</h3></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Storage</td>
+          <td class="cell-p">PostgreSQL <code>audit_logs</code> (append-only, partition by month)</td>
+          <td class="cell-a"><strong>ClickHouse</strong><br><span class="chip chip-a">Columnar, query nhanh hơn trên volume lớn</span></td>
+        </tr>
+        <tr>
+          <td>Write path</td>
+          <td class="cell-p">Async via RabbitMQ <code>audit</code> exchange<br><span class="chip">Không block request path</span></td>
+          <td class="cell-a">Kafka topic → ClickHouse Kafka engine</td>
+        </tr>
+        <tr>
+          <td>Archival</td>
+          <td class="cell-p">Partition detach → S3 sau 90 ngày</td>
+          <td class="cell-a">ClickHouse TTL + S3 tiered storage</td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== PANEL 8: DEVOPS ===== -->
+<div class="pnl" id="p-8">
+  <div class="legend">
+    <span class="legend-item"><span class="dot dot-p"></span>Lựa chọn 1 (khuyến nghị)</span>
+    <span class="legend-item"><span class="dot dot-a"></span>Lựa chọn 2 (thay thế)</span>
+  </div>
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(52,211,153,.15);color:#34d399">Ops</span>
+        <div><h3>Container & Orchestration</h3></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Container</td>
+          <td class="cell-p"><strong>Docker</strong> + multi-stage build</td>
+          <td class="cell-a"><strong>Podman</strong><br><span class="chip chip-a">Daemonless, rootless, Docker compat</span></td>
+        </tr>
+        <tr>
+          <td>Dev env</td>
+          <td class="cell-p"><strong>Docker Compose</strong></td>
+          <td class="cell-a"><strong>Tilt</strong><br><span class="chip chip-a">Dev-cluster loop, Kubernetes-native</span></td>
+        </tr>
+        <tr>
+          <td>Production</td>
+          <td class="cell-p"><strong>Kubernetes</strong> (EKS / GKE / k3s)</td>
+          <td class="cell-a"><strong>Nomad</strong><br><span class="chip chip-a">Nhẹ hơn k8s, đơn giản hơn</span></td>
+        </tr>
+        <tr>
+          <td>Service mesh</td>
+          <td class="cell-p"><strong>Linkerd</strong><br><span class="chip">Nhẹ, mTLS auto, Rust-based</span></td>
+          <td class="cell-a"><strong>Istio</strong><br><span class="chip chip-a">Feature-rich hơn, nặng hơn</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(52,211,153,.15);color:#34d399">Ops</span>
+        <div><h3>CI/CD</h3></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>CI</td>
+          <td class="cell-p"><strong>GitHub Actions</strong><br><span class="chip">Ecosystem marketplace rộng</span></td>
+          <td class="cell-a"><strong>GitLab CI</strong><br><span class="chip chip-a">Self-hosted, DinD built-in</span></td>
+        </tr>
+        <tr>
+          <td>CD</td>
+          <td class="cell-p"><strong>ArgoCD</strong> (GitOps)<br><span class="chip">Declarative, drift detection</span></td>
+          <td class="cell-a"><strong>Flux CD</strong><br><span class="chip chip-a">CNCF graduated, lightweight</span></td>
+        </tr>
+        <tr>
+          <td>Image registry</td>
+          <td class="cell-p"><strong>GitHub Container Registry</strong></td>
+          <td class="cell-a"><strong>Harbor</strong> (self-hosted)<br><span class="chip chip-a">Vulnerability scan, policy</span></td>
+        </tr>
+        <tr>
+          <td>Security scan</td>
+          <td class="cell-p"><strong>Trivy</strong> (image + IaC scan)</td>
+          <td class="cell-a"><strong>Snyk</strong><br><span class="chip chip-a">Dev-friendly, IDE integration</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(52,211,153,.15);color:#34d399">Ops</span>
+        <div><h3>Infrastructure as Code</h3></div>
+      </div>
+      <table>
+        <tr><th>Thành phần</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>IaC</td>
+          <td class="cell-p"><strong>Terraform</strong> + Terragrunt<br><span class="chip">HCL, module reuse, mature</span></td>
+          <td class="cell-a"><strong>Pulumi</strong><br><span class="chip chip-a">TypeScript/Python IaC, familiar syntax</span></td>
+        </tr>
+        <tr>
+          <td>k8s config</td>
+          <td class="cell-p"><strong>Helm charts</strong><br><span class="chip">Templating, values override</span></td>
+          <td class="cell-a"><strong>Kustomize</strong><br><span class="chip chip-a">Patch-based, no template engine</span></td>
+        </tr>
+        <tr>
+          <td>Secrets IaC</td>
+          <td class="cell-p"><strong>HashiCorp Vault</strong> + Terraform provider</td>
+          <td class="cell-a"><strong>SOPS</strong> + age encryption</td>
+        </tr>
+        <tr>
+          <td>Policy</td>
+          <td class="cell-p"><strong>OPA / Gatekeeper</strong> (k8s admission)</td>
+          <td class="cell-a"><strong>Kyverno</strong><br><span class="chip chip-a">YAML-native, dễ viết rule hơn</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="layer-badge" style="background:rgba(52,211,153,.15);color:#34d399">Ops</span>
+        <div><h3>Testing Strategy</h3></div>
+      </div>
+      <table>
+        <tr><th>Loại test</th><th class="col-p">Lựa chọn 1</th><th class="col-a">Lựa chọn 2</th></tr>
+        <tr>
+          <td>Unit</td>
+          <td class="cell-p"><strong>Vitest</strong> + Testing Library<br><span class="chip">Vite-native, fast, Jest compat</span></td>
+          <td class="cell-a"><strong>Jest</strong><br><span class="chip chip-a">Phổ biến nhất, ecosystem lớn</span></td>
+        </tr>
+        <tr>
+          <td>Integration</td>
+          <td class="cell-p"><strong>Vitest</strong> + Testcontainers<br><span class="chip">Real PG + Redis trong Docker</span></td>
+          <td class="cell-a"><strong>Jest</strong> + docker-compose test env</td>
+        </tr>
+        <tr>
+          <td>E2E</td>
+          <td class="cell-p"><strong>Playwright</strong><br><span class="chip">Multi-browser, auto-wait, trace</span></td>
+          <td class="cell-a"><strong>Cypress</strong><br><span class="chip chip-a">DX tốt, visual testing</span></td>
+        </tr>
+        <tr>
+          <td>Load</td>
+          <td class="cell-p"><strong>k6</strong><br><span class="chip">JS-based, CI-friendly, Grafana native</span></td>
+          <td class="cell-a"><strong>Gatling</strong><br><span class="chip chip-a">Scala DSL, detailed reports</span></td>
+        </tr>
+        <tr>
+          <td>Contract</td>
+          <td class="cell-p"><strong>Pact</strong><br><span class="chip">Consumer-driven, plugin API</span></td>
+          <td class="cell-a"><strong>Schemathesis</strong><br><span class="chip chip-a">OpenAPI-based, property testing</span></td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- end .wrap -->
+
+<script>
+function go(i) {
+  document.querySelectorAll('.pnl').forEach((p, j) => p.classList.toggle('on', j === i));
+  document.querySelectorAll('.nav button').forEach((b, j) => b.classList.toggle('on', j === i));
+}
+</script>
+</body>
+</html>

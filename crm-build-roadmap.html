@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Build Roadmap</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#060810;color:#d8dce8;font-family:'Segoe UI',sans-serif}
+.hero{padding:48px 24px 32px;text-align:center}
+.hero h1{font-size:1.6rem;font-weight:700;margin-bottom:8px}
+.hero h1 span{color:#818cf8}
+.hero p{font-size:.85rem;color:#7880a0;max-width:640px;margin:0 auto}
+
+/* sticky nav */
+.nw{position:sticky;top:0;z-index:50;background:rgba(6,8,16,.95);backdrop-filter:blur(12px);border-bottom:1px solid #1c2038}
+.nav{max-width:1400px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none;padding:0 8px}
+.nav::-webkit-scrollbar{display:none}
+.nav button{font-family:monospace;font-size:11px;padding:12px 14px;background:none;border:none;color:#484e6a;cursor:pointer;white-space:nowrap;position:relative;transition:color .15s}
+.nav button:hover{color:#7880a0}
+.nav button.on{color:#818cf8}
+.nav button.on::after{content:'';position:absolute;bottom:0;left:6px;right:6px;height:2px;background:#818cf8;border-radius:2px 2px 0 0}
+
+.wrap{max-width:1400px;margin:0 auto;padding:24px 16px 100px}
+.pnl{display:none}.pnl.on{display:block}
+
+/* ── OVERVIEW TIMELINE ── */
+.timeline{position:relative;padding:8px 0 0}
+.tl-spine{position:absolute;left:44px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,#1c2038 0%,#2a2a50 50%,#1c2038 100%)}
+.tl-item{display:flex;gap:0;margin-bottom:6px;position:relative;align-items:stretch}
+.tl-dot-col{width:90px;flex-shrink:0;display:flex;align-items:flex-start;padding-top:18px;justify-content:center;position:relative}
+.tl-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:.72rem;font-weight:700;z-index:1;flex-shrink:0;border:2px solid}
+.tl-content{flex:1;background:#0c0e18;border:1px solid #1c2038;border-radius:8px;padding:16px 20px;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:0}
+.tl-content:hover{border-color:#2a2a50;background:#0e1020}
+.tl-content.active{border-color:var(--ph-color)!important}
+.tl-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.ph-label{font-family:monospace;font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:3px}
+.tl-title{font-size:.9rem;font-weight:600;color:#d8dce8}
+.tl-sub{font-size:.78rem;color:#7880a0;line-height:1.5}
+.tl-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.tag{display:inline-block;font-size:.68rem;font-family:monospace;padding:2px 6px;border-radius:3px;border:1px solid #1c2038;color:#7880a0;background:#111420}
+.critical-flag{font-size:.65rem;font-family:monospace;padding:2px 6px;border-radius:3px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;margin-left:auto}
+.dep-arrow{width:90px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#2a2a50;font-size:.9rem;padding-top:0}
+
+/* connector between timeline items */
+.tl-connector{width:90px;flex-shrink:0;display:flex;justify-content:center}
+.tl-connector-line{width:2px;height:6px;background:#1c2038;margin:0 auto}
+
+/* ── PHASE DETAIL PANEL ── */
+.phase-panel{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.phase-panel{grid-template-columns:1fr}}
+.phase-header{grid-column:1/-1;background:#0c0e18;border:1px solid #1c2038;border-radius:8px;padding:24px 28px;display:flex;align-items:center;gap:20px}
+.phase-num{font-family:monospace;font-size:2rem;font-weight:700;opacity:.3}
+.phase-header-info h2{font-size:1.2rem;font-weight:700;margin-bottom:4px}
+.phase-header-info p{font-size:.85rem;color:#7880a0;line-height:1.6}
+.phase-why{grid-column:1/-1;background:#0a0d1a;border:1px solid #1c2038;border-left-width:3px;border-radius:6px;padding:14px 18px}
+.phase-why .why-label{font-size:.7rem;font-family:monospace;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;opacity:.7}
+.phase-why p{font-size:.83rem;color:#9ca3c0;line-height:1.6}
+.phase-why strong{color:#d8dce8}
+
+.card{background:#0c0e18;border:1px solid #1c2038;border-radius:8px;padding:22px}
+.card-title{font-size:.85rem;font-weight:600;color:#d8dce8;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #1c2038;display:flex;align-items:center;gap:8px}
+.card-title .icon{font-size:1rem}
+
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th{text-align:left;padding:7px 10px;background:#111420;color:#818cf8;border:1px solid #1c2038;font-weight:600;font-size:.72rem;letter-spacing:.3px}
+td{padding:7px 10px;border:1px solid #1c2038;color:#9ca3c0;vertical-align:top;line-height:1.5}
+td:first-child{color:#d8dce8;font-family:monospace;font-size:.76rem;white-space:nowrap}
+code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;padding:1px 5px;border-radius:3px}
+
+.task-list{list-style:none;display:flex;flex-direction:column;gap:6px}
+.task-item{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:5px;background:#111420;border:1px solid #1c2038;font-size:.82rem;color:#9ca3c0;line-height:1.5}
+.task-item .ck{font-size:.75rem;margin-top:1px;flex-shrink:0}
+.task-item.critical{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.04)}
+.task-item.critical .ck{color:#f87171}
+.task-item.normal .ck{color:#34d399}
+.task-item strong{color:#d8dce8}
+
+.deliverable-list{display:flex;flex-direction:column;gap:5px}
+.del-item{display:flex;align-items:flex-start;gap:8px;font-size:.8rem;color:#9ca3c0;padding:6px 8px;border-radius:4px;background:#111420;border:1px solid #1c2038}
+.del-icon{flex-shrink:0;font-size:.75rem;margin-top:1px;color:#818cf8}
+
+.dep-list{display:flex;flex-direction:column;gap:5px}
+.dep-item{font-size:.78rem;padding:6px 10px;border-radius:4px;border:1px solid #1c2038;background:#111420;color:#9ca3c0;display:flex;align-items:center;gap:6px}
+.dep-item .dep-ph{font-family:monospace;font-size:.7rem;padding:1px 5px;border-radius:3px;flex-shrink:0}
+
+/* summary box */
+.summary-box{background:#0c0e18;border:1px solid #1c2038;border-radius:8px;padding:28px;margin-bottom:20px}
+.summary-box h3{font-size:.95rem;font-weight:600;color:#818cf8;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid #1c2038}
+.summary-box h3:first-child{margin-top:0}
+.summary-box p{font-size:.83rem;color:#9ca3c0;line-height:1.65;margin-bottom:10px}
+.summary-box strong{color:#d8dce8}
+.code-block{font-family:monospace;font-size:.78rem;background:#111420;border:1px solid #1c2038;border-radius:4px;padding:14px 16px;color:#8890b8;line-height:1.8;margin:10px 0}
+.code-block .k{color:#818cf8}
+.code-block .v{color:#06b6d4}
+.code-block .c{color:#484e6a}
+.code-block .w{color:#f87171}
+
+/* phase color vars — set on .tl-item */
+.ph1{--ph-color:#34d399}
+.ph2{--ph-color:#f87171}
+.ph3{--ph-color:#818cf8}
+.ph4{--ph-color:#facc15}
+.ph5{--ph-color:#06b6d4}
+.ph6{--ph-color:#fb923c}
+.ph7{--ph-color:#c084fc}
+.ph8{--ph-color:#4ade80}
+.ph9{--ph-color:#818cf8}
+.ph10{--ph-color:#7880a0}
+
+.note{font-size:.76rem;color:#7880a0;font-style:italic;margin-top:10px;padding:8px 12px;border-left:2px solid #1c2038;line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Build <span>Roadmap</span></h1>
+  <p>Thứ tự xây dựng hệ thống CRM multi-tenant SaaS — từ nền tảng hạ tầng đến production hardening.</p>
+</div>
+
+<div class="nw"><div class="nav">
+  <button class="on" onclick="go(0)">Tổng quan</button>
+  <button onclick="go(1)">Phase 1 — Infra</button>
+  <button onclick="go(2)">Phase 2 — L4 Core</button>
+  <button onclick="go(3)">Phase 3 — API + Auth</button>
+  <button onclick="go(4)">Phase 4 — Observability</button>
+  <button onclick="go(5)">Phase 5 — Plugin Registry</button>
+  <button onclick="go(6)">Phase 6 — Sandbox</button>
+  <button onclick="go(7)">Phase 7 — Cross-cutting</button>
+  <button onclick="go(8)">Phase 8 — Async Workers</button>
+  <button onclick="go(9)">Phase 9 — Presentation</button>
+  <button onclick="go(10)">Phase 10 — Production</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════════════
+     PANEL 0 — TỔNG QUAN (TIMELINE)
+════════════════════════════════════════════════ -->
+<div class="pnl on" id="p-0">
+
+  <div class="summary-box">
+    <h3>Nguyên tắc thứ tự</h3>
+    <p><strong>Multi-tenancy bake-in từ ngày đầu.</strong> Query Interceptor và Connection Pool Registry là xương sống — phải tồn tại trước khi viết bất kỳ dòng business logic nào. Retrofit sau sẽ dẫn đến data leak tiềm ẩn và refactor toàn bộ.</p>
+    <p><strong>Đi từ trong ra ngoài:</strong> Data Layer → Logic Layer → API Layer → UI Layer. Không bao giờ xây UI trước khi API ổn định.</p>
+    <p><strong>Observability sớm hơn bạn nghĩ</strong> — Phase 4, không phải Phase cuối. Debug giai đoạn phát triển không có structured log và trace là cực kỳ tốn thời gian.</p>
+    <div class="code-block">
+<span class="k">Phase  1</span>  <span class="v">Infra local</span>        PG + Redis + RabbitMQ + Schema + RLS
+<span class="k">Phase  2</span>  <span class="w">L4 Core ★</span>          Query Interceptor + Pool Registry + Cache
+<span class="k">Phase  3</span>  <span class="v">API + Auth</span>         Fastify + Tenant resolution + JWT
+<span class="k">Phase  4</span>  <span class="v">Observability</span>      Pino + OpenTelemetry + Prometheus
+<span class="k">Phase  5</span>  <span class="v">Plugin Registry</span>    ExecutionContext + Manifest + Hook Registry
+<span class="k">Phase  6</span>  <span class="v">Plugin Sandbox</span>     Isolated-VM + Resource limits
+<span class="k">Phase  7</span>  <span class="v">Cross-cutting</span>      DI + Error handling + Security
+<span class="k">Phase  8</span>  <span class="v">Async Workers</span>      RabbitMQ consumers + BullMQ
+<span class="k">Phase  9</span>  <span class="v">Presentation</span>       Admin → Web → Module Federation → Mobile
+<span class="k">Phase 10</span>  <span class="v">Production</span>         Kong + k8s + HA + IaC + CI/CD
+    </div>
+  </div>
+
+  <div class="timeline">
+    <div class="tl-spine"></div>
+
+    <!-- P1 -->
+    <div class="tl-item ph1" onclick="go(1)">
+      <div class="tl-dot-col">
+        <div class="tl-dot" style="background:rgba(52,211,153,.12);border-color:#34d399;color:#34d399">P1</div>
+      </div>
+      <div class="tl-content" style="--ph-color:#34d399">
+        <div class="tl-head">
+          <span class="ph-label" style="background:rgba(52,211,153,.12);color:#34d399">Infrastructure</span>
+          <span class="tl-title">Local Dev Environment</span>
+        </div>
+        <div class="tl-sub">Docker Compose · PostgreSQL 16 + RLS · Redis 7 · RabbitMQ · Tenant schema · dotenv + Zod config</div>
+        <div class="tl-tags">
+          <span class="tag">L5</span><span class="tag">PostgreSQL</span><span class="tag">Redis</span><span class="tag">RabbitMQ</span><span class="tag">Docker Compose</span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-item"><div class="tl-dot-col" style="padding-top:0"><div style="width:2px;height:6px;background:#1c2038;margin:0 auto"></div></div><div style="flex:1"></div></div>
+
+    <!-- P2 -->
+    <div class="tl-item ph2" onclick="go(2)">
+      <div class="tl-dot-col">
+        <div class="tl-dot" style="background:rgba(248,113,113,.12);border-color:#f87171;color:#f87171">P2</div>
+      </div>
+      <div class="tl-content" style="--ph-color:#f87171">
+        <div class="tl-head">
+          <span class="ph-label" style="background:rgba(248,113,113,.12);color:#f87171">L4 Core</span>
+          <span class="tl-title">Query Interceptor + Data Access Layer</span>
+          <span class="critical-flag">★ CRITICAL</span>
+        </div>
+        <div class="tl-sub">Knex.js query hook tự động scope tenant_id · AsyncLocalStorage context · Connection Pool Registry · Cache Manager ioredis · QueryCounterMiddleware</div>
+        <div class="tl-tags">
+          <span class="tag">L4</span><span class="tag">Knex.js</span><span class="tag">pg-pool</span><span class="tag">ioredis</span><span class="tag">AsyncLocalStorage</span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-item"><div class="tl-dot-col" style="padding-top:0"><div style="width:2px;height:6px;background:#1c2038;margin:0 auto"></div></div><div style="flex:1"></div></div>
+
+    <!-- P3 -->
+    <div class="tl-item ph3" onclick="go(3)">
+      <div class="tl-dot-col">
+        <div class="tl-dot" style="background:rgba(129,140,248,.12);border-color:#818cf8;color:#818cf8">P3</div>
+      </div>
+      <div class="tl-content" style="--ph-color:#818cf8">
+        <div class="tl-head">
+          <span class="ph-label" style="background:rgba(129,140,248,.12);color:#818cf8">L2–L3</span>
+          <span class="tl-title">API Server + Tenant Resolution + Auth</span>
+        </div>
+        <div class="tl-sub">Fastify v5 + TypeScript · Tenant middleware (subdomain/header → tenant_id) · JWT verification (JWKS) · Set AsyncLocalStorage context</div>
+        <div class="tl-tags">
+          <span class="tag">L2</span><span class="tag">L3</span><span class="tag">Fastify</span><span class="tag">JWT</span><span class="tag">Keycloak</span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-item"><div class="tl-dot-col" style="padding-top:0"><div style="width:2px;height:6px;background:#1c2038;margin:0 auto"></div></div><div style="flex:1"></div></div>
+
+    <!-- P4 -->
+    <div class="tl-item ph4" onclick="go(4)">
+      <div class="tl-dot-col">
+        <div class="tl-dot" style="background:rgba(250,204,21,.12);border-color:#facc15;color:#facc15">P4</div>
+      </div>
+      <div class="tl-content" style="--ph-color:#facc15">
+        <div class="tl-head">
+          <span class="ph-label" style="background:rgba(250,204,21,.12);color:#facc15">L7</span>
+          <span class="tl-title">Observability — Logging · Tracing · Metrics</span>
+        </div>
+        <div class="tl-sub">Pino structured logs (tenant_id + request_id) · OpenTelemetry auto-instrument · Prometheus /metrics endpoint · Grafana dashboard cơ bản</div>
+        <div class="tl-tags">
+          <span class="tag">L7</span><span class="tag">Pino</span><span class="tag">OpenTelemetry</span><span class="tag">Prometheus</span><span class="tag">Grafana</span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-item"><div class="tl-dot-col" style="padding-top:0"><div style="width:2px;height:6px;background:#1c2038;margin:0 auto"></div></div><div style="flex:1"></div></div>
+
+    <!-- P5 -->
+    <div class="tl-item ph5" onclick="go(5)">
+      <div class="tl-dot-col">
+        <div class="tl-dot" style="background:rgba(6,182,212,.12);border-color:#06b6d4;color:#06b6d4">P5</div>
+      </div>
+      <div class="tl-content" style="--ph-color:#06b6d4">
+        <div class="tl-head">
+          <span class="ph-label" style="background:rgba(6,182,212,.12);color:#06b6d4">L3</span>
+          <span class="tl-title">Execution Context + Plugin Registry</span>
+        </div>
+        <div class="tl-sub">ExecutionContext builder · Manifest loader (Zod validate) · Plugin Registry (cores) · Hook Registry (before/after/filter + priority queue)</div>
+        <div class="tl-tags">
+          <span class="tag">L3</span><span class="tag">ExecutionContext</span><span class="tag">PluginRegistry</span><span class="tag">HookRegistry</span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-item"><div class="tl-dot-col" style="padding-top:0"><div style="width:2px;height:6px;background:#1c2038;margin:0 auto"></div></div><div style="flex:1"></div></div>
+
+    <!-- P6 -->
+    <div class="tl-item ph6" onclick="go(6)">
+      <div class="tl-dot-col">
+        <div class="tl-dot" style="background:rgba(251,146,60,.12);border-color:#fb923c;color:#fb923c">P6</div>
+      </div>
+      <div class="tl-content" style="--ph-color:#fb923c">
+        <div class="tl-head">
+          <span class="ph-label" style="background:rgba(251,146,60,.12);color:#fb923c">L3</span>
+          <span class="tl-title">Plugin Sandbox — Hard Resource Limits</span>
+        </div>
+        <div class="tl-sub">Isolated-VM wrapper · 5s timeout · 50 MB memoryLimitMb · 50 queries/req counter · Plugin chạy trong V8 isolate độc lập</div>
+        <div class="tl-tags">
+          <span class="tag">L3</span><span class="tag">Isolated-VM</span><span class="tag">V8 isolate</span><span class="tag">resource limits</span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-item"><div class="tl-dot-col" style="padding-top:0"><div style="width:2px;height:6px;background:#1c2038;margin:0 auto"></div></div><div style="flex:1"></div></div>
+
+    <!-- P7 -->
+    <div class="tl-item ph7" onclick="go(7)">
+      <div class="tl-dot-col">
+        <div class="tl-dot" style="background:rgba(192,132,252,.12);border-color:#c084fc;color:#c084fc">P7</div>
+      </div>
+      <div class="tl-content" style="--ph-color:#c084fc">
+        <div class="tl-head">
+          <span class="ph-label" style="background:rgba(192,132,252,.12);color:#c084fc">L6</span>
+          <span class="tl-title">Cross-Cutting — DI · Error Handling · Security</span>
+        </div>
+        <div class="tl-sub">TSyringe DI container · Error hierarchy (AppError → DomainError → PluginError) · Fastify error handler · Helmet.js · bcrypt · Zod input validation</div>
+        <div class="tl-tags">
+          <span class="tag">L6</span><span class="tag">TSyringe</span><span class="tag">Helmet.js</span><span class="tag">Zod</span><span class="tag">bcrypt</span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-item"><div class="tl-dot-col" style="padding-top:0"><div style="width:2px;height:6px;background:#1c2038;margin:0 auto"></div></div><div style="flex:1"></div></div>
+
+    <!-- P8 -->
+    <div class="tl-item ph8" onclick="go(8)">
+      <div class="tl-dot-col">
+        <div class="tl-dot" style="background:rgba(74,222,128,.12);border-color:#4ade80;color:#4ade80">P8</div>
+      </div>
+      <div class="tl-content" style="--ph-color:#4ade80">
+        <div class="tl-head">
+          <span class="ph-label" style="background:rgba(74,222,128,.12);color:#4ade80">L5</span>
+          <span class="tl-title">Async Workers — RabbitMQ · BullMQ</span>
+        </div>
+        <div class="tl-sub">RabbitMQ consumers: notifications · search.index · webhooks · audit · BullMQ retry/delay/DLQ · node-cron scheduler</div>
+        <div class="tl-tags">
+          <span class="tag">L5</span><span class="tag">RabbitMQ</span><span class="tag">BullMQ</span><span class="tag">amqplib</span><span class="tag">node-cron</span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-item"><div class="tl-dot-col" style="padding-top:0"><div style="width:2px;height:6px;background:#1c2038;margin:0 auto"></div></div><div style="flex:1"></div></div>
+
+    <!-- P9 -->
+    <div class="tl-item ph9" onclick="go(9)">
+      <div class="tl-dot-col">
+        <div class="tl-dot" style="background:rgba(129,140,248,.12);border-color:#818cf8;color:#818cf8">P9</div>
+      </div>
+      <div class="tl-content" style="--ph-color:#818cf8">
+        <div class="tl-head">
+          <span class="ph-label" style="background:rgba(129,140,248,.12);color:#818cf8">L1</span>
+          <span class="tl-title">Presentation — Admin · Web · Plugin UI · Mobile</span>
+        </div>
+        <div class="tl-sub">Admin Console (Next.js) → Web App (React 18) → Module Federation plugin UI → Mobile (React Native) — theo thứ tự ưu tiên</div>
+        <div class="tl-tags">
+          <span class="tag">L1</span><span class="tag">Next.js</span><span class="tag">React 18</span><span class="tag">Module Federation</span><span class="tag">React Native</span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-item"><div class="tl-dot-col" style="padding-top:0"><div style="width:2px;height:6px;background:#1c2038;margin:0 auto"></div></div><div style="flex:1"></div></div>
+
+    <!-- P10 -->
+    <div class="tl-item ph10" onclick="go(10)">
+      <div class="tl-dot-col">
+        <div class="tl-dot" style="background:rgba(120,128,160,.12);border-color:#7880a0;color:#7880a0">P10</div>
+      </div>
+      <div class="tl-content" style="--ph-color:#7880a0">
+        <div class="tl-head">
+          <span class="ph-label" style="background:rgba(120,128,160,.12);color:#7880a0">Ops</span>
+          <span class="tl-title">Production Hardening</span>
+        </div>
+        <div class="tl-sub">Kong Gateway · Kubernetes · Patroni HA · Elasticsearch · MinIO · Terraform IaC · ArgoCD · Trivy security scan</div>
+        <div class="tl-tags">
+          <span class="tag">Kong</span><span class="tag">Kubernetes</span><span class="tag">Terraform</span><span class="tag">ArgoCD</span><span class="tag">Patroni</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .timeline -->
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     PHASE DETAIL PANELS (1–10)
+════════════════════════════════════════════════ -->
+
+<!-- ── PHASE 1 ── -->
+<div class="pnl" id="p-1">
+  <div class="phase-panel">
+    <div class="phase-header">
+      <div class="phase-num" style="color:#34d399">01</div>
+      <div class="phase-header-info">
+        <h2 style="color:#34d399">Local Dev Environment</h2>
+        <p>Thiết lập toàn bộ hạ tầng cục bộ, schema tenant, Row-Level Security và config foundation. Đây là nền móng — mọi phase sau đều chạy trên đây.</p>
+      </div>
+    </div>
+    <div class="phase-why" style="border-left-color:#34d399">
+      <div class="why-label" style="color:#34d399">Tại sao trước tiên</div>
+      <p>Không có PostgreSQL với RLS thì không test được multi-tenancy đúng nghĩa. Schema sai ở giai đoạn này = <strong>refactor toàn bộ sau</strong>. Thiết lập một lần, dùng xuyên suốt.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
+      <ul class="task-list">
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Docker Compose</strong> với PG 16, Redis 7, RabbitMQ — môi trường dev one-command</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div>Tạo bảng <code>tenants</code> (id, tier, db_url, config, created_at)</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div>Thiết lập <strong>Row-Level Security</strong> — policy dựa trên <code>app.tenant_id</code> session variable</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Tạo bảng <code>users</code>, <code>roles</code>, <code>permissions</code> với cột <code>tenant_id</code></div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Viết seed data: 2 standard tenants + 1 VIP tenant để test isolation</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>dotenv + Zod schema validate toàn bộ env variables lúc startup</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Flyway migration baseline — version đầu tiên</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Cấu hình pg_stat_statements, pgcrypto, uuid-ossp extensions</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
+      <div class="deliverable-list">
+        <div class="del-item"><span class="del-icon">▸</span><span><code>docker-compose.yml</code> — toàn bộ services up với <code>docker compose up</code></span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>RLS hoạt động: query không có <code>app.tenant_id</code> trả về 0 rows</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Zod config schema — app crash rõ ràng nếu thiếu env var</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Flyway migration <code>V1__init_schema.sql</code> chạy được</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Seed data với 3 tenants khác tier</span></div>
+      </div>
+      <p class="note">Test RLS bằng cách: set <code>SET app.tenant_id = 'tenant-a'</code> rồi SELECT — chỉ thấy data của tenant A.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🛠</span> Tech</div>
+      <table>
+        <tr><th>Thành phần</th><th>Công nghệ</th></tr>
+        <tr><td>Container</td><td>Docker Compose</td></tr>
+        <tr><td>Database</td><td>PostgreSQL 16 + RLS</td></tr>
+        <tr><td>Cache</td><td>Redis 7 (Cluster mode)</td></tr>
+        <tr><td>Broker</td><td>RabbitMQ 3.x</td></tr>
+        <tr><td>Config</td><td>dotenv + Zod</td></tr>
+        <tr><td>Migration</td><td>Flyway</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔗</span> Dependencies</div>
+      <div class="dep-list">
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(52,211,153,.12);color:#34d399">—</span> Không phụ thuộc phase nào trước</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PHASE 2 ── -->
+<div class="pnl" id="p-2">
+  <div class="phase-panel">
+    <div class="phase-header">
+      <div class="phase-num" style="color:#f87171">02</div>
+      <div class="phase-header-info">
+        <h2 style="color:#f87171">Query Interceptor + Data Access Layer (L4)</h2>
+        <p>Xây dựng cơ chế tự động scope mọi query theo tenant. Đây là thành phần CRITICAL nhất — toàn bộ tính đúng đắn của multi-tenancy phụ thuộc vào đây.</p>
+      </div>
+    </div>
+    <div class="phase-why" style="border-left-color:#f87171">
+      <div class="why-label" style="color:#f87171">Tại sao là phase 2 (Critical)</div>
+      <p>Nếu viết business logic trước khi có interceptor, sẽ có <strong>query "trần"</strong> không có tenant scope lọt vào codebase. Tìm và sửa lại cực kỳ tốn công và dễ bỏ sót. Interceptor phải là <strong>lưới an toàn mặc định</strong>.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
+      <ul class="task-list">
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Knex.js Query Interceptor</strong> — hook vào <code>queryBuilder</code> runner, tự động inject <code>WHERE tenant_id = ?</code> cho mọi SELECT/UPDATE/DELETE</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>AsyncLocalStorage TenantContext</strong> — truyền tenant_id xuyên suốt call stack không cần truyền tham số thủ công</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Connection Pool Registry</strong> — shared pool (max=200), VIP pool (max=30/tenant), metadata pool (max=20)</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Cache Manager</strong> — ioredis wrapper enforce key pattern <code>t:&lt;id&gt;:&lt;type&gt;:&lt;id&gt;</code></div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>QueryCounterMiddleware</strong> — đếm số query/request, chuẩn bị cho sandbox limit (Phase 6)</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Unit test: query từ tenant A không thấy data của tenant B dù không có WHERE thủ công</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Interface <code>IDbContext</code>, <code>ICacheManager</code> — chuẩn bị cho DIP (Phase 7)</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
+      <div class="deliverable-list">
+        <div class="del-item"><span class="del-icon">▸</span><span>Query Interceptor: <strong>mọi query tự động có tenant scope</strong>, không cần developer nhớ thêm WHERE</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Pool Registry: trả đúng pool theo tier của tenant (shared vs VIP)</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Cache Manager: set/get/invalidate với key pattern chuẩn</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Test cross-tenant isolation pass 100%</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🛠</span> Tech</div>
+      <table>
+        <tr><th>Thành phần</th><th>Công nghệ</th></tr>
+        <tr><td>Query builder</td><td>Knex.js</td></tr>
+        <tr><td>Context</td><td>AsyncLocalStorage (Node.js built-in)</td></tr>
+        <tr><td>DB pool</td><td>pg-pool</td></tr>
+        <tr><td>Cache client</td><td>ioredis</td></tr>
+        <tr><td>Serialization</td><td>MessagePack</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔗</span> Dependencies</div>
+      <div class="dep-list">
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(52,211,153,.12);color:#34d399">P1</span>PostgreSQL, Redis đang chạy; schema tenants đã có</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PHASE 3 ── -->
+<div class="pnl" id="p-3">
+  <div class="phase-panel">
+    <div class="phase-header">
+      <div class="phase-num" style="color:#818cf8">03</div>
+      <div class="phase-header-info">
+        <h2 style="color:#818cf8">API Server + Tenant Resolution + Auth (L2–L3)</h2>
+        <p>Fastify server nhận HTTP request, resolve tenant từ subdomain/header, verify JWT và đưa context vào AsyncLocalStorage để L4 tự động scope.</p>
+      </div>
+    </div>
+    <div class="phase-why" style="border-left-color:#818cf8">
+      <div class="why-label" style="color:#818cf8">Tại sao sau L4</div>
+      <p>Nếu xây API server trước khi có L4 interceptor, các handler đầu tiên sẽ query DB <strong>không có tenant scope</strong>. Đây là lỗi kiến trúc nguy hiểm, khó phát hiện và khó sửa về sau.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
+      <ul class="task-list">
+        <li class="task-item critical"><span class="ck">★</span><div>Khởi tạo <strong>Fastify v5</strong> + TypeScript — cấu hình plugin, schema validation</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Tenant resolution middleware</strong> — parse subdomain (<code>acme.app.com</code>) hoặc header (<code>X-Tenant-ID</code>) → lookup DB → set AsyncLocalStorage</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>JWT verification</strong> — fetch JWKS từ Keycloak, verify signature, extract tenant claims</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Rate limiting cơ bản với <code>@fastify/rate-limit</code> (Kong thay thế ở Phase 10)</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Health check endpoint <code>GET /health</code> và <code>GET /ready</code></div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Route registration cấu trúc (prefix: <code>/api/v1/:plugin/</code>)</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Integration test: request với JWT hợp lệ → query DB đúng tenant</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
+      <div class="deliverable-list">
+        <div class="del-item"><span class="del-icon">▸</span><span>HTTP server nhận request, resolve tenant, verify JWT trong &lt;5ms overhead</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Request từ tenant A không thể truy cập data tenant B dù JWT hợp lệ</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Request không có JWT → 401. JWT sai tenant → 403</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Health check endpoint trả về status DB + Redis + RabbitMQ</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🛠</span> Tech</div>
+      <table>
+        <tr><th>Thành phần</th><th>Công nghệ</th></tr>
+        <tr><td>HTTP framework</td><td>Fastify v5 + TypeScript</td></tr>
+        <tr><td>Auth server</td><td>Keycloak (hoặc stub JWT)</td></tr>
+        <tr><td>JWT library</td><td>@fastify/jwt + jwks-rsa</td></tr>
+        <tr><td>Rate limiting</td><td>@fastify/rate-limit</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔗</span> Dependencies</div>
+      <div class="dep-list">
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(248,113,113,.12);color:#f87171">P2</span>Query Interceptor + Pool Registry sẵn sàng</div>
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(52,211,153,.12);color:#34d399">P1</span>tenants table để lookup tenant resolution</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PHASE 4 ── -->
+<div class="pnl" id="p-4">
+  <div class="phase-panel">
+    <div class="phase-header">
+      <div class="phase-num" style="color:#facc15">04</div>
+      <div class="phase-header-info">
+        <h2 style="color:#facc15">Observability — Logging · Tracing · Metrics (L7)</h2>
+        <p>Cài đặt structured logging, distributed tracing và metrics collection trước khi viết business logic. Debug không có log/trace là mù.</p>
+      </div>
+    </div>
+    <div class="phase-why" style="border-left-color:#facc15">
+      <div class="why-label" style="color:#facc15">Tại sao sớm thế này (Phase 4, không phải Phase cuối)</div>
+      <p>Retrofit tracing vào code đã viết rất tốn công. Và trong giai đoạn phát triển Phase 5–8, bạn sẽ cần <strong>log có cấu trúc</strong> để debug plugin execution, query count, cache hit/miss. Thiếu observability = mò mẫm trong bóng tối.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
+      <ul class="task-list">
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Pino logger</strong> — mỗi log entry bắt buộc có <code>tenant_id</code>, <code>request_id</code>, <code>user_id</code>, <code>trace_id</code></div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>OpenTelemetry</strong> — auto-instrument Fastify + Knex.js + ioredis, xuất sang Jaeger</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Prometheus</strong> — <code>GET /metrics</code> endpoint với prom-client: request count, latency histogram, DB pool size</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Grafana dashboard</strong> cơ bản: request rate, p95 latency, error rate per tenant</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Correlation ID middleware — generate UUID per request, truyền qua AsyncLocalStorage</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Request/response logging plugin cho Fastify (<code>@fastify/request-context</code>)</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
+      <div class="deliverable-list">
+        <div class="del-item"><span class="del-icon">▸</span><span>Mọi log entry có đủ context — có thể filter theo tenant_id trong Grafana Loki</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Trace xuyên suốt từ HTTP request → Knex query → Redis cache</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Dashboard Grafana hiển thị p95 latency và error rate real-time</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🛠</span> Tech</div>
+      <table>
+        <tr><th>Thành phần</th><th>Công nghệ</th></tr>
+        <tr><td>Logger</td><td>Pino (JSON structured)</td></tr>
+        <tr><td>Tracing SDK</td><td>@opentelemetry/sdk-node</td></tr>
+        <tr><td>Trace backend</td><td>Jaeger</td></tr>
+        <tr><td>Metrics</td><td>Prometheus + prom-client</td></tr>
+        <tr><td>Dashboard</td><td>Grafana + Loki</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔗</span> Dependencies</div>
+      <div class="dep-list">
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(129,140,248,.12);color:#818cf8">P3</span>Fastify server đang chạy để attach middleware</div>
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(248,113,113,.12);color:#f87171">P2</span>AsyncLocalStorage context có tenant_id để enrich log</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PHASE 5 ── -->
+<div class="pnl" id="p-5">
+  <div class="phase-panel">
+    <div class="phase-header">
+      <div class="phase-num" style="color:#06b6d4">05</div>
+      <div class="phase-header-info">
+        <h2 style="color:#06b6d4">Execution Context + Plugin Registry (L3)</h2>
+        <p>Xây dựng cơ chế load plugin, build ExecutionContext và Hook Registry. Đây là trái tim của Plugin System — chưa cần sandbox cứng.</p>
+      </div>
+    </div>
+    <div class="phase-why" style="border-left-color:#06b6d4">
+      <div class="why-label" style="color:#06b6d4">Tại sao trước Sandbox</div>
+      <p>Cần hiểu plugin <strong>chạy như thế nào</strong> trong ExecutionContext trước khi nhốt nó vào isolate. Sandbox (Phase 6) bọc xung quanh registry đã có, không thay thế nó.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
+      <ul class="task-list">
+        <li class="task-item critical"><span class="ck">★</span><div><strong>ExecutionContext builder</strong> — load tenant config từ DB (+ cache), danh sách plugin enabled, user claims, permission check</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Plugin manifest loader</strong> — đọc <code>plugin.manifest.json</code>, validate bằng Zod schema (dependencies, permissions, resource limits)</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Plugin Registry</strong> — đăng ký plugin cores: CustomerData, CustomerCare, Analytics, Automation, Marketing</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Hook Registry</strong> — before/after/filter hooks với priority queue (TinyQueue min-heap)</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Route registry — map (method, url) → plugin handler</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Interface <code>IPluginCore</code>, <code>IPluginRegistry</code>, <code>IExecutionContext</code></div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Per-tenant enable/disable plugin (lookup từ tenant config)</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
+      <div class="deliverable-list">
+        <div class="del-item"><span class="del-icon">▸</span><span>Plugin được load, manifest validated, core đăng ký thành công</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Hook fired đúng thứ tự priority (before → handler → after)</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Tenant A chỉ thấy plugin mình đã enable</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>ExecutionContext chứa đủ: tenant config, user claims, DB connection, cache client</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🛠</span> Tech</div>
+      <table>
+        <tr><th>Thành phần</th><th>Công nghệ</th></tr>
+        <tr><td>Manifest validate</td><td>Zod schema</td></tr>
+        <tr><td>Hook priority</td><td>TinyQueue (min-heap)</td></tr>
+        <tr><td>Filter chain</td><td>Async middleware pipeline</td></tr>
+        <tr><td>Interfaces</td><td>TypeScript abstract classes</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔗</span> Dependencies</div>
+      <div class="dep-list">
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(248,113,113,.12);color:#f87171">P2</span>IDbContext, ICacheManager từ L4</div>
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(129,140,248,.12);color:#818cf8">P3</span>JWT claims (user_id, roles) từ request context</div>
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(250,204,21,.12);color:#facc15">P4</span>Logging để trace plugin load, hook execution</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PHASE 6 ── -->
+<div class="pnl" id="p-6">
+  <div class="phase-panel">
+    <div class="phase-header">
+      <div class="phase-num" style="color:#fb923c">06</div>
+      <div class="phase-header-info">
+        <h2 style="color:#fb923c">Plugin Sandbox — Hard Resource Limits (L3)</h2>
+        <p>Bọc plugin execution trong V8 isolate độc lập. Enforce limits: 5s timeout, 50MB memory, 50 queries/request. Plugin không thể ảnh hưởng host process.</p>
+      </div>
+    </div>
+    <div class="phase-why" style="border-left-color:#fb923c">
+      <div class="why-label" style="color:#fb923c">Tại sao sau Plugin Registry</div>
+      <p>Sandbox là lớp bảo vệ bọc xung quanh registry đã có. Cần hiểu <strong>plugin chạy gì</strong> trước khi hạn chế nó. Nếu làm ngược lại, sẽ design sandbox theo giả định sai về cách plugin hoạt động.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
+      <ul class="task-list">
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Isolated-VM wrapper</strong> — mỗi plugin call chạy trong V8 isolate riêng, không share heap với host</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div>Set <code>timeout: 5000</code> — plugin quá 5 giây bị kill, trả về TimeoutError</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div>Set <code>memoryLimitMb: 50</code> — plugin dùng quá 50MB bị kill, trả về MemoryError</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div>Tích hợp QueryCounterMiddleware (Phase 2) — throw khi vượt 50 queries/request</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Context bridge — expose safe API (DB query, cache) vào isolate, không expose Node.js globals</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Test: plugin loop vô hạn → bị timeout. Plugin malloc quá lớn → bị kill. Plugin 51 queries → bị reject</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Metrics: sandbox execution time histogram, violation count per limit type</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
+      <div class="deliverable-list">
+        <div class="del-item"><span class="del-icon">▸</span><span>Plugin chạy trong isolate — crash plugin không crash host process</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>3 loại limit đều được enforce và có error message rõ ràng</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Plugin chỉ truy cập được API được whitelist, không thể <code>require('fs')</code></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🛠</span> Tech</div>
+      <table>
+        <tr><th>Giới hạn</th><th>Implementation</th></tr>
+        <tr><td>Sandbox engine</td><td>isolated-vm (npm)</td></tr>
+        <tr><td>5s timeout</td><td><code>isolate.run(fn, {timeout:5000})</code></td></tr>
+        <tr><td>50MB memory</td><td><code>new Isolate({memoryLimit:50})</code></td></tr>
+        <tr><td>50 queries</td><td>AsyncLocalStorage counter từ P2</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔗</span> Dependencies</div>
+      <div class="dep-list">
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(6,182,212,.12);color:#06b6d4">P5</span>Plugin Registry + ExecutionContext đã hoạt động</div>
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(248,113,113,.12);color:#f87171">P2</span>QueryCounterMiddleware để enforce 50-query limit</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PHASE 7 ── -->
+<div class="pnl" id="p-7">
+  <div class="phase-panel">
+    <div class="phase-header">
+      <div class="phase-num" style="color:#c084fc">07</div>
+      <div class="phase-header-info">
+        <h2 style="color:#c084fc">Cross-Cutting — DI · Error Handling · Security (L6)</h2>
+        <p>Wire DI container, chuẩn hóa error responses, thêm security headers. Lúc này toàn bộ business logic đã hoạt động — wire lại qua DI để code testable hơn.</p>
+      </div>
+    </div>
+    <div class="phase-why" style="border-left-color:#c084fc">
+      <div class="why-label" style="color:#c084fc">Tại sao sau Plugin System</div>
+      <p>DI container cần biết <strong>tất cả service đang tồn tại</strong> để wire đúng. Làm DI quá sớm khi interface chưa ổn định = wire lại nhiều lần. Giai đoạn này interface đã định hình từ P2–P6.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
+      <ul class="task-list">
+        <li class="task-item critical"><span class="ck">★</span><div><strong>TSyringe DI container</strong> — đăng ký tất cả service: PoolRegistry, CacheManager, PluginRegistry, HookRegistry</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Error hierarchy</strong> — <code>AppError → DomainError → PluginError → ValidationError</code> với HTTP status mapping</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Fastify setErrorHandler</strong> — chuẩn hóa tất cả error response theo RFC 7807 Problem Details JSON</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Helmet.js — CSP, HSTS, X-Frame-Options, X-Content-Type-Options</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>CORS configuration — per-tenant allowed origins từ tenant config</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>bcrypt hashing cho passwords (cost 12)</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>AES-256-GCM encryption cho PII fields trong DB</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Sentry error tracking setup (hoặc GlitchTip self-hosted)</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
+      <div class="deliverable-list">
+        <div class="del-item"><span class="del-icon">▸</span><span>Tất cả service inject được qua DI — không còn manual <code>new Service()</code></span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Mọi error response có format thống nhất: <code>{"type", "title", "status", "detail"}</code></span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Security headers pass Mozilla Observatory scan ≥ B+</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🛠</span> Tech</div>
+      <table>
+        <tr><th>Thành phần</th><th>Công nghệ</th></tr>
+        <tr><td>DI</td><td>TSyringe</td></tr>
+        <tr><td>Security headers</td><td>Helmet.js</td></tr>
+        <tr><td>Password</td><td>bcrypt (cost 12)</td></tr>
+        <tr><td>Encryption</td><td>AES-256-GCM (Node crypto)</td></tr>
+        <tr><td>Error tracking</td><td>Sentry / GlitchTip</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔗</span> Dependencies</div>
+      <div class="dep-list">
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(251,146,60,.12);color:#fb923c">P6</span>Tất cả service/interface đã ổn định để wire</div>
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(250,204,21,.12);color:#facc15">P4</span>Logger để wire vào error handler</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PHASE 8 ── -->
+<div class="pnl" id="p-8">
+  <div class="phase-panel">
+    <div class="phase-header">
+      <div class="phase-num" style="color:#4ade80">08</div>
+      <div class="phase-header-info">
+        <h2 style="color:#4ade80">Async Workers — RabbitMQ · BullMQ (L5)</h2>
+        <p>Tách các tác vụ nặng (email, search indexing, webhooks, audit) ra khỏi request path. Request trả về ngay, worker xử lý async phía sau.</p>
+      </div>
+    </div>
+    <div class="phase-why" style="border-left-color:#4ade80">
+      <div class="why-label" style="color:#4ade80">Tại sao sau Cross-cutting</div>
+      <p>Worker cần dùng DI container (Phase 7) để inject service. Và cần error handling chuẩn để xử lý retry khi worker fail. Xây worker trước khi có DI = manual wiring khó maintain.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
+      <ul class="task-list">
+        <li class="task-item critical"><span class="ck">★</span><div><strong>RabbitMQ exchanges</strong>: <code>notifications</code>, <code>search.index</code>, <code>webhooks</code>, <code>audit</code> — với DLX (dead-letter exchange)</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Audit writer worker</strong> — consume từ <code>audit</code> exchange, write vào <code>audit_logs</code> table bất đồng bộ</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Notification worker</strong> — email (Nodemailer/Resend), push, in-app</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Search indexing worker</strong> — consume events, push document vào Elasticsearch</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Webhook worker</strong> — outbound HTTP calls đến tenant-defined endpoints</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>BullMQ</strong> cho job queue: retry với exponential backoff, priority, delay</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Bull Board UI — monitor job queue trong môi trường dev</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>node-cron jobs: cleanup expired sessions, generate periodic reports</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
+      <div class="deliverable-list">
+        <div class="del-item"><span class="del-icon">▸</span><span>Request path không bị block bởi I/O nặng — latency giảm đáng kể</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Failed job tự retry với backoff, sau N lần vào DLQ để inspect</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Audit log được ghi async — không mất event dù request fail</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Bull Board hiển thị queue depth, throughput, failed jobs</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🛠</span> Tech</div>
+      <table>
+        <tr><th>Thành phần</th><th>Công nghệ</th></tr>
+        <tr><td>AMQP client</td><td>amqplib</td></tr>
+        <tr><td>Job queue</td><td>BullMQ (Redis-backed)</td></tr>
+        <tr><td>Queue UI</td><td>Bull Board</td></tr>
+        <tr><td>Scheduler</td><td>node-cron</td></tr>
+        <tr><td>Email</td><td>Resend / Nodemailer</td></tr>
+        <tr><td>Search client</td><td>@elastic/elasticsearch</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔗</span> Dependencies</div>
+      <div class="dep-list">
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(192,132,252,.12);color:#c084fc">P7</span>DI container để inject service vào workers</div>
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(52,211,153,.12);color:#34d399">P1</span>RabbitMQ đang chạy trong Docker Compose</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PHASE 9 ── -->
+<div class="pnl" id="p-9">
+  <div class="phase-panel">
+    <div class="phase-header">
+      <div class="phase-num" style="color:#818cf8">09</div>
+      <div class="phase-header-info">
+        <h2 style="color:#818cf8">Presentation Layer (L1)</h2>
+        <p>Xây giao diện người dùng theo thứ tự ưu tiên: Admin Console → Web App → Module Federation Plugin UI → Mobile. Frontend bind vào API đã ổn định.</p>
+      </div>
+    </div>
+    <div class="phase-why" style="border-left-color:#818cf8">
+      <div class="why-label" style="color:#818cf8">Tại sao sau cùng trong backend phases</div>
+      <p>Frontend thay đổi nhiều nhất trong vòng đời sản phẩm. Xây UI trước khi API ổn định = rebuild nhiều lần. API contract phải stable trước — <strong>UI bind vào API, không phải ngược lại</strong>.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Thứ tự xây dựng</div>
+      <ul class="task-list">
+        <li class="task-item critical"><span class="ck">①</span><div><strong>Admin Console</strong> (Next.js + Shadcn/ui) — quản lý tenant, enable/disable plugin, xem metrics. Cần trước để operator quản lý hệ thống</div></li>
+        <li class="task-item normal"><span class="ck">②</span><div><strong>Web App chính</strong> (React 18 + Next.js) — CRM UI cho end users: contacts, deals, tasks, activities</div></li>
+        <li class="task-item normal"><span class="ck">③</span><div><strong>Module Federation</strong> — tách plugin UI thành Webpack remote, host app lazy-load theo manifest</div></li>
+        <li class="task-item normal"><span class="ck">④</span><div><strong>Mobile</strong> (React Native) — sau cùng, khi UX pattern đã được validate trên web</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
+      <div class="deliverable-list">
+        <div class="del-item"><span class="del-icon">▸</span><span>Admin Console: CRUD tenant, toggle plugin, xem real-time metrics</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Web App: core CRM workflows hoạt động end-to-end</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Plugin UI load động không cần rebuild host app</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Mobile: core features parity với web</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🛠</span> Tech</div>
+      <table>
+        <tr><th>App</th><th>Tech</th></tr>
+        <tr><td>Admin Console</td><td>Next.js 15 + Shadcn/ui + TanStack Table</td></tr>
+        <tr><td>Web App</td><td>React 18 + Next.js + Zustand + TanStack Query</td></tr>
+        <tr><td>Plugin UI</td><td>Webpack 5 Module Federation + React.lazy</td></tr>
+        <tr><td>Mobile</td><td>React Native + React Navigation + NativeWind</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔗</span> Dependencies</div>
+      <div class="dep-list">
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(192,132,252,.12);color:#c084fc">P7</span>API routes ổn định, error format chuẩn</div>
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(6,182,212,.12);color:#06b6d4">P5</span>Plugin manifest để load plugin UI đúng</div>
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(74,222,128,.12);color:#4ade80">P8</span>Notification worker cho real-time updates</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PHASE 10 ── -->
+<div class="pnl" id="p-10">
+  <div class="phase-panel">
+    <div class="phase-header">
+      <div class="phase-num" style="color:#7880a0">10</div>
+      <div class="phase-header-info">
+        <h2 style="color:#7880a0">Production Hardening</h2>
+        <p>Nâng cấp infra cho production: Kong Gateway, Kubernetes, Patroni HA, Elasticsearch, MinIO, Terraform IaC, ArgoCD GitOps, security scanning.</p>
+      </div>
+    </div>
+    <div class="phase-why" style="border-left-color:#7880a0">
+      <div class="why-label" style="color:#7880a0">Tại sao cuối cùng</div>
+      <p>Production infra tốn công setup và maintain. Làm sớm khi product chưa validate = lãng phí. Khi toàn bộ P1–P9 đã chạy đúng trên local/staging, mới lift-and-shift lên production stack.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
+      <ul class="task-list">
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Kong Gateway</strong> thay thế Fastify middleware tenant resolution — centralized rate limiting, logging, auth</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Kubernetes</strong> deployment — Helm charts cho tất cả services, HPA auto-scaling</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Patroni + etcd</strong> — PostgreSQL HA với automatic failover</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Elasticsearch 8</strong> — full-text search với tenant-scoped index alias</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>MinIO</strong> — object storage cho file uploads (thay thế local filesystem)</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Terraform + Terragrunt</strong> — IaC cho toàn bộ cloud resources</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>ArgoCD</strong> — GitOps CD, tự động sync khi push lên main branch</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Trivy</strong> — vulnerability scan trong CI pipeline (image + IaC)</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Linkerd</strong> service mesh — mTLS, traffic management, circuit breaker</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Load testing với k6 — validate SLO trước khi go-live</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
+      <div class="deliverable-list">
+        <div class="del-item"><span class="del-icon">▸</span><span>Kubernetes cluster chạy tất cả services với HPA</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>PostgreSQL failover tự động — RTO &lt; 30 giây</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>CI/CD pipeline: push → test → scan → deploy tự động</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>SLO baseline đạt: p95 latency &lt; 200ms, error rate &lt; 0.1%</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Zero-downtime deployment với ArgoCD blue-green</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🛠</span> Tech</div>
+      <table>
+        <tr><th>Thành phần</th><th>Công nghệ</th></tr>
+        <tr><td>Gateway</td><td>Kong Gateway</td></tr>
+        <tr><td>Orchestration</td><td>Kubernetes + Helm</td></tr>
+        <tr><td>DB HA</td><td>Patroni + etcd</td></tr>
+        <tr><td>Service mesh</td><td>Linkerd</td></tr>
+        <tr><td>IaC</td><td>Terraform + Terragrunt</td></tr>
+        <tr><td>GitOps</td><td>ArgoCD</td></tr>
+        <tr><td>Security scan</td><td>Trivy</td></tr>
+        <tr><td>Load test</td><td>k6</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔗</span> Dependencies</div>
+      <div class="dep-list">
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(129,140,248,.12);color:#818cf8">P9</span>Toàn bộ hệ thống đã validate trên local/staging</div>
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(250,204,21,.12);color:#facc15">P4</span>Observability đã có để monitor sau khi deploy production</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end .wrap -->
+
+<script>
+function go(i){
+  document.querySelectorAll('.pnl').forEach((p,j)=>p.classList.toggle('on',j===i));
+  document.querySelectorAll('.nav button').forEach((b,j)=>b.classList.toggle('on',j===i));
+}
+</script>
+</body>
+</html>

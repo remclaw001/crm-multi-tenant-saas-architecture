@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 1 — Local Dev Environment</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #08080d;
+  --sf:      #0d0d16;
+  --sf2:     #111120;
+  --bd:      #1e1e2e;
+  --bd2:     #252538;
+  --tx:      #e4e4ee;
+  --td:      #8e8ea8;
+  --tdm:     #5a5a72;
+  --ac:      #818cf8;
+  --ac2:     #6366f1;
+  --ac-glow: rgba(129,140,248,0.12);
+  --ac-dim:  rgba(129,140,248,0.06);
+  --green:   #34d399;
+  --green-d: rgba(52,211,153,0.1);
+  --red:     #f87171;
+  --red-d:   rgba(248,113,113,0.1);
+  --yellow:  #fbbf24;
+  --yellow-d:rgba(251,191,36,0.1);
+  --cyan:    #22d3ee;
+  --cyan-d:  rgba(34,211,238,0.1);
+  --purple:  #c084fc;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--tx);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── HEADER ── */
+.page-header {
+  padding: 36px 48px 28px;
+  border-bottom: 1px solid var(--bd);
+  background: var(--sf);
+  position: relative;
+  overflow: hidden;
+}
+.page-header::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 240px; height: 240px;
+  background: radial-gradient(circle, rgba(129,140,248,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.phase-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--green);
+  background: var(--green-d);
+  border: 1px solid rgba(52,211,153,0.2);
+  padding: 4px 12px;
+  border-radius: 4px;
+  margin-bottom: 14px;
+}
+.phase-badge::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.page-header h1 {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--tx);
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+}
+.page-header h1 span { color: var(--ac); }
+.page-header p {
+  font-size: 0.875rem;
+  color: var(--td);
+  max-width: 680px;
+  line-height: 1.65;
+}
+.header-meta {
+  display: flex;
+  gap: 24px;
+  margin-top: 16px;
+}
+.meta-item {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--tdm);
+}
+.meta-item span { color: var(--td); }
+
+/* ── TAB NAV ── */
+.tab-nav-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(8,8,13,0.96);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--bd);
+}
+.tab-nav {
+  display: flex;
+  gap: 0;
+  padding: 0 48px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--tdm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.tab-btn:hover { color: var(--td); }
+.tab-btn.active { color: var(--ac); }
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--ac);
+  border-radius: 2px 2px 0 0;
+}
+.tab-num {
+  font-size: 0.65rem;
+  opacity: 0.5;
+}
+
+/* ── CONTENT ── */
+.content-wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 40px 48px 80px;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── SECTION HEADING ── */
+.sec-title {
+  font-size: 0.7rem;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--ac);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--bd);
+}
+.sec-subtitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--tx);
+  margin-bottom: 10px;
+}
+.prose {
+  font-size: 0.875rem;
+  color: var(--td);
+  line-height: 1.75;
+  margin-bottom: 24px;
+}
+.prose strong { color: var(--tx); font-weight: 600; }
+.prose code {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--ac);
+  background: var(--ac-dim);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* ── GRID ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+@media(max-width:780px){ .grid-2,.grid-3{grid-template-columns:1fr;} }
+
+/* ── CARD ── */
+.card {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card-label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--tdm);
+  margin-bottom: 10px;
+}
+
+/* ── FILE TREE ── */
+.file-tree {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 2;
+  background: var(--sf2);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  white-space: pre;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bd2) transparent;
+}
+.tree-dir  { color: var(--ac); font-weight: 600; }
+.tree-file { color: var(--tx); }
+.tree-dim  { color: var(--tdm); font-size: 0.72rem; }
+.tree-new  {
+  color: var(--green);
+  background: var(--green-d);
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+/* ── CHECKLIST ── */
+.check-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--td);
+  padding: 10px 14px;
+  background: var(--sf2);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  line-height: 1.5;
+}
+.check-item.done   { border-color: rgba(52,211,153,0.2); }
+.check-item.crit   { border-color: rgba(248,113,113,0.25); background: rgba(248,113,113,0.03); }
+.check-icon {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.check-icon.ok   { color: var(--green); }
+.check-icon.star { color: var(--red); }
+.check-item strong { color: var(--tx); font-weight: 600; }
+
+/* ── CODE BLOCK ── */
+.code-wrap {
+  margin-bottom: 24px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--bd);
+}
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--sf2);
+  border-bottom: 1px solid var(--bd);
+}
+.code-filename {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ac);
+}
+.code-lang {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--tdm);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+pre {
+  background: var(--sf2);
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.85;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bd2) transparent;
+}
+pre::-webkit-scrollbar { height: 4px; }
+pre::-webkit-scrollbar-track { background: transparent; }
+pre::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 4px; }
+
+/* Syntax tokens */
+.k  { color: #c084fc; }           /* SQL keywords / TS keywords */
+.kw { color: #c084fc; }
+.t  { color: #67e8f9; }           /* types */
+.fn { color: #818cf8; }           /* functions */
+.s  { color: #86efac; }           /* strings */
+.n  { color: #fca5a5; }           /* numbers */
+.c  { color: #4a5068; font-style: italic; } /* comments */
+.op { color: var(--td); }         /* operators, punctuation */
+.p  { color: var(--tdm); }        /* plain dim */
+.hl { background: rgba(129,140,248,0.08); display: block; margin: 0 -24px; padding: 0 24px; } /* highlight line */
+.ann {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--yellow);
+  background: var(--yellow-d);
+  border: 1px solid rgba(251,191,36,0.2);
+  padding: 0 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-style: normal;
+}
+
+/* ── ANNOTATION NOTES ── */
+.note-block {
+  background: linear-gradient(135deg, var(--ac-dim), transparent);
+  border: 1px solid var(--bd);
+  border-left: 3px solid var(--ac);
+  border-radius: 0 6px 6px 0;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 0.83rem;
+  color: var(--td);
+  line-height: 1.65;
+}
+.note-block.green { border-left-color: var(--green); background: linear-gradient(135deg, var(--green-d), transparent); }
+.note-block.red   { border-left-color: var(--red);   background: linear-gradient(135deg, var(--red-d), transparent); }
+.note-block.yellow{ border-left-color: var(--yellow); background: linear-gradient(135deg, var(--yellow-d), transparent); }
+.note-block strong { color: var(--tx); }
+.note-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ac);
+  display: block;
+  margin-bottom: 5px;
+}
+.note-label.green  { color: var(--green); }
+.note-label.red    { color: var(--red); }
+.note-label.yellow { color: var(--yellow); }
+
+/* ── TABLE ── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-bottom: 24px;
+}
+.data-table th {
+  text-align: left;
+  padding: 8px 14px;
+  background: var(--sf2);
+  color: var(--ac);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--bd);
+}
+.data-table td {
+  padding: 9px 14px;
+  border: 1px solid var(--bd);
+  color: var(--td);
+  vertical-align: top;
+  line-height: 1.5;
+  background: var(--sf);
+}
+.data-table td:first-child {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--tx);
+  white-space: nowrap;
+}
+.data-table tr:hover td { background: var(--sf2); }
+.badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+.badge-yes   { background: var(--green-d); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+.badge-no    { background: rgba(0,0,0,0.3); color: var(--tdm); border: 1px solid var(--bd); }
+.badge-crit  { background: var(--red-d); color: var(--red); border: 1px solid rgba(248,113,113,0.25); }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--bd); margin: 32px 0; }
+
+/* ── FLOW DIAGRAM ── */
+.flow {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+.flow-step {
+  flex: 1;
+  min-width: 130px;
+  background: var(--sf2);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  padding: 14px 16px;
+  font-size: 0.78rem;
+  text-align: center;
+  position: relative;
+}
+.flow-step .step-num {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--ac);
+  display: block;
+  margin-bottom: 4px;
+}
+.flow-step .step-name {
+  font-weight: 600;
+  color: var(--tx);
+  font-size: 0.8rem;
+}
+.flow-step .step-sub {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--tdm);
+  margin-top: 4px;
+}
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  color: var(--tdm);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+/* ── RLS DIAGRAM ── */
+.rls-diagram {
+  background: var(--sf2);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+.rls-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bd);
+}
+.rls-row:last-child { border-bottom: none; }
+.rls-source { color: var(--td); flex: 1; }
+.rls-arrow { color: var(--bdm); }
+.rls-check { flex: 2; }
+.rls-result { text-align: right; font-weight: 700; }
+.rls-result.ok { color: var(--green); }
+.rls-result.fail { color: var(--red); }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="phase-badge">Phase 1 — Complete</div>
+  <h1>Local Dev <span>Environment</span></h1>
+  <p>Thiết lập toàn bộ hạ tầng cục bộ: Docker Compose, PostgreSQL 16 với Row-Level Security, schema multi-tenant, Zod env validation và Knex migration + seed. Nền móng cho mọi phase sau.</p>
+  <div class="header-meta">
+    <div class="meta-item">layer: <span>L5 Infrastructure</span></div>
+    <div class="meta-item">tools: <span>Docker · PostgreSQL 16 · Redis 7 · RabbitMQ · Knex · Zod</span></div>
+    <div class="meta-item">files: <span>9 files created</span></div>
+  </div>
+</div>
+
+<div class="tab-nav-wrap">
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab(0)"><span class="tab-num">01</span> Tổng quan</button>
+    <button class="tab-btn" onclick="switchTab(1)"><span class="tab-num">02</span> Docker Compose</button>
+    <button class="tab-btn" onclick="switchTab(2)"><span class="tab-num">03</span> Schema &amp; RLS</button>
+    <button class="tab-btn" onclick="switchTab(3)"><span class="tab-num">04</span> Config &amp; Env</button>
+    <button class="tab-btn" onclick="switchTab(4)"><span class="tab-num">05</span> Seed Data</button>
+  </div>
+</div>
+
+<div class="content-wrap">
+
+<!-- ══════════════════════════════════════════════
+     TAB 1 — TỔNG QUAN
+══════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-0">
+
+  <div class="sec-title">Cấu trúc thư mục</div>
+
+  <div class="file-tree"><span class="tree-dir">backend/</span>  <span class="tree-new">NEW</span>
+├── <span class="tree-file">docker-compose.yml</span>   <span class="tree-dim"># PG 16 + Redis 7 + RabbitMQ 3</span>  <span class="tree-new">NEW</span>
+├── <span class="tree-file">package.json</span>         <span class="tree-dim"># knex, pg, zod, dotenv, ts-node</span>  <span class="tree-new">NEW</span>
+├── <span class="tree-file">tsconfig.json</span>        <span class="tree-dim"># CommonJS, strict, ts-node config</span>  <span class="tree-new">NEW</span>
+├── <span class="tree-file">knexfile.ts</span>          <span class="tree-dim"># Knex config + afterCreate hook</span>  <span class="tree-new">NEW</span>
+├── <span class="tree-file">.env.example</span>         <span class="tree-dim"># Template — copy → .env</span>  <span class="tree-new">NEW</span>
+├── <span class="tree-file">.gitignore</span>           <span class="tree-dim"># node_modules, dist, .env</span>  <span class="tree-new">NEW</span>
+├── <span class="tree-dir">scripts/</span>
+│   └── <span class="tree-file">postgres-init.sql</span>  <span class="tree-dim"># Extensions: uuid-ossp, pgcrypto</span>  <span class="tree-new">NEW</span>
+└── <span class="tree-dir">src/</span>
+    ├── <span class="tree-dir">config/</span>
+    │   └── <span class="tree-file">env.ts</span>  <span class="tree-dim"># Zod env validation + crash</span>  <span class="tree-new">NEW</span>
+    └── <span class="tree-dir">db/</span>
+        ├── <span class="tree-dir">migrations/</span>
+        │   └── <span class="tree-file">20260222000001_init_schema.ts</span>  <span class="tree-new">NEW</span>
+        └── <span class="tree-dir">seeds/</span>
+            └── <span class="tree-file">01_tenants.ts</span>  <span class="tree-dim"># 3 tenants, roles, users</span>  <span class="tree-new">NEW</span></div>
+
+  <div class="sec-title">Deliverables checklist</div>
+  <ul class="check-list">
+    <li class="check-item done">
+      <span class="check-icon ok">✓</span>
+      <div><strong>docker-compose.yml</strong> — toàn bộ services up với một lệnh <code>docker compose up -d</code></div>
+    </li>
+    <li class="check-item done">
+      <span class="check-icon ok">✓</span>
+      <div><strong>RLS hoạt động</strong> — query không có <code>SET app.tenant_id</code> trả về 0 rows, kể cả với table owner (FORCE ROW LEVEL SECURITY)</div>
+    </li>
+    <li class="check-item done">
+      <span class="check-icon ok">✓</span>
+      <div><strong>Zod config schema</strong> — app crash rõ ràng với danh sách từng biến còn thiếu nếu <code>.env</code> không đầy đủ</div>
+    </li>
+    <li class="check-item done">
+      <span class="check-icon ok">✓</span>
+      <div><strong>Knex migration <code>20260222000001_init_schema.ts</code></strong> — tạo schema và RLS policies, có <code>down()</code> để rollback</div>
+    </li>
+    <li class="check-item done">
+      <span class="check-icon ok">✓</span>
+      <div><strong>Seed data</strong> — 3 tenants khác tier: <code>acme</code> (standard), <code>globex</code> (standard), <code>initech</code> (vip) với đủ roles và users</div>
+    </li>
+    <li class="check-item crit">
+      <span class="check-icon star">★</span>
+      <div><strong>Connection pool afterCreate hook</strong> — reset <code>app.tenant_id = NULL</code> khi connection trả về pool, ngăn context leak giữa các request</div>
+    </li>
+  </ul>
+
+  <div class="divider"></div>
+
+  <div class="sec-title">Quick start</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">terminal</span>
+      <span class="code-lang">bash</span>
+    </div>
+    <pre><span class="c"># 1. Vào thư mục backend</span>
+cd backend
+
+<span class="c"># 2. Tạo file .env từ template</span>
+cp .env.example .env
+
+<span class="c"># 3. Khởi động services</span>
+docker compose up -d
+
+<span class="c"># 4. Đợi Postgres healthy, cài dependencies</span>
+npm install
+
+<span class="c"># 5. Chạy migration (tạo tables + RLS)</span>
+npm run db:migrate
+
+<span class="c"># 6. Seed 3 tenants</span>
+npm run db:seed
+
+<span class="c"># 7. Kiểm tra RLS hoạt động</span>
+docker exec -it crm_postgres psql -U crm -d crm_dev -c <span class="s">"SELECT * FROM users;"</span>
+<span class="c"># → 0 rows (vì chưa SET app.tenant_id)</span>
+
+docker exec -it crm_postgres psql -U crm -d crm_dev \
+  -c <span class="s">"SET app.tenant_id = (SELECT id FROM tenants WHERE subdomain='acme'); SELECT email FROM users;"</span>
+<span class="c"># → chỉ thấy 3 users của acme</span></pre>
+  </div>
+
+  <div class="sec-title">Tech stack Phase 1</div>
+  <table class="data-table">
+    <tr><th>Thành phần</th><th>Công nghệ</th><th>Version</th><th>Vai trò</th></tr>
+    <tr><td>Container</td><td>Docker Compose</td><td>v3.9</td><td>One-command local env</td></tr>
+    <tr><td>Database</td><td>PostgreSQL</td><td>16-alpine</td><td>Shared multi-tenant DB + RLS</td></tr>
+    <tr><td>Cache</td><td>Redis</td><td>7-alpine</td><td>Session, cache key t:&lt;id&gt;:&lt;type&gt;:&lt;id&gt;</td></tr>
+    <tr><td>Broker</td><td>RabbitMQ</td><td>3-management-alpine</td><td>Async events (Phase 8)</td></tr>
+    <tr><td>Migration</td><td>Knex.js</td><td>^3.1.0</td><td>Schema versioning, seed</td></tr>
+    <tr><td>Config</td><td>Zod + dotenv</td><td>^3.23.8</td><td>Type-safe env validation</td></tr>
+    <tr><td>TypeScript</td><td>ts-node</td><td>^10.9.2</td><td>Run TS trực tiếp (dev)</td></tr>
+  </table>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 2 — DOCKER COMPOSE
+══════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-1">
+
+  <div class="sec-title">Tổng quan services</div>
+  <div class="flow">
+    <div class="flow-step">
+      <span class="step-num">:5432</span>
+      <div class="step-name">PostgreSQL 16</div>
+      <div class="step-sub">crm_postgres</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="step-num">:6379</span>
+      <div class="step-name">Redis 7</div>
+      <div class="step-sub">crm_redis</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="step-num">:5672 / :15672</span>
+      <div class="step-name">RabbitMQ 3</div>
+      <div class="step-sub">crm_rabbitmq</div>
+    </div>
+  </div>
+
+  <div class="sec-title">docker-compose.yml — annotated</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">backend/docker-compose.yml</span>
+      <span class="code-lang">yaml</span>
+    </div>
+    <pre><span class="k">version</span><span class="op">:</span> <span class="s">'3.9'</span>
+
+<span class="k">services</span><span class="op">:</span>
+
+  <span class="fn">postgres</span><span class="op">:</span>
+    <span class="k">image</span><span class="op">:</span> postgres:16-alpine          <span class="c"># alpine = image nhỏ hơn, đủ cho dev</span>
+    <span class="k">container_name</span><span class="op">:</span> crm_postgres
+    <span class="k">environment</span><span class="op">:</span>
+      POSTGRES_DB<span class="op">:</span> crm_dev
+      POSTGRES_USER<span class="op">:</span> crm             <span class="ann">SUPERUSER</span>
+      POSTGRES_PASSWORD<span class="op">:</span> crm
+    <span class="k">ports</span><span class="op">:</span>
+      - <span class="s">"5432:5432"</span>
+    <span class="k">volumes</span><span class="op">:</span>
+      - postgres_data:/var/lib/postgresql/data
+<span class="hl">      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/00_init.sql  <span class="ann">INIT HOOK</span></span>
+    <span class="k">healthcheck</span><span class="op">:</span>                     <span class="c"># depends_on với condition: service_healthy</span>
+      test<span class="op">:</span> [<span class="s">"CMD-SHELL"</span>, <span class="s">"pg_isready -U crm -d crm_dev"</span>]
+      interval<span class="op">:</span> 5s
+      timeout<span class="op">:</span> 5s
+      retries<span class="op">:</span> 5
+
+  <span class="fn">redis</span><span class="op">:</span>
+    <span class="k">image</span><span class="op">:</span> redis:7-alpine
+    <span class="k">container_name</span><span class="op">:</span> crm_redis
+    <span class="k">ports</span><span class="op">:</span>
+      - <span class="s">"6379:6379"</span>
+    <span class="k">volumes</span><span class="op">:</span>
+      - redis_data:/data
+<span class="hl">    <span class="k">command</span><span class="op">:</span> redis-server --save 60 1 --loglevel warning  <span class="ann">RDB SNAPSHOT</span></span>
+    <span class="k">healthcheck</span><span class="op">:</span>
+      test<span class="op">:</span> [<span class="s">"CMD"</span>, <span class="s">"redis-cli"</span>, <span class="s">"ping"</span>]
+      interval<span class="op">:</span> 5s
+      timeout<span class="op">:</span> 3s
+      retries<span class="op">:</span> 5
+
+  <span class="fn">rabbitmq</span><span class="op">:</span>
+    <span class="k">image</span><span class="op">:</span> rabbitmq:3-management-alpine    <span class="c"># management = có Web UI</span>
+    <span class="k">container_name</span><span class="op">:</span> crm_rabbitmq
+    <span class="k">environment</span><span class="op">:</span>
+      RABBITMQ_DEFAULT_USER<span class="op">:</span> crm
+      RABBITMQ_DEFAULT_PASS<span class="op">:</span> crm
+    <span class="k">ports</span><span class="op">:</span>
+<span class="hl">      - <span class="s">"5672:5672"</span>     <span class="c"># AMQP — ứng dụng connect vào đây</span></span>
+<span class="hl">      - <span class="s">"15672:15672"</span>   <span class="c"># Management UI → http://localhost:15672</span></span>
+    <span class="k">healthcheck</span><span class="op">:</span>
+      test<span class="op">:</span> [<span class="s">"CMD"</span>, <span class="s">"rabbitmq-diagnostics"</span>, <span class="s">"check_running"</span>]
+      interval<span class="op">:</span> 10s
+      timeout<span class="op">:</span> 5s
+      retries<span class="op">:</span> 5
+
+<span class="k">volumes</span><span class="op">:</span>
+  postgres_data<span class="op">:</span>     <span class="c"># data survive docker compose down</span>
+  redis_data<span class="op">:</span>
+  rabbitmq_data<span class="op">:</span></pre>
+  </div>
+
+  <div class="grid-2">
+    <div class="note-block green">
+      <span class="note-label green">postgres-init.sql — tại sao?</span>
+      Docker Postgres tự động chạy mọi file trong <code>/docker-entrypoint-initdb.d/</code> khi container khởi tạo lần đầu, với quyền <strong>superuser</strong>. Đây là nơi duy nhất đảm bảo extensions được cài <em>trước</em> khi Knex migration chạy.
+    </div>
+    <div class="note-block">
+      <span class="note-label">Redis --save 60 1</span>
+      Tạo RDB snapshot mỗi 60 giây nếu có ít nhất 1 key thay đổi. Không cần AOF trong dev — nhưng đủ để không mất hết cache khi <code>docker compose restart</code>.
+    </div>
+  </div>
+
+  <div class="sec-title">scripts/postgres-init.sql</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">backend/scripts/postgres-init.sql</span>
+      <span class="code-lang">sql</span>
+    </div>
+    <pre><span class="c">-- Chạy bởi Docker với quyền superuser, một lần duy nhất khi init</span>
+
+<span class="c">-- UUID generation: uuid_generate_v4()</span>
+<span class="k">CREATE EXTENSION IF NOT EXISTS</span> <span class="s">"uuid-ossp"</span><span class="op">;</span>
+
+<span class="c">-- Cryptographic: gen_random_bytes(), pgp_sym_encrypt()</span>
+<span class="c">-- Dùng ở Phase 7 để encrypt PII fields</span>
+<span class="k">CREATE EXTENSION IF NOT EXISTS</span> <span class="s">"pgcrypto"</span><span class="op">;</span>
+
+<span class="c">-- Query performance tracking (Phase 4 Observability)</span>
+<span class="k">CREATE EXTENSION IF NOT EXISTS</span> <span class="s">"pg_stat_statements"</span> <span class="k">WITH SCHEMA</span> public<span class="op">;</span></pre>
+  </div>
+
+  <div class="note-block yellow">
+    <span class="note-label yellow">IF NOT EXISTS — idempotent design</span>
+    Cả init SQL lẫn migration đều dùng <code>CREATE EXTENSION IF NOT EXISTS</code>. Nếu sau này migration chạy trên một DB instance mới chưa qua Docker init, vẫn không bị lỗi.
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 3 — SCHEMA & RLS
+══════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-2">
+
+  <div class="sec-title">Thiết kế bảng</div>
+  <table class="data-table">
+    <tr><th>Bảng</th><th>Có RLS</th><th>Lý do</th></tr>
+    <tr>
+      <td>tenants</td>
+      <td><span class="badge badge-no">NO</span></td>
+      <td>System table — cần truy cập trước khi biết tenant_id nào (dùng để resolve tenant từ subdomain)</td>
+    </tr>
+    <tr>
+      <td>permissions</td>
+      <td><span class="badge badge-no">NO</span></td>
+      <td>Global permission definitions, không thuộc tenant nào — dùng chung cho tất cả tenants</td>
+    </tr>
+    <tr>
+      <td>users</td>
+      <td><span class="badge badge-yes">YES</span></td>
+      <td>Mỗi tenant chỉ được thấy và thao tác users của mình</td>
+    </tr>
+    <tr>
+      <td>roles</td>
+      <td><span class="badge badge-yes">YES</span></td>
+      <td>Roles được định nghĩa per-tenant — "admin" của acme ≠ "admin" của globex</td>
+    </tr>
+    <tr>
+      <td>user_roles</td>
+      <td><span class="badge badge-yes">YES</span></td>
+      <td>Junction table có <code>tenant_id</code> denormalized để RLS có thể áp policy trực tiếp</td>
+    </tr>
+    <tr>
+      <td>role_permissions</td>
+      <td><span class="badge badge-no">NO</span></td>
+      <td>Roles đã bị RLS scoped; permission là global. Không cần RLS trên junction này</td>
+    </tr>
+  </table>
+
+  <div class="sec-title">Vấn đề: Table owner bypass RLS</div>
+  <div class="note-block red">
+    <span class="note-label red">PostgreSQL default behavior</span>
+    Theo mặc định, <strong>table owner không bị RLS chặn</strong>. Nếu chỉ dùng <code>ENABLE ROW LEVEL SECURITY</code>, user <code>crm</code> (owner của tất cả tables) vẫn thấy toàn bộ data dù không set <code>app.tenant_id</code>. Đây là lỗ hổng nghiêm trọng trong môi trường dev — dev không nhận ra và tưởng RLS hoạt động.
+  </div>
+
+  <div class="sec-title">Giải pháp: FORCE ROW LEVEL SECURITY</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">migration — RLS setup</span>
+      <span class="code-lang">sql</span>
+    </div>
+    <pre><span class="c">-- ENABLE: bật RLS, nhưng owner vẫn bypass</span>
+<span class="k">ALTER TABLE</span> users <span class="k">ENABLE ROW LEVEL SECURITY</span><span class="op">;</span>
+
+<span class="c">-- FORCE: áp dụng cả với owner → query "trần" trả về 0 rows</span>
+<span class="hl"><span class="k">ALTER TABLE</span> users <span class="k">FORCE ROW LEVEL SECURITY</span><span class="op">;</span></span>
+
+<span class="c">-- Tương tự cho roles và user_roles</span>
+<span class="k">ALTER TABLE</span> roles <span class="k">ENABLE ROW LEVEL SECURITY</span><span class="op">;</span>
+<span class="k">ALTER TABLE</span> roles <span class="k">FORCE ROW LEVEL SECURITY</span><span class="op">;</span>
+
+<span class="k">ALTER TABLE</span> user_roles <span class="k">ENABLE ROW LEVEL SECURITY</span><span class="op">;</span>
+<span class="k">ALTER TABLE</span> user_roles <span class="k">FORCE ROW LEVEL SECURITY</span><span class="op">;</span></pre>
+  </div>
+
+  <div class="sec-title">Policy: USING vs WITH CHECK</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">migration — RLS policy</span>
+      <span class="code-lang">sql</span>
+    </div>
+    <pre><span class="k">CREATE POLICY</span> tenant_isolation <span class="k">ON</span> users
+<span class="hl">  <span class="k">USING</span>      <span class="op">(</span>tenant_id <span class="op">=</span> <span class="fn">current_setting</span><span class="op">(</span><span class="s">'app.tenant_id'</span><span class="op">,</span> <span class="k">true</span><span class="op">)::</span><span class="t">uuid</span><span class="op">)</span>  <span class="ann">SELECT UPDATE DELETE</span></span>
+<span class="hl">  <span class="k">WITH CHECK</span> <span class="op">(</span>tenant_id <span class="op">=</span> <span class="fn">current_setting</span><span class="op">(</span><span class="s">'app.tenant_id'</span><span class="op">,</span> <span class="k">true</span><span class="op">)::</span><span class="t">uuid</span><span class="op">)</span><span class="op">;</span>  <span class="ann">INSERT UPDATE</span></span></pre>
+  </div>
+
+  <table class="data-table">
+    <tr><th>Clause</th><th>Áp dụng cho</th><th>Hành vi</th></tr>
+    <tr>
+      <td>USING</td>
+      <td>SELECT · UPDATE · DELETE</td>
+      <td>Filter rows — chỉ trả về/xử lý row có <code>tenant_id</code> khớp session var</td>
+    </tr>
+    <tr>
+      <td>WITH CHECK</td>
+      <td>INSERT · UPDATE</td>
+      <td>Validate row mới — không cho INSERT row có <code>tenant_id</code> không khớp session var</td>
+    </tr>
+  </table>
+
+  <div class="note-block red">
+    <span class="note-label red">Nếu thiếu WITH CHECK</span>
+    Có thể INSERT <code>{tenant_id: 'tenant-b'}</code> trong khi session đang set <code>app.tenant_id = 'tenant-a'</code>. Row sẽ được tạo thành công nhưng sau đó <em>vô hình</em> với cả hai tenant — data corruption khó phát hiện.
+  </div>
+
+  <div class="sec-title">current_setting với missing_ok = true</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">psql</span>
+      <span class="code-lang">sql</span>
+    </div>
+    <pre><span class="c">-- Tham số thứ hai: missing_ok</span>
+
+<span class="c">-- missing_ok = false (default) → throw ERROR nếu chưa set</span>
+<span class="fn">current_setting</span><span class="op">(</span><span class="s">'app.tenant_id'</span><span class="op">)</span>             <span class="c">-- ERROR: unrecognized configuration parameter</span>
+
+<span class="c">-- missing_ok = true → trả về NULL thay vì throw</span>
+<span class="hl"><span class="fn">current_setting</span><span class="op">(</span><span class="s">'app.tenant_id'</span><span class="op">,</span> <span class="k">true</span><span class="op">)::</span><span class="t">uuid</span>  <span class="c">-- → NULL khi chưa set</span></span>
+
+<span class="c">-- NULL = uuid luôn là FALSE (không phải NULL) → WHERE clause loại bỏ row</span>
+<span class="c">-- Kết quả: SELECT * FROM users; → 0 rows (không có error)</span></pre>
+  </div>
+
+  <div class="sec-title">Kiểm tra RLS hoạt động</div>
+  <div class="rls-diagram">
+    <div class="rls-row">
+      <div class="rls-source">SET app.tenant_id = '&lt;acme-uuid&gt;'<br>SELECT * FROM users;</div>
+      <div class="rls-check" style="color:var(--td)">tenant_id = acme-uuid ✓</div>
+      <div class="rls-result ok">3 rows</div>
+    </div>
+    <div class="rls-row">
+      <div class="rls-source">SET app.tenant_id = '&lt;acme-uuid&gt;'<br>SELECT * FROM users WHERE tenant_id = '&lt;globex-uuid&gt;'</div>
+      <div class="rls-check" style="color:var(--td)">tenant_id = globex-uuid ≠ acme-uuid</div>
+      <div class="rls-result fail">0 rows</div>
+    </div>
+    <div class="rls-row">
+      <div class="rls-source"><em style="color:var(--tdm)">(không SET app.tenant_id)</em><br>SELECT * FROM users;</div>
+      <div class="rls-check" style="color:var(--td)">current_setting → NULL; NULL = uuid → false</div>
+      <div class="rls-result fail">0 rows</div>
+    </div>
+    <div class="rls-row">
+      <div class="rls-source">INSERT INTO users (tenant_id, ...) VALUES ('&lt;globex-id&gt;', ...)<br><em style="color:var(--tdm)">(session: app.tenant_id = acme)</em></div>
+      <div class="rls-check" style="color:var(--td)">WITH CHECK: globex ≠ acme</div>
+      <div class="rls-result fail">ERROR 42501</div>
+    </div>
+  </div>
+
+  <div class="sec-title">Schema tenants table</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">migration — tenants table</span>
+      <span class="code-lang">sql</span>
+    </div>
+    <pre><span class="k">CREATE TABLE</span> tenants <span class="op">(</span>
+  id          <span class="t">UUID</span>    <span class="k">PRIMARY KEY DEFAULT</span> uuid_generate_v4<span class="op">(),</span>
+  name        <span class="t">VARCHAR</span><span class="op">(</span><span class="n">255</span><span class="op">)</span> <span class="k">NOT NULL</span><span class="op">,</span>
+  subdomain   <span class="t">VARCHAR</span><span class="op">(</span><span class="n">100</span><span class="op">)</span> <span class="k">NOT NULL UNIQUE</span><span class="op">,</span>  <span class="c">-- 'acme' → acme.app.com</span>
+  tier        <span class="k">ENUM</span><span class="op">(</span><span class="s">'standard'</span><span class="op">,</span><span class="s">'vip'</span><span class="op">,</span><span class="s">'enterprise'</span><span class="op">)</span> <span class="k">DEFAULT</span> <span class="s">'standard'</span><span class="op">,</span>
+<span class="hl">  db_url      <span class="t">VARCHAR</span><span class="op">(</span><span class="n">1000</span><span class="op">)</span><span class="op">,</span>                    <span class="c">-- NULL = shared pool; set cho VIP/Enterprise</span></span>
+  config      <span class="t">JSONB</span>   <span class="k">NOT NULL DEFAULT</span> <span class="s">'{}'</span><span class="op">,</span>  <span class="c">-- plugins, cors_origins, feature flags</span>
+  is_active   <span class="t">BOOLEAN</span> <span class="k">NOT NULL DEFAULT</span> <span class="k">true</span><span class="op">,</span>
+  created_at  <span class="t">TIMESTAMPTZ</span> <span class="k">DEFAULT NOW</span><span class="op">(),</span>
+  updated_at  <span class="t">TIMESTAMPTZ</span> <span class="k">DEFAULT NOW</span><span class="op">()</span>
+<span class="op">);</span>
+<span class="c">-- Không có RLS — system table</span></pre>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 4 — CONFIG & ENV
+══════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-3">
+
+  <div class="sec-title">src/config/env.ts — Zod validation</div>
+  <div class="prose">
+    File này là <strong>single source of truth</strong> cho toàn bộ environment configuration. Mọi service trong ứng dụng import <code>config</code> từ đây thay vì đọc <code>process.env</code> trực tiếp — đảm bảo type safety và validate một lần duy nhất lúc startup.
+  </div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">backend/src/config/env.ts</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="kw">import</span> <span class="s">'dotenv/config'</span><span class="op">;</span>        <span class="c">// load .env trước mọi thứ khác</span>
+<span class="kw">import</span> <span class="op">{</span> z <span class="op">}</span> <span class="kw">from</span> <span class="s">'zod'</span><span class="op">;</span>
+
+<span class="kw">const</span> envSchema <span class="op">=</span> z<span class="op">.</span><span class="fn">object</span><span class="op">({</span>
+  NODE_ENV<span class="op">:</span> z<span class="op">.</span><span class="fn">enum</span><span class="op">([</span><span class="s">'development'</span><span class="op">,</span> <span class="s">'test'</span><span class="op">,</span> <span class="s">'production'</span><span class="op">])</span><span class="op">.</span><span class="fn">default</span><span class="op">(</span><span class="s">'development'</span><span class="op">),</span>
+
+  <span class="c">// Shared pool — tất cả standard tenants</span>
+  DATABASE_URL<span class="op">:</span>            z<span class="op">.</span><span class="fn">string</span><span class="op">().</span><span class="fn">min</span><span class="op">(</span><span class="n">1</span><span class="op">,</span> <span class="s">'DATABASE_URL is required'</span><span class="op">),</span>
+  DATABASE_POOL_MAX<span class="op">:</span>        z<span class="op">.</span><span class="fn">coerce</span><span class="op">.</span><span class="fn">number</span><span class="op">().</span><span class="fn">int</span><span class="op">().</span><span class="fn">positive</span><span class="op">().</span><span class="fn">default</span><span class="op">(</span><span class="n">200</span><span class="op">),</span>
+
+  <span class="c">// Metadata pool — migrations, tenant lookup (optional, fallback = DATABASE_URL)</span>
+  DATABASE_METADATA_URL<span class="op">:</span>    z<span class="op">.</span><span class="fn">string</span><span class="op">().</span><span class="fn">min</span><span class="op">(</span><span class="n">1</span><span class="op">).</span><span class="fn">optional</span><span class="op">(),</span>
+  DATABASE_METADATA_POOL_MAX<span class="op">:</span> z<span class="op">.</span><span class="fn">coerce</span><span class="op">.</span><span class="fn">number</span><span class="op">().</span><span class="fn">int</span><span class="op">().</span><span class="fn">positive</span><span class="op">().</span><span class="fn">default</span><span class="op">(</span><span class="n">20</span><span class="op">),</span>
+
+  REDIS_URL<span class="op">:</span>    z<span class="op">.</span><span class="fn">string</span><span class="op">().</span><span class="fn">min</span><span class="op">(</span><span class="n">1</span><span class="op">,</span> <span class="s">'REDIS_URL is required'</span><span class="op">),</span>
+  RABBITMQ_URL<span class="op">:</span> z<span class="op">.</span><span class="fn">string</span><span class="op">().</span><span class="fn">min</span><span class="op">(</span><span class="n">1</span><span class="op">,</span> <span class="s">'RABBITMQ_URL is required'</span><span class="op">),</span>
+  PORT<span class="op">:</span>         z<span class="op">.</span><span class="fn">coerce</span><span class="op">.</span><span class="fn">number</span><span class="op">().</span><span class="fn">int</span><span class="op">().</span><span class="fn">positive</span><span class="op">().</span><span class="fn">default</span><span class="op">(</span><span class="n">3000</span><span class="op">),</span>
+<span class="op">});</span>
+
+<span class="c">// safeParse thay vì parse() → kiểm soát được output error</span>
+<span class="kw">const</span> result <span class="op">=</span> envSchema<span class="op">.</span><span class="fn">safeParse</span><span class="op">(</span>process<span class="op">.</span>env<span class="op">);</span>
+
+<span class="kw">if</span> <span class="op">(!</span>result<span class="op">.</span>success<span class="op">)</span> <span class="op">{</span>
+  console<span class="op">.</span><span class="fn">error</span><span class="op">(</span><span class="s">'\n❌  Invalid / missing environment variables:\n'</span><span class="op">);</span>
+  <span class="kw">const</span> formatted <span class="op">=</span> result<span class="op">.</span>error<span class="op">.</span><span class="fn">format</span><span class="op">();</span>
+  <span class="kw">for</span> <span class="op">(</span><span class="kw">const</span> <span class="op">[</span>key<span class="op">,</span> val<span class="op">]</span> <span class="kw">of</span> Object<span class="op">.</span><span class="fn">entries</span><span class="op">(</span>formatted<span class="op">))</span> <span class="op">{</span>
+    <span class="kw">if</span> <span class="op">(</span>key <span class="op">===</span> <span class="s">'_errors'</span><span class="op">)</span> <span class="kw">continue</span><span class="op">;</span>
+    <span class="kw">const</span> errors <span class="op">=</span> <span class="op">(</span>val <span class="kw">as</span> <span class="op">{</span> _errors<span class="op">:</span> <span class="t">string</span><span class="op">[]</span> <span class="op">}</span><span class="op">).</span>_errors<span class="op">;</span>
+    <span class="kw">if</span> <span class="op">(</span>errors<span class="op">.</span>length<span class="op">)</span> console<span class="op">.</span><span class="fn">error</span><span class="op">(</span><span class="s">`  <span class="op">${</span>key<span class="op">}</span>: <span class="op">${</span>errors<span class="op">.</span><span class="fn">join</span><span class="op">(</span><span class="s">', '</span><span class="op">)</span><span class="op">}</span>`</span><span class="op">);</span>
+  <span class="op">}</span>
+  console<span class="op">.</span><span class="fn">error</span><span class="op">(</span><span class="s">'\nCopy .env.example to .env and fill in all required values.\n'</span><span class="op">);</span>
+<span class="hl">  process<span class="op">.</span><span class="fn">exit</span><span class="op">(</span><span class="n">1</span><span class="op">);</span>                <span class="c">// crash ngay, không để app start ở trạng thái thiếu config</span></span>
+<span class="op">}</span>
+
+<span class="kw">export const</span> config <span class="op">=</span> result<span class="op">.</span>data<span class="op">;</span>
+<span class="kw">export type</span> <span class="t">Config</span> <span class="op">=</span> <span class="kw">typeof</span> config<span class="op">;</span></pre>
+  </div>
+
+  <div class="note-block">
+    <span class="note-label">z.coerce.number() — tại sao?</span>
+    <code>process.env</code> luôn là <code>string</code>. <code>z.number()</code> sẽ fail cho <code>"200"</code>. <code>z.coerce.number()</code> tự động convert <code>"200" → 200</code> trước khi validate. Không cần <code>parseInt(process.env.DATABASE_POOL_MAX)</code> rải khắp code.
+  </div>
+
+  <div class="sec-title">knexfile.ts — afterCreate pool hook</div>
+  <div class="prose">
+    Phần quan trọng nhất không phải là config connection mà là <strong>hook afterCreate</strong> — giải quyết vấn đề context leak giữa các request:
+  </div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">backend/knexfile.ts</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="kw">import</span> <span class="s">'dotenv/config'</span><span class="op">;</span>          <span class="c">// phải đứng đầu — CommonJS require() chạy theo thứ tự</span>
+<span class="kw">import type</span> <span class="op">{</span> Knex <span class="op">}</span> <span class="kw">from</span> <span class="s">'knex'</span><span class="op">;</span>
+<span class="kw">import</span> <span class="op">{</span> config <span class="op">}</span> <span class="kw">from</span> <span class="s">'./src/config/env'</span><span class="op">;</span>
+
+<span class="kw">const</span> knexConfig<span class="op">: </span><span class="t">Knex.Config</span> <span class="op">=</span> <span class="op">{</span>
+  client<span class="op">:</span> <span class="s">'postgresql'</span><span class="op">,</span>
+  connection<span class="op">:</span> config<span class="op">.</span>DATABASE_URL<span class="op">,</span>
+  pool<span class="op">:</span> <span class="op">{</span>
+    min<span class="op">:</span> <span class="n">2</span><span class="op">,</span>
+    max<span class="op">:</span> config<span class="op">.</span>DATABASE_POOL_MAX<span class="op">,</span>
+
+<span class="hl">    <span class="c">// Reset tenant context mỗi khi connection được trả về pool</span></span>
+<span class="hl">    afterCreate<span class="op">(</span>conn<span class="op">,</span> done<span class="op">)</span> <span class="op">{</span></span>
+<span class="hl">      conn<span class="op">.</span><span class="fn">query</span><span class="op">(</span><span class="s">"SELECT set_config('app.tenant_id', NULL, false)"</span><span class="op">,</span> <span class="op">(</span>err<span class="op">)</span> <span class="op">=></span> <span class="op">{</span></span>
+<span class="hl">        <span class="fn">done</span><span class="op">(</span>err<span class="op">,</span> conn<span class="op">);</span></span>
+<span class="hl">      <span class="op">}</span><span class="op">);</span></span>
+<span class="hl">    <span class="op">}</span><span class="op">,</span></span>
+  <span class="op">}</span><span class="op">,</span>
+
+  migrations<span class="op">:</span> <span class="op">{</span>
+    directory<span class="op">:</span> <span class="s">'./src/db/migrations'</span><span class="op">,</span>
+    extension<span class="op">:</span> <span class="s">'ts'</span><span class="op">,</span>
+    tableName<span class="op">:</span> <span class="s">'knex_migrations'</span><span class="op">,</span>
+  <span class="op">}</span><span class="op">,</span>
+  seeds<span class="op">:</span> <span class="op">{</span>
+    directory<span class="op">:</span> <span class="s">'./src/db/seeds'</span><span class="op">,</span>
+    extension<span class="op">:</span> <span class="s">'ts'</span><span class="op">,</span>
+  <span class="op">}</span><span class="op">,</span>
+<span class="op">}</span><span class="op">;</span>
+
+<span class="kw">export default</span> knexConfig<span class="op">;</span></pre>
+  </div>
+
+  <div class="note-block red">
+    <span class="note-label red">Context leak — nếu không có afterCreate</span>
+    <strong>Request A</strong> (tenant: acme) → lấy connection X → <code>SET app.tenant_id = 'acme'</code> → xử lý xong → trả connection X về pool.<br>
+    <strong>Request B</strong> (tenant: globex) → lấy đúng connection X từ pool → <code>app.tenant_id</code> vẫn là <code>'acme'</code> → RLS filter nhầm → data leak.
+  </div>
+
+  <div class="note-block green">
+    <span class="note-label green">set_config — tham số thứ 3</span>
+    <code>set_config('app.tenant_id', NULL, <strong>false</strong>)</code> — <code>false</code> nghĩa là <strong>session-level</strong> (tồn tại qua nhiều transaction). <code>true</code> sẽ là transaction-local (bị reset sau mỗi commit). Dùng <code>false</code> ở đây để reset sạch toàn bộ session state của connection trước khi trả về pool.
+  </div>
+
+  <div class="sec-title">Tại sao import 'dotenv/config' phải đứng đầu</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">CommonJS module resolution order</span>
+      <span class="code-lang">javascript</span>
+    </div>
+    <pre><span class="c">// TypeScript (module: CommonJS) compile thành:</span>
+<span class="kw">const</span> dotenv <span class="op">=</span> <span class="fn">require</span><span class="op">(</span><span class="s">'dotenv/config'</span><span class="op">);</span>   <span class="c">// 1. load .env → process.env</span>
+<span class="kw">const</span> knex_1  <span class="op">=</span> <span class="fn">require</span><span class="op">(</span><span class="s">'knex'</span><span class="op">);</span>             <span class="c">// 2. (type import → elided)</span>
+<span class="hl"><span class="kw">const</span> env_1   <span class="op">=</span> <span class="fn">require</span><span class="op">(</span><span class="s">'./src/config/env'</span><span class="op">);</span> <span class="c">// 3. env.ts đọc process.env — đã có giá trị</span></span>
+
+<span class="c">// Nếu đảo thứ tự → env.ts chạy trước dotenv → process.env rỗng → Zod validation fail</span></pre>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 5 — SEED DATA
+══════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-4">
+
+  <div class="sec-title">3 tenants — test isolation</div>
+  <table class="data-table">
+    <tr><th>Tenant</th><th>Subdomain</th><th>Tier</th><th>Plugins</th><th>Pool</th></tr>
+    <tr>
+      <td>Acme Corporation</td>
+      <td>acme</td>
+      <td>standard</td>
+      <td>customer-data, customer-care</td>
+      <td>shared (200)</td>
+    </tr>
+    <tr>
+      <td>Globex Inc</td>
+      <td>globex</td>
+      <td>standard</td>
+      <td>customer-data, analytics</td>
+      <td>shared (200)</td>
+    </tr>
+    <tr>
+      <td>Initech Enterprise</td>
+      <td>initech</td>
+      <td><span class="badge badge-crit">vip</span></td>
+      <td>full suite (5 plugins)</td>
+      <td>dedicated (30)</td>
+    </tr>
+  </table>
+
+  <div class="prose">
+    Mỗi tenant được seed: <strong>3 roles</strong> (admin, manager, agent) + <strong>3 users</strong> + <strong>role-permission mapping</strong>. Permissions là global (8 items) dùng chung cho tất cả tenants.
+  </div>
+
+  <div class="sec-title">Vấn đề: Seed với FORCE RLS bật</div>
+  <div class="note-block red">
+    <span class="note-label red">Nếu INSERT vào users mà không set app.tenant_id</span>
+    <code>WITH CHECK</code> policy sẽ fail vì <code>tenant_id != NULL</code>. Seed script cần một cách bypass RLS hoặc set context đúng trước khi insert.
+  </div>
+
+  <div class="sec-title">Giải pháp 1: TRUNCATE bypass RLS (cleanup)</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">seeds/01_tenants.ts — cleanup</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="c">// DELETE bị chặn bởi RLS (filter ra 0 rows → xóa không được gì)</span>
+<span class="c">// TRUNCATE không bị RLS chặn — đây là hành vi intentional của PostgreSQL</span>
+<span class="hl"><span class="kw">await</span> trx<span class="op">.</span><span class="fn">raw</span><span class="op">(</span>
+  <span class="s">'TRUNCATE TABLE role_permissions, user_roles, permissions, roles, users, tenants CASCADE'</span>
+<span class="op">);</span></span>
+
+<span class="c">// ORDER MATTERS: phải truncate FK tables trước, hoặc dùng CASCADE</span></pre>
+  </div>
+
+  <div class="sec-title">Giải pháp 2: SET LOCAL trong transaction (insert)</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">seeds/01_tenants.ts — SET LOCAL pattern</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="kw">await</span> knex<span class="op">.</span><span class="fn">transaction</span><span class="op">(</span><span class="kw">async</span> <span class="op">(</span>trx<span class="op">)</span> <span class="op">=></span> <span class="op">{</span>
+  <span class="c">// 1. Insert tenants — không cần SET (tenants không có RLS)</span>
+  <span class="kw">const</span> <span class="op">[</span>acme<span class="op">,</span> globex<span class="op">,</span> initech<span class="op">]</span> <span class="op">=</span> <span class="kw">await</span> trx<span class="op">(</span><span class="s">'tenants'</span><span class="op">)</span><span class="op">.</span><span class="fn">insert</span><span class="op">([</span><span class="op">...</span><span class="op">]</span><span class="op">)</span><span class="op">.</span><span class="fn">returning</span><span class="op">(</span><span class="s">'*'</span><span class="op">);</span>
+
+  <span class="c">// 2. Seed từng tenant</span>
+  <span class="kw">for</span> <span class="op">(</span><span class="kw">const</span> tenant <span class="kw">of</span> <span class="op">[</span>acme<span class="op">,</span> globex<span class="op">,</span> initech<span class="op">]</span><span class="op">)</span> <span class="op">{</span>
+<span class="hl">    <span class="c">// SET LOCAL: chỉ có hiệu lực trong transaction này</span></span>
+<span class="hl">    <span class="c">// Khi transaction commit/rollback → setting tự động hủy</span></span>
+<span class="hl">    <span class="kw">await</span> trx<span class="op">.</span><span class="fn">raw</span><span class="op">(</span><span class="s">`SET LOCAL "app.tenant_id" = ?`</span><span class="op">,</span> <span class="op">[</span>tenant<span class="op">.</span>id<span class="op">]</span><span class="op">);</span></span>
+
+    <span class="c">// RLS WITH CHECK pass vì tenant_id insert = app.tenant_id session var</span>
+    <span class="kw">const</span> <span class="op">[</span>adminRole<span class="op">]</span> <span class="op">=</span> <span class="kw">await</span> trx<span class="op">(</span><span class="s">'roles'</span><span class="op">)</span><span class="op">.</span><span class="fn">insert</span><span class="op">([</span>
+      <span class="op">{</span> tenant_id<span class="op">:</span> tenant<span class="op">.</span>id<span class="op">,</span> name<span class="op">:</span> <span class="s">'admin'</span> <span class="op">}</span><span class="op">,</span>
+    <span class="op">]</span><span class="op">)</span><span class="op">.</span><span class="fn">returning</span><span class="op">(</span><span class="s">'*'</span><span class="op">);</span>
+
+    <span class="kw">await</span> trx<span class="op">(</span><span class="s">'users'</span><span class="op">)</span><span class="op">.</span><span class="fn">insert</span><span class="op">([</span>
+      <span class="op">{</span> tenant_id<span class="op">:</span> tenant<span class="op">.</span>id<span class="op">,</span> email<span class="op">:</span> <span class="s">`admin@<span class="op">${</span>tenant<span class="op">.</span>subdomain<span class="op">}</span>.example.com`</span><span class="op">,</span> <span class="op">...</span> <span class="op">}</span><span class="op">,</span>
+    <span class="op">]</span><span class="op">);</span>
+  <span class="op">}</span>
+<span class="op">}</span><span class="op">);</span></pre>
+  </div>
+
+  <div class="note-block green">
+    <span class="note-label green">SET LOCAL vs SET</span>
+    <strong>SET</strong> — session-level, tồn tại sau khi transaction commit. Nguy hiểm nếu dùng trong seed vì setting sẽ "rò" ra các query sau.<br>
+    <strong>SET LOCAL</strong> — transaction-level, tự reset khi transaction kết thúc. An toàn và đúng cách để inject context tạm thời.
+  </div>
+
+  <div class="sec-title">RBAC structure được seed</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">permission mapping per role</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="c">// 8 permissions global (không có tenant_id)</span>
+permissions <span class="op">=</span> <span class="op">[</span>
+  <span class="s">'customers:read'</span><span class="op">,</span>   <span class="s">'customers:write'</span><span class="op">,</span>  <span class="s">'customers:delete'</span><span class="op">,</span>
+  <span class="s">'deals:read'</span><span class="op">,</span>       <span class="s">'deals:write'</span><span class="op">,</span>
+  <span class="s">'analytics:view'</span><span class="op">,</span>   <span class="s">'plugins:manage'</span><span class="op">,</span>    <span class="s">'users:manage'</span><span class="op">,</span>
+<span class="op">]</span>
+
+<span class="c">// Per tenant — 3 roles với permission mapping</span>
+admin   <span class="op">=</span> <span class="op">[</span>ALL 8 permissions<span class="op">]</span>
+manager <span class="op">=</span> <span class="op">[</span><span class="s">'customers:read'</span><span class="op">,</span> <span class="s">'customers:write'</span><span class="op">,</span> <span class="s">'deals:read'</span><span class="op">,</span> <span class="s">'deals:write'</span><span class="op">,</span> <span class="s">'analytics:view'</span><span class="op">]</span>
+agent   <span class="op">=</span> <span class="op">[</span><span class="s">'customers:read'</span><span class="op">,</span> <span class="s">'deals:read'</span><span class="op">]</span>
+
+<span class="c">// Per tenant — 3 users</span>
+<span class="s">`admin@<span class="op">${</span>subdomain<span class="op">}</span>.example.com`</span>   <span class="op">→</span> role: admin
+<span class="s">`manager@<span class="op">${</span>subdomain<span class="op">}</span>.example.com`</span> <span class="op">→</span> role: manager
+<span class="s">`agent@<span class="op">${</span>subdomain<span class="op">}</span>.example.com`</span>   <span class="op">→</span> role: agent
+
+<span class="c">// Password (dev only): password123</span>
+<span class="c">// Hash: bcrypt cost 12 — placeholder, chưa có bcrypt ở Phase 1</span></pre>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="sec-title">Luồng seed hoàn chỉnh</div>
+  <div class="flow">
+    <div class="flow-step" style="border-color:rgba(248,113,113,0.3)">
+      <span class="step-num" style="color:var(--red)">TRUNCATE</span>
+      <div class="step-name">Clean slate</div>
+      <div class="step-sub">bypass RLS</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="step-num">INSERT</span>
+      <div class="step-name">tenants</div>
+      <div class="step-sub">no RLS table</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="step-num">INSERT</span>
+      <div class="step-name">permissions</div>
+      <div class="step-sub">global, no RLS</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:rgba(129,140,248,0.3)">
+      <span class="step-num" style="color:var(--ac)">SET LOCAL</span>
+      <div class="step-name">per-tenant</div>
+      <div class="step-sub">roles + users</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:rgba(52,211,153,0.3)">
+      <span class="step-num" style="color:var(--green)">COMMIT</span>
+      <div class="step-name">transaction</div>
+      <div class="step-sub">SET LOCAL reset</div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- end .content-wrap -->
+
+<script>
+function switchTab(idx) {
+  document.querySelectorAll('.tab-panel').forEach((p, i) => {
+    p.classList.toggle('active', i === idx);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === idx);
+  });
+}
+</script>
+</body>
+</html>

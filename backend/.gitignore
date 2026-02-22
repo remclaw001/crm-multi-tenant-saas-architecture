@@ -1,0 +1,11 @@
+node_modules/
+dist/
+
+# Env — chứa secrets, KHÔNG commit
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db

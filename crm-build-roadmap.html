@@ -367,13 +367,14 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
       <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
       <ul class="task-list">
         <li class="task-item critical"><span class="ck">★</span><div><strong>Docker Compose</strong> với PG 16, Redis 7, RabbitMQ — môi trường dev one-command</div></li>
-        <li class="task-item critical"><span class="ck">★</span><div>Tạo bảng <code>tenants</code> (id, tier, db_url, config, created_at)</div></li>
-        <li class="task-item critical"><span class="ck">★</span><div>Thiết lập <strong>Row-Level Security</strong> — policy dựa trên <code>app.tenant_id</code> session variable</div></li>
-        <li class="task-item normal"><span class="ck">✓</span><div>Tạo bảng <code>users</code>, <code>roles</code>, <code>permissions</code> với cột <code>tenant_id</code></div></li>
+        <li class="task-item critical"><span class="ck">★</span><div>Tạo bảng <code>tenants</code> (id, name, subdomain, tier, db_url, config, is_active, created_at, updated_at)</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div>Thiết lập <strong>Row-Level Security</strong> — <code>ENABLE</code> + <code>FORCE</code> RLS, policy <code>USING</code> + <code>WITH CHECK</code> dựa trên <code>app.tenant_id</code> session variable</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Connection pool <code>afterCreate</code> hook</strong> — reset <code>app.tenant_id = NULL</code> khi connection trả về pool, ngăn context leak giữa các request</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Tạo bảng <code>users</code>, <code>roles</code>, <code>permissions</code>, <code>user_roles</code>, <code>role_permissions</code> với cột <code>tenant_id</code> trên các bảng tenant-scoped</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div>Viết seed data: 2 standard tenants + 1 VIP tenant để test isolation</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div>dotenv + Zod schema validate toàn bộ env variables lúc startup</div></li>
-        <li class="task-item normal"><span class="ck">✓</span><div>Flyway migration baseline — version đầu tiên</div></li>
-        <li class="task-item normal"><span class="ck">✓</span><div>Cấu hình pg_stat_statements, pgcrypto, uuid-ossp extensions</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Knex migration baseline — <code>20260222000001_init_schema.ts</code></div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Cấu hình pg_stat_statements, pgcrypto, uuid-ossp extensions qua <code>scripts/postgres-init.sql</code> (Docker init hook)</div></li>
       </ul>
     </div>
 
@@ -381,24 +382,25 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
       <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
       <div class="deliverable-list">
         <div class="del-item"><span class="del-icon">▸</span><span><code>docker-compose.yml</code> — toàn bộ services up với <code>docker compose up</code></span></div>
-        <div class="del-item"><span class="del-icon">▸</span><span>RLS hoạt động: query không có <code>app.tenant_id</code> trả về 0 rows</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>RLS hoạt động: query không có <code>app.tenant_id</code> trả về 0 rows — kể cả với table owner (<code>FORCE ROW LEVEL SECURITY</code>)</span></div>
         <div class="del-item"><span class="del-icon">▸</span><span>Zod config schema — app crash rõ ràng nếu thiếu env var</span></div>
-        <div class="del-item"><span class="del-icon">▸</span><span>Flyway migration <code>V1__init_schema.sql</code> chạy được</span></div>
-        <div class="del-item"><span class="del-icon">▸</span><span>Seed data với 3 tenants khác tier</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Knex migration <code>20260222000001_init_schema.ts</code> chạy được (có <code>up()</code> và <code>down()</code>)</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Seed data với 3 tenants khác tier, đủ roles và users per tenant</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Pool <code>afterCreate</code> hook đảm bảo không có tenant context leak giữa các connection</span></div>
       </div>
-      <p class="note">Test RLS bằng cách: set <code>SET app.tenant_id = 'tenant-a'</code> rồi SELECT — chỉ thấy data của tenant A.</p>
+      <p class="note">Test RLS bằng cách: <code>SET app.tenant_id = '&lt;uuid&gt;'</code> rồi SELECT — chỉ thấy data của tenant đó. Không SET → 0 rows.</p>
     </div>
 
     <div class="card">
       <div class="card-title"><span class="icon">🛠</span> Tech</div>
       <table>
         <tr><th>Thành phần</th><th>Công nghệ</th></tr>
-        <tr><td>Container</td><td>Docker Compose</td></tr>
-        <tr><td>Database</td><td>PostgreSQL 16 + RLS</td></tr>
-        <tr><td>Cache</td><td>Redis 7 (Cluster mode)</td></tr>
-        <tr><td>Broker</td><td>RabbitMQ 3.x</td></tr>
+        <tr><td>Container</td><td>Docker Compose v3.9</td></tr>
+        <tr><td>Database</td><td>PostgreSQL 16 + RLS (FORCE)</td></tr>
+        <tr><td>Cache</td><td>Redis 7 (single instance, RDB snapshot)</td></tr>
+        <tr><td>Broker</td><td>RabbitMQ 3.x + Management UI</td></tr>
         <tr><td>Config</td><td>dotenv + Zod</td></tr>
-        <tr><td>Migration</td><td>Flyway</td></tr>
+        <tr><td>Migration</td><td>Knex.js migrations (TypeScript)</td></tr>
       </table>
     </div>
 

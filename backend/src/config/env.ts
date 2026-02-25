@@ -20,9 +20,40 @@ const envSchema = z.object({
 
   // App
   PORT: z.coerce.number().int().positive().default(3000),
+
+  // ── JWT / Auth ─────────────────────────────────────────────
+  // JWKS endpoint của Keycloak (dùng cho production)
+  // e.g. http://localhost:8080/realms/crm/protocol/openid-connect/certs
+  JWT_JWKS_URI: z.string().url().optional(),
+
+  // Expected issuer trong JWT claims
+  // e.g. http://localhost:8080/realms/crm
+  JWT_ISSUER: z.string().optional(),
+
+  // Symmetric secret cho dev/test — dùng khi JWT_JWKS_URI không set
+  // Phải set ít nhất một trong hai: JWT_JWKS_URI hoặc JWT_SECRET_FALLBACK
+  JWT_SECRET_FALLBACK: z.string().min(32).optional(),
+
+  // Expected audience (optional — Keycloak có thể include hoặc không)
+  JWT_AUDIENCE: z.string().optional(),
+
+  // ── Rate limiting ──────────────────────────────────────────
+  // Số request tối đa trong cửa sổ THROTTLE_TTL_MS
+  THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
+  // Cửa sổ rate limit tính bằng milliseconds
+  THROTTLE_TTL_MS: z.coerce.number().int().positive().default(60_000),
 });
 
-const result = envSchema.safeParse(process.env);
+// Validation thêm: bắt buộc có ít nhất một trong JWKS_URI hoặc SECRET_FALLBACK
+const envWithJwtCheck = envSchema.refine(
+  (data) => data.JWT_JWKS_URI !== undefined || data.JWT_SECRET_FALLBACK !== undefined,
+  {
+    message: 'Must set JWT_JWKS_URI (production) or JWT_SECRET_FALLBACK (dev/test)',
+    path: ['JWT_JWKS_URI'],
+  }
+);
+
+const result = envWithJwtCheck.safeParse(process.env);
 
 if (!result.success) {
   console.error('\n❌  Invalid / missing environment variables:\n');

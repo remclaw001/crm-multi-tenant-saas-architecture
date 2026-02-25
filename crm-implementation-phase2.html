@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 2 — L4 Data Access Layer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #08080d;
+  --sf:      #0d0d16;
+  --sf2:     #111120;
+  --bd:      #1e1e2e;
+  --bd2:     #252538;
+  --tx:      #e4e4ee;
+  --td:      #8e8ea8;
+  --tdm:     #5a5a72;
+  --ac:      #818cf8;
+  --ac2:     #6366f1;
+  --ac-glow: rgba(129,140,248,0.12);
+  --ac-dim:  rgba(129,140,248,0.06);
+  --green:   #34d399;
+  --green-d: rgba(52,211,153,0.1);
+  --red:     #f87171;
+  --red-d:   rgba(248,113,113,0.1);
+  --yellow:  #fbbf24;
+  --yellow-d:rgba(251,191,36,0.1);
+  --cyan:    #22d3ee;
+  --cyan-d:  rgba(34,211,238,0.1);
+  --purple:  #c084fc;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--tx);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── HEADER ── */
+.page-header {
+  padding: 36px 48px 28px;
+  border-bottom: 1px solid var(--bd);
+  background: var(--sf);
+  position: relative;
+  overflow: hidden;
+}
+.page-header::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 240px; height: 240px;
+  background: radial-gradient(circle, rgba(129,140,248,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.phase-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--red);
+  background: var(--red-d);
+  border: 1px solid rgba(248,113,113,0.2);
+  padding: 4px 12px;
+  border-radius: 4px;
+  margin-bottom: 14px;
+}
+.phase-badge::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+}
+.page-header h1 {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--tx);
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+}
+.page-header h1 span { color: var(--ac); }
+.page-header p {
+  font-size: 0.875rem;
+  color: var(--td);
+  max-width: 680px;
+  line-height: 1.65;
+}
+.header-meta {
+  display: flex;
+  gap: 24px;
+  margin-top: 16px;
+}
+.meta-item {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--tdm);
+}
+.meta-item span { color: var(--td); }
+
+/* ── TAB NAV ── */
+.tab-nav-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(8,8,13,0.96);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--bd);
+}
+.tab-nav {
+  display: flex;
+  gap: 0;
+  padding: 0 48px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--tdm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.tab-btn:hover { color: var(--td); }
+.tab-btn.active { color: var(--ac); }
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--ac);
+  border-radius: 2px 2px 0 0;
+}
+.tab-num {
+  font-size: 0.65rem;
+  opacity: 0.5;
+}
+
+/* ── CONTENT ── */
+.content-wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 40px 48px 80px;
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── SECTION HEADING ── */
+.sec-title {
+  font-size: 0.7rem;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--ac);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--bd);
+}
+.sec-subtitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--tx);
+  margin-bottom: 10px;
+}
+.prose {
+  font-size: 0.875rem;
+  color: var(--td);
+  line-height: 1.75;
+  margin-bottom: 24px;
+}
+.prose strong { color: var(--tx); font-weight: 600; }
+.prose code {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--ac);
+  background: var(--ac-dim);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* ── GRID ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+@media(max-width:780px){ .grid-2,.grid-3{grid-template-columns:1fr;} }
+
+/* ── CARD ── */
+.card {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card-label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--tdm);
+  margin-bottom: 10px;
+}
+
+/* ── FILE TREE ── */
+.file-tree {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 2;
+  background: var(--sf2);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  white-space: pre;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bd2) transparent;
+}
+.tree-dir  { color: var(--ac); font-weight: 600; }
+.tree-file { color: var(--tx); }
+.tree-dim  { color: var(--tdm); font-size: 0.72rem; }
+.tree-new  {
+  color: var(--green);
+  background: var(--green-d);
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+/* ── CHECKLIST ── */
+.check-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--td);
+  padding: 10px 14px;
+  background: var(--sf2);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  line-height: 1.5;
+}
+.check-item.done   { border-color: rgba(52,211,153,0.2); }
+.check-item.crit   { border-color: rgba(248,113,113,0.25); background: rgba(248,113,113,0.03); }
+.check-icon {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.check-icon.ok   { color: var(--green); }
+.check-icon.star { color: var(--red); }
+.check-item strong { color: var(--tx); font-weight: 600; }
+
+/* ── CODE BLOCK ── */
+.code-wrap {
+  margin-bottom: 24px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--bd);
+}
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--sf2);
+  border-bottom: 1px solid var(--bd);
+}
+.code-filename {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ac);
+}
+.code-lang {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--tdm);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+pre {
+  background: var(--sf2);
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.85;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bd2) transparent;
+}
+pre::-webkit-scrollbar { height: 4px; }
+pre::-webkit-scrollbar-track { background: transparent; }
+pre::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 4px; }
+
+/* Syntax tokens */
+.k  { color: #c084fc; }           /* SQL keywords / TS keywords */
+.kw { color: #c084fc; }
+.t  { color: #67e8f9; }           /* types */
+.fn { color: #818cf8; }           /* functions */
+.s  { color: #86efac; }           /* strings */
+.n  { color: #fca5a5; }           /* numbers */
+.c  { color: #4a5068; font-style: italic; } /* comments */
+.op { color: var(--td); }         /* operators, punctuation */
+.p  { color: var(--tdm); }        /* plain dim */
+.hl { background: rgba(129,140,248,0.08); display: block; margin: 0 -24px; padding: 0 24px; } /* highlight line */
+.ann {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--yellow);
+  background: var(--yellow-d);
+  border: 1px solid rgba(251,191,36,0.2);
+  padding: 0 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-style: normal;
+}
+
+/* ── ANNOTATION NOTES ── */
+.note-block {
+  background: linear-gradient(135deg, var(--ac-dim), transparent);
+  border: 1px solid var(--bd);
+  border-left: 3px solid var(--ac);
+  border-radius: 0 6px 6px 0;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 0.83rem;
+  color: var(--td);
+  line-height: 1.65;
+}
+.note-block.green { border-left-color: var(--green); background: linear-gradient(135deg, var(--green-d), transparent); }
+.note-block.red   { border-left-color: var(--red);   background: linear-gradient(135deg, var(--red-d), transparent); }
+.note-block.yellow{ border-left-color: var(--yellow); background: linear-gradient(135deg, var(--yellow-d), transparent); }
+.note-block strong { color: var(--tx); }
+.note-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ac);
+  display: block;
+  margin-bottom: 5px;
+}
+.note-label.green  { color: var(--green); }
+.note-label.red    { color: var(--red); }
+.note-label.yellow { color: var(--yellow); }
+
+/* ── TABLE ── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-bottom: 24px;
+}
+.data-table th {
+  text-align: left;
+  padding: 8px 14px;
+  background: var(--sf2);
+  color: var(--ac);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--bd);
+}
+.data-table td {
+  padding: 9px 14px;
+  border: 1px solid var(--bd);
+  color: var(--td);
+  vertical-align: top;
+  line-height: 1.5;
+  background: var(--sf);
+}
+.data-table td:first-child {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--tx);
+  white-space: nowrap;
+}
+.data-table tr:hover td { background: var(--sf2); }
+.badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+.badge-yes   { background: var(--green-d); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+.badge-no    { background: rgba(0,0,0,0.3); color: var(--tdm); border: 1px solid var(--bd); }
+.badge-crit  { background: var(--red-d); color: var(--red); border: 1px solid rgba(248,113,113,0.25); }
+.badge-prod  { background: var(--ac-dim); color: var(--ac); border: 1px solid rgba(129,140,248,0.2); }
+.badge-dev   { background: var(--yellow-d); color: var(--yellow); border: 1px solid rgba(251,191,36,0.2); }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--bd); margin: 32px 0; }
+
+/* ── FLOW DIAGRAM ── */
+.flow {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+.flow-step {
+  flex: 1;
+  min-width: 130px;
+  background: var(--sf2);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  padding: 14px 16px;
+  font-size: 0.78rem;
+  text-align: center;
+  position: relative;
+}
+.flow-step .step-num {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--ac);
+  display: block;
+  margin-bottom: 4px;
+}
+.flow-step .step-name {
+  font-weight: 600;
+  color: var(--tx);
+  font-size: 0.8rem;
+}
+.flow-step .step-sub {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--tdm);
+  margin-top: 4px;
+}
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  color: var(--tdm);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+/* ── ISOLATION BOX ── */
+.isolation-box {
+  background: var(--sf2);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.9;
+  overflow-x: auto;
+}
+
+/* ── KEY PATTERN BOX ── */
+.key-pattern {
+  background: var(--sf2);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="phase-badge">Phase 2 — Critical</div>
+  <h1>L4 Data Access <span>Layer</span></h1>
+  <p>Xây dựng lớp truy cập dữ liệu: TenantContext (AsyncLocalStorage), Connection Pool Registry, Query Interceptor (Knex hook), Cache Manager (ioredis + MessagePack) và QueryCounter. Đây là thành phần CRITICAL — toàn bộ multi-tenancy đúng đắn phụ thuộc vào đây.</p>
+  <div class="header-meta">
+    <div class="meta-item">layer: <span>L4 Data Access</span></div>
+    <div class="meta-item">tools: <span>AsyncLocalStorage · Knex.js · pg-pool · ioredis · MessagePack · Vitest</span></div>
+    <div class="meta-item">files: <span>15 files created/updated</span></div>
+  </div>
+</div>
+
+<div class="tab-nav-wrap">
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab(0)"><span class="tab-num">01</span> Tổng quan</button>
+    <button class="tab-btn" onclick="switchTab(1)"><span class="tab-num">02</span> TenantContext</button>
+    <button class="tab-btn" onclick="switchTab(2)"><span class="tab-num">03</span> Pool Registry</button>
+    <button class="tab-btn" onclick="switchTab(3)"><span class="tab-num">04</span> Query Interceptor</button>
+    <button class="tab-btn" onclick="switchTab(4)"><span class="tab-num">05</span> Cache &amp; Counter</button>
+  </div>
+</div>
+
+<div class="content-wrap">
+
+<!-- ══════════════════════════════════════════════
+     TAB 1 — TỔNG QUAN
+══════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-0">
+
+  <div class="sec-title">Cấu trúc thư mục</div>
+
+  <div class="file-tree"><span class="tree-dir">backend/</span>
+├── <span class="tree-file">vitest.config.ts</span>                   <span class="tree-dim"># Vitest config — Node environment, path aliases</span>  <span class="tree-new">NEW</span>
+├── <span class="tree-file">package.json</span>                       <span class="tree-dim"># updated — thêm ioredis, @msgpack/msgpack, vitest, ioredis-mock</span>
+└── <span class="tree-dir">src/</span>
+    └── <span class="tree-dir">dal/</span>  <span class="tree-new">NEW</span>
+        ├── <span class="tree-dir">context/</span>
+        │   └── <span class="tree-file">TenantContext.ts</span>       <span class="tree-dim"># AsyncLocalStorage — tenant context isolation</span>  <span class="tree-new">NEW</span>
+        ├── <span class="tree-dir">interfaces/</span>
+        │   ├── <span class="tree-file">IDbContext.ts</span>          <span class="tree-dim"># DIP abstraction cho DB connection</span>  <span class="tree-new">NEW</span>
+        │   └── <span class="tree-file">ICacheManager.ts</span>      <span class="tree-dim"># DIP abstraction cho cache layer</span>  <span class="tree-new">NEW</span>
+        ├── <span class="tree-dir">pool/</span>
+        │   └── <span class="tree-file">PoolRegistry.ts</span>       <span class="tree-dim"># 3-tier pool: shared 200 / metadata 20 / VIP 30</span>  <span class="tree-new">NEW</span>
+        ├── <span class="tree-dir">interceptor/</span>
+        │   └── <span class="tree-file">QueryInterceptor.ts</span>   <span class="tree-dim"># Monkey-patch Knex — tự động SET app.tenant_id</span>  <span class="tree-new">NEW</span>
+        ├── <span class="tree-dir">cache/</span>
+        │   └── <span class="tree-file">CacheManager.ts</span>       <span class="tree-dim"># ioredis + MessagePack, key pattern enforcement</span>  <span class="tree-new">NEW</span>
+        ├── <span class="tree-dir">middleware/</span>
+        │   └── <span class="tree-file">QueryCounter.ts</span>       <span class="tree-dim"># Per-request query counter via AsyncLocalStorage</span>  <span class="tree-new">NEW</span>
+        ├── <span class="tree-dir">__tests__/</span>
+        │   ├── <span class="tree-file">TenantContext.test.ts</span>  <span class="tree-dim"># Isolation giữa concurrent runs</span>
+        │   ├── <span class="tree-file">PoolRegistry.test.ts</span>   <span class="tree-dim"># 3 pool tiers, UUID validation</span>
+        │   ├── <span class="tree-file">QueryInterceptor.test.ts</span> <span class="tree-dim"># Knex hook, SET/RESET lifecycle</span>
+        │   ├── <span class="tree-file">CacheManager.test.ts</span>   <span class="tree-dim"># key pattern, MessagePack round-trip</span>
+        │   └── <span class="tree-file">QueryCounter.test.ts</span>   <span class="tree-dim"># Limit enforcement, isolation</span>
+        └── <span class="tree-file">index.ts</span>                  <span class="tree-dim"># Barrel export: TenantContext, PoolRegistry, ...</span>  <span class="tree-new">NEW</span></div>
+
+  <div class="sec-title">Deliverables checklist</div>
+  <ul class="check-list">
+    <li class="check-item crit">
+      <span class="check-icon star">★</span>
+      <div><strong>CRITICAL: TenantContext</strong> — mọi code bên trong <code>TenantContext.run()</code> đều thấy <code>tenant_id</code> — isolated hoàn toàn khi chạy concurrent requests</div>
+    </li>
+    <li class="check-item crit">
+      <span class="check-icon star">★</span>
+      <div><strong>CRITICAL: PoolRegistry</strong> — 3 tier pools (shared 200 / metadata 20 / VIP 30 per tenant), <code>SET app.tenant_id</code> lúc acquire, <code>RESET</code> lúc release</div>
+    </li>
+    <li class="check-item crit">
+      <span class="check-icon star">★</span>
+      <div><strong>CRITICAL: QueryInterceptor</strong> — monkey-patch Knex <code>acquireConnection</code>/<code>releaseConnection</code> — tự động kích hoạt RLS mà developer không cần làm gì</div>
+    </li>
+    <li class="check-item done">
+      <span class="check-icon ok">✓</span>
+      <div><strong>CacheManager</strong> — key pattern <code>t:&lt;tenantId&gt;:&lt;resource&gt;:&lt;id&gt;</code> enforce tự động, MessagePack serialization</div>
+    </li>
+    <li class="check-item done">
+      <span class="check-icon ok">✓</span>
+      <div><strong>QueryCounter</strong> — đếm query/request qua AsyncLocalStorage, chuẩn bị cho Sandbox hard limit (Phase 6)</div>
+    </li>
+    <li class="check-item done">
+      <span class="check-icon ok">✓</span>
+      <div><strong>Interfaces IDbContext, ICacheManager</strong> — chuẩn bị DIP cho DI container (Phase 7)</div>
+    </li>
+    <li class="check-item done">
+      <span class="check-icon ok">✓</span>
+      <div><strong>Unit tests (Vitest)</strong> — 5 test suites, mock pg + ioredis-mock, không cần DB thật để chạy</div>
+    </li>
+  </ul>
+
+  <div class="divider"></div>
+
+  <div class="sec-title">Quick start</div>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">terminal</span>
+      <span class="code-lang">bash</span>
+    </div>
+    <pre><span class="c"># 1. Cài dependencies (lần đầu)</span>
+npm install
+
+<span class="c"># 2. Chạy unit tests</span>
+npm test
+
+<span class="c"># 3. Watch mode trong khi dev</span>
+npm run test:watch
+
+<span class="c"># 4. Kiểm tra TenantContext isolation thủ công (Node REPL)</span>
+node -e <span class="s">"
+const { TenantContext } = require('./src/dal');
+TenantContext.run({ tenantId: 'abc', tenantTier: 'standard' }, () => {
+  console.log(TenantContext.getTenantId()); // 'abc'
+});
+console.log(TenantContext.getTenantId()); // undefined (context không rò rỉ)
+"</span></pre>
+  </div>
+
+  <div class="sec-title">New dependencies</div>
+  <table class="data-table">
+    <tr><th>Package</th><th>Version</th><th>Loại</th><th>Vai trò</th></tr>
+    <tr>
+      <td>ioredis</td>
+      <td>^5.4.1</td>
+      <td><span class="badge badge-prod">prod</span></td>
+      <td>Redis client — type-safe, Promise-based, hỗ trợ cluster và sentinel</td>
+    </tr>
+    <tr>
+      <td>@msgpack/msgpack</td>
+      <td>^3.0.0</td>
+      <td><span class="badge badge-prod">prod</span></td>
+      <td>MessagePack serialization — ~30% nhỏ hơn JSON, binary format</td>
+    </tr>
+    <tr>
+      <td>vitest</td>
+      <td>^2.1.0</td>
+      <td><span class="badge badge-dev">dev</span></td>
+      <td>Test runner — native TypeScript, Jest-compatible API, không cần babel</td>
+    </tr>
+    <tr>
+      <td>ioredis-mock</td>
+      <td>^8.9.0</td>
+      <td><span class="badge badge-dev">dev</span></td>
+      <td>In-memory Redis mock cho unit tests — không cần Redis instance thật</td>
+    </tr>
+  </table>
+
+  <div class="note-block red">
+    <span class="note-label red">Tại sao Phase 2 là CRITICAL</span>
+    Nếu viết business logic trước khi có interceptor, sẽ có query "trần" không có tenant scope lọt vào codebase. <strong>Interceptor phải là lưới an toàn mặc định</strong> — nếu làm sau, phải audit lại toàn bộ query đã viết. Thứ tự xây dựng: L4 trước L3, infrastructure trước business logic.
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 2 — TENANTCONTEXT
+══════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-1">
+
+  <div class="sec-title">Vấn đề: Truyền context xuyên call stack</div>
+
+  <div class="prose">
+    Trong một server xử lý nhiều request đồng thời, mỗi request thuộc về một tenant khác nhau. Vấn đề cổ điển là làm sao truyền <code>tenantId</code> xuống mọi tầng code mà không phải sửa signature của từng function.
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">❌ Không dùng AsyncLocalStorage — phải truyền tenantId thủ công</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="c">// ❌ Không dùng AsyncLocalStorage — phải truyền tenantId qua từng layer</span>
+<span class="kw">async function</span> <span class="fn">handleRequest</span><span class="op">(</span>req<span class="op">,</span> tenantId<span class="op">: </span><span class="t">string</span><span class="op">)</span> <span class="op">{</span>
+  <span class="kw">const</span> users <span class="op">=</span> <span class="kw">await</span> userService<span class="op">.</span><span class="fn">getUsers</span><span class="op">(</span>tenantId<span class="op">);</span>  <span class="c">// phải truyền</span>
+  <span class="kw">const</span> deals <span class="op">=</span> <span class="kw">await</span> dealService<span class="op">.</span><span class="fn">getDeals</span><span class="op">(</span>tenantId<span class="op">);</span>  <span class="c">// phải truyền</span>
+  <span class="kw">await</span> auditService<span class="op">.</span><span class="fn">log</span><span class="op">(</span>tenantId<span class="op">,</span> <span class="s">'users.list'</span><span class="op">);</span>       <span class="c">// phải truyền</span>
+<span class="op">}</span>
+<span class="c">// Khi thêm một service mới → phải sửa signature của tất cả function trung gian</span></pre>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">✓ AsyncLocalStorage — tenant_id ẩn trong context, tự động có mặt ở mọi nơi</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="c">// ✓ AsyncLocalStorage — tenant_id "ẩn" trong context, tự động có mặt ở mọi nơi</span>
+<span class="kw">async function</span> <span class="fn">handleRequest</span><span class="op">(</span>req<span class="op">: </span><span class="t">FastifyRequest</span><span class="op">)</span> <span class="op">{</span>
+<span class="hl">  <span class="kw">await</span> TenantContext<span class="op">.</span><span class="fn">run</span><span class="op">(</span><span class="op">{</span> tenantId<span class="op">:</span> req<span class="op">.</span>tenant<span class="op">.</span>id<span class="op">,</span> tenantTier<span class="op">:</span> req<span class="op">.</span>tenant<span class="op">.</span>tier <span class="op">}</span><span class="op">,</span> <span class="kw">async</span> <span class="op">()</span> <span class="op">=></span> <span class="op">{</span></span>
+    <span class="kw">const</span> users <span class="op">=</span> <span class="kw">await</span> userService<span class="op">.</span><span class="fn">getUsers</span><span class="op">();</span>   <span class="c">// không cần truyền tenantId</span>
+    <span class="kw">const</span> deals <span class="op">=</span> <span class="kw">await</span> dealService<span class="op">.</span><span class="fn">getDeals</span><span class="op">();</span>   <span class="c">// không cần truyền tenantId</span>
+    <span class="kw">await</span> auditService<span class="op">.</span><span class="fn">log</span><span class="op">(</span><span class="s">'users.list'</span><span class="op">);</span>          <span class="c">// không cần truyền tenantId</span>
+<span class="hl">  <span class="op">}</span><span class="op">);</span></span>
+<span class="op">}</span></pre>
+  </div>
+
+  <div class="sec-title">API Reference</div>
+  <table class="data-table">
+    <tr><th>Method</th><th>Return</th><th>Mô tả</th></tr>
+    <tr>
+      <td>run(store, fn)</td>
+      <td><span style="font-family:var(--mono);color:var(--cyan)">T</span></td>
+      <td>Chạy fn trong tenant context — tất cả async chain kế thừa context này</td>
+    </tr>
+    <tr>
+      <td>getTenantId()</td>
+      <td><span style="font-family:var(--mono);color:var(--cyan)">string | undefined</span></td>
+      <td>Lấy tenant_id, <code>undefined</code> nếu ngoài context</td>
+    </tr>
+    <tr>
+      <td>requireTenantId()</td>
+      <td><span style="font-family:var(--mono);color:var(--cyan)">string</span></td>
+      <td>Lấy tenant_id hoặc <code>throw</code> nếu ngoài context — dùng trong business logic</td>
+    </tr>
+    <tr>
+      <td>getTier()</td>
+      <td><span style="font-family:var(--mono);color:var(--cyan)">TenantTier | undefined</span></td>
+      <td>Lấy tier của tenant — <code>'standard'</code> | <code>'vip'</code> | <code>'enterprise'</code></td>
+    </tr>
+    <tr>
+      <td>incrementQueryCount()</td>
+      <td><span style="font-family:var(--mono);color:var(--cyan)">number</span></td>
+      <td>Tăng query counter, trả về giá trị mới — được gọi bởi QueryInterceptor</td>
+    </tr>
+    <tr>
+      <td>getQueryCount()</td>
+      <td><span style="font-family:var(--mono);color:var(--cyan)">number</span></td>
+      <td>Số query đã thực hiện trong request này — dùng để monitor và enforce limit</td>
+    </tr>
+  </table>
+
+  <div class="sec-title">Isolation giữa concurrent requests</div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">TenantContext — concurrent isolation proof</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="c">// Hai request chạy đồng thời — context KHÔNG bao giờ rò rỉ sang nhau</span>
+<span class="kw">await</span> Promise<span class="op">.</span><span class="fn">all</span><span class="op">([</span>
+
+  <span class="c">// Request A — tenant acme</span>
+  TenantContext<span class="op">.</span><span class="fn">run</span><span class="op">(</span><span class="op">{</span> tenantId<span class="op">:</span> <span class="s">'acme-uuid'</span><span class="op">,</span> tenantTier<span class="op">:</span> <span class="s">'standard'</span> <span class="op">}</span><span class="op">,</span> <span class="kw">async</span> <span class="op">()</span> <span class="op">=></span> <span class="op">{</span>
+    <span class="kw">await</span> <span class="fn">sleep</span><span class="op">(</span><span class="n">10</span><span class="op">);</span>                                   <span class="c">// yield — cho request B chạy</span>
+<span class="hl">    console<span class="op">.</span><span class="fn">log</span><span class="op">(</span>TenantContext<span class="op">.</span><span class="fn">getTenantId</span><span class="op">()</span><span class="op">)</span><span class="op">;</span>             <span class="c">// → 'acme-uuid' ✓</span></span>
+  <span class="op">}</span><span class="op">)</span><span class="op">,</span>
+
+  <span class="c">// Request B — tenant globex (chạy đồng thời)</span>
+  TenantContext<span class="op">.</span><span class="fn">run</span><span class="op">(</span><span class="op">{</span> tenantId<span class="op">:</span> <span class="s">'globex-uuid'</span><span class="op">,</span> tenantTier<span class="op">:</span> <span class="s">'standard'</span> <span class="op">}</span><span class="op">,</span> <span class="kw">async</span> <span class="op">()</span> <span class="op">=></span> <span class="op">{</span>
+<span class="hl">    console<span class="op">.</span><span class="fn">log</span><span class="op">(</span>TenantContext<span class="op">.</span><span class="fn">getTenantId</span><span class="op">()</span><span class="op">)</span><span class="op">;</span>             <span class="c">// → 'globex-uuid' ✓</span></span>
+  <span class="op">}</span><span class="op">)</span><span class="op">,</span>
+
+<span class="op">]</span><span class="op">)</span><span class="op">;</span>
+
+<span class="c">// Ngoài context — không có tenant nào</span>
+console<span class="op">.</span><span class="fn">log</span><span class="op">(</span>TenantContext<span class="op">.</span><span class="fn">getTenantId</span><span class="op">()</span><span class="op">)</span><span class="op">;</span>               <span class="c">// → undefined ✓</span></pre>
+  </div>
+
+  <div class="note-block green">
+    <span class="note-label green">Tại sao AsyncLocalStorage an toàn với async/await</span>
+    <strong>AsyncLocalStorage</strong> dùng Node.js execution context — mỗi async chain có context riêng. Khác với global variable, context của Promise chain A không bị ghi đè bởi chain B dù chúng chạy đồng thời trên cùng một thread. Node.js runtime tự động propagate context qua <code>await</code>, <code>setTimeout</code>, <code>EventEmitter</code>, và stream callbacks.
+  </div>
+
+  <div class="sec-title">TenantStore structure</div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">src/dal/context/TenantContext.ts — TenantStore interface</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="kw">export type</span> <span class="t">TenantTier</span> <span class="op">=</span> <span class="s">'standard'</span> <span class="op">|</span> <span class="s">'vip'</span> <span class="op">|</span> <span class="s">'enterprise'</span><span class="op">;</span>
+
+<span class="kw">export interface</span> <span class="t">TenantStore</span> <span class="op">{</span>
+  <span class="kw">readonly</span> tenantId<span class="op">: </span><span class="t">string</span><span class="op">;</span>          <span class="c">// UUID — immutable trong suốt request</span>
+  <span class="kw">readonly</span> tenantTier<span class="op">: </span><span class="t">TenantTier</span><span class="op">;</span>    <span class="c">// standard | vip | enterprise</span>
+<span class="hl">  queryCount<span class="op">: </span><span class="t">number</span><span class="op">;</span>                  <span class="c">// mutable — tăng mỗi lần query</span></span>
+<span class="op">}</span>
+
+<span class="c">// Implementation — static class wrapping AsyncLocalStorage</span>
+<span class="kw">const</span> storage <span class="op">=</span> <span class="kw">new</span> AsyncLocalStorage<span class="op">&lt;</span><span class="t">TenantStore</span><span class="op">&gt;</span><span class="op">();</span>
+
+<span class="kw">export class</span> <span class="t">TenantContext</span> <span class="op">{</span>
+  <span class="kw">static</span> <span class="fn">run</span><span class="op">&lt;</span><span class="t">T</span><span class="op">&gt;</span><span class="op">(</span>store<span class="op">: </span><span class="t">Omit</span><span class="op">&lt;</span><span class="t">TenantStore</span><span class="op">,</span> <span class="s">'queryCount'</span><span class="op">&gt;</span><span class="op">,</span> fn<span class="op">: </span><span class="op">()</span> <span class="op">=></span> <span class="t">T</span><span class="op">)</span><span class="op">: </span><span class="t">T</span> <span class="op">{</span>
+    <span class="kw">return</span> storage<span class="op">.</span><span class="fn">run</span><span class="op">(</span><span class="op">{</span> <span class="op">...</span>store<span class="op">,</span> queryCount<span class="op">:</span> <span class="n">0</span> <span class="op">}</span><span class="op">,</span> fn<span class="op">);</span>  <span class="c">// queryCount bắt đầu từ 0</span>
+  <span class="op">}</span>
+
+  <span class="kw">static</span> <span class="fn">getTenantId</span><span class="op">()</span><span class="op">: </span><span class="t">string</span> <span class="op">|</span> <span class="t">undefined</span> <span class="op">{</span>
+    <span class="kw">return</span> storage<span class="op">.</span><span class="fn">getStore</span><span class="op">()</span><span class="op">?.</span>tenantId<span class="op">;</span>
+  <span class="op">}</span>
+
+  <span class="kw">static</span> <span class="fn">requireTenantId</span><span class="op">()</span><span class="op">: </span><span class="t">string</span> <span class="op">{</span>
+    <span class="kw">const</span> id <span class="op">=</span> storage<span class="op">.</span><span class="fn">getStore</span><span class="op">()</span><span class="op">?.</span>tenantId<span class="op">;</span>
+<span class="hl">    <span class="kw">if</span> <span class="op">(!</span>id<span class="op">)</span> <span class="kw">throw new</span> <span class="fn">Error</span><span class="op">(</span><span class="s">'TenantContext.requireTenantId() called outside of TenantContext.run()'</span><span class="op">);</span></span>
+    <span class="kw">return</span> id<span class="op">;</span>
+  <span class="op">}</span>
+
+  <span class="kw">static</span> <span class="fn">incrementQueryCount</span><span class="op">()</span><span class="op">: </span><span class="t">number</span> <span class="op">{</span>
+    <span class="kw">const</span> store <span class="op">=</span> storage<span class="op">.</span><span class="fn">getStore</span><span class="op">();</span>
+    <span class="kw">if</span> <span class="op">(</span>store<span class="op">)</span> store<span class="op">.</span>queryCount<span class="op">++;</span>
+    <span class="kw">return</span> store<span class="op">?.</span>queryCount <span class="op">??</span> <span class="n">0</span><span class="op">;</span>
+  <span class="op">}</span>
+<span class="op">}</span></pre>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 3 — POOL REGISTRY
+══════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-2">
+
+  <div class="sec-title">3 Pool Tiers</div>
+
+  <table class="data-table">
+    <tr><th>Pool</th><th>Max Conn</th><th>Dùng cho</th><th>Tạo lúc</th></tr>
+    <tr>
+      <td>shared</td>
+      <td>200</td>
+      <td>Toàn bộ standard tenants dùng chung — mỗi connection được scoped theo request</td>
+      <td>App startup</td>
+    </tr>
+    <tr>
+      <td>metadata</td>
+      <td>20</td>
+      <td>System ops: tenant lookup từ subdomain, health check, migration</td>
+      <td>App startup</td>
+    </tr>
+    <tr>
+      <td>vip</td>
+      <td>30 per tenant</td>
+      <td>VIP/Enterprise tenant — dedicated pool, không dùng chung với ai</td>
+      <td>On-demand, khi <code>registerVipPool()</code> được gọi</td>
+    </tr>
+  </table>
+
+  <div class="sec-title">Vấn đề: afterCreate không đủ</div>
+
+  <div class="note-block red">
+    <span class="note-label red">afterCreate chỉ chạy khi connection được TẠO MỚI</span>
+    <code>afterCreate</code> của Knex (Phase 1) reset <code>app.tenant_id = NULL</code> chỉ khi connection lần đầu được tạo ra từ pool. Khi connection được trả về pool và lấy ra lần thứ hai, <code>afterCreate</code> KHÔNG chạy lại.
+  </div>
+
+  <div class="isolation-box"><span style="color:var(--td)">Connection X tạo mới</span> → <span style="color:var(--green)">afterCreate() reset app.tenant_id = NULL ✓</span>
+<span style="color:var(--td)">Request A (tenant: acme)</span> → <span style="color:var(--td)">lấy connection X từ pool</span> → <span style="color:var(--ac)">SET app.tenant_id = 'acme'</span> → <span style="color:var(--td)">query → xong</span>
+<span style="color:var(--td)">Connection X trả về pool</span> → <span style="color:var(--red)">afterCreate() KHÔNG chạy lại (chỉ chạy khi tạo mới!) ✗</span>
+<span style="color:var(--td)">Request B (tenant: globex)</span> → <span style="color:var(--td)">lấy đúng connection X</span> → <span style="color:var(--red)">app.tenant_id vẫn là 'acme'</span> → <span style="color:var(--red)">DATA LEAK!</span></div>
+
+  <div class="sec-title">Giải pháp: Wrap release()</div>
+
+  <div class="prose">
+    Thay vì dựa vào <code>afterCreate</code>, PoolRegistry wrap hàm <code>release()</code> của mỗi client — đảm bảo reset <strong>TRƯỚC KHI</strong> trả connection về pool, bất kể connection đó được lấy ra lần thứ bao nhiêu.
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">src/dal/pool/PoolRegistry.ts — acquire pattern</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="kw">async</span> <span class="fn">acquireConnection</span><span class="op">(</span>tenantId<span class="op">: </span><span class="t">string</span><span class="op">)</span><span class="op">: </span><span class="t">Promise</span><span class="op">&lt;</span><span class="t">PoolClient</span><span class="op">&gt;</span> <span class="op">{</span>
+  <span class="fn">assertValidUuid</span><span class="op">(</span>tenantId<span class="op">);</span>                                <span class="c">// SQL injection guard</span>
+  <span class="kw">const</span> pool <span class="op">=</span> <span class="kw">this</span><span class="op">.</span><span class="fn">selectPool</span><span class="op">(</span>tenantId<span class="op">);</span>
+  <span class="kw">const</span> client <span class="op">=</span> <span class="kw">await</span> pool<span class="op">.</span><span class="fn">connect</span><span class="op">();</span>
+
+<span class="hl">  <span class="c">// Bọc release() để luôn reset TRƯỚC KHI trả về pool</span></span>
+<span class="hl">  <span class="kw">const</span> _release <span class="op">=</span> client<span class="op">.</span>release<span class="op">.</span><span class="fn">bind</span><span class="op">(</span>client<span class="op">);</span></span>
+<span class="hl">  <span class="op">(</span>client <span class="kw">as any</span><span class="op">)</span><span class="op">.</span>release <span class="op">=</span> <span class="kw">async</span> <span class="op">(</span>err<span class="op">?: </span><span class="t">Error</span> <span class="op">|</span> <span class="t">boolean</span><span class="op">)</span> <span class="op">=></span> <span class="op">{</span></span>
+    <span class="kw">try</span> <span class="op">{</span>
+<span class="hl">      <span class="kw">await</span> client<span class="op">.</span><span class="fn">query</span><span class="op">(</span><span class="s">`SET "app.tenant_id" = ''`</span><span class="op">);</span>  <span class="c">// reset TRƯỚC KHI release</span></span>
+    <span class="op">}</span> <span class="kw">catch</span> <span class="op">{</span> <span class="c">/* connection broken — pool sẽ discard, không cần làm gì */</span> <span class="op">}</span>
+    <span class="fn">_release</span><span class="op">(</span>err<span class="op">);</span>                                          <span class="c">// trả về pool</span>
+<span class="hl">  <span class="op">}</span><span class="op">;</span></span>
+
+  <span class="c">// Set tenant context cho connection này</span>
+  <span class="kw">await</span> client<span class="op">.</span><span class="fn">query</span><span class="op">(</span><span class="s">`SET "app.tenant_id" = '<span class="op">${</span>tenantId<span class="op">}</span>'`</span><span class="op">);</span>
+
+  <span class="kw">return</span> client<span class="op">;</span>
+<span class="op">}</span></pre>
+  </div>
+
+  <div class="sec-title">UUID validation — ngăn SQL injection</div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">src/dal/pool/PoolRegistry.ts — assertValidUuid</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="c">// SET command không hỗ trợ parameterized query ($1)</span>
+<span class="c">// → phải interpolate trực tiếp vào string</span>
+<span class="c">// → PHẢI validate format trước</span>
+
+<span class="kw">function</span> <span class="fn">assertValidUuid</span><span class="op">(</span>id<span class="op">: </span><span class="t">string</span><span class="op">)</span><span class="op">: </span><span class="t">void</span> <span class="op">{</span>
+<span class="hl">  <span class="kw">if</span> <span class="op">(!/</span><span class="s">^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$</span><span class="op">/</span>i<span class="op">.</span><span class="fn">test</span><span class="op">(</span>id<span class="op">))</span> <span class="op">{</span></span>
+    <span class="kw">throw new</span> <span class="fn">Error</span><span class="op">(</span><span class="s">`PoolRegistry: invalid tenant_id format: "<span class="op">${</span>id<span class="op">}</span>"`</span><span class="op">);</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+<span class="c">// UUID chỉ chứa hex chars và dashes — không có SQL injection vector</span></pre>
+  </div>
+
+  <div class="note-block yellow">
+    <span class="note-label yellow">PostgreSQL SET command — không có parameterized query</span>
+    <code>SET "app.tenant_id" = $1</code> là cú pháp không hợp lệ trong PostgreSQL. <code>SET</code> chỉ nhận literal values, không nhận placeholders. Regex validation đảm bảo chỉ UUID hợp lệ (<code>[0-9a-f]{8}-...</code>) được interpolate — UUID chỉ gồm hex characters và dashes, không có ký tự SQL đặc biệt nào.
+  </div>
+
+  <div class="sec-title">Pool selection logic</div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">src/dal/pool/PoolRegistry.ts — selectPool</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="kw">private</span> <span class="fn">selectPool</span><span class="op">(</span>tenantId<span class="op">: </span><span class="t">string</span><span class="op">)</span><span class="op">: </span><span class="t">Pool</span> <span class="op">{</span>
+<span class="hl">  <span class="c">// VIP tenant → dedicated pool nếu đã đăng ký</span></span>
+  <span class="kw">const</span> vipPool <span class="op">=</span> <span class="kw">this</span><span class="op">.</span>vipPools<span class="op">.</span><span class="fn">get</span><span class="op">(</span>tenantId<span class="op">);</span>
+  <span class="kw">if</span> <span class="op">(</span>vipPool<span class="op">)</span> <span class="kw">return</span> vipPool<span class="op">;</span>           <span class="c">// dedicated pool — không dùng shared</span>
+
+<span class="hl">  <span class="c">// Standard tenant → shared pool (200 connections)</span></span>
+  <span class="kw">return</span> <span class="kw">this</span><span class="op">.</span>sharedPool<span class="op">;</span>
+<span class="op">}</span>
+
+<span class="c">// Metadata pool được truy cập riêng — không qua acquireConnection</span>
+<span class="fn">getMetadataPool</span><span class="op">()</span><span class="op">: </span><span class="t">Pool</span> <span class="op">{</span> <span class="kw">return</span> <span class="kw">this</span><span class="op">.</span>metadataPool<span class="op">;</span> <span class="op">}</span>
+
+<span class="c">// VIP tenant registration — gọi khi tenant config load</span>
+<span class="fn">registerVipPool</span><span class="op">(</span>tenantId<span class="op">: </span><span class="t">string</span><span class="op">,</span> connectionString<span class="op">: </span><span class="t">string</span><span class="op">)</span><span class="op">: </span><span class="t">void</span> <span class="op">{</span>
+  <span class="kw">if</span> <span class="op">(</span><span class="kw">this</span><span class="op">.</span>vipPools<span class="op">.</span><span class="fn">has</span><span class="op">(</span>tenantId<span class="op">))</span> <span class="kw">return</span><span class="op">;</span>   <span class="c">// idempotent — không tạo lại nếu đã có</span>
+  <span class="kw">const</span> pool <span class="op">=</span> <span class="kw">new</span> <span class="fn">Pool</span><span class="op">(</span><span class="op">{</span>
+    connectionString<span class="op">,</span>
+    max<span class="op">:</span> <span class="n">30</span><span class="op">,</span>                               <span class="c">// VIP hard limit</span>
+  <span class="op">}</span><span class="op">);</span>
+  <span class="kw">this</span><span class="op">.</span>vipPools<span class="op">.</span><span class="fn">set</span><span class="op">(</span>tenantId<span class="op">,</span> pool<span class="op">);</span>
+<span class="op">}</span></pre>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 4 — QUERY INTERCEPTOR
+══════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-3">
+
+  <div class="sec-title">Tại sao monkey-patch acquireConnection?</div>
+
+  <div class="prose">
+    Knex không expose một "before query" hook sạch ở public API. <code>acquireConnection</code> là điểm duy nhất có thể intercept: xảy ra <em>sau khi</em> connection được lấy từ pool, <em>trước khi</em> bất kỳ query nào chạy trên connection đó.
+  </div>
+
+  <div class="isolation-box"><span style="color:var(--td)">Knex.query(builder)</span>
+  └── <span style="color:var(--ac)">client.acquireConnection()</span>   <span style="color:var(--red)">← ĐÂY là điểm hook duy nhất đúng thời điểm</span>
+        └── <span style="color:var(--td)">pool.connect()</span>
+              └── <span style="color:var(--td)">pg connection</span></div>
+
+  <div class="sec-title">Hai lớp bảo vệ — defense in depth</div>
+
+  <div class="isolation-box"><span style="color:var(--red); font-weight:600;">Lớp 1: QueryInterceptor (Knex level)</span>
+  acquireConnection → <span style="color:var(--ac)">SET app.tenant_id</span>
+  releaseConnection → <span style="color:var(--ac)">SET app.tenant_id = ''</span>
+
+<span style="color:var(--yellow); font-weight:600;">Lớp 2: PoolRegistry (pg level)</span>
+  acquireConnection → <span style="color:var(--ac)">SET app.tenant_id</span>
+  release() wrapper → <span style="color:var(--ac)">SET app.tenant_id = ''</span>
+
+<span style="color:var(--green); font-weight:600;">Lớp 3: afterCreate (pool level, Phase 1)</span>
+  mỗi khi connection được TẠO MỚI → <span style="color:var(--ac)">set_config(app.tenant_id, NULL)</span></div>
+
+  <div class="note-block green">
+    <span class="note-label green">Belt AND suspenders — defense-in-depth</span>
+    Nếu một lớp bị lỗi hoặc bị bypass, lớp kia vẫn bảo vệ. Ví dụ: nếu code gọi thẳng <code>pg.Pool.connect()</code> bỏ qua Knex, PoolRegistry vẫn reset. Nếu code bỏ qua PoolRegistry và dùng Knex trực tiếp, QueryInterceptor vẫn bảo vệ.
+  </div>
+
+  <div class="sec-title">Implementation — monkey-patch pattern</div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">src/dal/interceptor/QueryInterceptor.ts</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="kw">export function</span> <span class="fn">applyQueryInterceptor</span><span class="op">(</span>knexInstance<span class="op">: </span><span class="t">Knex</span><span class="op">)</span><span class="op">: </span><span class="t">void</span> <span class="op">{</span>
+  <span class="c">// Lưu các method gốc</span>
+  <span class="kw">const</span> originalAcquire <span class="op">=</span> knexInstance<span class="op">.</span>client<span class="op">.</span>acquireConnection<span class="op">.</span><span class="fn">bind</span><span class="op">(</span>knexInstance<span class="op">.</span>client<span class="op">);</span>
+  <span class="kw">const</span> originalRelease <span class="op">=</span> knexInstance<span class="op">.</span>client<span class="op">.</span>releaseConnection<span class="op">.</span><span class="fn">bind</span><span class="op">(</span>knexInstance<span class="op">.</span>client<span class="op">);</span>
+
+<span class="hl">  <span class="c">// Override acquireConnection — chạy TRƯỚC mọi query</span></span>
+  knexInstance<span class="op">.</span>client<span class="op">.</span>acquireConnection <span class="op">=</span> <span class="kw">async</span> <span class="op">()</span> <span class="op">=></span> <span class="op">{</span>
+    <span class="kw">const</span> conn <span class="op">=</span> <span class="kw">await</span> <span class="fn">originalAcquire</span><span class="op">();</span>
+
+    <span class="kw">const</span> tenantId <span class="op">=</span> TenantContext<span class="op">.</span><span class="fn">getTenantId</span><span class="op">();</span>
+    <span class="kw">if</span> <span class="op">(</span>tenantId<span class="op">)</span> <span class="op">{</span>
+<span class="hl">      <span class="kw">await</span> conn<span class="op">.</span><span class="fn">query</span><span class="op">(</span><span class="s">`SET "app.tenant_id" = '<span class="op">${</span>tenantId<span class="op">}</span>'`</span><span class="op">);</span>  <span class="c">// scope connection</span></span>
+      QueryCounter<span class="op">.</span><span class="fn">increment</span><span class="op">(</span><span class="k">false</span><span class="op">);</span>                         <span class="c">// đếm, không throw</span>
+    <span class="op">}</span>
+
+    <span class="kw">return</span> conn<span class="op">;</span>
+  <span class="op">}</span><span class="op">;</span>
+
+<span class="hl">  <span class="c">// Override releaseConnection — chạy SAU khi query hoàn tất</span></span>
+  knexInstance<span class="op">.</span>client<span class="op">.</span>releaseConnection <span class="op">=</span> <span class="kw">async</span> <span class="op">(</span>conn<span class="op">: any</span><span class="op">)</span> <span class="op">=></span> <span class="op">{</span>
+    <span class="kw">try</span> <span class="op">{</span>
+<span class="hl">      <span class="kw">await</span> conn<span class="op">.</span><span class="fn">query</span><span class="op">(</span><span class="s">`SET "app.tenant_id" = ''`</span><span class="op">);</span>  <span class="c">// reset context</span></span>
+    <span class="op">}</span> <span class="kw">catch</span> <span class="op">{</span> <span class="c">/* connection broken — ignore */</span> <span class="op">}</span>
+    <span class="kw">return</span> <span class="fn">originalRelease</span><span class="op">(</span>conn<span class="op">);</span>
+  <span class="op">}</span><span class="op">;</span>
+<span class="op">}</span></pre>
+  </div>
+
+  <div class="sec-title">Tích hợp QueryCounter</div>
+
+  <div class="prose">
+    <code>acquireConnection</code> cũng gọi <code>QueryCounter.increment(false)</code> — tracking số lượng query mà không throw. Phase 6 Sandbox sẽ gọi <code>increment(true)</code> để enforce hard limit 50 queries/request.
+  </div>
+
+  <div class="sec-title">SET vs SET LOCAL</div>
+
+  <table class="data-table">
+    <tr><th></th><th>SET</th><th>SET LOCAL</th></tr>
+    <tr>
+      <td>Scope</td>
+      <td>Session (toàn bộ connection)</td>
+      <td>Transaction (chỉ trong BEGIN...COMMIT)</td>
+    </tr>
+    <tr>
+      <td>Dùng trong</td>
+      <td>Request lifecycle (nhiều query)</td>
+      <td>Seed script (single transaction)</td>
+    </tr>
+    <tr>
+      <td>Reset khi</td>
+      <td>Manual, hoặc khi connection đóng</td>
+      <td>Transaction kết thúc (tự động)</td>
+    </tr>
+  </table>
+
+  <div class="note-block">
+    <span class="note-label">Tại sao dùng SET (session) ở interceptor</span>
+    Một request có thể thực hiện nhiều query trong nhiều transaction nhỏ — ví dụ: đọc user (transaction 1) → ghi audit log (transaction 2) → update cache (không có transaction). <code>SET LOCAL</code> sẽ bị reset sau mỗi transaction, khiến RLS mất hiệu lực từ query thứ hai trở đi.
+  </div>
+
+  <div class="sec-title">Test — QueryInterceptor isolation</div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">src/dal/__tests__/QueryInterceptor.test.ts — key assertions</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="fn">it</span><span class="op">(</span><span class="s">'sets app.tenant_id on acquire when inside TenantContext'</span><span class="op">,</span> <span class="kw">async</span> <span class="op">()</span> <span class="op">=></span> <span class="op">{</span>
+  <span class="kw">await</span> TenantContext<span class="op">.</span><span class="fn">run</span><span class="op">(</span><span class="op">{</span> tenantId<span class="op">:</span> VALID_UUID<span class="op">,</span> tenantTier<span class="op">:</span> <span class="s">'standard'</span> <span class="op">}</span><span class="op">,</span> <span class="kw">async</span> <span class="op">()</span> <span class="op">=></span> <span class="op">{</span>
+    <span class="kw">await</span> knex<span class="op">(</span><span class="s">'users'</span><span class="op">)</span><span class="op">.</span><span class="fn">select</span><span class="op">(</span><span class="s">'*'</span><span class="op">)</span><span class="op">;</span>
+<span class="hl">    <span class="fn">expect</span><span class="op">(</span>mockQuery<span class="op">)</span><span class="op">.</span><span class="fn">toHaveBeenCalledWith</span><span class="op">(</span><span class="s">`SET "app.tenant_id" = '<span class="op">${</span>VALID_UUID<span class="op">}</span>'`</span><span class="op">);</span></span>
+  <span class="op">}</span><span class="op">);</span>
+<span class="op">}</span><span class="op">)</span><span class="op">;</span>
+
+<span class="fn">it</span><span class="op">(</span><span class="s">'resets app.tenant_id on release'</span><span class="op">,</span> <span class="kw">async</span> <span class="op">()</span> <span class="op">=></span> <span class="op">{</span>
+  <span class="kw">await</span> TenantContext<span class="op">.</span><span class="fn">run</span><span class="op">(</span><span class="op">{</span> tenantId<span class="op">:</span> VALID_UUID<span class="op">,</span> tenantTier<span class="op">:</span> <span class="s">'standard'</span> <span class="op">}</span><span class="op">,</span> <span class="kw">async</span> <span class="op">()</span> <span class="op">=></span> <span class="op">{</span>
+    <span class="kw">await</span> knex<span class="op">(</span><span class="s">'users'</span><span class="op">)</span><span class="op">.</span><span class="fn">select</span><span class="op">(</span><span class="s">'*'</span><span class="op">)</span><span class="op">;</span>
+  <span class="op">}</span><span class="op">);</span>
+<span class="hl">  <span class="fn">expect</span><span class="op">(</span>mockQuery<span class="op">)</span><span class="op">.</span><span class="fn">toHaveBeenLastCalledWith</span><span class="op">(</span><span class="s">`SET "app.tenant_id" = ''`</span><span class="op">);</span></span>
+<span class="op">}</span><span class="op">)</span><span class="op">;</span>
+
+<span class="fn">it</span><span class="op">(</span><span class="s">'skips SET when outside TenantContext'</span><span class="op">,</span> <span class="kw">async</span> <span class="op">()</span> <span class="op">=></span> <span class="op">{</span>
+  <span class="kw">await</span> knex<span class="op">(</span><span class="s">'tenants'</span><span class="op">)</span><span class="op">.</span><span class="fn">select</span><span class="op">(</span><span class="s">'*'</span><span class="op">)</span><span class="op">;</span>   <span class="c">// metadata query — no context</span>
+<span class="hl">  <span class="fn">expect</span><span class="op">(</span>mockQuery<span class="op">)</span><span class="op">.</span><span class="kw">not</span><span class="op">.</span><span class="fn">toHaveBeenCalledWith</span><span class="op">(</span><span class="fn">expect</span><span class="op">.</span><span class="fn">stringContaining</span><span class="op">(</span><span class="s">'SET'</span><span class="op">)</span><span class="op">);</span></span>
+<span class="op">}</span><span class="op">)</span><span class="op">;</span></pre>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TAB 5 — CACHE & COUNTER
+══════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-4">
+
+  <div class="sec-title">Key pattern — tenant isolation qua prefix</div>
+
+  <div class="key-pattern">
+<span style="color:var(--ac);font-weight:700">t</span> <span style="color:var(--tdm)">:</span> <span style="color:var(--cyan);">&lt;tenantId&gt;</span> <span style="color:var(--tdm)">:</span> <span style="color:var(--green)">&lt;resourceType&gt;</span> <span style="color:var(--tdm)">:</span> <span style="color:var(--yellow)">&lt;id&gt;</span>
+<span style="color:var(--tdm)">│         │                 │                   │</span>
+<span style="color:var(--tdm)">│     UUID tenant       'customer'          resource ID</span>
+<span style="color:var(--tdm)">│                       'deal'</span>
+<span style="color:var(--tdm)">│                       'tenant-config'</span>
+<span style="color:var(--tdm)">└── prefix cố định — dễ scan, dễ invalidate theo tenant</span>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">key pattern examples</span>
+      <span class="code-lang">text</span>
+    </div>
+    <pre><span class="s">t:aaaa-bbbb:customer:cust-001</span>        <span class="c">→ customer của tenant aaaa-bbbb</span>
+<span class="s">t:cccc-dddd:customer:cust-001</span>        <span class="c">→ customer của tenant cccc-dddd (khác key!)</span>
+<span class="s">t:aaaa-bbbb:deal:deal-999</span>            <span class="c">→ deal</span>
+<span class="s">t:aaaa-bbbb:tenant-config:aaaa-bbbb</span> <span class="c">→ cached tenant config</span></pre>
+  </div>
+
+  <div class="note-block green">
+    <span class="note-label green">Không bao giờ đọc nhầm dữ liệu giữa tenants</span>
+    Tenant A và Tenant B có thể có cùng resource ID (ví dụ <code>cust-001</code>) nhưng key hoàn toàn khác nhau nhờ <code>tenantId</code> trong prefix. Không có nguy cơ cache hit nhầm dù cả hai tenant đều dùng chung một Redis instance.
+  </div>
+
+  <div class="sec-title">CacheManager — auto key construction</div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">src/dal/cache/CacheManager.ts</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="kw">export class</span> <span class="t">CacheManager</span> <span class="kw">implements</span> <span class="t">ICacheManager</span> <span class="op">{</span>
+  <span class="kw">constructor</span><span class="op">(</span><span class="kw">private</span> redis<span class="op">: </span><span class="t">Redis</span><span class="op">)</span> <span class="op">{}</span>
+
+  <span class="c">// Key pattern enforcement — developer không thể tạo key sai format</span>
+<span class="hl">  <span class="kw">private</span> <span class="fn">buildKey</span><span class="op">(</span>resource<span class="op">: </span><span class="t">string</span><span class="op">,</span> id<span class="op">: </span><span class="t">string</span><span class="op">)</span><span class="op">: </span><span class="t">string</span> <span class="op">{</span></span>
+    <span class="kw">const</span> tenantId <span class="op">=</span> TenantContext<span class="op">.</span><span class="fn">requireTenantId</span><span class="op">();</span>  <span class="c">// throw nếu ngoài context</span>
+    <span class="kw">return</span> <span class="s">`t:<span class="op">${</span>tenantId<span class="op">}</span>:<span class="op">${</span>resource<span class="op">}</span>:<span class="op">${</span>id<span class="op">}</span>`</span><span class="op">;</span>
+<span class="hl">  <span class="op">}</span></span>
+
+  <span class="kw">async</span> <span class="fn">get</span><span class="op">&lt;</span><span class="t">T</span><span class="op">&gt;</span><span class="op">(</span>resource<span class="op">: </span><span class="t">string</span><span class="op">,</span> id<span class="op">: </span><span class="t">string</span><span class="op">)</span><span class="op">: </span><span class="t">Promise</span><span class="op">&lt;</span><span class="t">T</span> <span class="op">|</span> <span class="t">null</span><span class="op">&gt;</span> <span class="op">{</span>
+    <span class="kw">const</span> raw <span class="op">=</span> <span class="kw">await</span> <span class="kw">this</span><span class="op">.</span>redis<span class="op">.</span><span class="fn">getBuffer</span><span class="op">(</span><span class="kw">this</span><span class="op">.</span><span class="fn">buildKey</span><span class="op">(</span>resource<span class="op">,</span> id<span class="op">)</span><span class="op">);</span>
+    <span class="kw">if</span> <span class="op">(!</span>raw<span class="op">)</span> <span class="kw">return</span> <span class="k">null</span><span class="op">;</span>
+<span class="hl">    <span class="kw">return</span> msgpack<span class="op">.</span><span class="fn">decode</span><span class="op">(</span>raw<span class="op">)</span> <span class="kw">as</span> <span class="t">T</span><span class="op">;</span>                    <span class="c">// MessagePack decode</span></span>
+  <span class="op">}</span>
+
+  <span class="kw">async</span> <span class="fn">set</span><span class="op">&lt;</span><span class="t">T</span><span class="op">&gt;</span><span class="op">(</span>resource<span class="op">: </span><span class="t">string</span><span class="op">,</span> id<span class="op">: </span><span class="t">string</span><span class="op">,</span> value<span class="op">: </span><span class="t">T</span><span class="op">,</span> ttlSeconds <span class="op">=</span> <span class="n">300</span><span class="op">)</span><span class="op">: </span><span class="t">Promise</span><span class="op">&lt;</span><span class="t">void</span><span class="op">&gt;</span> <span class="op">{</span>
+<span class="hl">    <span class="kw">const</span> encoded <span class="op">=</span> msgpack<span class="op">.</span><span class="fn">encode</span><span class="op">(</span>value<span class="op">)</span><span class="op">;</span>                <span class="c">// MessagePack encode</span></span>
+    <span class="kw">await</span> <span class="kw">this</span><span class="op">.</span>redis<span class="op">.</span><span class="fn">setex</span><span class="op">(</span><span class="kw">this</span><span class="op">.</span><span class="fn">buildKey</span><span class="op">(</span>resource<span class="op">,</span> id<span class="op">)</span><span class="op">,</span> ttlSeconds<span class="op">,</span> Buffer<span class="op">.</span><span class="fn">from</span><span class="op">(</span>encoded<span class="op">)</span><span class="op">);</span>
+  <span class="op">}</span>
+<span class="op">}</span></pre>
+  </div>
+
+  <div class="sec-title">MessagePack vs JSON</div>
+
+  <table class="data-table">
+    <tr><th></th><th>JSON</th><th>MessagePack</th></tr>
+    <tr>
+      <td>Format</td>
+      <td>UTF-8 text</td>
+      <td>Binary</td>
+    </tr>
+    <tr>
+      <td>Size</td>
+      <td>100% (baseline)</td>
+      <td>~65–70% (~30–35% nhỏ hơn)</td>
+    </tr>
+    <tr>
+      <td>Speed</td>
+      <td>Slower (parse text)</td>
+      <td>Faster (binary decode)</td>
+    </tr>
+    <tr>
+      <td>Human-readable</td>
+      <td><span class="badge badge-yes">YES</span></td>
+      <td><span class="badge badge-no">NO</span></td>
+    </tr>
+    <tr>
+      <td>Dùng cho</td>
+      <td>Config, debug, API responses</td>
+      <td>Cache, high-throughput internal data</td>
+    </tr>
+  </table>
+
+  <div class="prose">
+    Dùng MessagePack cho cache vì: (1) data volume lớn khi hàng nghìn tenants cùng active, (2) data không cần đọc trực tiếp từ Redis CLI trong normal operation, (3) giảm Redis memory footprint và network bandwidth giữa app và Redis.
+  </div>
+
+  <div class="sec-title">SCAN vs KEYS — non-blocking invalidation</div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">src/dal/cache/CacheManager.ts — invalidateByTenant</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="c">// ❌ KEYS — block Redis trong khi scan, O(N) với N = tổng số keys</span>
+<span class="kw">const</span> keys <span class="op">=</span> <span class="kw">await</span> redis<span class="op">.</span><span class="fn">keys</span><span class="op">(</span><span class="s">`t:<span class="op">${</span>tenantId<span class="op">}</span>:customer:*`</span><span class="op">);</span>
+<span class="c">// → nếu Redis có 10 triệu keys, lệnh này block toàn bộ server trong vài giây</span>
+
+<span class="c">// ✓ SCAN — cursor-based, không block, trả về từng batch</span>
+<span class="kw">async</span> <span class="fn">invalidateByTenant</span><span class="op">(</span>tenantId<span class="op">: </span><span class="t">string</span><span class="op">,</span> resource<span class="op">: </span><span class="t">string</span><span class="op">)</span><span class="op">: </span><span class="t">Promise</span><span class="op">&lt;</span><span class="t">number</span><span class="op">&gt;</span> <span class="op">{</span>
+  <span class="kw">const</span> pattern <span class="op">=</span> <span class="s">`t:<span class="op">${</span>tenantId<span class="op">}</span>:<span class="op">${</span>resource<span class="op">}</span>:*`</span><span class="op">;</span>
+  <span class="kw">let</span> cursor <span class="op">=</span> <span class="s">'0'</span><span class="op">;</span>
+  <span class="kw">let</span> total <span class="op">=</span> <span class="n">0</span><span class="op">;</span>
+
+  <span class="kw">do</span> <span class="op">{</span>
+<span class="hl">    <span class="kw">const</span> <span class="op">[</span>nextCursor<span class="op">,</span> batch<span class="op">]</span> <span class="op">=</span> <span class="kw">await</span> redis<span class="op">.</span><span class="fn">scan</span><span class="op">(</span>cursor<span class="op">,</span> <span class="s">'MATCH'</span><span class="op">,</span> pattern<span class="op">,</span> <span class="s">'COUNT'</span><span class="op">,</span> <span class="n">100</span><span class="op">);</span></span>
+    cursor <span class="op">=</span> nextCursor<span class="op">;</span>
+    <span class="kw">if</span> <span class="op">(</span>batch<span class="op">.</span>length<span class="op">)</span> <span class="op">{</span>
+      <span class="kw">await</span> redis<span class="op">.</span><span class="fn">del</span><span class="op">(...</span>batch<span class="op">);</span>
+      total <span class="op">+=</span> batch<span class="op">.</span>length<span class="op">;</span>
+    <span class="op">}</span>
+<span class="hl">  <span class="op">}</span> <span class="kw">while</span> <span class="op">(</span>cursor <span class="op">!==</span> <span class="s">'0'</span><span class="op">);</span>  <span class="c">// cursor = '0' → scan hoàn thành</span></span>
+
+  <span class="c">// Redis tiếp tục phục vụ requests khác trong khi SCAN chạy</span>
+  <span class="kw">return</span> total<span class="op">;</span>
+<span class="op">}</span></pre>
+  </div>
+
+  <div class="sec-title">QueryCounter — thiết kế cho Phase 6</div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">src/dal/middleware/QueryCounter.ts</span>
+      <span class="code-lang">typescript</span>
+    </div>
+    <pre><span class="kw">export class</span> <span class="t">QueryLimitExceededError</span> <span class="kw">extends</span> <span class="t">Error</span> <span class="op">{</span>
+  <span class="kw">constructor</span><span class="op">(</span><span class="kw">public</span> <span class="kw">readonly</span> count<span class="op">: </span><span class="t">number</span><span class="op">,</span> <span class="kw">public</span> <span class="kw">readonly</span> limit<span class="op">: </span><span class="t">number</span><span class="op">)</span> <span class="op">{</span>
+    <span class="kw">super</span><span class="op">(</span><span class="s">`Query limit exceeded: <span class="op">${</span>count<span class="op">}</span>/<span class="op">${</span>limit<span class="op">}</span>`</span><span class="op">);</span>
+    <span class="kw">this</span><span class="op">.</span>name <span class="op">=</span> <span class="s">'QueryLimitExceededError'</span><span class="op">;</span>
+  <span class="op">}</span>
+<span class="op">}</span>
+
+<span class="kw">export const</span> QUERY_LIMIT <span class="op">=</span> <span class="n">50</span><span class="op">;</span>  <span class="c">// Sandbox hard limit (Phase 6)</span>
+
+<span class="kw">export class</span> <span class="t">QueryCounter</span> <span class="op">{</span>
+  <span class="c">// enforce = false → đếm, không throw (QueryInterceptor, toàn bộ system)</span>
+  <span class="c">// enforce = true  → đếm VÀ throw khi > 50 (Sandbox Engine, Phase 6)</span>
+<span class="hl">  <span class="kw">static</span> <span class="fn">increment</span><span class="op">(</span>enforce<span class="op">: </span><span class="t">boolean</span> <span class="op">=</span> <span class="k">false</span><span class="op">)</span><span class="op">: </span><span class="t">number</span> <span class="op">{</span></span>
+    <span class="kw">const</span> count <span class="op">=</span> TenantContext<span class="op">.</span><span class="fn">incrementQueryCount</span><span class="op">();</span>   <span class="c">// per-request, via AsyncLocalStorage</span>
+<span class="hl">    <span class="kw">if</span> <span class="op">(</span>enforce <span class="op">&amp;&amp;</span> count <span class="op">&gt;</span> QUERY_LIMIT<span class="op">)</span> <span class="op">{</span></span>
+<span class="hl">      <span class="kw">throw new</span> <span class="fn">QueryLimitExceededError</span><span class="op">(</span>count<span class="op">,</span> QUERY_LIMIT<span class="op">);</span>   <span class="ann">SANDBOX ONLY</span></span>
+<span class="hl">    <span class="op">}</span></span>
+    <span class="kw">return</span> count<span class="op">;</span>
+  <span class="op">}</span>
+
+  <span class="kw">static</span> <span class="fn">getCount</span><span class="op">()</span><span class="op">: </span><span class="t">number</span> <span class="op">{</span>
+    <span class="kw">return</span> TenantContext<span class="op">.</span><span class="fn">getQueryCount</span><span class="op">();</span>
+  <span class="op">}</span>
+<span class="op">}</span></pre>
+  </div>
+
+  <div class="note-block yellow">
+    <span class="note-label yellow">Phase 6 Sandbox sẽ gọi QueryCounter.increment(true)</span>
+    Khi plugin chạy trong <code>isolated-vm</code>, mọi DB query đều đi qua context bridge giữa sandbox và host. Đó là điểm Phase 6 sẽ gọi <code>increment(true)</code> — nếu plugin cố tình chạy vòng lặp query, nó sẽ bị dừng sau query thứ 51. Counter sống trong AsyncLocalStorage nên per-request và không cần lock.
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="sec-title">Tổng kết — L4 hoàn thành</div>
+
+  <div class="prose">
+    Sau Phase 2, một request điển hình chạy hoàn toàn tự động qua toàn bộ lớp bảo vệ:
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-filename">full request flow — sau Phase 2</span>
+      <span class="code-lang">text</span>
+    </div>
+    <pre><span class="td">Request arrives</span>
+  → <span class="fn">TenantContext.run</span><span class="op">({</span> tenantId<span class="op">,</span> tier <span class="op">},</span> <span class="kw">async</span> <span class="op">()</span> <span class="op">=></span> <span class="op">{</span>         <span class="c">[Phase 3]</span>
+      → <span class="fn">knex</span><span class="op">(</span><span class="s">'users'</span><span class="op">).</span><span class="fn">select</span><span class="op">(...)</span>
+<span class="hl">           → QueryInterceptor.acquireConnection<span class="op">()</span></span>
+<span class="hl">                → <span class="k">SET</span> app.tenant_id <span class="op">=</span> <span class="s">'&lt;tenantId&gt;'</span>              <span class="c">[Phase 2 ✓]</span></span>
+<span class="hl">                → QueryCounter.increment<span class="op">()</span>                      <span class="c">[Phase 2 ✓]</span></span>
+           → PostgreSQL executes query
+<span class="hl">                → RLS<span class="op">:</span> <span class="k">WHERE</span> tenant_id <span class="op">=</span> <span class="fn">current_setting</span><span class="op">(...)</span>   <span class="c">[Phase 1 ✓]</span></span>
+<span class="hl">           → QueryInterceptor.releaseConnection<span class="op">()</span></span>
+<span class="hl">                → <span class="k">SET</span> app.tenant_id <span class="op">=</span> <span class="s">''</span>                        <span class="c">[Phase 2 ✓]</span></span>
+      → <span class="fn">CacheManager.set</span><span class="op">(</span><span class="s">'user'</span><span class="op">,</span> id<span class="op">,</span> result<span class="op">)</span>
+<span class="hl">           → key <span class="op">=</span> <span class="s">t:&lt;tenantId&gt;:user:&lt;id&gt;</span>                       <span class="c">[Phase 2 ✓]</span></span>
+  <span class="op">})</span></pre>
+  </div>
+
+  <div class="flow">
+    <div class="flow-step" style="border-color:rgba(248,113,113,0.3)">
+      <span class="step-num" style="color:var(--red)">Phase 1 ✓</span>
+      <div class="step-name">RLS + Schema</div>
+      <div class="step-sub">PostgreSQL</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:rgba(129,140,248,0.3)">
+      <span class="step-num" style="color:var(--ac)">Phase 2 ✓</span>
+      <div class="step-name">TenantContext</div>
+      <div class="step-sub">AsyncLocalStorage</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:rgba(129,140,248,0.3)">
+      <span class="step-num" style="color:var(--ac)">Phase 2 ✓</span>
+      <div class="step-name">Interceptor</div>
+      <div class="step-sub">Knex hook</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:rgba(129,140,248,0.3)">
+      <span class="step-num" style="color:var(--ac)">Phase 2 ✓</span>
+      <div class="step-name">CacheManager</div>
+      <div class="step-sub">ioredis + msgpack</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <span class="step-num">Phase 3 →</span>
+      <div class="step-name">Business Logic</div>
+      <div class="step-sub">Plugin Cores</div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- end .content-wrap -->
+
+<script>
+function switchTab(idx) {
+  document.querySelectorAll('.tab-panel').forEach((p, i) => {
+    p.classList.toggle('active', i === idx);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === idx);
+  });
+}
+</script>
+</body>
+</html>

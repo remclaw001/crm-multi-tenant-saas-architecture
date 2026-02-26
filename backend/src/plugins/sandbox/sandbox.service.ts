@@ -1,14 +1,18 @@
 // ============================================================
-// SandboxService — time-bound plugin execution
+// SandboxService — time-bound execution for built-in plugin cores
 //
-// Wraps plugin core method calls in Promise.race():
+// Wraps trusted (built-in) plugin core method calls in Promise.race():
 //   - fn() resolves  → returns result normally
 //   - timeout fires  → rejects with GatewayTimeoutException (504)
 //
 // Default timeout: 5000ms (matches PluginResourceLimits.timeoutMs)
 //
-// QueryCounter (Phase 2) handles the query limit (50/request).
-// Memory limit enforcement is deferred to Phase 6 OS-level cgroups.
+// Query limit (50/request) is now enforced by QueryInterceptor
+// via QueryCounter.increment(true) — throws QueryLimitExceededError
+// on the 51st DB connection acquire within a single request.
+//
+// For untrusted third-party plugin scripts requiring a full V8 isolate
+// (separate heap, hard memory limit), see IsolatedSandboxService.
 // ============================================================
 import { Injectable, GatewayTimeoutException } from '@nestjs/common';
 

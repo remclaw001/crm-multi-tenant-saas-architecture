@@ -59,9 +59,11 @@ export function applyQueryInterceptor(knex: KnexType): void {
       await connection.query(`SET "app.tenant_id" = '${tenantId}'`);
     }
 
-    // Đếm query — QueryCounter.increment(false) không throw ở đây,
-    // để Sandbox Engine (Phase 6) quyết định enforcement strategy
-    QueryCounter.increment(false);
+    // Đếm query và enforce 50-query hard limit (Phase 6 Sandbox).
+    // Throws QueryLimitExceededError khi vượt QUERY_LIMIT.
+    // Error được catch bởi IsolatedSandboxService và mapped thành
+    // HTTP 429 / sandbox violation metric.
+    QueryCounter.increment(true);
 
     return connection;
   };

@@ -21,6 +21,12 @@
 //   cache_operations_total{operation, result}
 //     → Counter: cache get/set/del với hit/miss
 //
+//   sandbox_execution_duration_seconds{result}   ← Phase 6
+//     → Histogram: plugin execution time (success|timeout|memory_exceeded|query_limit|error)
+//
+//   sandbox_violations_total{limit_type}         ← Phase 6
+//     → Counter: sandbox limit breaches per type (timeout|memory|query_limit)
+//
 // Label cardinality strategy:
 //   tenant_tier (3 values: standard|vip|enterprise) thay cho tenant_id
 //   → giữ cardinality thấp trên high-traffic metrics
@@ -54,6 +60,12 @@ export class PrometheusService implements OnModuleInit, OnModuleDestroy {
 
   // ── Cache Metrics ──────────────────────────────────────────
   readonly cacheOperationsTotal: Counter<string>;
+
+  // ── Sandbox Metrics (Phase 6) ──────────────────────────────
+  /** Execution time of plugin scripts in V8 isolates. */
+  readonly sandboxExecutionDuration: Histogram<string>;
+  /** Hard-limit violations by type: timeout | memory | query_limit */
+  readonly sandboxViolationsTotal: Counter<string>;
 
   constructor() {
     // Registry riêng biệt — không dùng global registry
@@ -107,6 +119,24 @@ export class PrometheusService implements OnModuleInit, OnModuleDestroy {
       name: 'crm_cache_operations_total',
       help: 'Cache operations by type and result',
       labelNames: ['operation', 'result'],
+      registers: [this.registry],
+    });
+
+    // ── Sandbox Metrics (Phase 6) ────────────────────────────
+    // Buckets tuned for the 5 s hard timeout:
+    // 100ms, 250ms, 500ms, 1s, 2s, 3s, 5s (timeout boundary)
+    this.sandboxExecutionDuration = new Histogram({
+      name: 'crm_sandbox_execution_duration_seconds',
+      help: 'Plugin script execution time inside the V8 isolate',
+      labelNames: ['result'],
+      buckets: [0.1, 0.25, 0.5, 1, 2, 3, 5],
+      registers: [this.registry],
+    });
+
+    this.sandboxViolationsTotal = new Counter({
+      name: 'crm_sandbox_violations_total',
+      help: 'Plugin sandbox limit violations by type',
+      labelNames: ['limit_type'],
       registers: [this.registry],
     });
   }

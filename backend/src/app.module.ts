@@ -1,42 +1,43 @@
 // ============================================================
 // AppModule — Root NestJS module
 //
-// Orchestrates toàn bộ application:
-//   GatewayModule  → L2: Tenant resolution, JWT auth, rate limiting
-//   HealthModule   → Health check endpoints
-//   ApiModule      → L3: Business routes /api/v1/...
+// Module load order (quan trọng cho DI resolution):
+//   ObservabilityModule → GatewayModule → HealthModule → ApiModule
+//
+// ObservabilityModule phải load trước để:
+//   - Pino logger sẵn sàng trước khi GatewayModule log
+//   - PrometheusService sẵn sàng trước khi MetricsInterceptor (APP_INTERCEPTOR) chạy
 // ============================================================
 import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { config } from './config/env';
+import { ObservabilityModule } from './observability/observability.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { HealthModule } from './health/health.module';
 import { ApiModule } from './api/api.module';
 
 @Module({
   imports: [
+    // ── L7 Observability ────────────────────────────────────
+    // Pino logger + OpenTelemetry + Prometheus metrics
+    // Load đầu tiên để logger sẵn sàng cho mọi module sau
+    ObservabilityModule,
+
     // ── Rate limiting ────────────────────────────────────────
-    // Áp dụng toàn cục qua APP_GUARD trong GatewayModule.
-    // ThrottlerModule.forRoot() cung cấp store, GatewayModule expose guard.
     ThrottlerModule.forRoot([
       {
-        // 100 requests / 1 phút / IP (Phase 10: Kong thay thế)
         limit: config.THROTTLE_LIMIT,
         ttl: config.THROTTLE_TTL_MS,
       },
     ]),
 
     // ── L2 Gateway ───────────────────────────────────────────
-    // Tenant resolution middleware + JWT guard + global error filter
     GatewayModule,
 
     // ── Health checks ────────────────────────────────────────
-    // GET /health  — liveness probe
-    // GET /ready   — readiness probe (DB + Redis + RabbitMQ)
     HealthModule,
 
     // ── L3 API routes ────────────────────────────────────────
-    // Prefix: /api/v1/:plugin/
     ApiModule,
   ],
 })

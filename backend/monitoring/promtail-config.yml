@@ -1,0 +1,60 @@
+# ============================================================
+# promtail-config.yml — Promtail log shipping configuration
+#
+# Promtail đọc logs từ Docker containers và đẩy lên Loki.
+# CRM API logs (JSON từ Pino) được parse và label theo tenant_id.
+# ============================================================
+server:
+  http_listen_port: 9080
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # ── Docker container logs ─────────────────────────────────
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["com.docker.compose.project=backend"]
+
+    relabel_configs:
+      # Lấy container name làm label
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+
+      # Lấy service name từ Docker Compose label
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'service'
+
+    pipeline_stages:
+      # Parse JSON log từ Pino
+      - json:
+          expressions:
+            level: level
+            tenant_id: tenant_id
+            tenant_tier: tenant_tier
+            correlation_id: correlation_id
+            trace_id: trace_id
+            event: event
+            msg: msg
+
+      # Gắn các field quan trọng làm Loki labels (dùng để query nhanh)
+      - labels:
+          level:
+          tenant_tier:
+          event:
+
+      # Không gắn tenant_id làm label (high cardinality)
+      # → query bằng {service="crm-api"} | json | tenant_id = "xxx"
+
+      # Timestamp từ Pino log
+      - timestamp:
+          source: time
+          format: RFC3339Nano

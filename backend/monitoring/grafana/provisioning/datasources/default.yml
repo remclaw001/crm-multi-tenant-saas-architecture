@@ -1,0 +1,54 @@
+# ============================================================
+# Grafana datasources provisioning
+# Auto-loaded khi Grafana khởi động
+# ============================================================
+apiVersion: 1
+
+datasources:
+  # ── Prometheus ──────────────────────────────────────────────
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      exemplarTraceIdDestinations:
+        # Link từ Prometheus exemplars sang Jaeger traces
+        - name: trace_id
+          datasourceUid: jaeger
+
+  # ── Jaeger (Distributed Tracing) ─────────────────────────
+  - name: Jaeger
+    type: jaeger
+    uid: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    editable: false
+    jsonData:
+      tracesToLogsV2:
+        # Link từ Jaeger trace sang Loki logs
+        datasourceUid: loki
+        spanStartTimeShift: '-1m'
+        spanEndTimeShift: '1m'
+        filterByTraceID: true
+        filterBySpanID: false
+        customQuery: true
+        query: '{service="crm-api"} | json | trace_id="${__trace.traceId}"'
+
+  # ── Loki (Log aggregation) ────────────────────────────────
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      derivedFields:
+        # Auto-link trace_id trong logs → Jaeger
+        - name: trace_id
+          matcherRegex: '"trace_id":"([^"]+)"'
+          url: '$${__value.raw}'
+          datasourceUid: jaeger

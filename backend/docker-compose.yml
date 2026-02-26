@@ -1,6 +1,25 @@
 version: '3.9'
 
+# ============================================================
+# CRM Backend — Docker Compose
+#
+# Services:
+#   Phase 1: postgres, redis, rabbitmq
+#   Phase 4: jaeger, prometheus, grafana, loki, promtail
+#
+# Profiles:
+#   (default) — postgres, redis, rabbitmq
+#   observability — thêm jaeger, prometheus, grafana, loki, promtail
+#
+# Khởi động đầy đủ:
+#   docker compose --profile observability up -d
+# Chỉ infra cơ bản:
+#   docker compose up -d
+# ============================================================
+
 services:
+  # ── Phase 1: Core Infrastructure ──────────────────────────
+
   postgres:
     image: postgres:16-alpine
     container_name: crm_postgres
@@ -50,7 +69,100 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Phase 4: Observability Stack ──────────────────────────
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    container_name: crm_jaeger
+    profiles: [observability]
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP ← app gửi traces đến đây
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:14269/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: crm_prometheus
+    profiles: [observability]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"     # Prometheus UI
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'   # POST /-/reload để reload config
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: crm_grafana
+    profiles: [observability]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"     # Grafana UI (tránh conflict với app port 3000)
+    depends_on:
+      - prometheus
+      - loki
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: crm_loki
+    profiles: [observability]
+    ports:
+      - "3100:3100"     # Loki API (Promtail push logs đến đây)
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  promtail:
+    image: grafana/promtail:3.3.2
+    container_name: crm_promtail
+    profiles: [observability]
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro              # system logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # docker logs
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
 volumes:
   postgres_data:
   redis_data:
   rabbitmq_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:

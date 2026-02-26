@@ -51,10 +51,14 @@ export class GatewayModule implements NestModule {
         CorrelationIdMiddleware,   // 1st: gán correlationId
         TenantResolverMiddleware   // 2nd: resolve tenant + set AsyncLocalStorage
       )
-      // Áp dụng cho tất cả routes NGOẠI TRỪ health (health không cần tenant)
+      // Áp dụng cho tất cả routes NGOẠI TRỪ:
+      //   /health  — liveness probe (không cần tenant)
+      //   /ready   — readiness probe (không cần tenant)
+      //   /metrics — Prometheus scrape (không cần tenant)
       .exclude(
         { path: 'health', method: RequestMethod.GET },
-        { path: 'ready', method: RequestMethod.GET }
+        { path: 'ready', method: RequestMethod.GET },
+        { path: 'metrics', method: RequestMethod.GET }
       )
       .forRoutes('*');
   }

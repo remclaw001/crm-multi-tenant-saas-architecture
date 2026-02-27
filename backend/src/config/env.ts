@@ -72,6 +72,17 @@ const envSchema = z.object({
   // Per-tenant origins override này từ tenants.config.allowedOrigins
   // e.g. "https://app.example.com,https://admin.example.com"
   CORS_ORIGINS: z.string().optional(),
+
+  // ── Async Workers (Phase 8) ────────────────────────────────
+  // Elasticsearch — optional, search indexing degraded gracefully if unset
+  ELASTICSEARCH_URL: z.string().url().optional(),
+
+  // SMTP — optional, emails logged to console if unset (dev mode)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  EMAIL_FROM: z.string().email().default('noreply@crm.dev'),
 });
 
 const envWithJwtCheck = envSchema.refine(

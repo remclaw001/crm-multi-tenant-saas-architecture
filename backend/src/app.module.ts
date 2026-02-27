@@ -23,6 +23,7 @@ import { config } from './config/env';
 import { DalModule } from './dal/dal.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { SecurityModule } from './common/security/security.module';
+import { WorkersModule } from './workers/workers.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { HealthModule } from './health/health.module';
 import { ApiModule } from './api/api.module';
@@ -43,6 +44,11 @@ import { ApiModule } from './api/api.module';
     // @Global() → EncryptionService (AES-256-GCM) + PasswordService (bcrypt)
     // Available everywhere without explicit import
     SecurityModule,
+
+    // ── L5 Async Workers (Phase 8) ───────────────────────────
+    // AmqpModule (@Global) + BullMqModule + consumers + cron
+    // Must load after DalModule (AuditConsumer needs KNEX_INSTANCE)
+    WorkersModule,
 
     // ── Rate limiting ────────────────────────────────────────
     ThrottlerModule.forRoot([

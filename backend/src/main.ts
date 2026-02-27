@@ -22,6 +22,10 @@ import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './gateway/filters/http-exception.filter';
+import { createBullBoardRouter } from './workers/bull-board/bull-board.setup';
+import { QUEUE_EMAIL, QUEUE_WEBHOOK } from './workers/bullmq/queue.constants';
+import { getQueueToken } from '@nestjs/bullmq';
+import type { Queue } from 'bullmq';
 import { config } from './config/env';
 
 async function bootstrap() {
@@ -86,6 +90,13 @@ async function bootstrap() {
   // ── Global filters ────────────────────────────────────────
   // RFC 7807 Problem Details JSON + AppError hierarchy mapping + Sentry
   app.useGlobalFilters(new HttpExceptionFilter());
+
+  // ── Bull Board queue monitoring UI ───────────────────────
+  // Dev: http://localhost:<PORT>/admin/queues
+  // Protected in production by adding auth middleware before this.
+  const emailQueue   = app.get<Queue>(getQueueToken(QUEUE_EMAIL));
+  const webhookQueue = app.get<Queue>(getQueueToken(QUEUE_WEBHOOK));
+  app.use('/admin/queues', createBullBoardRouter(emailQueue, webhookQueue));
 
   // ── Enable shutdown hooks ─────────────────────────────────
   app.enableShutdownHooks();

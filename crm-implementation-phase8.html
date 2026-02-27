@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 8 — L5 Async Workers · RabbitMQ · BullMQ · node-cron</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#08080d;--sf:#0d0d16;--sf2:#111120;--bd:#1e1e2e;--bd2:#252538;--tx:#e4e4ee;--td:#8e8ea8;--tdm:#5a5a72;--ac:#4ade80;--ac2:#22c55e;--ac-glow:rgba(74,222,128,0.12);--ac-dim:rgba(74,222,128,0.06);--green:#34d399;--green-d:rgba(52,211,153,0.1);--red:#f87171;--red-d:rgba(248,113,113,0.1);--blue:#60a5fa;--blue-d:rgba(96,165,250,0.1);--orange:#fb923c;--orange-d:rgba(251,146,60,0.1);--purple:#c084fc;--purple-d:rgba(192,132,252,0.1);--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg);color:var(--tx);min-height:100vh;line-height:1.6}
+.page-header{padding:36px 48px 28px;border-bottom:1px solid var(--bd);background:var(--sf);position:relative;overflow:hidden}
+.page-header::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,var(--ac-glow) 0%,transparent 70%);pointer-events:none}
+.phase-badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.7rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--ac);background:var(--ac-dim);border:1px solid rgba(74,222,128,0.2);padding:4px 12px;border-radius:4px;margin-bottom:14px}
+.phase-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--ac);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.page-header h1{font-size:1.75rem;font-weight:700;margin-bottom:8px}
+.page-header h1 span{color:var(--ac)}
+.page-header p{color:var(--td);font-size:.9rem;max-width:680px}
+.meta-row{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+.meta-item{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.72rem;color:var(--tdm)}
+.meta-item span{color:var(--td)}
+.sticky-nav{position:sticky;top:0;z-index:40;background:rgba(8,8,13,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);padding:0 48px}
+.nav-inner{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.nav-inner::-webkit-scrollbar{display:none}
+.nav-btn{font-family:var(--mono);font-size:.72rem;font-weight:500;padding:12px 14px;background:none;border:none;color:var(--tdm);cursor:pointer;white-space:nowrap;position:relative;transition:color .15s}
+.nav-btn:hover{color:var(--td)}
+.nav-btn.on{color:var(--ac)}
+.nav-btn.on::after{content:'';position:absolute;bottom:0;left:8px;right:8px;height:2px;background:var(--ac);border-radius:2px 2px 0 0}
+.wrap{max-width:1100px;margin:0 auto;padding:32px 48px 100px}
+.pnl{display:none}.pnl.on{display:block}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:24px;margin-bottom:20px}
+.card-title{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--td);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.code-block{background:var(--sf2);border:1px solid var(--bd);border-radius:8px;overflow-x:auto;margin:12px 0}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--bd);font-family:var(--mono);font-size:.72rem;color:var(--tdm)}
+.code-header .lang{color:var(--ac)}
+.code-body{padding:16px;font-family:var(--mono);font-size:.78rem;line-height:1.8;white-space:pre;color:var(--tx);overflow-x:auto}
+.code-body .k{color:#4ade80}.code-body .t{color:#22d3ee}.code-body .s{color:#86efac}.code-body .c{color:var(--tdm);font-style:italic}.code-body .d{color:var(--orange)}.code-body .fn{color:#60a5fa}.code-body .n{color:#fb923c}.code-body .old{color:var(--red)}.code-body .new{color:var(--green)}
+.dtable{width:100%;border-collapse:collapse;font-size:.82rem}
+.dtable th{text-align:left;padding:10px 14px;border-bottom:1px solid var(--bd2);font-family:var(--mono);font-size:.72rem;color:var(--tdm);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.dtable td{padding:10px 14px;border-bottom:1px solid var(--bd);vertical-align:top}
+.dtable tr:last-child td{border-bottom:none}
+.dtable code{font-family:var(--mono);font-size:.76rem;color:var(--ac);background:var(--ac-dim);padding:1px 5px;border-radius:3px}
+.tag{display:inline-block;font-family:var(--mono);font-size:.68rem;padding:2px 7px;border-radius:3px;margin-right:4px;background:var(--ac-dim);color:var(--ac);border:1px solid rgba(74,222,128,0.2)}
+.tag.b{background:var(--blue-d);color:var(--blue);border-color:rgba(96,165,250,0.2)}
+.tag.o{background:var(--orange-d);color:var(--orange);border-color:rgba(251,146,60,0.2)}
+.tag.r{background:var(--red-d);color:var(--red);border-color:rgba(248,113,113,0.2)}
+.tag.p{background:var(--purple-d);color:var(--purple);border-color:rgba(192,132,252,0.2)}
+.del-list{display:flex;flex-direction:column;gap:10px}
+.del-item{display:flex;gap:12px;padding:12px 16px;background:var(--sf2);border-radius:8px;border:1px solid var(--bd);font-size:.85rem}
+.del-icon{color:var(--ac);flex-shrink:0;font-weight:700}
+.del-item p{color:var(--td);font-size:.78rem;margin-top:2px}
+.alert{display:flex;gap:12px;padding:14px 16px;border-radius:8px;font-size:.83rem;margin-bottom:16px}
+.alert.info{background:var(--ac-dim);border:1px solid rgba(74,222,128,0.2)}
+.alert.note{background:var(--green-d);border:1px solid rgba(52,211,153,0.2)}
+.alert.warn{background:var(--red-d);border:1px solid rgba(248,113,113,0.2)}
+.alert.blue{background:var(--blue-d);border:1px solid rgba(96,165,250,0.2)}
+.alert.orange{background:var(--orange-d);border:1px solid rgba(251,146,60,0.2)}
+.alert.purple{background:var(--purple-d);border:1px solid rgba(192,132,252,0.2)}
+.alert-icon{font-size:1rem;flex-shrink:0;margin-top:1px}
+.alert p{color:var(--td)}
+.alert p strong{color:var(--tx)}
+.sec-title{font-size:1.1rem;font-weight:700;color:var(--tx);margin:32px 0 16px;display:flex;align-items:center;gap:10px}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--bd2)}
+.file-tree{font-family:var(--mono);font-size:.78rem;line-height:1.9}
+.file-tree .dir{color:var(--ac)}
+.file-tree .file.new{color:var(--green)}
+.file-tree .file.mod{color:#fbbf24}
+.file-tree .cmt{color:var(--tdm)}
+.test-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.test-card{background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px}
+.test-file{font-family:var(--mono);font-size:.72rem;color:var(--ac);margin-bottom:10px}
+.test-case{display:flex;align-items:flex-start;gap:8px;font-size:.78rem;color:var(--td);padding:3px 0}
+.test-case .dot{width:6px;height:6px;border-radius:50%;background:var(--green);margin-top:5px;flex-shrink:0}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:0;margin:12px 0}
+.flow-box{background:var(--sf2);border:1px solid var(--bd2);border-radius:8px;padding:10px 14px;font-family:var(--mono);font-size:.75rem;color:var(--td)}
+.flow-box.hl{border-color:var(--ac);background:var(--ac-dim);color:var(--tx)}
+.flow-box strong{color:var(--tx);display:block;font-size:.8rem;margin-bottom:2px}
+.flow-arrow{color:var(--tdm);padding:0 6px;font-size:1.1rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+.topo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin:12px 0}
+.topo-card{border-radius:8px;padding:16px;border:1px solid}
+.topo-card.green{background:rgba(74,222,128,0.06);border-color:rgba(74,222,128,0.2)}
+.topo-card.blue{background:rgba(96,165,250,0.06);border-color:rgba(96,165,250,0.2)}
+.topo-card.orange{background:rgba(251,146,60,0.06);border-color:rgba(251,146,60,0.2)}
+.topo-card.purple{background:rgba(192,132,252,0.06);border-color:rgba(192,132,252,0.2)}
+.topo-name{font-family:var(--mono);font-size:.82rem;font-weight:600;margin-bottom:6px}
+.topo-name.green{color:#4ade80}
+.topo-name.blue{color:#60a5fa}
+.topo-name.orange{color:#fb923c}
+.topo-name.purple{color:#c084fc}
+.topo-detail{font-size:.78rem;color:var(--td);margin-bottom:4px}
+.topo-dlx{font-family:var(--mono);font-size:.7rem;color:var(--tdm)}
+.retry-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:16px 0}
+@media(max-width:600px){.retry-grid{grid-template-columns:1fr}}
+.retry-card{border-radius:10px;padding:20px;border:1px solid;text-align:center}
+.retry-card.green{background:rgba(74,222,128,0.07);border-color:rgba(74,222,128,0.25)}
+.retry-card.blue{background:rgba(96,165,250,0.07);border-color:rgba(96,165,250,0.25)}
+.retry-card.orange{background:rgba(251,146,60,0.07);border-color:rgba(251,146,60,0.25)}
+.retry-val{font-family:var(--mono);font-size:1.4rem;font-weight:700;margin:8px 0 4px}
+.retry-val.green{color:#4ade80}
+.retry-val.blue{color:#60a5fa}
+.retry-val.orange{color:#fb923c}
+.retry-label{font-size:.75rem;color:var(--td)}
+.retry-impl{font-family:var(--mono);font-size:.7rem;color:var(--tdm);margin-top:8px}
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="phase-badge">Phase 08 · Build Log</div>
+  <h1>Async Workers — <span>RabbitMQ · BullMQ · node-cron · Bull Board</span></h1>
+  <p>Tách các tác vụ nặng (audit logging, email, search indexing, webhooks) ra khỏi request path. Request trả về ngay lập tức — worker xử lý bất đồng bộ phía sau với retry/backoff và dead-letter queue cho failed messages.</p>
+  <div class="meta-row">
+    <div class="meta-item">📅 Build date: <span>2026-02-28</span></div>
+    <div class="meta-item">🏗 Layer: <span>L5 (Infrastructure)</span></div>
+    <div class="meta-item">🔗 Depends on: <span>Phase 7 (Error Hierarchy) · Phase 1 (RabbitMQ in Docker)</span></div>
+    <div class="meta-item">📦 Changes: <span>25 new files · 5 modified · 26 new tests</span></div>
+  </div>
+</header>
+
+<nav class="sticky-nav">
+  <div class="nav-inner">
+    <button class="nav-btn on" onclick="go(0)">Overview</button>
+    <button class="nav-btn" onclick="go(1)">AMQP Infrastructure</button>
+    <button class="nav-btn" onclick="go(2)">RabbitMQ Consumers</button>
+    <button class="nav-btn" onclick="go(3)">BullMQ + Processors</button>
+    <button class="nav-btn" onclick="go(4)">Scheduler + Bull Board</button>
+    <button class="nav-btn" onclick="go(5)">File Structure</button>
+    <button class="nav-btn" onclick="go(6)">Tests</button>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<!-- ── PANEL 0: OVERVIEW ── -->
+<div class="pnl on" id="p-0">
+  <div class="card">
+    <div class="card-title">🎯 Deliverables</div>
+    <div class="del-list">
+      <div class="del-item">
+        <span class="del-icon">✓</span>
+        <div>
+          <strong>AmqpModule (@Global) — RabbitMQ connection + topology + publisher</strong>
+          <p><code>AmqpService</code> quản lý connection + shared channel. <code>AmqpTopologyService</code> declare 4 exchanges, 4 DLX exchanges, và 8 queues (4 main + 4 DLQ) khi app khởi động. <code>AmqpPublisher</code> expose type-safe methods <code>publishAudit/Notification/SearchIndex/Webhook()</code> — inject được ở bất kỳ module nào vì @Global.</p>
+        </div>
+      </div>
+      <div class="del-item">
+        <span class="del-icon">✓</span>
+        <div>
+          <strong>4 RabbitMQ consumers — audit · notifications · search.index · webhooks</strong>
+          <p>Mỗi consumer có dedicated channel riêng (amqplib best practice). <code>AuditConsumer</code> write trực tiếp vào DB (prefetch=1). <code>NotificationConsumer</code> và <code>WebhookConsumer</code> dispatch sang BullMQ queue để retry. <code>SearchIndexConsumer</code> push tới Elasticsearch — graceful degradation nếu <code>ELASTICSEARCH_URL</code> chưa set.</p>
+        </div>
+      </div>
+      <div class="del-item">
+        <span class="del-icon">✓</span>
+        <div>
+          <strong>BullMQ — job queue với exponential backoff retry</strong>
+          <p><code>email-notifications</code> queue: 5 attempts, 2s backoff. <code>webhook-delivery</code> queue: 7 attempts, 1s backoff. <code>EmailProcessor</code> dùng Nodemailer — dev mode log to console khi <code>SMTP_HOST</code> chưa set. <code>WebhookRetryProcessor</code> dùng Node.js built-in <code>fetch</code> (Node 22+) + HMAC-SHA256 signature.</p>
+        </div>
+      </div>
+      <div class="del-item">
+        <span class="del-icon">✓</span>
+        <div>
+          <strong>audit_logs table — immutable async audit trail</strong>
+          <p>Migration <code>20260228000003_audit_logs.ts</code>. Không có RLS — audit worker chạy ngoài tenant session context. Tenant isolation qua <code>tenant_id</code> column. 3 indexes: <code>(tenant_id, created_at DESC)</code>, <code>(tenant_id, action)</code>, <code>(user_id)</code> partial. Written bởi AuditConsumer từ RabbitMQ — không blocking request path.</p>
+        </div>
+      </div>
+      <div class="del-item">
+        <span class="del-icon">✓</span>
+        <div>
+          <strong>node-cron scheduler — 2 scheduled jobs</strong>
+          <p>Cleanup expired sessions hàng ngày lúc 02:00. Queue depth report mỗi 5 phút (logs waiting/failed counts cho email và webhook queues). Gracefully stops all tasks trong <code>onApplicationShutdown()</code>.</p>
+        </div>
+      </div>
+      <div class="del-item">
+        <span class="del-icon">✓</span>
+        <div>
+          <strong>Bull Board UI — queue monitoring tại /admin/queues</strong>
+          <p>Real-time dashboard: queue depth, throughput, failed jobs, retry history. Mount bằng Express adapter trong <code>main.ts</code> via <code>app.use('/admin/queues', createBullBoardRouter(...))</code>. Dev: <code>http://localhost:3000/admin/queues</code>.</p>
+        </div>
+      </div>
+      <div class="del-item">
+        <span class="del-icon">✓</span>
+        <div>
+          <strong>26 unit tests — publisher · consumer · processors · cron</strong>
+          <p>7 AmqpPublisher tests (exchange routing, JSON serialization, persistent flag). 6 AuditConsumer tests (ack/nack flow, DLQ routing, null message handling). 6 WebhookRetryProcessor tests (HTTP POST, HMAC signature, retry on non-2xx). 3 EmailProcessor tests (sendMail, subject fallback, error propagation). 4 CronService tests (job scheduling, shutdown).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📐 Architecture — Async Request Decoupling</div>
+    <div class="alert info">
+      <span class="alert-icon">ℹ</span>
+      <p><strong>Request path không bị block:</strong> Controller gọi <code>AmqpPublisher.publishAudit()</code> sau khi hoàn tất business logic — fire-and-forget. RabbitMQ giữ message bền vững (<code>persistent: true</code>) cho dù broker restart. Consumer xử lý async trong background.</p>
+    </div>
+    <div class="flow">
+      <div class="flow-box hl"><strong>HTTP Request</strong>Controller handler</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>AmqpPublisher</strong>publish(exchange, msg)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box hl"><strong>RabbitMQ</strong>exchange → queue</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>Consumer</strong>ack / nack→DLQ</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box"><strong>BullMQ</strong>retry with backoff</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box hl"><strong>Processor</strong>email / webhook / ES</div>
+    </div>
+    <div class="alert note" style="margin-top:16px">
+      <span class="alert-icon">★</span>
+      <p><strong>DLQ pattern:</strong> Khi consumer nack một message (parse error hoặc DB fail), RabbitMQ route sang Dead-Letter Queue thay vì requeue (tránh hot-retry loop). DLQ cho phép inspect và replay thủ công khi incident xảy ra.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📦 New packages</div>
+    <table class="dtable">
+      <tr><th>Package</th><th>Purpose</th><th>Version</th></tr>
+      <tr><td><code>amqplib</code></td><td>RabbitMQ AMQP client — connection, channel, exchanges, queues</td><td>^0.10.9</td></tr>
+      <tr><td><code>@types/amqplib</code></td><td>TypeScript types for amqplib</td><td>devDep</td></tr>
+      <tr><td><code>bullmq</code></td><td>Redis-backed job queue with retry, priority, delay, BullMQ Worker</td><td>^5.70.1</td></tr>
+      <tr><td><code>@nestjs/bullmq</code></td><td>NestJS integration: InjectQueue, @Processor, WorkerHost, BullModule</td><td>^11.0.4</td></tr>
+      <tr><td><code>@bull-board/api</code></td><td>Bull Board core API — adapter-agnostic queue dashboard</td><td>^6.20.3</td></tr>
+      <tr><td><code>@bull-board/express</code></td><td>Express adapter để mount Bull Board trong main.ts</td><td>^6.20.3</td></tr>
+      <tr><td><code>node-cron</code></td><td>Cron job scheduler với cron expression syntax</td><td>^4.2.1</td></tr>
+      <tr><td><code>@types/node-cron</code></td><td>TypeScript types for node-cron</td><td>devDep</td></tr>
+      <tr><td><code>nodemailer</code></td><td>Email delivery — SMTP transport, dev console mode</td><td>^8.0.1</td></tr>
+      <tr><td><code>@types/nodemailer</code></td><td>TypeScript types for nodemailer</td><td>devDep</td></tr>
+      <tr><td><code>@elastic/elasticsearch</code></td><td>Elasticsearch client — search indexing worker</td><td>^9.3.2</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── PANEL 1: AMQP INFRASTRUCTURE ── -->
+<div class="pnl" id="p-1">
+
+  <div class="sec-title">Exchange Topology</div>
+  <div class="card">
+    <div class="card-title">🔀 4 Exchanges + 4 DLX + 8 Queues</div>
+    <div class="alert info">
+      <span class="alert-icon">ℹ</span>
+      <p><strong>Khai báo trong AmqpTopologyService.onModuleInit():</strong> DLX exchanges được declare TRƯỚC main exchanges, sau đó DLQ được bind vào DLX, cuối cùng main queues được khai báo với <code>x-dead-letter-exchange</code> argument trỏ về DLX. Thứ tự này đảm bảo DLX tồn tại trước khi queue reference tới nó.</p>
+    </div>
+    <div class="topo-grid">
+      <div class="topo-card green">
+        <div class="topo-name green">audit</div>
+        <div class="topo-detail">→ audit.queue</div>
+        <div class="topo-detail">AuditConsumer writes to DB</div>
+        <div class="topo-dlx">DLX: audit.dlx → audit.dlq</div>
+      </div>
+      <div class="topo-card blue">
+        <div class="topo-name blue">notifications</div>
+        <div class="topo-detail">→ notifications.queue</div>
+        <div class="topo-detail">NotificationConsumer → BullMQ</div>
+        <div class="topo-dlx">DLX: notifications.dlx → notifications.dlq</div>
+      </div>
+      <div class="topo-card orange">
+        <div class="topo-name orange">search.index</div>
+        <div class="topo-detail">→ search.index.queue</div>
+        <div class="topo-detail">SearchIndexConsumer → Elasticsearch</div>
+        <div class="topo-dlx">DLX: search.index.dlx → search.index.dlq</div>
+      </div>
+      <div class="topo-card purple">
+        <div class="topo-name purple">webhooks</div>
+        <div class="topo-detail">→ webhooks.queue</div>
+        <div class="topo-detail">WebhookConsumer → BullMQ</div>
+        <div class="topo-dlx">DLX: webhooks.dlx → webhooks.dlq</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-title">AmqpService</div>
+  <div class="card">
+    <div class="card-title">🔌 Connection + Channel Management</div>
+    <div class="alert note">
+      <span class="alert-icon">★</span>
+      <p><strong>One channel per consumer</strong> là amqplib best practice. Shared channel trong AmqpService chỉ dùng cho publishing — không cho consuming. Mỗi consumer gọi <code>amqp.createChannel()</code> riêng để có flow control (prefetch) độc lập.</p>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span>amqp.service.ts</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="k">@Injectable</span>()
+<span class="k">export class</span> <span class="t">AmqpService</span> <span class="k">implements</span> OnModuleInit, OnModuleDestroy {
+  <span class="k">private</span> connection: amqp.ChannelModel | <span class="k">null</span> = <span class="k">null</span>;
+  <span class="k">private</span> sharedChannel: amqp.Channel | <span class="k">null</span> = <span class="k">null</span>;
+
+  <span class="k">async</span> <span class="fn">onModuleInit</span>(): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="c">// connects to RABBITMQ_URL from config</span>
+    <span class="k">this</span>.connection = <span class="k">await</span> amqp.<span class="fn">connect</span>(config.RABBITMQ_URL);
+    <span class="k">this</span>.sharedChannel = <span class="k">await</span> <span class="k">this</span>.connection.<span class="fn">createChannel</span>();
+  }
+
+  <span class="c">/** Shared channel — publishers only */</span>
+  <span class="fn">getChannel</span>(): amqp.Channel { <span class="k">return this</span>.sharedChannel!; }
+
+  <span class="c">/** Dedicated channel per consumer (independent prefetch) */</span>
+  <span class="k">async</span> <span class="fn">createChannel</span>(): Promise&lt;amqp.Channel&gt; {
+    <span class="k">return this</span>.connection!.<span class="fn">createChannel</span>();
+  }
+}</div>
+    </div>
+  </div>
+
+  <div class="sec-title">AmqpPublisher</div>
+  <div class="card">
+    <div class="card-title">📤 Type-safe Message Publishing</div>
+    <div class="code-block">
+      <div class="code-header"><span>amqp-publisher.service.ts</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="k">@Injectable</span>()
+<span class="k">export class</span> <span class="t">AmqpPublisher</span> {
+  <span class="fn">publishAudit</span>(message: <span class="t">AuditMessage</span>): <span class="k">void</span> {
+    <span class="k">this</span>.<span class="fn">publish</span>(EXCHANGES.AUDIT, QUEUES.AUDIT, message);
+  }
+  <span class="fn">publishNotification</span>(message: <span class="t">NotificationMessage</span>): <span class="k">void</span> { ... }
+  <span class="fn">publishSearchIndex</span>(message: <span class="t">SearchIndexMessage</span>): <span class="k">void</span> { ... }
+  <span class="fn">publishWebhook</span>(message: <span class="t">WebhookMessage</span>): <span class="k">void</span> { ... }
+
+  <span class="k">private</span> <span class="fn">publish</span>(exchange, routingKey, message): <span class="k">void</span> {
+    <span class="k">const</span> ch = <span class="k">this</span>.amqp.<span class="fn">getChannel</span>();
+    ch.<span class="fn">publish</span>(exchange, routingKey,
+      Buffer.<span class="fn">from</span>(JSON.<span class="fn">stringify</span>(message)),
+      {
+        contentType: <span class="s">'application/json'</span>,
+        persistent:  <span class="d">true</span>,  <span class="c">// survives broker restart (deliveryMode: 2)</span>
+      },
+    );
+  }
+}</div>
+    </div>
+    <div class="alert blue" style="margin-top:12px">
+      <span class="alert-icon">💡</span>
+      <p><strong>AmqpModule là @Global():</strong> AmqpPublisher available ở mọi module mà không cần explicitly import AmqpModule. Controllers và services chỉ cần <code>constructor(private publisher: AmqpPublisher)</code> là inject được ngay.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📨 Message DTOs</div>
+    <table class="dtable">
+      <tr><th>DTO</th><th>Key fields</th><th>Exchange</th></tr>
+      <tr>
+        <td><code>AuditMessage</code></td>
+        <td>tenantId, userId?, action (verb.noun), resourceType, resourceId?, payload?, ipAddress?, correlationId?, timestamp</td>
+        <td><code>audit</code></td>
+      </tr>
+      <tr>
+        <td><code>NotificationMessage</code></td>
+        <td>tenantId, userId, channel (email|push|in_app), to, subject?, body, metadata?</td>
+        <td><code>notifications</code></td>
+      </tr>
+      <tr>
+        <td><code>SearchIndexMessage</code></td>
+        <td>tenantId, operation (index|update|delete), index (contacts/deals/…), documentId, document?</td>
+        <td><code>search.index</code></td>
+      </tr>
+      <tr>
+        <td><code>WebhookMessage</code></td>
+        <td>tenantId, webhookId, url, event (contact.created/…), payload, headers?</td>
+        <td><code>webhooks</code></td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── PANEL 2: RABBITMQ CONSUMERS ── -->
+<div class="pnl" id="p-2">
+
+  <div class="sec-title">AuditConsumer — Critical path</div>
+  <div class="card">
+    <div class="card-title">📝 Writes to audit_logs, nack → DLQ on failure</div>
+    <div class="alert warn">
+      <span class="alert-icon">⚠</span>
+      <p><strong>prefetch(1):</strong> AuditConsumer chỉ xử lý 1 message tại một thời điểm để đảm bảo back-pressure từ DB. Nếu DB chậm, consumer tự động giảm tốc độ consume — RabbitMQ buffer message trong queue thay vì flood consumer.</p>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span>audit.consumer.ts</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="k">async</span> <span class="fn">onApplicationBootstrap</span>(): Promise&lt;<span class="k">void</span>&gt; {
+  <span class="k">this</span>.channel = <span class="k">await this</span>.amqp.<span class="fn">createChannel</span>();
+  <span class="k">await this</span>.channel.<span class="fn">prefetch</span>(<span class="d">1</span>);
+  <span class="k">await this</span>.channel.<span class="fn">consume</span>(QUEUES.AUDIT, (msg) =&gt; <span class="k">this</span>.<span class="fn">handleMessage</span>(msg));
+}
+
+<span class="k">private async</span> <span class="fn">handleMessage</span>(msg): Promise&lt;<span class="k">void</span>&gt; {
+  <span class="k">let</span> data: <span class="t">AuditMessage</span>;
+  <span class="k">try</span> {
+    data = JSON.<span class="fn">parse</span>(msg.content.<span class="fn">toString</span>());
+  } <span class="k">catch</span> {
+    <span class="k">this</span>.channel.<span class="fn">nack</span>(msg, <span class="k">false</span>, <span class="k">false</span>); <span class="c">// malformed → DLQ</span>
+    <span class="k">return</span>;
+  }
+  <span class="k">try</span> {
+    <span class="k">await this</span>.knex(<span class="s">'audit_logs'</span>).<span class="fn">insert</span>({ ... });
+    <span class="k">this</span>.channel.<span class="fn">ack</span>(msg);
+  } <span class="k">catch</span> {
+    <span class="k">this</span>.channel.<span class="fn">nack</span>(msg, <span class="k">false</span>, <span class="k">false</span>); <span class="c">// DB error → DLQ (no hot-retry)</span>
+  }
+}</div>
+    </div>
+    <div class="alert note" style="margin-top:12px">
+      <span class="alert-icon">★</span>
+      <p><strong>Tại sao nack(requeue=false) thay vì nack(requeue=true)?</strong> Requeue=true sẽ tạo hot-retry loop — message được re-process ngay lập tức mà không có delay, có thể làm crash consumer. Với requeue=false, message vào DLQ để inspect sau — không ảnh hưởng throughput của queue chính.</p>
+    </div>
+  </div>
+
+  <div class="sec-title">NotificationConsumer + WebhookConsumer</div>
+  <div class="card">
+    <div class="card-title">📬 Dispatch sang BullMQ queue</div>
+    <div class="code-block">
+      <div class="code-header"><span>notification.consumer.ts</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="c">// prefetch(10) — high-throughput, IO-light (just enqueue to BullMQ)</span>
+<span class="k">await this</span>.channel.<span class="fn">prefetch</span>(<span class="d">10</span>);
+
+<span class="c">// On message received:</span>
+<span class="k">if</span> (data.channel === <span class="s">'email'</span>) {
+  <span class="k">await this</span>.emailQueue.<span class="fn">add</span>(<span class="s">'send-email'</span>, data, {
+    attempts: <span class="d">5</span>,
+    backoff:  { type: <span class="s">'exponential'</span>, delay: <span class="d">2_000</span> },
+    removeOnComplete: { count: <span class="d">100</span> },
+    removeOnFail:     { count: <span class="d">50</span>  },
+  });
+}
+<span class="k">this</span>.channel.<span class="fn">ack</span>(msg); <span class="c">// ack after successful enqueue</span></div>
+    </div>
+    <div class="alert blue" style="margin-top:12px">
+      <span class="alert-icon">💡</span>
+      <p><strong>Two-tier reliability:</strong> RabbitMQ đảm bảo message không bị mất (persistent + DLQ). BullMQ đảm bảo job được retry nếu SMTP/HTTP fail. Tách hai concern này — consumer chỉ cần ack sau khi enqueue thành công vào BullMQ, không cần chờ delivery.</p>
+    </div>
+  </div>
+
+  <div class="sec-title">SearchIndexConsumer</div>
+  <div class="card">
+    <div class="card-title">🔍 Elasticsearch với graceful degradation</div>
+    <div class="code-block">
+      <div class="code-header"><span>search-index.consumer.ts</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="k">constructor</span>(<span class="k">private readonly</span> amqp: <span class="t">AmqpService</span>) {
+  <span class="c">// Graceful degradation: ES client chỉ được tạo nếu ELASTICSEARCH_URL set</span>
+  <span class="k">this</span>.es = config.ELASTICSEARCH_URL
+    ? <span class="k">new</span> <span class="t">Client</span>({ node: config.ELASTICSEARCH_URL })
+    : <span class="k">null</span>;
+}
+
+<span class="c">// Multi-tenant isolation trong ES: prefix index với tenantId</span>
+<span class="k">const</span> indexName = <span class="s">`<span class="d">${data.tenantId}</span>-<span class="d">${data.index}</span>`</span>;
+
+<span class="k">if</span> (data.operation === <span class="s">'delete'</span>) {
+  <span class="k">await this</span>.es.<span class="fn">delete</span>({ index: indexName, id: data.documentId });
+} <span class="k">else</span> {
+  <span class="c">// 'index' hoặc 'update' → upsert via ES index API</span>
+  <span class="k">await this</span>.es.<span class="fn">index</span>({
+    index:    indexName,
+    id:       data.documentId,
+    document: { ...data.document, tenant_id: data.tenantId },
+  });
+}</div>
+    </div>
+    <div class="alert orange" style="margin-top:12px">
+      <span class="alert-icon">⚡</span>
+      <p><strong>Tenant isolation trong Elasticsearch:</strong> Mỗi tenant có index riêng với prefix <code>{tenantId}-{resourceType}</code>. Ví dụ: <code>tenant-1-contacts</code>, <code>tenant-2-deals</code>. Không dùng single index với <code>tenant_id</code> field (cardinality explosion) và không cần RLS (ES không support).</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── PANEL 3: BULLMQ + PROCESSORS ── -->
+<div class="pnl" id="p-3">
+
+  <div class="sec-title">Queue Configuration</div>
+  <div class="card">
+    <div class="card-title">⚙️ BullMQ retry strategy</div>
+    <div class="retry-grid">
+      <div class="retry-card green">
+        <div style="font-size:.75rem;color:var(--td)">Email Queue</div>
+        <div class="retry-val green">5</div>
+        <div class="retry-label">max attempts</div>
+        <div class="retry-impl">backoff: exponential 2s</div>
+        <div class="retry-impl">2s → 4s → 8s → 16s → 32s</div>
+      </div>
+      <div class="retry-card blue">
+        <div style="font-size:.75rem;color:var(--td)">Webhook Queue</div>
+        <div class="retry-val blue">7</div>
+        <div class="retry-label">max attempts</div>
+        <div class="retry-impl">backoff: exponential 1s</div>
+        <div class="retry-impl">1s → 2s → 4s … → 64s</div>
+      </div>
+      <div class="retry-card orange">
+        <div style="font-size:.75rem;color:var(--td)">After max retries</div>
+        <div class="retry-val orange">DLQ</div>
+        <div class="retry-label">BullMQ failed set</div>
+        <div class="retry-impl">Inspect via Bull Board</div>
+        <div class="retry-impl">Manual replay possible</div>
+      </div>
+    </div>
+    <div class="code-block" style="margin-top:16px">
+      <div class="code-header"><span>bullmq.module.ts</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="t">BullModule</span>.<span class="fn">forRoot</span>({
+  connection: { url: config.REDIS_URL }, <span class="c">// same Redis as DAL</span>
+}),
+<span class="t">BullModule</span>.<span class="fn">registerQueue</span>(
+  { name: <span class="s">'email-notifications'</span> },
+  { name: <span class="s">'webhook-delivery'</span>    },
+),</div>
+    </div>
+  </div>
+
+  <div class="sec-title">EmailProcessor</div>
+  <div class="card">
+    <div class="card-title">📧 Nodemailer với dev fallback</div>
+    <div class="code-block">
+      <div class="code-header"><span>email.processor.ts</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="k">@Processor</span>(QUEUE_EMAIL)
+<span class="k">export class</span> <span class="t">EmailProcessor</span> <span class="k">extends</span> <span class="t">WorkerHost</span> {
+  <span class="k">constructor</span>() {
+    <span class="k">super</span>();
+    <span class="k">if</span> (config.SMTP_HOST) {
+      <span class="c">// Production: real SMTP transport</span>
+      <span class="k">this</span>.transport = nodemailer.<span class="fn">createTransport</span>({
+        host: config.SMTP_HOST, port: config.SMTP_PORT,
+        auth: { user: config.SMTP_USER, pass: config.SMTP_PASS },
+      });
+    } <span class="k">else</span> {
+      <span class="c">// Dev: jsonTransport — sendMail() returns JSON, no actual send</span>
+      <span class="k">this</span>.transport = nodemailer.<span class="fn">createTransport</span>({ jsonTransport: <span class="d">true</span> });
+    }
+  }
+
+  <span class="k">async</span> <span class="fn">process</span>(job: Job&lt;<span class="t">NotificationMessage</span>&gt;): Promise&lt;<span class="k">void</span>&gt; {
+    <span class="k">if</span> (!config.SMTP_HOST) {
+      <span class="k">this</span>.logger.<span class="fn">debug</span>(<span class="s">`[DEV] Email to=<span class="d">${to}</span>`</span>); <span class="k">return</span>;
+    }
+    <span class="k">await this</span>.transport.<span class="fn">sendMail</span>({
+      from: config.EMAIL_FROM, to, subject, text: body,
+    });
+  }
+}</div>
+    </div>
+  </div>
+
+  <div class="sec-title">WebhookRetryProcessor</div>
+  <div class="card">
+    <div class="card-title">🔗 Outbound HTTP + HMAC-SHA256 signature</div>
+    <div class="code-block">
+      <div class="code-header"><span>webhook-retry.processor.ts</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="k">async</span> <span class="fn">process</span>(job: Job&lt;<span class="t">WebhookMessage</span>&gt;): Promise&lt;<span class="k">void</span>&gt; {
+  <span class="k">const</span> body = JSON.<span class="fn">stringify</span>({ event, payload, tenantId, webhookId });
+
+  <span class="c">// HMAC-SHA256 signature (nếu x-webhook-secret có trong headers)</span>
+  <span class="k">const</span> secret = headers[<span class="s">'x-webhook-secret'</span>];
+  <span class="k">if</span> (secret) {
+    <span class="k">const</span> sig = <span class="fn">createHmac</span>(<span class="s">'sha256'</span>, secret).<span class="fn">update</span>(body).<span class="fn">digest</span>(<span class="s">'hex'</span>);
+    reqHeaders[<span class="s">'X-CRM-Signature'</span>] = <span class="s">`sha256=<span class="d">${sig}</span>`</span>;
+    <span class="k">delete</span> reqHeaders[<span class="s">'x-webhook-secret'</span>]; <span class="c">// không forward secret</span>
+  }
+
+  <span class="k">const</span> res = <span class="k">await</span> <span class="fn">fetch</span>(url, {
+    method:  <span class="s">'POST'</span>,
+    headers: reqHeaders,
+    body,
+    signal:  controller.signal, <span class="c">// 10s timeout</span>
+  });
+  <span class="k">if</span> (!res.ok) <span class="k">throw new</span> <span class="t">Error</span>(<span class="s">`HTTP <span class="d">${res.status}</span> from <span class="d">${url}</span>`</span>);
+  <span class="c">// Non-2xx → job fails → BullMQ retries with exponential backoff</span>
+}</div>
+    </div>
+    <div class="alert note" style="margin-top:12px">
+      <span class="alert-icon">★</span>
+      <p><strong>Node.js 22+ built-in fetch:</strong> Không cần axios hay got — <code>fetch</code> có sẵn từ Node 18+. Project yêu cầu Node >=22 nên hoàn toàn safe. <code>AbortController</code> với 10s timeout đảm bảo job không block worker thread vô thời hạn.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── PANEL 4: SCHEDULER + BULL BOARD ── -->
+<div class="pnl" id="p-4">
+
+  <div class="sec-title">CronService</div>
+  <div class="card">
+    <div class="card-title">⏰ node-cron — 2 scheduled jobs</div>
+    <div class="code-block">
+      <div class="code-header"><span>cron.service.ts</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="k">@Injectable</span>()
+<span class="k">export class</span> <span class="t">CronService</span>
+  <span class="k">implements</span> OnApplicationBootstrap, OnApplicationShutdown
+{
+  <span class="k">private readonly</span> tasks: cron.ScheduledTask[] = [];
+
+  <span class="fn">onApplicationBootstrap</span>(): <span class="k">void</span> {
+    <span class="c">// Daily at 02:00 — cleanup expired sessions / stale cache keys</span>
+    <span class="k">this</span>.tasks.<span class="fn">push</span>(
+      cron.<span class="fn">schedule</span>(<span class="s">'0 2 * * *'</span>, () =&gt; <span class="k">this</span>.<span class="fn">cleanupSessions</span>())
+    );
+
+    <span class="c">// Every 5 minutes — log queue depths for ops visibility</span>
+    <span class="k">this</span>.tasks.<span class="fn">push</span>(
+      cron.<span class="fn">schedule</span>(<span class="s">'*/5 * * * *'</span>, () =&gt; <span class="k">this</span>.<span class="fn">reportQueueDepth</span>())
+    );
+  }
+
+  <span class="fn">onApplicationShutdown</span>(): <span class="k">void</span> {
+    <span class="c">// Gracefully stop all cron jobs before process exits</span>
+    <span class="k">for</span> (<span class="k">const</span> task <span class="k">of this</span>.tasks) task.<span class="fn">stop</span>();
+  }
+}</div>
+    </div>
+    <table class="dtable" style="margin-top:16px">
+      <tr><th>Job</th><th>Expression</th><th>Runs when</th><th>Action</th></tr>
+      <tr>
+        <td><code>cleanup-sessions</code></td>
+        <td><code>0 2 * * *</code></td>
+        <td>Every day at 02:00</td>
+        <td>Clear expired session tokens, stale cache entries. Redis TTL handles most cases — cron là safety net.</td>
+      </tr>
+      <tr>
+        <td><code>report-queue-depth</code></td>
+        <td><code>*/5 * * * *</code></td>
+        <td>Every 5 minutes</td>
+        <td>Log email/webhook queue waiting + failed counts. Prometheus MetricsController cũng expose metrics này cho Grafana.</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="sec-title">Bull Board</div>
+  <div class="card">
+    <div class="card-title">📊 Queue monitoring UI tại /admin/queues</div>
+    <div class="code-block">
+      <div class="code-header"><span>bull-board.setup.ts</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="k">export function</span> <span class="fn">createBullBoardRouter</span>(
+  emailQueue:   Queue,
+  webhookQueue: Queue,
+) {
+  <span class="k">const</span> serverAdapter = <span class="k">new</span> <span class="t">ExpressAdapter</span>();
+  serverAdapter.<span class="fn">setBasePath</span>(<span class="s">'/admin/queues'</span>);
+
+  <span class="fn">createBullBoard</span>({
+    queues: [
+      <span class="k">new</span> <span class="t">BullMQAdapter</span>(emailQueue),
+      <span class="k">new</span> <span class="t">BullMQAdapter</span>(webhookQueue),
+    ],
+    serverAdapter,
+  });
+
+  <span class="k">return</span> serverAdapter.<span class="fn">getRouter</span>();
+}</div>
+    </div>
+    <div class="code-block" style="margin-top:12px">
+      <div class="code-header"><span>main.ts — mounting Bull Board</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="c">// Lấy queue instances từ NestJS DI container</span>
+<span class="k">const</span> emailQueue   = app.<span class="fn">get</span>&lt;<span class="t">Queue</span>&gt;(<span class="fn">getQueueToken</span>(QUEUE_EMAIL));
+<span class="k">const</span> webhookQueue = app.<span class="fn">get</span>&lt;<span class="t">Queue</span>&gt;(<span class="fn">getQueueToken</span>(QUEUE_WEBHOOK));
+
+<span class="c">// Mount Express router — trước app.listen()</span>
+app.<span class="fn">use</span>(<span class="s">'/admin/queues'</span>, <span class="fn">createBullBoardRouter</span>(emailQueue, webhookQueue));
+
+<span class="c">// Dev: http://localhost:3000/admin/queues</span>
+<span class="c">// Production: thêm auth middleware trước route này</span></div>
+    </div>
+    <div class="alert info" style="margin-top:12px">
+      <span class="alert-icon">ℹ</span>
+      <p><strong>Bull Board features:</strong> Real-time queue depth (waiting, active, completed, failed, delayed). Job detail view với data payload và error stack. Manual retry cho failed jobs. Pause/resume queue. Không cần Redis CLI để debug queue issues.</p>
+    </div>
+  </div>
+
+  <div class="sec-title">AppModule integration</div>
+  <div class="card">
+    <div class="card-title">📦 WorkersModule trong module load order</div>
+    <div class="code-block">
+      <div class="code-header"><span>app.module.ts</span><span class="lang">TypeScript diff</span></div>
+      <div class="code-body">imports: [
+  DalModule,          <span class="c">// @Global — PoolRegistry, CacheManager, KNEX_INSTANCE</span>
+  ObservabilityModule, <span class="c">// @Global — Logger, OTel, Prometheus</span>
+  SecurityModule,      <span class="c">// @Global — EncryptionService, PasswordService</span>
+<span class="new">+ WorkersModule,       // AmqpModule (@Global) + BullMqModule + Consumers + Cron</span>
+  ThrottlerModule.forRoot([...]),
+  GatewayModule,
+  HealthModule,
+  ApiModule,
+],</div>
+    </div>
+    <div class="alert note" style="margin-top:12px">
+      <span class="alert-icon">★</span>
+      <p><strong>Load order:</strong> WorkersModule phải sau DalModule vì AuditConsumer inject <code>KNEX_INSTANCE</code> (@Global từ DalModule). WorkersModule trước GatewayModule — AmqpPublisher cần sẵn sàng trước khi controllers khởi tạo.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── PANEL 5: FILE STRUCTURE ── -->
+<div class="pnl" id="p-5">
+  <div class="card">
+    <div class="card-title">📁 New files (30 total — 25 new + 5 modified)</div>
+    <div class="file-tree">
+<span class="dir">backend/src/</span>
+├── <span class="dir">workers/</span>                               <span class="cmt">// WorkersModule root</span>
+│   ├── <span class="file new">workers.module.ts</span>                   <span class="cmt">// AggregatoryModule — imports AmqpModule + BullMqModule</span>
+│   │
+│   ├── <span class="dir">amqp/</span>                             <span class="cmt">// @Global() RabbitMQ infrastructure</span>
+│   │   ├── <span class="file new">amqp.module.ts</span>               <span class="cmt">// @Global — exports AmqpService, AmqpPublisher</span>
+│   │   ├── <span class="file new">amqp.service.ts</span>              <span class="cmt">// Connection + channel management</span>
+│   │   ├── <span class="file new">amqp-topology.service.ts</span>    <span class="cmt">// Declare exchanges + queues + DLX on init</span>
+│   │   └── <span class="file new">amqp-publisher.service.ts</span>   <span class="cmt">// Type-safe publish helpers</span>
+│   │
+│   ├── <span class="dir">consumers/</span>                        <span class="cmt">// RabbitMQ consumers</span>
+│   │   ├── <span class="file new">audit.consumer.ts</span>            <span class="cmt">// → audit_logs DB (prefetch 1, nack→DLQ)</span>
+│   │   ├── <span class="file new">notification.consumer.ts</span>     <span class="cmt">// → BullMQ email queue</span>
+│   │   ├── <span class="file new">search-index.consumer.ts</span>    <span class="cmt">// → Elasticsearch (graceful degradation)</span>
+│   │   └── <span class="file new">webhook.consumer.ts</span>          <span class="cmt">// → BullMQ webhook queue</span>
+│   │
+│   ├── <span class="dir">bullmq/</span>                           <span class="cmt">// BullMQ job queues + processors</span>
+│   │   ├── <span class="file new">bullmq.module.ts</span>             <span class="cmt">// BullModule.forRoot + registerQueue</span>
+│   │   ├── <span class="file new">queue.constants.ts</span>          <span class="cmt">// QUEUE_EMAIL, QUEUE_WEBHOOK — single source</span>
+│   │   └── <span class="dir">processors/</span>
+│   │       ├── <span class="file new">email.processor.ts</span>       <span class="cmt">// @Processor(QUEUE_EMAIL) — Nodemailer</span>
+│   │       └── <span class="file new">webhook-retry.processor.ts</span> <span class="cmt">// @Processor(QUEUE_WEBHOOK) — fetch + HMAC</span>
+│   │
+│   ├── <span class="dir">scheduler/</span>
+│   │   └── <span class="file new">cron.service.ts</span>              <span class="cmt">// node-cron: 0 2 * * * + */5 * * * *</span>
+│   │
+│   ├── <span class="dir">bull-board/</span>
+│   │   └── <span class="file new">bull-board.setup.ts</span>          <span class="cmt">// createBullBoardRouter() — Express adapter</span>
+│   │
+│   ├── <span class="dir">dto/</span>                              <span class="cmt">// Message shape interfaces</span>
+│   │   ├── <span class="file new">audit-message.dto.ts</span>
+│   │   ├── <span class="file new">notification-message.dto.ts</span>
+│   │   ├── <span class="file new">search-index-message.dto.ts</span>
+│   │   └── <span class="file new">webhook-message.dto.ts</span>
+│   │
+│   └── <span class="dir">__tests__/</span>
+│       ├── <span class="file new">amqp-publisher.test.ts</span>       <span class="cmt">// 7 tests</span>
+│       ├── <span class="file new">audit.consumer.test.ts</span>       <span class="cmt">// 6 tests</span>
+│       ├── <span class="file new">email.processor.test.ts</span>      <span class="cmt">// 3 tests</span>
+│       ├── <span class="file new">webhook-retry.processor.test.ts</span> <span class="cmt">// 6 tests</span>
+│       └── <span class="file new">cron.service.test.ts</span>         <span class="cmt">// 4 tests</span>
+│
+├── <span class="dir">db/migrations/</span>
+│   └── <span class="file new">20260228000003_audit_logs.ts</span>     <span class="cmt">// audit_logs table — 3 indexes, no RLS</span>
+│
+├── <span class="file mod">app.module.ts</span>                          <span class="cmt">// + WorkersModule (after SecurityModule)</span>
+├── <span class="file mod">main.ts</span>                                <span class="cmt">// + Bull Board mount at /admin/queues</span>
+└── <span class="dir">config/</span>
+    └── <span class="file mod">env.ts</span>                             <span class="cmt">// + ELASTICSEARCH_URL, SMTP_*, EMAIL_FROM</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔧 New env vars (Phase 8)</div>
+    <table class="dtable">
+      <tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr>
+      <tr>
+        <td><code>ELASTICSEARCH_URL</code></td>
+        <td><span class="tag b">optional</span></td>
+        <td>—</td>
+        <td>ES endpoint. SearchIndexConsumer gracefully degrades (ack+discard) khi không set.</td>
+      </tr>
+      <tr>
+        <td><code>SMTP_HOST</code></td>
+        <td><span class="tag b">optional</span></td>
+        <td>—</td>
+        <td>SMTP server host. Khi không set, EmailProcessor log email ra console (dev mode).</td>
+      </tr>
+      <tr>
+        <td><code>SMTP_PORT</code></td>
+        <td><span class="tag b">optional</span></td>
+        <td>587</td>
+        <td>SMTP port (coerced to number).</td>
+      </tr>
+      <tr>
+        <td><code>SMTP_USER</code></td>
+        <td><span class="tag b">optional</span></td>
+        <td>—</td>
+        <td>SMTP auth username.</td>
+      </tr>
+      <tr>
+        <td><code>SMTP_PASS</code></td>
+        <td><span class="tag b">optional</span></td>
+        <td>—</td>
+        <td>SMTP auth password.</td>
+      </tr>
+      <tr>
+        <td><code>EMAIL_FROM</code></td>
+        <td><span class="tag b">optional</span></td>
+        <td>noreply@crm.dev</td>
+        <td>From address cho tất cả outbound emails.</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── PANEL 6: TESTS ── -->
+<div class="pnl" id="p-6">
+  <div class="card">
+    <div class="card-title">🧪 Test results — 195 passing / 211 total</div>
+    <div class="alert info">
+      <span class="alert-icon">ℹ</span>
+      <p><strong>+26 new tests từ Phase 8</strong> (185 → 211 total). 16 failures là pre-existing từ trước Phase 8 (QueryInterceptor.test.ts và tenant-resolver.test.ts — unrelated đến workers). Tất cả 26 Phase 8 tests pass.</p>
+    </div>
+  </div>
+
+  <div class="test-grid">
+    <div class="test-card">
+      <div class="test-file">amqp-publisher.test.ts — 7 tests</div>
+      <div class="test-case"><span class="dot"></span>publishes audit message to audit exchange</div>
+      <div class="test-case"><span class="dot"></span>publishes notification message</div>
+      <div class="test-case"><span class="dot"></span>publishes search index message</div>
+      <div class="test-case"><span class="dot"></span>publishes webhook message</div>
+      <div class="test-case"><span class="dot"></span>serialises content as JSON Buffer</div>
+      <div class="test-case"><span class="dot"></span>sets persistent=true on every message</div>
+      <div class="test-case"><span class="dot"></span>sets contentType=application/json</div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-file">audit.consumer.test.ts — 6 tests</div>
+      <div class="test-case"><span class="dot"></span>sets prefetch(1) and starts consuming on bootstrap</div>
+      <div class="test-case"><span class="dot"></span>acks message after successful DB insert</div>
+      <div class="test-case"><span class="dot"></span>nacks (no-requeue) on DB error → goes to DLQ</div>
+      <div class="test-case"><span class="dot"></span>nacks on malformed JSON → goes to DLQ</div>
+      <div class="test-case"><span class="dot"></span>ignores null message (cancelled consumer)</div>
+      <div class="test-case"><span class="dot"></span>maps optional fields correctly (userId = null when missing)</div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-file">webhook-retry.processor.test.ts — 6 tests</div>
+      <div class="test-case"><span class="dot"></span>sends POST to webhook URL with correct headers</div>
+      <div class="test-case"><span class="dot"></span>includes event and payload in request body</div>
+      <div class="test-case"><span class="dot"></span>throws on non-2xx response (BullMQ will retry)</div>
+      <div class="test-case"><span class="dot"></span>throws on network error (BullMQ will retry)</div>
+      <div class="test-case"><span class="dot"></span>adds HMAC signature, strips x-webhook-secret</div>
+      <div class="test-case"><span class="dot"></span>HMAC signature is consistent for same payload</div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-file">email.processor.test.ts — 3 tests</div>
+      <div class="test-case"><span class="dot"></span>sends email via nodemailer transport</div>
+      <div class="test-case"><span class="dot"></span>uses "(no subject)" when subject undefined</div>
+      <div class="test-case"><span class="dot"></span>propagates sendMail errors (BullMQ will retry)</div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-file">cron.service.test.ts — 4 tests</div>
+      <div class="test-case"><span class="dot"></span>schedules 2 cron jobs on bootstrap</div>
+      <div class="test-case"><span class="dot"></span>schedules cleanup-sessions at 02:00 daily</div>
+      <div class="test-case"><span class="dot"></span>schedules queue-depth report every 5 minutes</div>
+      <div class="test-case"><span class="dot"></span>stops all tasks on shutdown</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="card-title">⚠️ Vitest hoisting gotcha</div>
+    <div class="alert warn">
+      <span class="alert-icon">⚠</span>
+      <p><strong>vi.mock() factory chạy trước variable initialisation.</strong> Nếu factory reference một biến const ở outer scope, sẽ throw <code>Cannot access 'x' before initialization</code> vì vi.mock() được hoisted lên trên cùng file.</p>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span>Pattern: vi.hoisted() để fix TDZ error</span><span class="lang">TypeScript</span></div>
+      <div class="code-body"><span class="old">// ❌ Sai — const mockSendMail defined after vi.mock() hoisting</span>
+<span class="old">const mockSendMail = vi.fn();</span>
+<span class="old">vi.mock('nodemailer', () => ({</span>
+<span class="old">  createTransport: vi.fn().mockReturnValue({ sendMail: mockSendMail }), // TDZ!</span>
+<span class="old">}));</span>
+
+<span class="new">// ✓ Đúng — vi.hoisted() initialises TRƯỚC khi vi.mock() chạy</span>
+<span class="new">const mockSendMail = vi.hoisted(() => vi.fn());</span>
+<span class="new">vi.mock('nodemailer', () => ({</span>
+<span class="new">  createTransport: vi.fn().mockReturnValue({ sendMail: mockSendMail }), // ✓</span>
+<span class="new">}));</span></div>
+    </div>
+    <div class="alert note" style="margin-top:12px">
+      <span class="alert-icon">★</span>
+      <p><strong>Mock path resolution:</strong> Path trong <code>vi.mock()</code> được resolve relative đến test file, không phải source file. Ví dụ: test tại <code>src/workers/__tests__/</code> mock config bằng <code>'../../config/env'</code> (2 levels up), không phải <code>'../../../config/env'</code> (3 levels — sẽ resolve sai).</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- .wrap -->
+
+<script>
+const panels = document.querySelectorAll('.pnl');
+const btns   = document.querySelectorAll('.nav-btn');
+function go(i) {
+  panels.forEach((p, idx) => p.classList.toggle('on', idx === i));
+  btns.forEach((b, idx)   => b.classList.toggle('on', idx === i));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

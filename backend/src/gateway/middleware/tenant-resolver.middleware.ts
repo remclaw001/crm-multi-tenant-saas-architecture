@@ -40,6 +40,7 @@ interface TenantRow {
   tier: TenantTier;
   db_url: string | null;
   is_active: boolean;
+  config: Record<string, unknown>;
 }
 
 // ── Singleton metadata pool ───────────────────────────────────
@@ -133,14 +134,20 @@ export class TenantResolverMiddleware implements NestMiddleware {
 
     const { rows } = await pool.query<TenantRow>(
       isUuid
-        ? 'SELECT id, name, subdomain, tier, db_url, is_active FROM tenants WHERE id = $1 LIMIT 1'
-        : 'SELECT id, name, subdomain, tier, db_url, is_active FROM tenants WHERE subdomain = $1 LIMIT 1',
+        ? 'SELECT id, name, subdomain, tier, db_url, is_active, config FROM tenants WHERE id = $1 LIMIT 1'
+        : 'SELECT id, name, subdomain, tier, db_url, is_active, config FROM tenants WHERE subdomain = $1 LIMIT 1',
       [identifier]
     );
 
     if (rows.length === 0) return null;
 
     const row = rows[0];
+    // Parse allowed CORS origins from tenant config JSON
+    const configJson = row.config ?? {};
+    const allowedOrigins = Array.isArray(configJson['allowedOrigins'])
+      ? (configJson['allowedOrigins'] as string[])
+      : [];
+
     return {
       id: row.id,
       name: row.name,
@@ -148,6 +155,7 @@ export class TenantResolverMiddleware implements NestMiddleware {
       tier: row.tier,
       dbUrl: row.db_url,
       isActive: row.is_active,
+      allowedOrigins,
     };
   }
 }

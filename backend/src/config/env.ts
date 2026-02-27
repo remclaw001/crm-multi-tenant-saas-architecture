@@ -52,6 +52,26 @@ const envSchema = z.object({
   // ── Metrics (Phase 4) ─────────────────────────────────────
   // Interval cập nhật DB pool gauges (milliseconds)
   POOL_METRICS_INTERVAL_MS: z.coerce.number().int().positive().default(15_000),
+
+  // ── Security (Phase 7) ────────────────────────────────────
+  // AES-256-GCM key cho PII field encryption
+  // Production: 64 hex chars (32 bytes) từ secret manager
+  // Dev/Test:   default insecure key — KHÔNG dùng production
+  ENCRYPTION_KEY: z
+    .string()
+    .regex(
+      /^[0-9a-fA-F]{64}$/,
+      'ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)',
+    )
+    .default('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'),
+
+  // Sentry / GlitchTip DSN — optional, error tracking inactive if unset
+  SENTRY_DSN: z.string().url().optional(),
+
+  // Allowed CORS origins (comma-separated) — global fallback
+  // Per-tenant origins override này từ tenants.config.allowedOrigins
+  // e.g. "https://app.example.com,https://admin.example.com"
+  CORS_ORIGINS: z.string().optional(),
 });
 
 const envWithJwtCheck = envSchema.refine(

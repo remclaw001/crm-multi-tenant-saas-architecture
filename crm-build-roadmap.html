@@ -147,7 +147,7 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <div class="code-block">
 <span class="k">Phase  1</span>  <span class="v">Infra local</span>        PG + Redis + RabbitMQ + Schema + RLS
 <span class="k">Phase  2</span>  <span class="w">L4 Core ★</span>          Query Interceptor + Pool Registry + Cache
-<span class="k">Phase  3</span>  <span class="v">API + Auth</span>         Fastify + Tenant resolution + JWT
+<span class="k">Phase  3</span>  <span class="v">API + Auth</span>         NestJS + Tenant resolution + JWT
 <span class="k">Phase  4</span>  <span class="v">Observability</span>      Pino + OpenTelemetry + Prometheus
 <span class="k">Phase  5</span>  <span class="v">Plugin Registry</span>    ExecutionContext + Manifest + Hook Registry
 <span class="k">Phase  6</span>  <span class="v">Plugin Sandbox</span>     Isolated-VM + Resource limits
@@ -208,9 +208,9 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
           <span class="ph-label" style="background:rgba(129,140,248,.12);color:#818cf8">L2–L3</span>
           <span class="tl-title">API Server + Tenant Resolution + Auth</span>
         </div>
-        <div class="tl-sub">Fastify v5 + TypeScript · Tenant middleware (subdomain/header → tenant_id) · JWT verification (JWKS) · Set AsyncLocalStorage context</div>
+        <div class="tl-sub">NestJS v10 + TypeScript · Tenant middleware (subdomain/header → tenant_id) · JWT verification (JWKS) · Set AsyncLocalStorage context</div>
         <div class="tl-tags">
-          <span class="tag">L2</span><span class="tag">L3</span><span class="tag">Fastify</span><span class="tag">JWT</span><span class="tag">Keycloak</span>
+          <span class="tag">L2</span><span class="tag">L3</span><span class="tag">NestJS</span><span class="tag">JWT</span><span class="tag">Keycloak</span>
         </div>
       </div>
     </div>
@@ -273,16 +273,17 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <!-- P7 -->
     <div class="tl-item ph7" onclick="go(7)">
       <div class="tl-dot-col">
-        <div class="tl-dot" style="background:rgba(192,132,252,.12);border-color:#c084fc;color:#c084fc">P7</div>
+        <div class="tl-dot" style="background:rgba(192,132,252,.25);border-color:#c084fc;color:#c084fc">✓7</div>
       </div>
-      <div class="tl-content" style="--ph-color:#c084fc">
+      <div class="tl-content active" style="--ph-color:#c084fc">
         <div class="tl-head">
           <span class="ph-label" style="background:rgba(192,132,252,.12);color:#c084fc">L6</span>
           <span class="tl-title">Cross-Cutting — DI · Error Handling · Security</span>
+          <span class="critical-flag">DONE</span>
         </div>
-        <div class="tl-sub">TSyringe DI container · Error hierarchy (AppError → DomainError → PluginError) · Fastify error handler · Helmet.js · bcrypt · Zod input validation</div>
+        <div class="tl-sub">Error hierarchy (AppError → DomainError → PluginError) · NestJS ExceptionFilter · Helmet.js · CORS per-tenant · bcrypt · AES-256-GCM · Sentry</div>
         <div class="tl-tags">
-          <span class="tag">L6</span><span class="tag">TSyringe</span><span class="tag">Helmet.js</span><span class="tag">Zod</span><span class="tag">bcrypt</span>
+          <span class="tag">L6</span><span class="tag">Helmet.js</span><span class="tag">Zod</span><span class="tag">bcrypt</span><span class="tag">AES-256-GCM</span><span class="tag">Sentry</span>
         </div>
       </div>
     </div>
@@ -479,7 +480,7 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
       <div class="phase-num" style="color:#818cf8">03</div>
       <div class="phase-header-info">
         <h2 style="color:#818cf8">API Server + Tenant Resolution + Auth (L2–L3)</h2>
-        <p>Fastify server nhận HTTP request, resolve tenant từ subdomain/header, verify JWT và đưa context vào AsyncLocalStorage để L4 tự động scope.</p>
+        <p>NestJS server nhận HTTP request, resolve tenant từ subdomain/header, verify JWT và đưa context vào AsyncLocalStorage để L4 tự động scope.</p>
       </div>
     </div>
     <div class="phase-why" style="border-left-color:#818cf8">
@@ -490,10 +491,10 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <div class="card">
       <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
       <ul class="task-list">
-        <li class="task-item critical"><span class="ck">★</span><div>Khởi tạo <strong>Fastify v5</strong> + TypeScript — cấu hình plugin, schema validation</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div>Khởi tạo <strong>NestJS v10</strong> + TypeScript — cấu hình module, ValidationPipe, global filters</div></li>
         <li class="task-item critical"><span class="ck">★</span><div><strong>Tenant resolution middleware</strong> — parse subdomain (<code>acme.app.com</code>) hoặc header (<code>X-Tenant-ID</code>) → lookup DB → set AsyncLocalStorage</div></li>
-        <li class="task-item critical"><span class="ck">★</span><div><strong>JWT verification</strong> — fetch JWKS từ Keycloak, verify signature, extract tenant claims</div></li>
-        <li class="task-item normal"><span class="ck">✓</span><div>Rate limiting cơ bản với <code>@fastify/rate-limit</code> (Kong thay thế ở Phase 10)</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>JWT verification</strong> — fetch JWKS từ Keycloak, verify signature via JwtAuthGuard (passport-jwt), extract tenant claims</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Rate limiting cơ bản với <code>@nestjs/throttler</code> (Kong thay thế ở Phase 10)</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div>Health check endpoint <code>GET /health</code> và <code>GET /ready</code></div></li>
         <li class="task-item normal"><span class="ck">✓</span><div>Route registration cấu trúc (prefix: <code>/api/v1/:plugin/</code>)</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div>Integration test: request với JWT hợp lệ → query DB đúng tenant</div></li>
@@ -514,10 +515,10 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
       <div class="card-title"><span class="icon">🛠</span> Tech</div>
       <table>
         <tr><th>Thành phần</th><th>Công nghệ</th></tr>
-        <tr><td>HTTP framework</td><td>Fastify v5 + TypeScript</td></tr>
+        <tr><td>HTTP framework</td><td>NestJS v10 (Express adapter) + TypeScript</td></tr>
         <tr><td>Auth server</td><td>Keycloak (hoặc stub JWT)</td></tr>
-        <tr><td>JWT library</td><td>@fastify/jwt + jwks-rsa</td></tr>
-        <tr><td>Rate limiting</td><td>@fastify/rate-limit</td></tr>
+        <tr><td>JWT library</td><td>@nestjs/jwt + passport-jwt + jwks-rsa</td></tr>
+        <tr><td>Rate limiting</td><td>@nestjs/throttler</td></tr>
       </table>
     </div>
 
@@ -550,11 +551,11 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
       <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
       <ul class="task-list">
         <li class="task-item critical"><span class="ck">★</span><div><strong>Pino logger</strong> — mỗi log entry bắt buộc có <code>tenant_id</code>, <code>request_id</code>, <code>user_id</code>, <code>trace_id</code></div></li>
-        <li class="task-item critical"><span class="ck">★</span><div><strong>OpenTelemetry</strong> — auto-instrument Fastify + Knex.js + ioredis, xuất sang Jaeger</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>OpenTelemetry</strong> — auto-instrument NestJS + Knex.js + ioredis, xuất sang Jaeger</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div><strong>Prometheus</strong> — <code>GET /metrics</code> endpoint với prom-client: request count, latency histogram, DB pool size</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div><strong>Grafana dashboard</strong> cơ bản: request rate, p95 latency, error rate per tenant</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div>Correlation ID middleware — generate UUID per request, truyền qua AsyncLocalStorage</div></li>
-        <li class="task-item normal"><span class="ck">✓</span><div>Request/response logging plugin cho Fastify (<code>@fastify/request-context</code>)</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Request/response logging qua <code>LoggingInterceptor</code> (NestJS <code>APP_INTERCEPTOR</code>) + nestjs-pino</div></li>
       </ul>
     </div>
 
@@ -582,7 +583,7 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <div class="card">
       <div class="card-title"><span class="icon">🔗</span> Dependencies</div>
       <div class="dep-list">
-        <div class="dep-item"><span class="dep-ph" style="background:rgba(129,140,248,.12);color:#818cf8">P3</span>Fastify server đang chạy để attach middleware</div>
+        <div class="dep-item"><span class="dep-ph" style="background:rgba(129,140,248,.12);color:#818cf8">P3</span>NestJS server đang chạy để attach interceptor/middleware</div>
         <div class="dep-item"><span class="dep-ph" style="background:rgba(248,113,113,.12);color:#f87171">P2</span>AsyncLocalStorage context có tenant_id để enrich log</div>
       </div>
     </div>
@@ -713,35 +714,35 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <div class="phase-header">
       <div class="phase-num" style="color:#c084fc">07</div>
       <div class="phase-header-info">
-        <h2 style="color:#c084fc">Cross-Cutting — DI · Error Handling · Security (L6)</h2>
-        <p>Wire DI container, chuẩn hóa error responses, thêm security headers. Lúc này toàn bộ business logic đã hoạt động — wire lại qua DI để code testable hơn.</p>
+        <h2 style="color:#c084fc">Cross-Cutting — Error Handling · Security (L6)</h2>
+        <p>Chuẩn hóa error responses, thêm security headers và encryption. NestJS DI đã được wire xuyên suốt từ P3–P6 — Phase này tập trung vào các cross-cutting concerns còn lại chưa được xử lý.</p>
       </div>
     </div>
     <div class="phase-why" style="border-left-color:#c084fc">
       <div class="why-label" style="color:#c084fc">Tại sao sau Plugin System</div>
-      <p>DI container cần biết <strong>tất cả service đang tồn tại</strong> để wire đúng. Làm DI quá sớm khi interface chưa ổn định = wire lại nhiều lần. Giai đoạn này interface đã định hình từ P2–P6.</p>
+      <p>NestJS IoC container đã wire tất cả service xuyên suốt P3–P6 — không cần DI library bên ngoài. Phase 7 hoàn thiện các lớp bảo vệ còn thiếu: error contract thống nhất, security headers, và encryption cho PII. Làm sớm hơn không có ý nghĩa vì error hierarchy cần biết tất cả loại lỗi từ P2–P6 để map đúng HTTP status.</p>
     </div>
 
     <div class="card">
       <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
       <ul class="task-list">
-        <li class="task-item critical"><span class="ck">★</span><div><strong>TSyringe DI container</strong> — đăng ký tất cả service: PoolRegistry, CacheManager, PluginRegistry, HookRegistry</div></li>
-        <li class="task-item critical"><span class="ck">★</span><div><strong>Error hierarchy</strong> — <code>AppError → DomainError → PluginError → ValidationError</code> với HTTP status mapping</div></li>
-        <li class="task-item critical"><span class="ck">★</span><div><strong>Fastify setErrorHandler</strong> — chuẩn hóa tất cả error response theo RFC 7807 Problem Details JSON</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>Error hierarchy</strong> — <code>AppError → DomainError → PluginError → ValidationError</code> với HTTP status mapping rõ ràng</div></li>
+        <li class="task-item critical"><span class="ck">★</span><div><strong>NestJS HttpExceptionFilter</strong> (APP_FILTER) — chuẩn hóa tất cả error response theo RFC 7807 Problem Details JSON (đã wire ở P3, hoàn thiện mapping ở P7)</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div>Helmet.js — CSP, HSTS, X-Frame-Options, X-Content-Type-Options</div></li>
-        <li class="task-item normal"><span class="ck">✓</span><div>CORS configuration — per-tenant allowed origins từ tenant config</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>CORS configuration — per-tenant allowed origins lấy từ tenant config trong DB</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div>bcrypt hashing cho passwords (cost 12)</div></li>
-        <li class="task-item normal"><span class="ck">✓</span><div>AES-256-GCM encryption cho PII fields trong DB</div></li>
-        <li class="task-item normal"><span class="ck">✓</span><div>Sentry error tracking setup (hoặc GlitchTip self-hosted)</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>AES-256-GCM encryption cho PII fields trong DB (dùng Node.js built-in <code>crypto</code>)</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div>Sentry error tracking (hoặc GlitchTip self-hosted) — capture unhandled exceptions với tenant context</div></li>
       </ul>
     </div>
 
     <div class="card">
       <div class="card-title"><span class="icon">🏁</span> Deliverables</div>
       <div class="deliverable-list">
-        <div class="del-item"><span class="del-icon">▸</span><span>Tất cả service inject được qua DI — không còn manual <code>new Service()</code></span></div>
-        <div class="del-item"><span class="del-icon">▸</span><span>Mọi error response có format thống nhất: <code>{"type", "title", "status", "detail"}</code></span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Mọi error response có format thống nhất: <code>{"type", "title", "status", "detail", "instance"}</code></span></div>
         <div class="del-item"><span class="del-icon">▸</span><span>Security headers pass Mozilla Observatory scan ≥ B+</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>PII fields (email, phone, address) được encrypted at rest — plain text không bao giờ persist vào DB</span></div>
+        <div class="del-item"><span class="del-icon">▸</span><span>Unhandled exception tự động xuất hiện trên Sentry dashboard với tenant_id và trace_id đính kèm</span></div>
       </div>
     </div>
 
@@ -749,11 +750,12 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
       <div class="card-title"><span class="icon">🛠</span> Tech</div>
       <table>
         <tr><th>Thành phần</th><th>Công nghệ</th></tr>
-        <tr><td>DI</td><td>TSyringe</td></tr>
+        <tr><td>DI container</td><td>NestJS IoC (built-in, wire từ P3)</td></tr>
+        <tr><td>Error contract</td><td>RFC 7807 Problem Details JSON</td></tr>
         <tr><td>Security headers</td><td>Helmet.js</td></tr>
         <tr><td>Password</td><td>bcrypt (cost 12)</td></tr>
         <tr><td>Encryption</td><td>AES-256-GCM (Node crypto)</td></tr>
-        <tr><td>Error tracking</td><td>Sentry / GlitchTip</td></tr>
+        <tr><td>Error tracking</td><td>Sentry / GlitchTip self-hosted</td></tr>
       </table>
     </div>
 
@@ -779,7 +781,7 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     </div>
     <div class="phase-why" style="border-left-color:#4ade80">
       <div class="why-label" style="color:#4ade80">Tại sao sau Cross-cutting</div>
-      <p>Worker cần dùng DI container (Phase 7) để inject service. Và cần error handling chuẩn để xử lý retry khi worker fail. Xây worker trước khi có DI = manual wiring khó maintain.</p>
+      <p>Worker cần error handling chuẩn (Phase 7) để xử lý retry khi fail. NestJS DI đã sẵn sàng từ P3 — worker chỉ cần khai báo thêm module là inject được service. Xây worker trước khi có error hierarchy = mỗi worker tự xử lý lỗi theo cách riêng, không nhất quán.</p>
     </div>
 
     <div class="card">
@@ -904,7 +906,7 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <div class="card">
       <div class="card-title"><span class="icon">📋</span> Danh sách công việc</div>
       <ul class="task-list">
-        <li class="task-item normal"><span class="ck">✓</span><div><strong>Kong Gateway</strong> thay thế Fastify middleware tenant resolution — centralized rate limiting, logging, auth</div></li>
+        <li class="task-item normal"><span class="ck">✓</span><div><strong>Kong Gateway</strong> thay thế NestJS middleware tenant resolution — centralized rate limiting, logging, auth</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div><strong>Kubernetes</strong> deployment — Helm charts cho tất cả services, HPA auto-scaling</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div><strong>Patroni + etcd</strong> — PostgreSQL HA với automatic failover</div></li>
         <li class="task-item normal"><span class="ck">✓</span><div><strong>Elasticsearch 8</strong> — full-text search với tenant-scoped index alias</div></li>

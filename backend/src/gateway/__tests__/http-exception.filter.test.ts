@@ -34,6 +34,13 @@ function makeRes(): Record<string, unknown> & { json: ReturnType<typeof vi.fn>; 
 }
 
 // ── Tests ─────────────────────────────────────────────────────
+import {
+  TenantNotFoundError,
+  PluginTimeoutError,
+  PluginDisabledError,
+  ConflictError,
+} from '../../common/errors';
+
 describe('HttpExceptionFilter', () => {
   const filter = new HttpExceptionFilter();
 
@@ -121,5 +128,76 @@ describe('HttpExceptionFilter', () => {
 
     const body = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(body.traceId).toBe('unknown');
+  });
+
+  // ── AppError hierarchy (Phase 7) ────────────────────────────
+
+  it('maps TenantNotFoundError → 404 with code field', () => {
+    const exception = new TenantNotFoundError('acme');
+    const res = makeRes();
+    filter.catch(exception, makeHost({ url: '/api/v1', correlationId: 'x' }, res));
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    const body = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(body.status).toBe(404);
+    expect(body.code).toBe('TENANT_NOT_FOUND');
+    expect(body.detail).toContain('acme');
+  });
+
+  it('maps PluginTimeoutError → 504 with code field', () => {
+    const exception = new PluginTimeoutError('analytics', 5000);
+    const res = makeRes();
+    filter.catch(exception, makeHost({ url: '/api/v1', correlationId: 'x' }, res));
+
+    expect(res.status).toHaveBeenCalledWith(504);
+    const body = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(body.status).toBe(504);
+    expect(body.code).toBe('PLUGIN_TIMEOUT');
+  });
+
+  it('maps PluginDisabledError → 403 with code PLUGIN_DISABLED', () => {
+    const exception = new PluginDisabledError('marketing');
+    const res = makeRes();
+    filter.catch(exception, makeHost({ url: '/api/v1', correlationId: 'x' }, res));
+
+    const body = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(body.status).toBe(403);
+    expect(body.code).toBe('PLUGIN_DISABLED');
+  });
+
+  it('maps ConflictError → 409 with code CONFLICT', () => {
+    const exception = new ConflictError('Email already exists');
+    const res = makeRes();
+    filter.catch(exception, makeHost({ url: '/api/v1', correlationId: 'x' }, res));
+
+    const body = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(body.status).toBe(409);
+    expect(body.code).toBe('CONFLICT');
+    expect(body.detail).toBe('Email already exists');
+  });
+
+  it('does not set code field for NestJS HttpException', () => {
+    const exception = new HttpException('not found', HttpStatus.NOT_FOUND);
+    const res = makeRes();
+    filter.catch(exception, makeHost({ url: '/', correlationId: 'x' }, res));
+
+    const body = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(body.code).toBeUndefined();
+  });
+
+  it('AppError response includes RFC 7807 required fields', () => {
+    const exception = new TenantNotFoundError('beta');
+    const res = makeRes();
+    filter.catch(exception, makeHost({ url: '/api/v1', correlationId: 'trace-abc' }, res));
+
+    const body = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(body).toHaveProperty('type');
+    expect(body).toHaveProperty('title');
+    expect(body).toHaveProperty('status');
+    expect(body).toHaveProperty('detail');
+    expect(body).toHaveProperty('instance');
+    expect(body).toHaveProperty('traceId', 'trace-abc');
+    expect(body).toHaveProperty('code', 'TENANT_NOT_FOUND');
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'application/problem+json');
   });
 });

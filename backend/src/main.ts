@@ -3,17 +3,23 @@
 //
 // Import order quan trọng:
 //   1. tracing.setup    ← MUST be first (OTel patches express/pg/ioredis)
-//   2. reflect-metadata ← MUST be before NestJS decorators
-//   3. NestFactory + App modules
+//   2. sentry.setup     ← Sentry init trước khi NestJS load modules
+//   3. reflect-metadata ← MUST be before NestJS decorators
+//   4. NestFactory + App modules
 // ============================================================
 
 // ⚠️ FIRST IMPORT — OpenTelemetry phải patch modules trước khi NestJS load chúng
 import './observability/tracing/tracing.setup';
 
+// ⚠️ SECOND IMPORT — Sentry init trước NestJS để capture bootstrap errors
+import { initSentry } from './observability/sentry/sentry.setup';
+initSentry();
+
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './gateway/filters/http-exception.filter';
 import { config } from './config/env';
@@ -21,13 +27,52 @@ import { config } from './config/env';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     // bufferLogs: true → buffer log output cho đến khi Pino logger sẵn sàng
-    // Tránh mất log trong quá trình bootstrap
     bufferLogs: true,
   });
 
   // ── Replace NestJS logger với Pino ───────────────────────
-  // Phải gọi sau NestFactory.create() để Logger provider đã sẵn sàng
   app.useLogger(app.get(Logger));
+
+  // ── Security headers (Helmet.js) ─────────────────────────
+  // Bật CSP, HSTS, X-Frame-Options, X-Content-Type-Options, etc.
+  // Pass Mozilla Observatory scan ≥ B+
+  //
+  // NOTE: CORS được xử lý bởi TenantCorsMiddleware (gateway.module.ts)
+  // KHÔNG gọi app.enableCors() — sẽ conflict với per-tenant CORS middleware.
+  app.use(
+    helmet({
+      // Content-Security-Policy: restrict resource loading
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc:  ["'self'"],
+          styleSrc:   ["'self'", "'unsafe-inline'"], // inline styles cho health page
+          imgSrc:     ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          fontSrc:    ["'self'"],
+          objectSrc:  ["'none'"],
+          frameAncestors: ["'none'"],
+          upgradeInsecureRequests: [],
+        },
+      },
+      // Strict-Transport-Security: enforce HTTPS 1 year + include subdomains
+      hsts: {
+        maxAge: 31_536_000,
+        includeSubDomains: true,
+        preload: true,
+      },
+      // X-Frame-Options: DENY (prevent clickjacking)
+      frameguard: { action: 'deny' },
+      // X-Content-Type-Options: nosniff
+      noSniff: true,
+      // X-XSS-Protection: disabled (modern browsers use CSP instead)
+      xssFilter: false,
+      // Referrer-Policy: no-referrer for privacy
+      referrerPolicy: { policy: 'no-referrer' },
+      // Permissions-Policy: restrict access to browser APIs
+      permittedCrossDomainPolicies: false,
+    }),
+  );
 
   // ── Global pipes ──────────────────────────────────────────
   app.useGlobalPipes(
@@ -39,7 +84,7 @@ async function bootstrap() {
   );
 
   // ── Global filters ────────────────────────────────────────
-  // RFC 7807 Problem Details JSON
+  // RFC 7807 Problem Details JSON + AppError hierarchy mapping + Sentry
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // ── Enable shutdown hooks ─────────────────────────────────

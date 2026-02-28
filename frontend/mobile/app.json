@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "CRM Mobile",
+    "slug": "crm-mobile",
+    "version": "1.0.0",
+    "scheme": "crm",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.crm.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.crm.mobile"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-secure-store",
+        { "faceIDPermission": "Allow CRM to use Face ID to sign in." }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

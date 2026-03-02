@@ -93,7 +93,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="nt rd" data-lang="vi"><strong>Nguyên tắc tối thượng của L4:</strong> Không plugin nào, không tầng nào được truy cập database trực tiếp. Mọi đường đi đều phải qua L4. L4 là lớp bảo vệ duy nhất giữa business logic và data.</div>
     <div class="nt rd" data-lang="en"><strong>L4's supreme principle:</strong> No plugin, no layer may access the database directly. Every path must go through L4. L4 is the sole protective barrier between business logic and data.</div>
 
-    <div class="dg"><div class="dg-label">L4 position &amp; entities</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">L4 position &amp; entities</div><pre>
   ┌─────────────────────────────────────────────────────────────────────────┐
   │  <span class="hi">L3 BUSINESS LOGIC</span>                                                      │
   │                                                                         │
@@ -170,6 +170,84 @@ html.lang-vi [data-lang="en"]{display:none}
   │                            │ ITenantStrategy (isolation per DB).         │
   │                            │ Swap DB = swap implementations.             │
   └────────────────────────────┴─────────────────────────────────────────────┘</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">L4 position &amp; entities</div><pre>
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  <span class="hi">L3 BUSINESS LOGIC</span>                                                      │
+  │                                                                         │
+  │  Plugin Cores         Shared Services        Event Handlers             │
+  │  (CustomerDataCore,   (EmailService,         (sync + async              │
+  │   CustomerCareCore,    StorageService)         handlers)                 │
+  │   AnalyticsCore)                                                        │
+  │                                                                         │
+  │  <span class="cm">All call: ctx.db.query(), ctx.cache.get(), ctx.db.insert()</span>              │
+  │  <span class="cm">None of them know which DB, connection pool, or tenant isolation</span>        │
+  │  <span class="cm">is underneath.</span>                                                          │
+  │                                                                         │
+  └─────────────────────────┬───────────────────────────────────────────────┘
+                            │  ctx.db (IDbContext)
+                            ▼
+  ╔═════════════════════════════════════════════════════════════════════════╗
+  ║  <span class="rd">L4 DATA ACCESS LAYER</span>                                                  ║
+  ║                                                                         ║
+  ║  ┌──────────────────────────────────────────────────────────────────┐   ║
+  ║  │           <span class="rd">① QUERY BUILDER + PIPELINE</span>                              │   ║
+  ║  │                                                                  │   ║
+  ║  │  CrmQueryBuilder → QueryAST → ITenantStrategy.inject            │   ║
+  ║  │  → QueryValidator → QueryCounter → ISQLDialect.generate         │   ║
+  ║  │  → DB execute → QueryLogger                                     │   ║
+  ║  │                                                                  │   ║
+  ║  │  <span class="cm">Plugin calls fluent API → 7 automated steps → parameterized SQL</span> │   ║
+  ║  │  <span class="cm">ITenantStrategy + ISQLDialect: DIP for multi-DB support</span>         │   ║
+  ║  │                                                                  │   ║
+  ║  └────────────────────────────┬─────────────────────────────────────┘   ║
+  ║                               │                                         ║
+  ║                ┌──────────────┼──────────────┐                          ║
+  ║                ▼              ▼              ▼                          ║
+  ║  ┌─────────────────┐ ┌──────────────┐ ┌─────────────────────────────┐  ║
+  ║  │ <span class="am">② POOL</span>          │ │ <span class="cy">③ CACHE</span>     │ │ <span class="gn">④ MIGRATION ENGINE</span>         │  ║
+  ║  │ <span class="am">   MANAGER</span>      │ │ <span class="cy">   MANAGER</span>  │ │                             │  ║
+  ║  │                 │ │              │ │ DDL via IMigrationDialect   │  ║
+  ║  │ Route tenant    │ │ 3-level      │ │ (DIP: PG/MySQL/SQLite)     │  ║
+  ║  │ → correct DB    │ │ cache:       │ │ Run on plugin enable.       │  ║
+  ║  │ + connection    │ │ L1 memory    │ │ Rollback on disable.        │  ║
+  ║  │   lifecycle     │ │ L2 Redis     │ │                             │  ║
+  ║  │                 │ │ L3 Database  │ │ <span class="cm">(not per-request —</span>          │  ║
+  ║  │                 │ │              │ │ <span class="cm"> only admin operations)</span>     │  ║
+  ║  └────────┬────────┘ └──────┬───────┘ └─────────────┬───────────────┘  ║
+  ║           │                 │                       │                   ║
+  ║  ┌────────┴─────────────────┴───────────────────────┴───────────────┐  ║
+  ║  │         <span class="vi">⑤ DIP BOUNDARY (ISQLDialect + ITenantStrategy)</span>           │  ║
+  ║  │  PostgresDialect / MySQLDialect / SQLiteDialect                  │  ║
+  ║  │  PostgresRLSStrategy / MySQLTenantStrategy / SQLiteTenantStrategy│  ║
+  ║  └─────────────────────────────┬────────────────────────────────────┘  ║
+  ╚════════════════════════════════╪════════════════════════════════════════╝
+                                   ▼
+  ┌───────────────────────────────────────────────────────────────────────────┐
+  │  <span class="vi">L5 INFRASTRUCTURE</span>                                                       │
+  │  PostgreSQL (Metadata/Shared/VIP)  │  Redis Cluster  │  PgBouncer       │
+  └───────────────────────────────────────────────────────────────────────────┘
+
+
+  <span class="ty">ROLE OF EACH ENTITY:</span>
+
+  ┌────────────────────────────┬─────────────────────────────────────────────┐
+  │ <span class="rd">Query Builder + Pipeline</span>   │ Sole gateway to DB. CrmQueryBuilder         │
+  │                            │ (fluent) → QueryAST → ITenantStrategy      │
+  │                            │ → validate → ISQLDialect → execute → log.  │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="am">Pool Manager</span>               │ Route. Tenant tier → correct DB instance,   │
+  │                            │ manages connection lifecycle.               │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="cy">Cache Manager</span>              │ Accelerate. 3-level cache reduces DB load.  │
+  │                            │ Cross-instance invalidation via Pub/Sub.   │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="gn">Migration Engine</span>           │ Evolve. DDL via IMigrationDialect (DIP).   │
+  │                            │ Schema versioning per plugin per tenant.    │
+  ├────────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="vi">DIP Boundary</span>               │ ISQLDialect (SQL syntax per DB),            │
+  │                            │ ITenantStrategy (isolation per DB).         │
+  │                            │ Swap DB = swap implementations.             │
+  └────────────────────────────┴─────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
 <div class="pnl" id="p-qi">
@@ -177,7 +255,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Query Builder + Pipeline — Cấu trúc nội tại</span><span data-lang="en">Query Builder + Pipeline — Internal Structure</span></h2></div>
 
-    <div class="dg"><div class="dg-label">query builder pipeline anatomy</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">query builder pipeline anatomy</div><pre>
 ┌─ <span class="rd">QUERY BUILDER + PIPELINE</span> ─────────────────────────────────────────────────┐
 │                                                                              │
 │  <span class="ty">Được tạo khi nào?</span>                                                        │
@@ -316,6 +394,145 @@ html.lang-vi [data-lang="en"]{display:none}
 │                                                                              │
 │  Pipeline overhead (①→⑤⑦): <span class="gn">~0.07ms</span> (negligible vs ⑥ DB ~3-15ms)           │
 └──────────────────────────────────────────────────────────────────────────────┘</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">query builder pipeline anatomy</div><pre>
+┌─ <span class="rd">QUERY BUILDER + PIPELINE</span> ─────────────────────────────────────────────────┐
+│                                                                              │
+│  <span class="ty">When is it created?</span>                                                      │
+│  → When building Execution Context (each request)                           │
+│  → TenantScopedDB (implements IDbContext) wraps DB connection                │
+│  → Inject ISQLDialect + ITenantStrategy via DI (constructor)                │
+│  → Plugin receives ctx.db — DOES NOT KNOW which DB is underneath            │
+│                                                                              │
+│  <span class="ty">Input:</span>  raw DB connection + tenantId + ISQLDialect + ITenantStrategy       │
+│  <span class="ty">Output:</span> TenantScopedDB — interface the plugin sees (ctx.db)               │
+│                                                                              │
+│  ┌─ <span class="hi">Internal Components</span> ──────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  <span class="fn">CrmQueryBuilder</span> «per-query»                                         │ │
+│  │  │                                                                     │ │
+│  │  │  Fluent API — plugin calls chain methods:                          │ │
+│  │  │  ctx.db.query('sales')                                              │ │
+│  │  │    .where({ status: 'new' })                                        │ │
+│  │  │    .select(['id', 'title', 'amount'])                               │ │
+│  │  │    .orderBy('created_at', 'desc')                                   │ │
+│  │  │    .limit(20)                                                       │ │
+│  │  │    .execute()     ← terminal method triggers pipeline               │ │
+│  │  │                                                                     │ │
+│  │  │  .toAST() → QueryAST (value object, DB-agnostic):                  │ │
+│  │  │  { table: 'sales', operation: 'SELECT',                            │ │
+│  │  │    select: ['id','title','amount'],                                │ │
+│  │  │    where: [{ field:'status', op:'=', value:'new' }],               │ │
+│  │  │    orderBy: [{ field:'created_at', dir:'desc' }],                  │ │
+│  │  │    limit: 20 }                                                      │ │
+│  │  │                                                                     │ │
+│  │  │  <span class="gn">Plugin DOES NOT write SQL. Builder creates typed AST → structural safety.</span> │ │
+│  │                                                                        │ │
+│  │                                                                        │ │
+│  │  <span class="fn">ITenantStrategy.injectTenant(ast, tenantId)</span>                          │ │
+│  │  │                                                                     │ │
+│  │  │  Traverse AST → add tenant_id node to where conditions             │ │
+│  │  │                                                                     │ │
+│  │  │  SELECT:                                                            │ │
+│  │  │    ast.where prepend:                                               │ │
+│  │  │    <span class="gn">{ field: 'tenant_id', op: '=', value: 'acme-123' }</span>             │ │
+│  │  │                                                                     │ │
+│  │  │  INSERT:                                                            │ │
+│  │  │    ast.insertData prepend: <span class="gn">tenant_id: 'acme-123'</span>                    │ │
+│  │  │                                                                     │ │
+│  │  │  UPDATE / DELETE:                                                   │ │
+│  │  │    ast.where prepend: <span class="gn">tenant_id = 'acme-123'</span>                        │ │
+│  │  │                                                                     │ │
+│  │  │  JOIN:                                                              │ │
+│  │  │    inject tenant_id for <span class="gn">ALL joined tables</span> (prevents cross-tenant leak) │ │
+│  │  │                                                                     │ │
+│  │  │  PostgresRLSStrategy: inject AST + SET app.current_tenant (RLS)    │ │
+│  │  │  MySQLTenantStrategy: inject AST + SET @app_tenant session var     │ │
+│  │  │  SQLiteTenantStrategy: inject AST only (mobile/test)               │ │
+│  │  │                                                                     │ │
+│  │  │  <span class="rd">Plugin CANNOT write a query without tenant_id.</span>                    │ │
+│  │  │  <span class="rd">tenant_id is taken from ExecutionContext, not plugin code.</span>         │ │
+│  │                                                                        │ │
+│  │                                                                        │ │
+│  │  <span class="fn">QueryValidator.validate(ast)</span>                                         │ │
+│  │  │                                                                     │ │
+│  │  │  6 safety checks on AST (AFTER inject, BEFORE generate SQL):       │ │
+│  │  │                                                                     │ │
+│  │  │  ┌────────────────────────────────────────────────────────────┐     │ │
+│  │  │  │  ☐ Query has correct tenant_id after inject?       <span class="gn">PASS</span>   │     │ │
+│  │  │  │  ☐ Parameterized? (AST values not interpolated)   <span class="gn">PASS</span>   │     │ │
+│  │  │  │  ☐ Table is within plugin's allowedTables?        <span class="gn">PASS</span>   │     │ │
+│  │  │  │  ☐ No DDL operations (ALTER/DROP/TRUNCATE)?       <span class="gn">PASS</span>   │     │ │
+│  │  │  │  ☐ No queries to system tables (pg_catalog)?      <span class="gn">PASS</span>   │     │ │
+│  │  │  │  ☐ JOIN tables also have tenant_id filter?        <span class="gn">PASS</span>   │     │ │
+│  │  │  └────────────────────────────────────────────────────────────┘     │ │
+│  │  │                                                                     │ │
+│  │  │  <span class="rd">Any check FAIL → SecurityError, query BLOCKED.</span>                   │ │
+│  │                                                                        │ │
+│  │                                                                        │ │
+│  │  <span class="fn">QueryCounter</span> «per-request»                                           │ │
+│  │  │                                                                     │ │
+│  │  │  Each query passes through → counter++                              │ │
+│  │  │  Sandbox Engine sets limit: maxQueries = 50                         │ │
+│  │  │                                                                     │ │
+│  │  │  counter = 49 → <span class="am">WARNING log</span>                                        │ │
+│  │  │  counter = 50 → <span class="rd">BLOCK, throw QueryLimitExceeded</span>                    │ │
+│  │  │                                                                     │ │
+│  │  │  <span class="cm">Prevents plugin from running N+1 queries or infinite loops.</span>       │ │
+│  │                                                                        │ │
+│  │                                                                        │ │
+│  │  <span class="fn">ISQLDialect.generateSelect(ast)</span>                                      │ │
+│  │  │                                                                     │ │
+│  │  │  AST → parameterized SQL per DB type:                               │ │
+│  │  │                                                                     │ │
+│  │  │  PostgresDialect: SELECT ... WHERE tenant_id = <span class="gn">$1</span> AND status = <span class="gn">$2</span> │ │
+│  │  │  MySQLDialect:    SELECT ... WHERE tenant_id = <span class="gn">?</span>  AND status = <span class="gn">?</span>  │ │
+│  │  │  SQLiteDialect:   SELECT ... WHERE tenant_id = <span class="gn">?</span>  AND status = <span class="gn">?</span>  │ │
+│  │  │                                                                     │ │
+│  │  │  output: { text: string, params: any[] }                            │ │
+│  │  │  <span class="gn">100% parameterized. Zero interpolation. SQL injection = impossible.</span> │ │
+│  │                                                                        │ │
+│  │                                                                        │ │
+│  │  <span class="fn">QueryLogger</span>                                                         │ │
+│  │  │                                                                     │ │
+│  │  │  Each query: log with context                                       │ │
+│  │  │  { tenantId, requestId, plugin, table, operation,                   │ │
+│  │  │    duration_ms, rows_affected }                                     │ │
+│  │  │                                                                     │ │
+│  │  │  Slow query (&gt; 100ms) → <span class="am">WARNING</span>                                     │ │
+│  │  │  Very slow (&gt; 500ms) → <span class="rd">ALERT to ops</span>                                 │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  <span class="ty">PIPELINE FLOW (7 steps):</span>                                                 │
+│                                                                              │
+│  Plugin calls ctx.db.query('sales').where({ status: 'new' }).execute()      │
+│       │                                                                      │
+│       ▼                                                                      │
+│  ① CrmQueryBuilder.toAST() → QueryAST (DB-agnostic)                        │
+│       │                                                                      │
+│       ▼                                                                      │
+│  ② ITenantStrategy.injectTenant(ast, tenantId) → AST with tenant_id        │
+│       │                                                                      │
+│       ▼                                                                      │
+│  ③ QueryValidator.validate(ast) → 6 checks → PASS                          │
+│       │                                                                      │
+│       ▼                                                                      │
+│  ④ QueryCounter.increment() → [3/50]                                        │
+│       │                                                                      │
+│       ▼                                                                      │
+│  ⑤ ISQLDialect.generateSelect(ast) → { text, params }                      │
+│       │                                                                      │
+│       ▼                                                                      │
+│  ⑥ Forward to DB connection (from Pool Manager)                             │
+│       │                                                                      │
+│       ▼                                                                      │
+│  ⑦ QueryLogger.log({ table: sales, op: SELECT, duration: 5ms })            │
+│       │                                                                      │
+│       ▼                                                                      │
+│  Return result set to plugin                                                 │
+│                                                                              │
+│  Pipeline overhead (①→⑤⑦): <span class="gn">~0.07ms</span> (negligible vs ⑥ DB ~3-15ms)           │
+└──────────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 
 <div class="sec">
@@ -324,7 +541,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="nt rd" data-lang="vi"><strong>Defense in Depth:</strong> Nếu 1 tầng có bug, 2 tầng còn lại vẫn chặn (PostgreSQL). MySQL chỉ 2 tầng (no RLS) → stricter validation.</div>
     <div class="nt rd" data-lang="en"><strong>Defense in Depth:</strong> If one layer has a bug, the other two still block (PostgreSQL). MySQL has only 2 layers (no RLS) → stricter validation.</div>
 
-    <div class="dg"><div class="dg-label">3-layer security</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">3-layer security</div><pre>
     Plugin: ctx.db.query('sales').where({ status: 'new' }).execute()
          │
     ═════╪════════════════════════════════════════════════════════
@@ -392,6 +609,74 @@ html.lang-vi [data-lang="en"]{display:none}
   │ Unauthorized table        │ n/a       │ <span class="gn">BLOCK</span>     │ n/a       │
   │ N+1 / infinite loop       │ <span class="gn">BLOCK@50</span>  │           │           │
   └───────────────────────────┴───────────┴───────────┴───────────┘</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">3-layer security</div><pre>
+    Plugin: ctx.db.query('sales').where({ status: 'new' }).execute()
+         │
+    ═════╪════════════════════════════════════════════════════════
+    <span class="rd">LAYER 1: CrmQueryBuilder + ITenantStrategy (Application Level)</span>
+         │
+         ├── Plugin DOES NOT write SQL → cannot inject
+         │   Builder creates typed AST (not string) → structural safety
+         │
+         ├── ITenantStrategy.injectTenant(ast, tenantId):
+         │   Traverse AST → add tenant_id node. tenant_id is taken from
+         │   ExecutionContext (set by Gateway), not plugin.
+         │
+         ├── Plugin tries to set tenant_id = 'other-tenant' in where?
+         │   → ITenantStrategy ALWAYS prepends tenant_id = ctx.tenantId
+         │   → QueryValidator verify: mismatch → <span class="rd">BLOCK</span>
+         │
+         ├── Plugin tries to access a table not in manifest?
+         │   → QueryValidator check allowedTables → <span class="rd">BLOCK</span>
+         │
+    ═════╪════════════════════════════════════════════════════════
+    <span class="am">LAYER 2: QueryValidator (Validation Level)</span>
+         │
+         │  6 rules, checked AFTER inject, BEFORE generate SQL:
+         │
+         │  ┌──────────────────────────────────────────────────┐
+         │  │ 1. tenant_id present in WHERE?          REQUIRED │
+         │  │ 2. Table in allowedTables?              REQUIRED │
+         │  │ 3. No DDL (ALTER/DROP)?                 REQUIRED │
+         │  │ 4. No system tables (pg_catalog)?       REQUIRED │
+         │  │ 5. All values parameterized?            REQUIRED │
+         │  │ 6. JOIN tables have tenant filter?      REQUIRED │
+         │  └──────────────────────────────────────────────────┘
+         │  ANY FAIL → SecurityError, query BLOCKED, log alert.
+         │
+    ═════╪════════════════════════════════════════════════════════
+    <span class="gn">LAYER 3: PostgreSQL RLS (Database Level) — if dialect supports it</span>
+         │
+         │  CREATE POLICY tenant_iso ON sales
+         │    USING (tenant_id = current_setting('app.current_tenant'));
+         │
+         │  ITenantStrategy.configureConnection():
+         │    PostgresRLSStrategy: SET app.current_tenant = 'acme-123'
+         │    MySQLTenantStrategy: SET @app_tenant = 'acme-123' (no RLS)
+         │    SQLiteTenantStrategy: N/A (single-process)
+         │
+         │  PostgreSQL: RLS evaluated by DB engine. Even if app has a bug
+         │  → RLS still filters rows. <span class="gn">3 protection layers.</span>
+         │  MySQL: only 2 layers → enforce stricter QueryValidator rules.
+         │
+    ═════╪════════════════════════════════════════════════════════
+         ▼
+    Query execution → Pool Manager → DB
+
+
+  <span class="ty">SUMMARY TABLE:</span>
+
+  ┌───────────────────────────┬───────────┬───────────┬───────────┐
+  │ Attack                    │ Layer 1   │ Layer 2   │ Layer 3   │
+  │                           │ QB+Strat. │ Validator │ RLS       │
+  ├───────────────────────────┼───────────┼───────────┼───────────┤
+  │ Cross-tenant SELECT       │ <span class="gn">BLOCK</span>     │ <span class="gn">BLOCK</span>     │ <span class="gn">BLOCK</span>     │
+  │ Cross-tenant via JOIN     │ <span class="gn">BLOCK</span>     │ <span class="gn">BLOCK</span>     │ <span class="gn">BLOCK</span>     │
+  │ SQL injection             │ <span class="gn">BLOCK</span>     │ <span class="gn">BLOCK</span>     │ n/a       │
+  │ DDL (DROP TABLE)          │ n/a       │ <span class="gn">BLOCK</span>     │ n/a       │
+  │ Unauthorized table        │ n/a       │ <span class="gn">BLOCK</span>     │ n/a       │
+  │ N+1 / infinite loop       │ <span class="gn">BLOCK@50</span>  │           │           │
+  └───────────────────────────┴───────────┴───────────┴───────────┘</pre></div>
 </div>
 </div>
 <div class="pnl" id="p-pm">
@@ -399,7 +684,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Pool Manager — Cấu trúc nội tại</span><span data-lang="en">Pool Manager — Internal Structure</span></h2></div>
 
-    <div class="dg"><div class="dg-label">pool manager anatomy</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">pool manager anatomy</div><pre>
 ┌─ <span class="am">POOL MANAGER</span> ─── <span class="cm">Singleton, tạo khi bootstrap</span> ──────────────────────────┐
 │                                                                            │
 │  <span class="ty">Trách nhiệm:</span>                                                          │
@@ -510,6 +795,118 @@ html.lang-vi [data-lang="en"]{display:none}
 │  └──────────────────────────────────────────────────────────────────────┘  │
 │                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">pool manager anatomy</div><pre>
+┌─ <span class="am">POOL MANAGER</span> ─── <span class="cm">Singleton, created at bootstrap</span> ──────────────────────────┐
+│                                                                            │
+│  <span class="ty">Responsibilities:</span>                                                      │
+│  1. Manage multiple connection pools (metadata, shared, VIP)               │
+│  2. Route request to the correct pool based on tenant context              │
+│  3. Connection lifecycle: acquire → configure → release → health check    │
+│  4. Create / destroy VIP pool when tenant upgrades / downgrades            │
+│                                                                            │
+│                                                                            │
+│  ┌─ <span class="hi">Internal Components</span> ──────────────────────────────────────────────┐  │
+│  │                                                                      │  │
+│  │  <span class="fn">PoolRegistry</span>                                                      │  │
+│  │  │                                                                   │  │
+│  │  │  Maintains pool name → pool instance mapping:                     │  │
+│  │  │                                                                   │  │
+│  │  │  ┌───────────────────┬────────────────────────────────────────┐  │  │
+│  │  │  │ Pool Name         │ Pool Instance                         │  │  │
+│  │  │  ├───────────────────┼────────────────────────────────────────┤  │  │
+│  │  │  │ "metadata"        │ PostgresPool → Metadata DB Instance   │  │  │
+│  │  │  │                   │ min: 5, max: 20                       │  │  │
+│  │  │  ├───────────────────┼────────────────────────────────────────┤  │  │
+│  │  │  │ "shared"          │ PostgresPool → Shared Data DB         │  │  │
+│  │  │  │                   │ min: 20, max: 200                     │  │  │
+│  │  │  │                   │ per-tenant cap: Basic 10, Prem 20,    │  │  │
+│  │  │                   │                 Ent 30                │  │  │
+│  │  │  ├───────────────────┼────────────────────────────────────────┤  │  │
+│  │  │  │ "vip-initech"     │ PostgresPool → VIP DB INITECH         │  │  │
+│  │  │  │                   │ min: 5, max: 30                       │  │  │
+│  │  │  ├───────────────────┼────────────────────────────────────────┤  │  │
+│  │  │  │ "vip-stark"       │ PostgresPool → VIP DB STARK           │  │  │
+│  │  │  │                   │ min: 5, max: 30                       │  │  │
+│  │  │  └───────────────────┴────────────────────────────────────────┘  │  │
+│  │  │                                                                   │  │
+│  │  │  <span class="cm">VIP pools are created/destroyed dynamically on tenant upgrade/downgrade.</span> │  │
+│  │                                                                      │  │
+│  │                                                                      │  │
+│  │  <span class="fn">PoolRouter</span>                                                        │  │
+│  │  │                                                                   │  │
+│  │  │  Input: tenantContext.dbPool (string)                             │  │
+│  │  │  Output: correct pool instance                                    │  │
+│  │  │                                                                   │  │
+│  │  │  ┌────────────────────────────────────────────────────────────┐  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  │  tenantCtx.dbPool = "shared"                               │  │  │
+│  │  │  │  → PoolRegistry.get("shared")                              │  │  │
+│  │  │  │  → return SharedPool                                       │  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  │  tenantCtx.dbPool = "vip-initech"                          │  │  │
+│  │  │  │  → PoolRegistry.get("vip-initech")                         │  │  │
+│  │  │  │  → return VipPoolInitech                                   │  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  │  <span class="cm">Plugin code DOES NOT know which pool. ctx.db abstracts this.</span>  │  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  └────────────────────────────────────────────────────────────┘  │  │
+│  │                                                                      │  │
+│  │                                                                      │  │
+│  │  <span class="fn">ConnectionConfigurator</span>                                             │  │
+│  │  │                                                                   │  │
+│  │  │  After acquiring a connection, BEFORE plugin uses it:             │  │
+│  │  │                                                                   │  │
+│  │  │  ┌────────────────────────────────────────────────────────────┐  │  │
+│  │  │  │  <span class="nu">1.</span> SET app.current_tenant = 'acme-123'                   │  │  │
+│  │  │  │     → PostgreSQL RLS uses this value                      │  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  │  <span class="nu">2.</span> SET statement_timeout = '5000ms'                      │  │  │
+│  │  │  │     → matches sandbox timeout limit                       │  │  │
+│  │  │  │                                                            │  │  │
+│  │  │  │  <span class="nu">3.</span> SET search_path = 'public'                            │  │  │
+│  │  │  │     → prevent schema confusion attacks                    │  │  │
+│  │  │  └────────────────────────────────────────────────────────────┘  │  │
+│  │  │                                                                   │  │
+│  │  │  <span class="cm">When releasing connection:</span>                                      │  │
+│  │  │  ┌────────────────────────────────────────────────────────────┐  │  │
+│  │  │  │  <span class="nu">1.</span> RESET app.current_tenant                              │  │  │
+│  │  │  │  <span class="nu">2.</span> RESET statement_timeout                               │  │  │
+│  │  │  │  <span class="nu">3.</span> DISCARD TEMP  (clear temp tables if any)               │  │  │
+│  │  │  │  <span class="nu">4.</span> Return to idle pool                                  │  │  │
+│  │  │  └────────────────────────────────────────────────────────────┘  │  │
+│  │                                                                      │  │
+│  │                                                                      │  │
+│  │  <span class="fn">HealthChecker</span>                                                     │  │
+│  │  │                                                                   │  │
+│  │  │  Interval: 30s                                                    │  │
+│  │  │  For each pool:                                                   │  │
+│  │  │  ├── Ping idle connections (SELECT 1)                             │  │
+│  │  │  ├── Dead connections → remove + replace                          │  │
+│  │  │  ├── Track: active/idle/total count                               │  │
+│  │  │  └── Emit metrics: pool_connections_active{pool="shared"}        │  │
+│  │  │                                                                   │  │
+│  │  │  <span class="rd">Pool exhausted (all connections in use)?</span>                       │  │
+│  │  │  → Queue request (max wait 2s)                                    │  │
+│  │  │  → Timeout → Circuit Breaker → 503 Service Unavailable            │  │
+│  │                                                                      │  │
+│  │                                                                      │  │
+│  │  <span class="fn">TenantQuotaEnforcer</span>                                               │  │
+│  │  │                                                                   │  │
+│  │  │  Shared Pool: max 200 total. Per-tenant cap by tier:              │  │
+│  │  │    Basic: 10, Premium: 20, Enterprise: 30                        │  │
+│  │  │                                                                   │  │
+│  │  │  Track per-tenant active connections:                             │  │
+│  │  │    acme-123:  5/20   ✓                                           │  │
+│  │  │    globex-456: 12/20 ✓                                           │  │
+│  │  │    wayne-789:  20/20 <span class="rd">AT LIMIT</span>                                    │  │
+│  │  │                                                                   │  │
+│  │  │  wayne sends new request → wait queue (wait for 1 conn release)   │  │
+│  │  │  <span class="cm">Prevents 1 tenant from "consuming" the entire pool → starvation</span>  │  │
+│  │  │  <span class="cm">for other tenants.</span>                                              │  │
+│  │                                                                      │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
 
@@ -521,7 +918,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t"><span data-lang="vi">Cache Manager — 3-Level Cache</span><span data-lang="en">Cache Manager — 3-Level Cache</span></h2></div>
 
-    <div class="dg"><div class="dg-label">cache manager anatomy</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">cache manager anatomy</div><pre>
 ┌─ <span class="cy">CACHE MANAGER</span> ────────────────────────────────────────────────────────────┐
 │                                                                            │
 │  Plugin gọi: ctx.cache.get("customers:list:active")                       │
@@ -654,6 +1051,139 @@ html.lang-vi [data-lang="en"]{display:none}
 │  └──────────────────────────────────────────────────────────────────────┘ │
 │                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">cache manager anatomy</div><pre>
+┌─ <span class="cy">CACHE MANAGER</span> ────────────────────────────────────────────────────────────┐
+│                                                                            │
+│  Plugin calls: ctx.cache.get("customers:list:active")                     │
+│  Actual key: <span class="gn">"t:acme-123:customers:list:active"</span>  (auto-prefix)          │
+│                                                                            │
+│                                                                            │
+│  ┌─ <span class="hi">3-Level Cache Architecture</span> ─────────────────────────────────────────┐ │
+│  │                                                                      │ │
+│  │                                                                      │ │
+│  │  <span class="nu">L1: IN-MEMORY</span> (per app instance)                                    │ │
+│  │  │                                                                   │ │
+│  │  │  Storage:     process memory (Map / LRU)                          │ │
+│  │  │  Max size:    100 MB per instance                                 │ │
+│  │  │  TTL:         60 seconds                                          │ │
+│  │  │  Eviction:    LRU (Least Recently Used)                           │ │
+│  │  │  Latency:     <span class="gn">~0.01ms</span>  (memory read)                             │ │
+│  │  │                                                                   │ │
+│  │  │  <span class="cm">Fastest but smallest.</span>                                         │ │
+│  │  │  <span class="cm">Each instance has its OWN L1 — not shared.</span>                    │ │
+│  │  │  <span class="cm">Instance 1 cache ≠ Instance 2 cache.</span>                           │ │
+│  │  │                                                                   │ │
+│  │  │                     <span class="am">MISS</span>                                         │ │
+│  │  │                       │                                           │ │
+│  │  │                       ▼                                           │ │
+│  │                                                                      │ │
+│  │  <span class="nu">L2: REDIS CLUSTER</span> (shared across instances)                          │ │
+│  │  │                                                                   │ │
+│  │  │  Storage:     Redis cluster (3 nodes + Sentinel)                  │ │
+│  │  │  Max size:    per policy (no hard limit)                          │ │
+│  │  │  TTL:         5–15 minutes (configurable per data type)           │ │
+│  │  │  Compression: LZ4 for values > 1KB                               │ │
+│  │  │  Latency:     <span class="am">~1-2ms</span>  (network + Redis)                          │ │
+│  │  │                                                                   │ │
+│  │  │  <span class="cm">Shared — all instances read/write to the same Redis.</span>          │ │
+│  │  │  <span class="cm">Instance 1 writes → Instance 2 can read immediately.</span>          │ │
+│  │  │                                                                   │ │
+│  │  │  Key format: t:{tenantId}:{plugin}:{entity}:{hash}               │ │
+│  │  │  Example:    t:acme-123:care:sales:status=new:page=1              │ │
+│  │  │                                                                   │ │
+│  │  │                     <span class="am">MISS</span>                                         │ │
+│  │  │                       │                                           │ │
+│  │  │                       ▼                                           │ │
+│  │                                                                      │ │
+│  │  <span class="nu">L3: DATABASE</span> (source of truth)                                        │ │
+│  │  │                                                                   │ │
+│  │  │  PostgreSQL (via Query Interceptor → Pool Manager)                │ │
+│  │  │  Latency:     <span class="rd">~5-20ms</span>  (query execution + network)                │ │
+│  │  │                                                                   │ │
+│  │  │  Always correct, always most up-to-date.                         │ │
+│  │  │  But slowest → cache at L1/L2 when possible.                     │ │
+│  │  │                                                                   │ │
+│  └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+│                                                                            │
+│  ┌─ <span class="hi">READ Flow</span> ─────────────────────────────────────────────────────────┐ │
+│  │                                                                      │ │
+│  │  ctx.cache.get("customers:list:active")                              │ │
+│  │       │                                                              │ │
+│  │       ▼                                                              │ │
+│  │  L1 memory: t:acme-123:customers:list:active                        │ │
+│  │       │                                                              │ │
+│  │  ┌────┴──────┐                                                       │ │
+│  │  │ <span class="gn">L1 HIT</span>   │→ return value. Done. <span class="gn">(~0.01ms)</span>                      │ │
+│  │  │ <span class="am">L1 MISS</span>  │→ query L2                                             │ │
+│  │  └───────────┘                                                       │ │
+│  │       │                                                              │ │
+│  │       ▼                                                              │ │
+│  │  L2 Redis: GET t:acme-123:customers:list:active                     │ │
+│  │       │                                                              │ │
+│  │  ┌────┴──────┐                                                       │ │
+│  │  │ <span class="gn">L2 HIT</span>   │→ decompress → store in L1 → return. <span class="gn">(~2ms)</span>           │ │
+│  │  │ <span class="am">L2 MISS</span>  │→ query L3 (database)                                  │ │
+│  │  └───────────┘                                                       │ │
+│  │       │                                                              │ │
+│  │       ▼                                                              │ │
+│  │  L3 DB: SELECT * FROM customers WHERE ...                           │ │
+│  │       │                                                              │ │
+│  │       ▼                                                              │ │
+│  │  Result → compress → store in L2 Redis (TTL 5min)                   │ │
+│  │        → store in L1 memory (TTL 60s)                               │ │
+│  │        → return to plugin                                <span class="rd">(~15ms)</span>    │ │
+│  │                                                                      │ │
+│  └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+│                                                                            │
+│  ┌─ <span class="hi">Invalidation</span> ──────────────────────────────────────────────────────┐ │
+│  │                                                                      │ │
+│  │  When to invalidate?                                                 │ │
+│  │  → After each WRITE (insert/update/delete) within the same request  │ │
+│  │  → Plugin enable/disable (via Tenant Context invalidate)             │ │
+│  │  → Manual flush (admin operation)                                    │ │
+│  │                                                                      │ │
+│  │                                                                      │ │
+│  │  ctx.db.insert('sales', data)                                        │ │
+│  │       │                                                              │ │
+│  │       ▼  (insert successful)                                         │ │
+│  │                                                                      │ │
+│  │  Auto-invalidate related cache keys:                                 │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐   │ │
+│  │  │                                                              │   │ │
+│  │  │  <span class="nu">1.</span> L1: delete t:acme-123:care:sales:*  (local instance)    │   │ │
+│  │  │                                                              │   │ │
+│  │  │  <span class="nu">2.</span> L2: delete t:acme-123:care:sales:*  (Redis)             │   │ │
+│  │  │                                                              │   │ │
+│  │  │  <span class="nu">3.</span> Publish Redis Pub/Sub:                                  │   │ │
+│  │  │     channel: "cache:invalidate"                              │   │ │
+│  │  │     payload: { tenant: "acme-123", pattern: "care:sales:*" } │   │ │
+│  │  │                                                              │   │ │
+│  │  │  <span class="nu">4.</span> ALL other instances receive Pub/Sub message:             │   │ │
+│  │  │     → delete matching keys from THEIR L1 cache              │   │ │
+│  │  │                                                              │   │ │
+│  │  └──────────────────────────────────────────────────────────────┘   │ │
+│  │                                                                      │ │
+│  │  ┌──────────────────────────────────────────────────────────────┐   │ │
+│  │  │                                                              │   │ │
+│  │  │  Instance 1            Instance 2            Instance 3      │   │ │
+│  │  │  ┌──────────┐         ┌──────────┐         ┌──────────┐    │   │ │
+│  │  │  │ L1 cache │         │ L1 cache │         │ L1 cache │    │   │ │
+│  │  │  │ delete   │◀──────▶│ delete   │◀──────▶│ delete   │    │   │ │
+│  │  │  │ sales:*  │  Pub/  │ sales:*  │  Pub/  │ sales:*  │    │   │ │
+│  │  │  └──────────┘  Sub   └──────────┘  Sub   └──────────┘    │   │ │
+│  │  │                                                              │   │ │
+│  │  │         ┌──────────────────────────────────┐                 │   │ │
+│  │  │         │           L2 Redis               │                 │   │ │
+│  │  │         │  delete t:acme-123:care:sales:*  │                 │   │ │
+│  │  │         └──────────────────────────────────┘                 │   │ │
+│  │  │                                                              │   │ │
+│  │  └──────────────────────────────────────────────────────────────┘   │ │
+│  │                                                                      │ │
+│  └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
 
@@ -668,7 +1198,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="nt am" data-lang="vi"><strong>Khác 3 thực thể kia:</strong> Migration Engine KHÔNG tham gia xử lý request. Nó chỉ chạy khi: plugin được enable/disable cho tenant, hoặc plugin version được upgrade. Đây là admin operation, không phải request-time operation.</div>
     <div class="nt am" data-lang="en"><strong>Unlike the other 3 entities:</strong> Migration Engine does NOT participate in request handling. It only runs when: a plugin is enabled/disabled for a tenant, or a plugin version is upgraded. This is an admin operation, not a request-time operation.</div>
 
-    <div class="dg"><div class="dg-label">migration engine</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">migration engine</div><pre>
 ┌─ <span class="rd">MIGRATION ENGINE</span> ─────────────────────────────────────────────────────────┐
 │                                                                              │
 │  <span class="ty">2 loại migration:</span>                                                        │
@@ -739,6 +1269,77 @@ html.lang-vi [data-lang="en"]{display:none}
 │  IMigrationDialect → SchemaMigrationRunner lookup đúng dialect per DB type. │
 │  Mixed-DB deployment: tenant A (PG) + tenant B (MySQL) → đúng dialect mỗi.  │
 └──────────────────────────────────────────────────────────────────────────────┘</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">migration engine</div><pre>
+┌─ <span class="rd">MIGRATION ENGINE</span> ─────────────────────────────────────────────────────────┐
+│                                                                              │
+│  <span class="ty">2 migration types:</span>                                                       │
+│                                                                              │
+│  ┌─ <span class="fn">SchemaMigrationRunner</span> (system-wide DDL) ────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  <span class="fn">MigrationRegistry</span>                                                 │   │
+│  │  │  Manages all migration files per plugin version.                   │   │
+│  │  │  Lookup: migration_registry table (plugin, version, checksum).     │   │
+│  │  │  Topological sort: runs in correct dependency order.               │   │
+│  │                                                                        │ │
+│  │  <span class="fn">MigrationExecutor</span>                                                  │   │
+│  │  │  Runs DDL via <span class="vi">IMigrationDialect</span> (DIP):                             │   │
+│  │  │                                                                     │   │
+│  │  │  <span class="hi">PostgresMigrationDialect:</span>                                       │   │
+│  │  │  │  CREATE TABLE IF NOT EXISTS sales (                              │   │
+│  │  │  │    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,               │   │
+│  │  │  │    tenant_id VARCHAR(50) NOT NULL,                               │   │
+│  │  │  │    title VARCHAR(255), amount DECIMAL(15,2),                     │   │
+│  │  │  │    created_at TIMESTAMPTZ DEFAULT now());                        │   │
+│  │  │  │  CREATE INDEX idx_sales_tenant ON sales(tenant_id);             │   │
+│  │  │  │  CREATE POLICY tenant_iso ON sales                               │   │
+│  │  │  │    USING (tenant_id = current_setting('app.current_tenant'));    │   │
+│  │  │  │  <span class="gn">supportsTransactionalDDL() → true (atomic rollback)</span>             │   │
+│  │  │                                                                     │   │
+│  │  │  <span class="gn">MySQLMigrationDialect:</span>                                            │   │
+│  │  │  │  CREATE TABLE IF NOT EXISTS sales (                              │   │
+│  │  │  │    id CHAR(36) DEFAULT (UUID()) PRIMARY KEY,                    │   │
+│  │  │  │    tenant_id VARCHAR(50) NOT NULL,                               │   │
+│  │  │  │    title VARCHAR(255), amount DECIMAL(15,2),                     │   │
+│  │  │  │    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);              │   │
+│  │  │  │  CREATE INDEX idx_sales_tenant ON sales(tenant_id);             │   │
+│  │  │  │  <span class="rd">generateRLSPolicy() → null (MySQL has no RLS)</span>                  │   │
+│  │  │  │  <span class="am">supportsTransactionalDDL() → false (implicit commit)</span>            │   │
+│  │  │                                                                     │   │
+│  │  │  <span class="or">SQLiteMigrationDialect:</span>                                           │   │
+│  │  │  │  Limited ALTER TABLE. No RLS. File-level locking.               │   │
+│  │  │  │  Only used for mobile offline + unit testing.                   │   │
+│  │                                                                        │ │
+│  │  <span class="fn">MigrationLockManager</span>                                                │   │
+│  │  │  Serializes concurrent migrations via advisory lock:               │   │
+│  │  │  PostgresMigrationDialect: pg_advisory_lock(hashCode)              │   │
+│  │  │  MySQLMigrationDialect: GET_LOCK('migration_plugin', 30)           │   │
+│  │  │  SQLiteMigrationDialect: file-level lock (single-process)          │   │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  ┌─ <span class="fn">TenantMigrationRunner</span> (per-tenant DML) ──────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  Runs AFTER SchemaMigrationRunner.                                     │ │
+│  │  Insert seed data per-tenant: default config, sample data.             │ │
+│  │  Tenant-scoped: all DML goes through Query Builder pipeline (with tenant_id). │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  <span class="ty">SPECIAL: Which DB does Migration run on?</span>                                 │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ Tenant tier = Basic/Premium/Enterprise:                                │ │
+│  │  → Migrations run on <span class="gn">Shared Data DB</span>                                    │ │
+│  │  → Tables shared, RLS isolates data (if PostgreSQL)                   │ │
+│  │                                                                        │ │
+│  │ Tenant tier = VIP (INITECH, STARK):                                    │ │
+│  │  → Migrations run on <span class="vi">dedicated VIP DB</span>                                  │ │
+│  │  → Dedicated DB, same schema, custom tuning                            │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  IMigrationDialect → SchemaMigrationRunner looks up correct dialect per DB type. │
+│  Mixed-DB deployment: tenant A (PG) + tenant B (MySQL) → correct dialect for each. │
+└──────────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
 <div class="pnl" id="p-req">
@@ -749,7 +1350,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="nt bl" data-lang="vi"><strong>Trace 1 request:</strong> POST /api/plugins/customer-care/sales — tạo sale mới. Theo dõi từng bước L4 tham gia: context build → SELECT verify → INSERT sale → UPDATE customer → cache invalidate.</div>
     <div class="nt bl" data-lang="en"><strong>Trace 1 request:</strong> POST /api/plugins/customer-care/sales — creating a new sale. Follow each step L4 participates in: context build → SELECT verify → INSERT sale → UPDATE customer → cache invalidate.</div>
 
-    <div class="dg"><div class="dg-label">request trace</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">request trace</div><pre>
 <span class="ty">GIAI ĐOẠN 0: Context Build</span> (ExecutionContextBuilder, trước khi plugin chạy)
 
   PoolRouter: route tenantId='acme-123' (tier=Premium) → SharedPool
@@ -874,6 +1475,134 @@ html.lang-vi [data-lang="en"]{display:none}
   │ DB time:                 17ms (4 + 8 + 5)             │
   │ Cache invalidations:     2 (sales + customers)         │
   │ Tenant isolation checks: 3 (mỗi query đi qua 7 bước) │
+  │ SQL injection possible:  NO (100% parameterized)       │
+  │ Cross-tenant leak:       NO (3-layer defense)          │
+  └────────────────────────────────────────────────────────┘</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">request trace</div><pre>
+<span class="ty">PHASE 0: Context Build</span> (ExecutionContextBuilder, before plugin runs)
+
+  PoolRouter: route tenantId='acme-123' (tier=Premium) → SharedPool
+       │
+       ▼
+  SharedPool.acquire() → connection #14 (from PgBouncer)
+       │
+       ▼
+  ITenantStrategy.configureConnection(conn, 'acme-123')
+  │ PostgresRLSStrategy: SET app.current_tenant = 'acme-123'
+  │ MySQLTenantStrategy: SET @app_tenant = 'acme-123'
+       │
+       ▼
+  TenantScopedDB = new TenantScopedDB(conn, 'acme-123',
+    dialect: ISQLDialect,          <span class="cm">← injected via DI</span>
+    strategy: ITenantStrategy)     <span class="cm">← injected via DI</span>
+       │
+       ▼
+  ctx.db = TenantScopedDB     <span class="cm">← plugin receives IDbContext</span>
+
+
+<span class="ty">PHASE 1: Plugin Execution</span> (plugin calls ctx.db)
+
+  <span class="fn">Query 1: SELECT verify customer exists</span>
+
+  │  Plugin: ctx.db.query('customers').where({ id: 'cust-99' }).first()
+  │
+  │  ① CrmQueryBuilder.toAST():
+  │     { table:'customers', op:'SELECT',
+  │       where:[{ field:'id', op:'=', value:'cust-99' }] }
+  │
+  │  ② ITenantStrategy.injectTenant(ast, 'acme-123'):
+  │     where: [<span class="gn">{ field:'tenant_id', op:'=', value:'acme-123' }</span>,
+  │             { field:'id', op:'=', value:'cust-99' }]
+  │
+  │  ③ QueryValidator.validate(ast): ✓ 6 checks passed
+  │
+  │  ④ QueryCounter: [1/50]
+  │
+  │  ⑤ ISQLDialect.generateSelect(ast):
+  │     <span class="st">SELECT * FROM customers WHERE tenant_id = $1 AND id = $2 LIMIT 1</span>
+  │     params: ['acme-123', 'cust-99']
+  │
+  │  ⑥ DB execute: 4ms, 1 row returned
+  │  ⑦ QueryLogger: { table:customers, op:SELECT, duration:4ms, rows:1 }
+
+
+  <span class="fn">Query 2: INSERT new sale</span>
+
+  │  Plugin: ctx.db.insert('sales', {
+  │    customer_id: 'cust-99', title: 'Enterprise Deal', amount: 50000
+  │  })
+  │
+  │  ① toAST(): { table:'sales', op:'INSERT',
+  │     insertData:{ customer_id, title, amount } }
+  │
+  │  ② ITenantStrategy.injectTenant(ast):
+  │     insertData: { <span class="gn">tenant_id:'acme-123'</span>, customer_id, title, amount }
+  │
+  │  ③ QueryValidator: ✓
+  │  ④ QueryCounter: [2/50]
+  │
+  │  ⑤ ISQLDialect.generateInsert(ast):
+  │     <span class="hi">PostgresDialect:</span>
+  │     <span class="st">INSERT INTO sales (tenant_id, customer_id, title, amount)</span>
+  │     <span class="st">VALUES ($1, $2, $3, $4) RETURNING *</span>
+  │     params: ['acme-123', 'cust-99', 'Enterprise Deal', 50000]
+  │
+  │     <span class="gn">MySQLDialect (if tenant uses MySQL):</span>
+  │     <span class="st">INSERT INTO sales (tenant_id, customer_id, title, amount)</span>
+  │     <span class="st">VALUES (?, ?, ?, ?)</span>
+  │     <span class="cm">+ follow-up: SELECT * FROM sales WHERE id = LAST_INSERT_ID()</span>
+  │
+  │  ⑥ DB execute: 8ms, 1 row inserted
+  │  ⑦ QueryLogger: { table:sales, op:INSERT, duration:8ms, rows:1 }
+  │
+  │  Cache invalidate: delete t:acme-123:*:sales:* (L1 + L2)
+
+
+  <span class="fn">Query 3: UPDATE customer lastActivity</span>
+
+  │  Plugin: ctx.db.update('customers',
+  │    { id: 'cust-99' },
+  │    { last_activity: new Date(), total_deals: { $inc: 1 } })
+  │
+  │  ① toAST(): { table:'customers', op:'UPDATE',
+  │     where:[{ field:'id', value:'cust-99' }],
+  │     updateData:{ last_activity, total_deals } }
+  │
+  │  ② ITenantStrategy.injectTenant(ast):
+  │     where: [<span class="gn">{ field:'tenant_id', value:'acme-123' }</span>,
+  │             { field:'id', value:'cust-99' }]
+  │
+  │  ③ QueryValidator: ✓
+  │  ④ QueryCounter: [3/50]
+  │
+  │  ⑤ ISQLDialect.generateUpdate(ast):
+  │     <span class="st">UPDATE customers SET last_activity = $1, total_deals = total_deals + 1</span>
+  │     <span class="st">WHERE tenant_id = $2 AND id = $3 RETURNING *</span>
+  │     params: ['2026-02-14T...', 'acme-123', 'cust-99']
+  │
+  │  ⑥ DB execute: 5ms
+  │  ⑦ QueryLogger: { table:customers, op:UPDATE, duration:5ms, rows:1 }
+  │
+  │  Cache invalidate: delete t:acme-123:*:customers:* (L1 + L2)
+
+
+<span class="ty">PHASE 2: Cleanup</span>
+
+  ITenantStrategy.resetConnection(conn)
+  │ PostgresRLSStrategy: RESET app.current_tenant
+  │ MySQLTenantStrategy: SET @app_tenant = ''
+
+  SharedPool.release(conn)    <span class="cm">← connection #14 returned to pool</span>
+
+
+<span class="ty">SUMMARY:</span>
+
+  ┌────────────────────────────────────────────────────────┐
+  │ Total queries:           3/50 budget                   │
+  │ Pipeline overhead:       ~0.2ms (3 × 0.07ms)          │
+  │ DB time:                 17ms (4 + 8 + 5)             │
+  │ Cache invalidations:     2 (sales + customers)         │
+  │ Tenant isolation checks: 3 (each query passes through 7 steps) │
   │ SQL injection possible:  NO (100% parameterized)       │
   │ Cross-tenant leak:       NO (3-layer defense)          │
   └────────────────────────────────────────────────────────┘</pre></div>

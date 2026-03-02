@@ -106,8 +106,8 @@ html.lang-vi [data-lang="en"]{display:none}
   │  │  │  │ │          │ │          │ │          │ │          ││ │    │
   │  │  │  │ │remoteEnt.│ │remoteEnt.│ │remoteEnt.│ │remoteEnt.││ │    │
   │  │  │  │ └──────────┘ └──────────┘ └──────────┘ └──────────┘│ │    │
-  │  │  │  │ <span class="cm">Chỉ load remotes mà tenant đã ENABLE.</span>               │ │    │
-  │  │  │  │ <span class="cm">ACME enable data+care → chỉ load 2 remotes.</span>        │ │    │
+  │  │  │  │ <span class="cm"><span data-lang="vi">Chỉ load remotes mà tenant đã ENABLE.</span><span data-lang="en">Only loads remotes the tenant has ENABLED.</span></span>               │ │    │
+  │  │  │  │ <span class="cm"><span data-lang="vi">ACME enable data+care → chỉ load 2 remotes.</span><span data-lang="en">ACME enables data+care → loads only 2 remotes.</span></span>        │ │    │
   │  │  │  └──────────────────────────────────────────────────────┘ │    │
   │  │  └─────────────────────────────────────────────────────────────┘    │
   │                                                                          │
@@ -118,7 +118,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │  │ Offline-first + sync queue (SQLite local → API batch sync)     │    │
   │  └─────────────────────────────────────────────────────────────────┘    │
   │                                                                          │
-  │  <span class="hi">❸ ADMIN CONSOLE</span> (React SPA, tách domain hoàn toàn)                    │
+  │  <span class="hi">❸ ADMIN CONSOLE</span> (<span data-lang="vi">React SPA, tách domain hoàn toàn</span><span data-lang="en">React SPA, fully separate domain</span>)                    │
   │  ┌────────────────────────────┐  ┌────────────────────────────────┐    │
   │  │ <span class="am">Tenant Admin</span>               │  │ <span class="vi">System Admin</span>                   │    │
   │  │ admin.acme.crm.com        │  │ system.crm.internal           │    │
@@ -143,10 +143,10 @@ html.lang-vi [data-lang="en"]{display:none}
                               L2 API Gateway
 
 
-  <span class="ty">L1 = HOÀN TOÀN CLIENT-SIDE.</span>
-  Không truy cập DB, Redis, MQ. Chỉ gọi API tới L2 Gateway.
-  Tenant isolation ở L1: chỉ load plugin UI mà tenant đã enable.
-  Security ở L1: CSP headers, XSS sanitization, CORS whitelist.</pre></div>
+  <span class="ty"><span data-lang="vi">L1 = HOÀN TOÀN CLIENT-SIDE.</span><span data-lang="en">L1 = FULLY CLIENT-SIDE.</span></span>
+  <span data-lang="vi">Không truy cập DB, Redis, MQ. Chỉ gọi API tới L2 Gateway.</span><span data-lang="en">No direct DB, Redis, or MQ access. Only calls API to L2 Gateway.</span>
+  <span data-lang="vi">Tenant isolation ở L1: chỉ load plugin UI mà tenant đã enable.</span><span data-lang="en">Tenant isolation at L1: only loads plugin UI for enabled plugins.</span>
+  <span data-lang="vi">Security ở L1: CSP headers, XSS sanitization, CORS whitelist.</span><span data-lang="en">Security at L1: CSP headers, XSS sanitization, CORS whitelist.</span></pre></div>
 </div>
 </div>
 
@@ -157,10 +157,10 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> SPA chính mà user truy cập qua browser. Gồm Host Shell (khung ứng dụng) và Plugin Remotes (UI modules load động). Host Shell luôn giống nhau cho mọi tenant — sự khác biệt nằm ở REMOTES nào được load, dựa trên enabledPlugins.</div>
     <div class="nt bl" data-lang="en"><strong>Role:</strong> The primary SPA that users access via browser. Consists of Host Shell (application frame) and Plugin Remotes (dynamically loaded UI modules). Host Shell is always the same for every tenant — the difference lies in which REMOTES are loaded, based on enabledPlugins.</div>
     <div class="dg"><div class="dg-label">web app architecture</div><pre>
-<span class="ty">HOST SHELL (luôn load, ~200KB gzipped):</span>
+<span class="ty">HOST SHELL (<span data-lang="vi">luôn load</span><span data-lang="en">always loaded</span>, ~200KB gzipped):</span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
-  │  <span class="am">Host Shell</span> — React SPA, entry point cho mọi tenant                    │
+  │  <span class="am">Host Shell</span> — React SPA, <span data-lang="vi">entry point cho mọi tenant</span><span data-lang="en">entry point for all tenants</span>                    │
   │                                                                        │
   │  ┌─ <span class="hi">App Frame</span> ─────────────────────────────────────────────────────┐   │
   │  │                                                                  │   │
@@ -190,18 +190,18 @@ html.lang-vi [data-lang="en"]{display:none}
   │  ├── Theme:    CSS variables per-tenant (logo, colors, fonts)        │
   │  ├── Sidebar:  build nav items from enabledPlugins list              │
   │  ├── Topbar:   search, notifications (WebSocket), user menu          │
-  │  ├── Loader:   loading state khi remote module đang fetch            │
+  │  ├── Loader:   <span data-lang="vi">loading state khi remote module đang fetch</span><span data-lang="en">loading state while remote module is fetching</span>            │
   │  ├── Error:    Error Boundary per plugin (crash → fallback UI)       │
   │  └── API:      shared HTTP client (auto-attach JWT, tenant header)   │
   │                                                                        │
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">PLUGIN REMOTES (load theo nhu cầu):</span>
+<span class="ty">PLUGIN REMOTES (<span data-lang="vi">load theo nhu cầu</span><span data-lang="en">loaded on demand</span>):</span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │                                                                        │
-  │  Mỗi plugin có UI riêng, build thành <span class="fn">remoteEntry.js</span>:                  │
+  │  <span data-lang="vi">Mỗi plugin có UI riêng, build thành</span><span data-lang="en">Each plugin has its own UI, built as</span> <span class="fn">remoteEntry.js</span>:                  │
   │                                                                        │
   │  customer-data UI:                                                    │
   │  ├── Pages: CustomerList, CustomerDetail, CompanyList                 │
@@ -218,7 +218,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │  ├── Components: ChartWidget, FilterPanel, DatePicker                │
   │  └── remoteEntry.js → CDN: cdn.crm.com/plugins/analytics/v1.2/      │
   │                                                                        │
-  │  <span class="am">Chỉ remotes mà tenant ENABLE mới được load.</span>                          │
+  │  <span class="am"><span data-lang="vi">Chỉ remotes mà tenant ENABLE mới được load.</span><span data-lang="en">Only remotes that the tenant has ENABLED are loaded.</span></span>                          │
   │  ACME enable: data + care + analytics → load 3 remotes.              │
   │  GLOBEX enable: data only → load 1 remote. Sales/Reports nav hidden. │
   │                                                                        │
@@ -253,7 +253,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Webpack Module Federation cho phép load plugin UI code TẠI RUNTIME mà không cần rebuild Host Shell. Plugin team build UI riêng → publish remoteEntry.js → Host Shell load động. Shared dependencies (React, UI Kit) chỉ load 1 lần.</div>
     <div class="nt am" data-lang="en"><strong>Role:</strong> Webpack Module Federation allows loading plugin UI code AT RUNTIME without rebuilding the Host Shell. Plugin teams build their own UI → publish remoteEntry.js → Host Shell loads dynamically. Shared dependencies (React, UI Kit) are loaded only once.</div>
     <div class="dg"><div class="dg-label">module federation</div><pre>
-<span class="ty">KIẾN TRÚC:</span>
+<span class="ty"><span data-lang="vi">KIẾN TRÚC:</span><span data-lang="en">ARCHITECTURE:</span></span>
 
   ┌─ <span class="am">Host Shell</span> (Webpack config) ────────────────────────────────────────┐
   │                                                                        │
@@ -261,7 +261,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │    name: <span class="st">'crmShell'</span>,                                                 │
   │    <span class="fn">remotes</span>: {                                                        │
   │      <span class="cm">// Loaded DYNAMICALLY based on tenant enabledPlugins</span>             │
-  │      <span class="cm">// Không hardcode — resolve at runtime</span>                           │
+  │      <span class="cm">// <span data-lang="vi">Không hardcode</span><span data-lang="en">Not hardcoded</span> — resolve at runtime</span>                           │
   │    },                                                                  │
   │    <span class="fn">shared</span>: {                                                         │
   │      <span class="st">'react'</span>:         { singleton: <span class="kw">true</span>, requiredVersion: <span class="st">'^18'</span> },     │
@@ -274,7 +274,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │                                                                        │
   └────────────────────────────────────────────────────────────────────────┘
 
-  ┌─ <span class="gn">Plugin Remote</span> (mỗi plugin build riêng) ──────────────────────────────┐
+  ┌─ <span class="gn">Plugin Remote</span> (<span data-lang="vi">mỗi plugin build riêng</span><span data-lang="en">each plugin built separately</span>) ──────────────────────────────┐
   │                                                                        │
   │  <span class="kw">new</span> ModuleFederationPlugin({                                       │
   │    name: <span class="st">'customerCare'</span>,                                              │
@@ -287,7 +287,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │    },                                                                  │
   │    <span class="fn">shared</span>: {                                                         │
   │      <span class="st">'react'</span>, <span class="st">'react-dom'</span>, <span class="st">'@crm/ui-kit'</span>, <span class="st">'@crm/api-client'</span>        │
-  │      <span class="cm">← dùng chung với Host Shell, KHÔNG bundle lại</span>                   │
+  │      <span class="cm">← <span data-lang="vi">dùng chung với Host Shell, KHÔNG bundle lại</span><span data-lang="en">shared with Host Shell, NOT re-bundled</span></span>                   │
   │    }                                                                   │
   │  })                                                                    │
   │                                                                        │
@@ -296,7 +296,7 @@ html.lang-vi [data-lang="en"]{display:none}
 
 <span class="ty">DYNAMIC REMOTE LOADING:</span>
 
-  Host Shell không hardcode remotes. Load at runtime:
+  <span data-lang="vi">Host Shell không hardcode remotes. Load at runtime:</span><span data-lang="en">Host Shell does not hardcode remotes. Loaded at runtime:</span>
 
   <span class="kw">async function</span> <span class="fn">loadPluginRemote</span>(pluginName, version) {
     <span class="kw">const</span> url = <span class="st">`cdn.crm.com/plugins/${pluginName}/v${version}/remoteEntry.js`</span>;
@@ -313,23 +313,23 @@ html.lang-vi [data-lang="en"]{display:none}
     <span class="kw">return</span> factory();
   }
 
-  <span class="cm">→ Plugin team deploy UI mới → CDN update → user refresh → load new UI</span>
-  <span class="cm">→ KHÔNG cần rebuild/redeploy Host Shell</span>
+  <span class="cm">→ <span data-lang="vi">Plugin team deploy UI mới → CDN update → user refresh → load new UI</span><span data-lang="en">Plugin team deploys new UI → CDN updates → user refreshes → loads new UI</span></span>
+  <span class="cm">→ <span data-lang="vi">KHÔNG cần rebuild/redeploy Host Shell</span><span data-lang="en">NO need to rebuild/redeploy Host Shell</span></span>
 
 
-<span class="ty">SHARED DEPS — KHÔNG DUPLICATE:</span>
+<span class="ty">SHARED DEPS — <span data-lang="vi">KHÔNG DUPLICATE</span><span data-lang="en">NO DUPLICATES</span>:</span>
 
-  Không có Module Federation:
+  <span data-lang="vi">Không có Module Federation:</span><span data-lang="en">Without Module Federation:</span>
   Host Shell:  React 18 (120KB) + ReactDOM (130KB)
   Plugin 1:    React 18 (120KB) + ReactDOM (130KB)  ← duplicate!
   Plugin 2:    React 18 (120KB) + ReactDOM (130KB)  ← duplicate!
   Total: 750KB
 
-  Với Module Federation:
-  Host Shell:  React 18 (120KB) + ReactDOM (130KB)  ← load 1 lần
-  Plugin 1:    dùng chung React từ Host Shell        ← 0KB extra
-  Plugin 2:    dùng chung React từ Host Shell        ← 0KB extra
-  Total: 250KB  (<span class="gn">giảm 67%</span>)
+  <span data-lang="vi">Với Module Federation:</span><span data-lang="en">With Module Federation:</span>
+  Host Shell:  React 18 (120KB) + ReactDOM (130KB)  ← <span data-lang="vi">load 1 lần</span><span data-lang="en">loaded once</span>
+  Plugin 1:    <span data-lang="vi">dùng chung React từ Host Shell</span><span data-lang="en">reuses React from Host Shell</span>        ← 0KB extra
+  Plugin 2:    <span data-lang="vi">dùng chung React từ Host Shell</span><span data-lang="en">reuses React from Host Shell</span>        ← 0KB extra
+  Total: 250KB  (<span class="gn"><span data-lang="vi">giảm 67%</span><span data-lang="en">67% reduction</span></span>)
 
 
 <span class="ty">VERSION MANAGEMENT:</span>
@@ -348,7 +348,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="nt gn" data-lang="vi"><strong>Vai trò:</strong> Native/cross-platform app cho iOS + Android. Tương tự Web App nhưng thích nghi cho mobile: dynamic feature modules (thay cho Module Federation), OTA updates, offline-first với sync queue.</div>
     <div class="nt gn" data-lang="en"><strong>Role:</strong> Native/cross-platform app for iOS + Android. Similar to Web App but adapted for mobile: dynamic feature modules (replacing Module Federation), OTA updates, offline-first with sync queue.</div>
     <div class="dg"><div class="dg-label">mobile app</div><pre>
-<span class="ty">KIẾN TRÚC:</span>
+<span class="ty"><span data-lang="vi">KIẾN TRÚC:</span><span data-lang="en">ARCHITECTURE:</span></span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │  <span class="am">Mobile Shell</span> (React Native / Flutter)                                 │
@@ -367,8 +367,8 @@ html.lang-vi [data-lang="en"]{display:none}
   │  │ │Contact form  │ │Call logger   │ │Charts        │               ││
   │  │ │Company view  │ │Ticket list   │ │Export (PDF)  │               ││
   │  │ └──────────────┘ └──────────────┘ └──────────────┘               ││
-  │  │ <span class="cm">Download chỉ modules mà tenant enable.</span>                            ││
-  │  │ <span class="cm">Xóa khi tenant disable → free storage.</span>                             ││
+  │  │ <span class="cm"><span data-lang="vi">Download chỉ modules mà tenant enable.</span><span data-lang="en">Downloads only modules the tenant enables.</span></span>                            ││
+  │  │ <span class="cm"><span data-lang="vi">Xóa khi tenant disable → free storage.</span><span data-lang="en">Removed when tenant disables → frees storage.</span></span>                             ││
   │  └──────────────────────────────────────────────────────────────────┘││
   │                                                                        │
   └────────────────────────────────────────────────────────────────────────┘
@@ -385,12 +385,12 @@ html.lang-vi [data-lang="en"]{display:none}
   │  <span class="nu">4.</span> Download delta bundle (~500KB-2MB)                               │
   │  <span class="nu">5.</span> Apply silently → next screen load uses new code                  │
   │                                                                        │
-  │  <span class="am">Khi nào CẦN App Store update:</span>                                       │
+  │  <span class="am"><span data-lang="vi">Khi nào CẦN App Store update:</span><span data-lang="en">When App Store update is REQUIRED:</span></span>                                       │
   │  ├── Native module thay đổi (camera, GPS, biometric)                 │
   │  ├── Shell navigation thay đổi                                       │
   │  └── React Native / Flutter version upgrade                          │
   │                                                                        │
-  │  <span class="gn">Khi nào OTA đủ:</span>                                                      │
+  │  <span class="gn"><span data-lang="vi">Khi nào OTA đủ:</span><span data-lang="en">When OTA is sufficient:</span></span>                                                      │
   │  ├── Plugin UI logic thay đổi (JS/Dart code)                        │
   │  ├── New screens, components, styling                                │
   │  └── Bug fixes trong plugin UI                                       │
@@ -415,7 +415,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │  ├── Stored in SQLite: { id, method, url, body, createdAt }         │
   │  ├── Max queue: 1000 operations                                      │
   │  ├── Retry on reconnect: sequential, respect order                   │
-  │  └── Fail → flag for user review (không tự động discard)             │
+  │  └── Fail → flag for user review (<span data-lang="vi">không tự động discard</span><span data-lang="en">not auto-discarded</span>)             │
   └────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
@@ -429,18 +429,18 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="dg"><div class="dg-label">admin console</div><pre>
 <span class="ty">❶ TENANT ADMIN</span> (admin.{subdomain}.crm.com)
 
-  Ai dùng:  Admin/Manager của từng tenant (ACME admin, GLOBEX admin)
-  Domain:   admin.acme.crm.com (tách biệt khỏi app chính)
-  Auth:     Cùng JWT system nhưng yêu cầu role "tenant_admin"
+  <span data-lang="vi">Ai dùng:</span><span data-lang="en">Who uses:</span>  <span data-lang="vi">Admin/Manager của từng tenant (ACME admin, GLOBEX admin)</span><span data-lang="en">Admin/Manager of each tenant (ACME admin, GLOBEX admin)</span>
+  Domain:   admin.acme.crm.com (<span data-lang="vi">tách biệt khỏi app chính</span><span data-lang="en">separate from main app</span>)
+  Auth:     <span data-lang="vi">Cùng JWT system nhưng yêu cầu role "tenant_admin"</span><span data-lang="en">Same JWT system but requires role "tenant_admin"</span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │  <span class="fn">Plugin Management</span>                                                     │
-  │  ├── Xem catalog plugins available cho tier hiện tại                  │
+  │  ├── <span data-lang="vi">Xem catalog plugins available cho tier hiện tại</span><span data-lang="en">View plugin catalog available for the current tier</span>                  │
   │  ├── Enable/Disable plugin → triggers API:                           │
   │  │   POST /api/v1/admin/plugins/{name}/enable                        │
   │  │   → L3 Plugin Manager → dependency check → tenant migration → OK │
-  │  ├── Xem plugin version, config, status                              │
-  │  └── Upgrade plugin version (nếu có bản mới)                        │
+  │  ├── <span data-lang="vi">Xem plugin version, config, status</span><span data-lang="en">View plugin version, config, status</span>                              │
+  │  └── Upgrade plugin version (<span data-lang="vi">nếu có bản mới</span><span data-lang="en">if a new version is available</span>)                        │
   │                                                                        │
   │  <span class="fn">User Management (RBAC)</span>                                                │
   │  ├── Invite users (email invitation flow)                            │
@@ -450,7 +450,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │  └── SSO configuration (SAML/OIDC — Enterprise+)                    │
   │                                                                        │
   │  <span class="fn">Plugin Configuration</span>                                                  │
-  │  ├── Mỗi plugin expose config schema (manifest.json config.schema)   │
+  │  ├── <span data-lang="vi">Mỗi plugin expose config schema</span><span data-lang="en">Each plugin exposes its config schema</span> (manifest.json config.schema)   │
   │  ├── Tenant Admin fill in tenant-specific values:                    │
   │  │   customer-care: { twilioSid, slaThresholds, pipelineStages }    │
   │  │   automation:    { emailTemplates, triggerRules }                 │
@@ -466,8 +466,8 @@ html.lang-vi [data-lang="en"]{display:none}
 
 <span class="ty">❷ SYSTEM ADMIN</span> (system.crm.internal — internal network only)
 
-  Ai dùng:  DevOps, Platform engineers, CTO
-  Domain:   system.crm.internal (KHÔNG public, VPN/internal only)
+  <span data-lang="vi">Ai dùng:</span><span data-lang="en">Who uses:</span>  DevOps, Platform engineers, CTO
+  Domain:   system.crm.internal (<span data-lang="vi">KHÔNG public</span><span data-lang="en">NOT public</span>, VPN/internal only)
   Auth:     Separate auth system, MFA required, IP whitelist
 
   ┌────────────────────────────────────────────────────────────────────────┐
@@ -500,11 +500,11 @@ html.lang-vi [data-lang="en"]{display:none}
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">TẠI SAO TÁCH DOMAIN:</span>
-  ├── Security: admin endpoints tách biệt, auth khác nhau
-  ├── System Admin: internal-only → KHÔNG thể truy cập từ internet
+<span class="ty"><span data-lang="vi">TẠI SAO TÁCH DOMAIN:</span><span data-lang="en">WHY SEPARATE DOMAINS:</span></span>
+  ├── Security: <span data-lang="vi">admin endpoints tách biệt, auth khác nhau</span><span data-lang="en">admin endpoints separated, different auth</span>
+  ├── System Admin: internal-only → <span data-lang="vi">KHÔNG thể truy cập từ internet</span><span data-lang="en">NOT accessible from the internet</span>
   ├── CORS: main app CORS ≠ admin CORS ≠ system CORS
-  └── Deployment: admin console deploy riêng, không ảnh hưởng main app</pre></div>
+  └── Deployment: <span data-lang="vi">admin console deploy riêng, không ảnh hưởng main app</span><span data-lang="en">admin console deployed separately, no impact on main app</span></pre></div>
 </div>
 </div>
 
@@ -517,18 +517,19 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="dg"><div class="dg-label">L1 security</div><pre>
 <span class="ty">CSP (Content Security Policy) HEADERS:</span>
 
-  Served by CDN / Nginx cùng HTML:
+  <span data-lang="vi">Served by CDN / Nginx cùng HTML:</span><span data-lang="en">Served by CDN / Nginx alongside HTML:</span>
   Content-Security-Policy:
     default-src 'self';
-    script-src  'self' cdn.crm.com;          <span class="cm">← chỉ load JS từ CDN</span>
+    script-src  'self' cdn.crm.com;          <span class="cm">← <span data-lang="vi">chỉ load JS từ CDN</span><span data-lang="en">only load JS from CDN</span></span>
     style-src   'self' 'unsafe-inline' fonts.googleapis.com;
     img-src     'self' data: *.crm.com s3.amazonaws.com;
     connect-src 'self' api.crm.com wss://ws.crm.com;
     frame-src   'none';                       <span class="cm">← no iframe embed</span>
     object-src  'none';                       <span class="cm">← no Flash/plugins</span>
 
-  → Ngăn inline script injection (XSS), unauthorized external scripts,
-    data exfiltration qua connect-src whitelist.
+  → <span data-lang="vi">Ngăn inline script injection (XSS), unauthorized external scripts,
+    data exfiltration qua connect-src whitelist.</span><span data-lang="en">Prevents inline script injection (XSS), unauthorized external scripts,
+    data exfiltration via connect-src whitelist.</span>
 
 
 <span class="ty">XSS PREVENTION:</span>
@@ -537,9 +538,10 @@ html.lang-vi [data-lang="en"]{display:none}
   ├── dangerouslySetInnerHTML: FORBIDDEN trong plugin UI code
   │   → ESLint rule: no-dangerously-set-inner-html → build fail
   ├── User input sanitization: DOMPurify cho rich text fields
-  ├── URL sanitization: chỉ http/https (block javascript: protocol)
-  └── Plugin UI sandboxed: chạy trong Host Shell Error Boundary
-      → plugin XSS bug → chỉ ảnh hưởng plugin area, không host
+  ├── URL sanitization: <span data-lang="vi">chỉ http/https</span><span data-lang="en">only http/https</span> (block javascript: protocol)
+  └── Plugin UI sandboxed: <span data-lang="vi">chạy trong Host Shell Error Boundary
+      → plugin XSS bug → chỉ ảnh hưởng plugin area, không host</span><span data-lang="en">runs within Host Shell Error Boundary
+      → plugin XSS bug → only affects plugin area, not host</span>
 
 
 <span class="ty">CORS (Cross-Origin Resource Sharing):</span>
@@ -558,22 +560,22 @@ html.lang-vi [data-lang="en"]{display:none}
 
 <span class="ty">JWT STORAGE:</span>
 
-  <span class="rd">KHÔNG dùng localStorage / sessionStorage</span> (XSS accessible)
-  <span class="rd">KHÔNG dùng cookie</span> (CSRF risk, cookie sent automatically)
+  <span class="rd"><span data-lang="vi">KHÔNG dùng localStorage / sessionStorage</span><span data-lang="en">DO NOT use localStorage / sessionStorage</span></span> (XSS accessible)
+  <span class="rd"><span data-lang="vi">KHÔNG dùng cookie</span><span data-lang="en">DO NOT use cookie</span></span> (CSRF risk, cookie sent automatically)
 
-  <span class="gn">DÙN: In-memory variable</span> (JavaScript closure / React context)
-  ├── Access token: giữ trong memory, mất khi tab close → re-auth
+  <span class="gn"><span data-lang="vi">DÙNG: In-memory variable</span><span data-lang="en">USE: In-memory variable</span></span> (JavaScript closure / React context)
+  ├── Access token: <span data-lang="vi">giữ trong memory, mất khi tab close → re-auth</span><span data-lang="en">kept in memory, lost on tab close → re-auth</span>
   ├── Refresh token: httpOnly secure cookie (server-set, JS cannot read)
-  │   → dùng để get new access token khi expired
-  ├── Tab close → access token mất → safe
-  ├── XSS → attacker KHÔNG thể đọc token từ memory dễ dàng
+  │   → <span data-lang="vi">dùng để get new access token khi expired</span><span data-lang="en">used to get a new access token when expired</span>
+  ├── Tab close → access token <span data-lang="vi">mất</span><span data-lang="en">lost</span> → safe
+  ├── XSS → attacker <span data-lang="vi">KHÔNG thể đọc token từ memory dễ dàng</span><span data-lang="en">CANNOT easily read token from memory</span>
   └── CSRF → refresh cookie httpOnly + SameSite=Strict
 
 
 <span class="ty">CLICKJACKING PROTECTION:</span>
   X-Frame-Options: DENY
   frame-ancestors 'none' (CSP)
-  → App KHÔNG THỂ bị embed trong iframe của site khác
+  → <span data-lang="vi">App KHÔNG THỂ bị embed trong iframe của site khác</span><span data-lang="en">App CANNOT be embedded in an iframe from another site</span>
 
 
 <span class="ty">ADDITIONAL:</span>
@@ -592,7 +594,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Luồng tổng hợp — User mở trang Sales</span><span data-lang="en">Complete Flow — User Opens the Sales Page</span></h2></div>
     <div class="dg"><div class="dg-label">L1 complete flow</div><pre>
-<span class="ty">User (ACME sales_manager) mở browser → acme.crm.com → click "Sales"</span>
+<span class="ty">User (ACME sales_manager) <span data-lang="vi">mở browser → acme.crm.com → click "Sales"</span><span data-lang="en">opens browser → acme.crm.com → clicks "Sales"</span></span>
 
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ <span class="hi">PHASE 1: Initial Load</span> (~800ms first visit, ~200ms cached)             │
@@ -615,7 +617,7 @@ html.lang-vi [data-lang="en"]{display:none}
 │    }                                                                    │
 │                                                                         │
 │ ④ Build sidebar: Customers, Sales, Calls, Reports, Settings  ~10ms   │
-│    (Chỉ items từ enabledPlugins, GLOBEX không thấy Sales)             │
+│    (<span data-lang="vi">Chỉ items từ enabledPlugins, GLOBEX không thấy Sales</span><span data-lang="en">Only items from enabledPlugins; GLOBEX does not see Sales</span>)             │
 │    Apply theme: logo, colors → CSS variables                           │
 │                                                                         │
 │ ⑤ Default route /customers → load customer-data remote        ~200ms  │
@@ -677,8 +679,8 @@ html.lang-vi [data-lang="en"]{display:none}
   │ Real-time notification       │ ~1s      │ WebSocket push           │
   └───────────────────────────────┴──────────┴──────────────────────────┘
 
-  <span class="ty">L1 KHÔNG chứa business logic.</span>
-  L1 chỉ: render UI, gọi API, hiển thị response.
+  <span class="ty"><span data-lang="vi">L1 KHÔNG chứa business logic.</span><span data-lang="en">L1 does NOT contain business logic.</span></span>
+  <span data-lang="vi">L1 chỉ: render UI, gọi API, hiển thị response.</span><span data-lang="en">L1 only: renders UI, calls API, displays response.</span>
   Business logic: L3. Data access: L4. Storage: L5.</pre></div>
 </div>
 </div>

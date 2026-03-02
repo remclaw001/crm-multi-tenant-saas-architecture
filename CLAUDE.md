@@ -23,19 +23,22 @@ docker compose up -d                          # postgres, redis, rabbitmq
 docker compose --profile observability up -d  # + jaeger, prometheus, grafana, loki
 
 # Database
-npm run db:migrate          # run pending Knex migrations
-npm run db:seed             # seed dev data
-npm run db:reset            # rollback-all → migrate → seed
-npm run db:status           # show migration status
+npm run db:migrate           # run pending Knex migrations
+npm run db:migrate:rollback  # rollback the last migration batch
+npm run db:seed              # seed dev data
+npm run db:reset             # rollback-all → migrate → seed
+npm run db:status            # show migration status
 
 # Backend
 npm run start:dev           # ts-node dev server on port 3000 (set in .env)
 npm run build               # tsc compile to dist/
 
 # Tests (backend)
-npm test                    # vitest run (unit tests only, no integration)
-npm run test:watch          # vitest watch mode
-npm run test:ui             # vitest UI
+npm test                                       # vitest run (unit tests only, no integration)
+npm run test:watch                             # vitest watch mode
+npm run test:ui                                # vitest UI
+npx vitest src/path/to/file.test.ts            # run a single test file
+npx vitest -t "test name" src/path/to/file.ts # run a single test case by name
 
 # Frontend (run from the respective directory)
 npm run dev    # web → :3002, admin → :3000
@@ -128,6 +131,19 @@ Both web and admin use Vitest + Testing Library for tests.
 | L7 | Observability | Pino structured logging, OpenTelemetry tracing, Prometheus metrics, Sentry |
 
 **Multi-tenancy:** Standard tenants share a PostgreSQL DB (RLS + `tenant_id`). VIP/Enterprise tenants get dedicated PostgreSQL instances. `QueryInterceptor` at L4 handles all scoping automatically.
+
+### L6 Cross-Cutting (`src/common/`)
+
+- `SecurityModule` (`@Global`) — `EncryptionService` (AES-256-GCM), `PasswordService` (bcrypt cost 12)
+- Error hierarchy: `AppError` base → `DomainError`, `PluginError`, `ValidationError` subclasses in `src/common/errors/`
+
+## Critical Constraints
+
+These rules are enforced by framework infrastructure — violating them causes silent data corruption or auth bypass:
+
+1. **Never add `WHERE tenant_id = ?` in business logic.** `QueryInterceptor` scopes every Knex query automatically. Duplicate filtering will break cross-tenant admin operations.
+2. **Never call `app.enableCors()`.** `TenantCorsMiddleware` handles per-tenant CORS. Global CORS would override tenant-specific policies.
+3. **Module and bootstrap import order is not negotiable.** OpenTelemetry must monkey-patch before any NestJS module loads (see `src/main.ts`). `DalModule` must be first in `app.module.ts` because subsequent modules inject `KNEX_INSTANCE` and `PoolRegistry`.
 
 ## Architectural Reference Docs
 

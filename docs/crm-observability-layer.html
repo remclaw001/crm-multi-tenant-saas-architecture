@@ -55,24 +55,29 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .pnl.on .sec:nth-child(2){animation-delay:.04s}
 .pnl.on .sec:nth-child(3){animation-delay:.08s}
 .pnl.on .sec:nth-child(4){animation-delay:.12s}
+html.lang-en [data-lang="vi"]{display:none}
+html.lang-vi [data-lang="en"]{display:none}
 </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Layer 7 — Observability</div>
     <h1>Observability <span>Layer</span></h1>
-    <p>Logging, Tracing, Metrics, Alerting, Health Checks, Audit Trail — 6 thành phần giám sát mọi góc của hệ thống.</p>
+    <p data-lang="vi">Logging, Tracing, Metrics, Alerting, Health Checks, Audit Trail — 6 thành phần giám sát mọi góc của hệ thống.</p>
+    <p data-lang="en">Logging, Tracing, Metrics, Alerting, Health Checks, Audit Trail — 6 components that monitor every corner of the system.</p>
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('map')">Bản đồ L7</button>
+    <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ L7</span><span data-lang="en">L7 Map</span></button>
     <button onclick="go('log')">Structured Logging</button>
     <button onclick="go('trace')">Distributed Tracing</button>
     <button onclick="go('metric')">Metrics</button>
     <button onclick="go('alert')">Alerting</button>
     <button onclick="go('health')">Health Checks</button>
     <button onclick="go('audit')">Audit Trail</button>
+    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 </div></div>
 
 <div class="wrap">
@@ -83,9 +88,10 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl on" id="p-map">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L7 — 6 thành phần và data flow</h2></div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ L7 — 6 thành phần và data flow</span><span data-lang="en">L7 Map — 6 Components &amp; Data Flow</span></h2></div>
 
-    <div class="nt bl"><strong>Nguyên tắc:</strong> L7 là tầng PASSIVE — không can thiệp vào business logic. Nó chỉ quan sát, thu thập, và cảnh báo. Mọi thành phần L7 nhận data từ các tầng khác nhưng không bao giờ thay đổi hành vi xử lý request.</div>
+    <div class="nt bl" data-lang="vi"><strong>Nguyên tắc:</strong> L7 là tầng PASSIVE — không can thiệp vào business logic. Nó chỉ quan sát, thu thập, và cảnh báo. Mọi thành phần L7 nhận data từ các tầng khác nhưng không bao giờ thay đổi hành vi xử lý request.</div>
+    <div class="nt bl" data-lang="en"><strong>Principle:</strong> L7 is a PASSIVE layer — it does not interfere with business logic. It only observes, collects, and alerts. Every L7 component receives data from other layers but never changes how requests are processed.</div>
 
     <div class="dg"><div class="dg-label">L7 overview</div><pre>
   ┌─ <span class="hi">L2</span> Gateway ─┐ ┌─ <span class="hi">L3</span> Business ─┐ ┌─ <span class="hi">L4</span> Data Access ┐ ┌─ <span class="hi">L5</span> Infra ────┐
@@ -700,7 +706,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="sec">
     <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Audit Trail — Immutable Compliance Record</h2></div>
 
-    <div class="nt rd"><strong>Audit Trail ≠ Logging.</strong> Logs phục vụ debugging, có thể xóa. Audit Trail phục vụ compliance/pháp lý, KHÔNG THỂ xóa/sửa. Logs ghi mọi thứ. Audit chỉ ghi data mutations.</div>
+    <div class="nt rd" data-lang="vi"><strong>Audit Trail ≠ Logging.</strong> Logs phục vụ debugging, có thể xóa. Audit Trail phục vụ compliance/pháp lý, KHÔNG THỂ xóa/sửa. Logs ghi mọi thứ. Audit chỉ ghi data mutations.</div>
+    <div class="nt rd" data-lang="en"><strong>Audit Trail ≠ Logging.</strong> Logs serve debugging and can be deleted. Audit Trail serves compliance/legal purposes and CANNOT be deleted or modified. Logs record everything. Audit only records data mutations.</div>
 
     <div class="dg"><div class="dg-label">audit trail architecture</div><pre>
 ┌─ <span class="or">AUDIT TRAIL</span> ───────────────────────────────────────────────────────────────┐
@@ -833,6 +840,17 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
+function toggleLang(){
+    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+    document.documentElement.className='lang-'+next;
+    localStorage.setItem('crm-docs-lang',next);
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=next==='en'?'VI':'EN';
+}
+(function(){
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+})();
 </script>
 </body>
 </html>

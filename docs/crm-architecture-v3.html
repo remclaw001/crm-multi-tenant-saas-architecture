@@ -527,7 +527,8 @@
 <span class="fn">┃  └────────────┘ └────────────┘ └────────────┘ └─────────┘ └───────┘ └──────┘┃</span></pre>
                </div>
 
-               <div class="dg">
+               <div>
+               <div class="dg" data-lang="vi">
                   <div class="dg-label">layer responsibility matrix</div>
                   <pre>
 
@@ -634,6 +635,103 @@
     Metrics (Counter/Gauge).
   • <span class="hi">Đặc điểm:</span> Passive, overhead thấp (~1ms).
     Trả lời câu hỏi "Tại sao?".</pre>
+               </div>
+               <div class="dg" data-lang="en">
+                  <div class="dg-label">layer responsibility matrix</div>
+                  <pre>
+
+<span class="kw">L1 PRESENTATION (Front-end)</span>
+  • <span class="hi">Responsibility:</span> UI/UX, data display, user input.
+  • <span class="hi">Characteristics:</span> Client-side (React/Flutter). No business logic.
+  • <span class="hi">Examples:</span> Web App, Mobile App, Admin Console.
+
+
+
+
+<span class="kw">L2 API GATEWAY (Entry Point)</span>
+  • <span class="hi">Responsibility:</span> AuthN, AuthZ, Rate Limit, Routing.
+  • <span class="hi">Characteristics:</span> Sequential middleware pipeline. Fail-fast.
+  • <span class="hi">Output:</span> Routed to Plugin/Handler.
+
+
+
+
+<span class="kw">L3 BUSINESS LOGIC (Core)</span>
+  • <span class="hi">Role:</span> Heart of the system, handles business operations.
+  • <span class="hi">Responsibilities:</span> Execute plugin logic, validate business
+    rules, compute, emit events.
+  • <span class="hi">Characteristics:</span> Stateless. Runs in Sandbox (plugins).
+    Interacts via Context.
+  • <span class="hi">Components:</span> Plugin System, Execution Context,
+    Shared Services.
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    
+  
+<span class="kw">L4 DATA ACCESS (Abstraction)</span>
+  • <span class="hi">Role:</span> Middleware protecting and optimizing data access.
+  • <span class="hi">Responsibilities:</span> Connection pooling, Caching (L1/L2),
+    Tenant injection (RLS), Query interception.
+  • <span class="hi">Characteristics:</span> Developers do NOT call DB Driver directly —
+    they call through L4 abstraction.
+  • <span class="hi">Goal:</span> Hide multi-tenant infrastructure complexity.
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+<span class="kw">L5 INFRASTRUCTURE (Stateful)</span>
+  • <span class="hi">Role:</span> Store and maintain system state.
+  • <span class="hi">Responsibilities:</span> Persist data (PostgreSQL), Cache (Redis),
+    Queue (RabbitMQ), File (S3).
+  • <span class="hi">Characteristics:</span> The only “stateful” layer.
+    Requires backup, replication.
+
+
+
+
+<span class="rd">L6 CROSS-CUTTING CONCERNS (System-wide)</span>
+  • <span class="hi">Role:</span> Policies applied globally across all layers.
+  • <span class="hi">Responsibilities:</span> Security policy, Error handling,
+    Config management, Dependency injection.
+  • <span class="hi">Characteristics:</span> Applied to ALL layers L1–L5.
+
+
+
+
+<span class="vi">L7 OBSERVABILITY (Monitoring)</span>
+  • <span class="hi">Role:</span> Monitor system health and behavior.
+  • <span class="hi">Responsibilities:</span> Logging (Logs), Tracing (Spans),
+    Metrics (Counter/Gauge).
+  • <span class="hi">Characteristics:</span> Passive, low overhead (~1ms).
+    Answers the question "Why?".</pre>
+               </div>
                </div>
             </div>
          </div>

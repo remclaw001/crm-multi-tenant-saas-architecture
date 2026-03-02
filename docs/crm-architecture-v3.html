@@ -648,10 +648,14 @@
 
 
 
+
+
 <span class="kw">L2 API GATEWAY (Entry Point)</span>
   • <span class="hi">Responsibility:</span> AuthN, AuthZ, Rate Limit, Routing.
   • <span class="hi">Characteristics:</span> Sequential middleware pipeline. Fail-fast.
   • <span class="hi">Output:</span> Routed to Plugin/Handler.
+
+
 
 
 
@@ -716,11 +720,19 @@
 
 
 
+
+
+
+
 <span class="rd">L6 CROSS-CUTTING CONCERNS (System-wide)</span>
   • <span class="hi">Role:</span> Policies applied globally across all layers.
   • <span class="hi">Responsibilities:</span> Security policy, Error handling,
     Config management, Dependency injection.
   • <span class="hi">Characteristics:</span> Applied to ALL layers L1–L5.
+
+
+
+
 
 
 

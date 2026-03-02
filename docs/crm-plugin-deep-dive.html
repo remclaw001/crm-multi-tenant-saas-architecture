@@ -582,26 +582,32 @@
         .stp.or .sn {
             color: var(--or)
         }
+html.lang-en [data-lang="vi"]{display:none}
+html.lang-vi [data-lang="en"]{display:none}
     </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 
 <body>
 
     <div class="hero">
         <div class="hero-tag">Plugin System Deep Dive</div>
-        <h1>Giải phẫu <span>Plugin</span></h1>
-        <p>Cấu trúc, vòng đời, cơ chế scan, mối quan hệ phụ thuộc, luồng hoạt động</p>
+        <h1 data-lang="vi">Giải phẫu <span>Plugin</span></h1>
+        <h1 data-lang="en">Plugin <span>Anatomy</span></h1>
+        <p data-lang="vi">Cấu trúc, vòng đời, cơ chế scan, mối quan hệ phụ thuộc, luồng hoạt động</p>
+        <p data-lang="en">Structure, lifecycle, scan mechanism, dependency relationships, runtime flow</p>
     </div>
 
     <div class="nw">
         <div class="nav">
-            <button class="on" onclick="go('anatomy')">Cấu trúc Plugin</button>
-            <button onclick="go('create')">Tạo Plugin</button>
-            <button onclick="go('scan')">Cơ chế Scan</button>
-            <button onclick="go('deps')">Quan hệ & Phụ thuộc</button>
-            <button onclick="go('use')">Sử dụng Plugin</button>
-            <button onclick="go('flow')">Luồng Runtime</button>
+            <button class="on" onclick="go('anatomy')"><span data-lang="vi">Cấu trúc Plugin</span><span data-lang="en">Plugin Structure</span></button>
+            <button onclick="go('create')"><span data-lang="vi">Tạo Plugin</span><span data-lang="en">Create Plugin</span></button>
+            <button onclick="go('scan')"><span data-lang="vi">Cơ chế Scan</span><span data-lang="en">Scan Mechanism</span></button>
+            <button onclick="go('deps')"><span data-lang="vi">Quan hệ & Phụ thuộc</span><span data-lang="en">Relations & Dependencies</span></button>
+            <button onclick="go('use')"><span data-lang="vi">Sử dụng Plugin</span><span data-lang="en">Using Plugins</span></button>
+            <button onclick="go('flow')"><span data-lang="vi">Luồng Runtime</span><span data-lang="en">Runtime Flow</span></button>
             <button onclick="go('ui')">Plugin UI On/Off</button>
+            <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
         </div>
     </div>
 
@@ -614,7 +620,7 @@
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">01</span>
-                    <h2 class="sec-t">Cấu trúc tổng quan của một Plugin</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Cấu trúc tổng quan của một Plugin</span><span data-lang="en">Plugin Overall Structure</span></h2>
                 </div>
 
                 <div class="dg">
@@ -669,7 +675,7 @@
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">02</span>
-                    <h2 class="sec-t">Vai trò từng thành phần</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Vai trò từng thành phần</span><span data-lang="en">Role of Each Component</span></h2>
                 </div>
 
                 <div class="dg">
@@ -751,7 +757,7 @@
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">03</span>
-                    <h2 class="sec-t">Quy trình tạo một Plugin mới</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Quy trình tạo một Plugin mới</span><span data-lang="en">Process for Creating a New Plugin</span></h2>
                 </div>
 
                 <div class="steps">
@@ -882,11 +888,12 @@
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">04</span>
-                    <h2 class="sec-t">Cơ chế Scan & Load Plugin</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Cơ chế Scan & Load Plugin</span><span data-lang="en">Plugin Scan & Load Mechanism</span></h2>
                 </div>
 
-                <div class="nt bl"><strong>Khi nào scan xảy ra?</strong> (1) Application bootstrap, (2) Hot deploy
+                <div class="nt bl" data-lang="vi"><strong>Khi nào scan xảy ra?</strong> (1) Application bootstrap, (2) Hot deploy
                     plugin mới, (3) Plugin update broadcast từ instance khác.</div>
+                <div class="nt bl" data-lang="en"><strong>When does scanning occur?</strong> (1) Application bootstrap, (2) Hot deploy of a new plugin, (3) Plugin update broadcast from another instance.</div>
 
                 <div class="dg">
                     <div class="dg-label">bootstrap scan flow</div>
@@ -1042,7 +1049,7 @@
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">06</span>
-                    <h2 class="sec-t">Mối quan hệ giữa các Plugin</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Mối quan hệ giữa các Plugin</span><span data-lang="en">Relationships Between Plugins</span></h2>
                 </div>
 
                 <div class="dg">
@@ -1209,7 +1216,7 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">08</span>
-                    <h2 class="sec-t">Cách sử dụng Plugin (Tenant Admin)</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Cách sử dụng Plugin (Tenant Admin)</span><span data-lang="en">How to Use Plugins (Tenant Admin)</span></h2>
                 </div>
 
                 <div class="dg">
@@ -1354,7 +1361,7 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">10</span>
-                    <h2 class="sec-t">Luồng Runtime — Từ Request đến Response</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Luồng Runtime — Từ Request đến Response</span><span data-lang="en">Runtime Flow — From Request to Response</span></h2>
                 </div>
 
                 <div class="dg">
@@ -1463,7 +1470,7 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">11</span>
-                    <h2 class="sec-t">Plugin Interaction trong 1 Request</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Plugin Interaction trong 1 Request</span><span data-lang="en">Plugin Interaction in a Single Request</span></h2>
                 </div>
 
                 <div class="dg">
@@ -1536,11 +1543,12 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">12</span>
-                    <h2 class="sec-t">Kiến trúc Plugin UI — Module Federation</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Kiến trúc Plugin UI — Module Federation</span><span data-lang="en">Plugin UI Architecture — Module Federation</span></h2>
                 </div>
 
-                <div class="nt bl"><strong>Module Federation</strong> cho phép HostShell (React SPA) lazy-load UI của từng plugin
+                <div class="nt bl" data-lang="vi"><strong>Module Federation</strong> cho phép HostShell (React SPA) lazy-load UI của từng plugin
                     như một remote JavaScript module độc lập — không cần bundle chung, không reload trang.</div>
+                <div class="nt bl" data-lang="en"><strong>Module Federation</strong> allows the HostShell (React SPA) to lazy-load each plugin's UI as an independent remote JavaScript module — no shared bundle required, no page reload.</div>
 
                 <div class="dg">
                     <div class="dg-label">ui architecture</div>
@@ -1586,7 +1594,7 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">13</span>
-                    <h2 class="sec-t">Luồng Enable Plugin → UI xuất hiện</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Luồng Enable Plugin → UI xuất hiện</span><span data-lang="en">Enable Plugin Flow → UI Appears</span></h2>
                 </div>
 
                 <div class="dg">
@@ -1665,7 +1673,7 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">14</span>
-                    <h2 class="sec-t">Luồng Disable Plugin → UI biến mất</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Luồng Disable Plugin → UI biến mất</span><span data-lang="en">Disable Plugin Flow → UI Disappears</span></h2>
                 </div>
 
                 <div class="dg">
@@ -1723,13 +1731,14 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 └── <span class="rd">✗ Plugin UI hoàn toàn biến mất</span></pre>
                 </div>
 
-                <div class="nt am"><strong>Vì sao chỉ ẩn UI thôi chưa đủ?</strong> User vẫn có thể gọi thẳng API qua
+                <div class="nt am" data-lang="vi"><strong>Vì sao chỉ ẩn UI thôi chưa đủ?</strong> User vẫn có thể gọi thẳng API qua
                     curl hoặc devtools. Cần bảo vệ tầng backend.</div>
+                <div class="nt am" data-lang="en"><strong>Why is hiding the UI alone not enough?</strong> Users can still call the API directly via curl or devtools. Backend protection is required.</div>
             </div>
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">15</span>
-                    <h2 class="sec-t">Bảo vệ kép — Frontend + Gateway</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Bảo vệ kép — Frontend + Gateway</span><span data-lang="en">Dual Protection — Frontend + Gateway</span></h2>
                 </div>
 
                 <div class="dg">
@@ -1795,7 +1804,7 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">16</span>
-                    <h2 class="sec-t">Tóm tắt — Vòng đời UI Plugin</h2>
+                    <h2 class="sec-t"><span data-lang="vi">Tóm tắt — Vòng đời UI Plugin</span><span data-lang="en">Summary — Plugin UI Lifecycle</span></h2>
                 </div>
 
                 <div class="dg">
@@ -1856,6 +1865,17 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
             if (i >= 0 && btns[i]) btns[i].classList.add('on');
             window.scrollTo({ top: 160, behavior: 'smooth' });
         }
+        function toggleLang(){
+            var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+            document.documentElement.className='lang-'+next;
+            localStorage.setItem('crm-docs-lang',next);
+            var btn=document.getElementById('lang-btn');
+            if(btn)btn.textContent=next==='en'?'VI':'EN';
+        }
+        (function(){
+            var btn=document.getElementById('lang-btn');
+            if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+        })();
     </script>
 </body>
 

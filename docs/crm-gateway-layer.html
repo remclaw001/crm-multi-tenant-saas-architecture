@@ -55,25 +55,31 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .pnl.on .sec:nth-child(2){animation-delay:.04s}
 .pnl.on .sec:nth-child(3){animation-delay:.08s}
 .pnl.on .sec:nth-child(4){animation-delay:.12s}
+html.lang-en [data-lang="vi"]{display:none}
+html.lang-vi [data-lang="en"]{display:none}
 </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Layer 2 — API Gateway</div>
-    <h1>Mọi thứ bên trong <span>API Gateway Layer</span></h1>
-    <p>5 middleware tuần tự + 1 permission check — mỗi bước có thể REJECT request ngay lập tức.</p>
+    <h1 data-lang="vi">Mọi thứ bên trong <span>API Gateway Layer</span></h1>
+    <h1 data-lang="en">Everything inside the <span>API Gateway Layer</span></h1>
+    <p data-lang="vi">5 middleware tuần tự + 1 permission check — mỗi bước có thể REJECT request ngay lập tức.</p>
+    <p data-lang="en">5 sequential middleware + 1 permission check — each step can REJECT the request immediately.</p>
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('map')">Bản đồ L2</button>
+    <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ L2</span><span data-lang="en">L2 Map</span></button>
     <button onclick="go('lb')">Load Balancer</button>
     <button onclick="go('tr')">Tenant Resolver</button>
     <button onclick="go('auth')">Auth Guard</button>
     <button onclick="go('rl')">Rate Limiter</button>
     <button onclick="go('rm')">Route Matcher</button>
     <button onclick="go('perm')">Permission Check</button>
-    <button onclick="go('err')">Error Responses</button>
+    <button onclick="go('err')"><span data-lang="vi">Error Responses</span><span data-lang="en">Error Responses</span></button>
+    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 </div></div>
 
 <div class="wrap">
@@ -81,8 +87,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- MAP -->
 <div class="pnl on" id="p-map">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L2 — Pipeline tuần tự</h2></div>
-    <div class="nt bl"><strong>Nguyên tắc cốt lõi:</strong> L2 là "cổng duy nhất" vào hệ thống. MỌI request (từ Web, Mobile, API) đều đi qua 5 middleware theo đúng thứ tự. Mỗi middleware có thể REJECT request ngay — nếu pass, chuyển tiếp cho middleware sau. Qua hết 5 bước → request đạt đủ điều kiện để vào L3.</div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ L2 — Pipeline tuần tự</span><span data-lang="en">L2 Map — Sequential Pipeline</span></h2></div>
+    <div class="nt bl" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> L2 là "cổng duy nhất" vào hệ thống. MỌI request (từ Web, Mobile, API) đều đi qua 5 middleware theo đúng thứ tự. Mỗi middleware có thể REJECT request ngay — nếu pass, chuyển tiếp cho middleware sau. Qua hết 5 bước → request đạt đủ điều kiện để vào L3.</div>
+    <div class="nt bl" data-lang="en"><strong>Core principle:</strong> L2 is the "single gateway" into the system. ALL requests (from Web, Mobile, API) pass through 5 middleware in exact order. Each middleware can REJECT the request immediately — if it passes, it forwards to the next middleware. Through all 5 steps → the request qualifies to enter L3.</div>
     <div class="dg"><div class="dg-label">L2 pipeline</div><pre>
   Client (Web/Mobile/API) → HTTPS → Ingress
                                       │
@@ -134,8 +141,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- LOAD BALANCER -->
 <div class="pnl" id="p-lb">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Load Balancer + TLS Termination</h2></div>
-    <div class="nt bl"><strong>Vai trò:</strong> Điểm tiếp xúc đầu tiên. Terminate HTTPS → chuyển HTTP nội bộ (within cluster). Phân phối traffic tới đúng instance pool dựa trên tenant tier. Loại instance chết khỏi rotation.</div>
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Load Balancer + TLS Termination</span><span data-lang="en">Load Balancer + TLS Termination</span></h2></div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Điểm tiếp xúc đầu tiên. Terminate HTTPS → chuyển HTTP nội bộ (within cluster). Phân phối traffic tới đúng instance pool dựa trên tenant tier. Loại instance chết khỏi rotation.</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> First point of contact. Terminate HTTPS → forward as internal HTTP (within cluster). Distribute traffic to the correct instance pool based on tenant tier. Remove dead instances from rotation.</div>
     <div class="dg"><div class="dg-label">load balancer</div><pre>
 <span class="ty">THÀNH PHẦN: Nginx / K8s Ingress Controller / AWS ALB</span>
 
@@ -180,8 +188,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- TENANT RESOLVER -->
 <div class="pnl" id="p-tr">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Tenant Resolver — URL → Tenant Identity</h2></div>
-    <div class="nt bl"><strong>Vai trò:</strong> Xác định request thuộc về tenant nào. Dựa vào subdomain, custom domain, hoặc header. Cache kết quả trong Redis để tránh query DB mỗi request. Output: tenantId + tier + status.</div>
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span data-lang="vi">Tenant Resolver — URL → Tenant Identity</span><span data-lang="en">Tenant Resolver — URL → Tenant Identity</span></h2></div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Xác định request thuộc về tenant nào. Dựa vào subdomain, custom domain, hoặc header. Cache kết quả trong Redis để tránh query DB mỗi request. Output: tenantId + tier + status.</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> Determine which tenant the request belongs to. Based on subdomain, custom domain, or header. Cache results in Redis to avoid querying DB on every request. Output: tenantId + tier + status.</div>
     <div class="dg"><div class="dg-label">tenant resolver</div><pre>
 <span class="ty">INPUT:</span> HTTP Host header = "acme.crm.com"
 
@@ -236,8 +245,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- AUTH GUARD -->
 <div class="pnl" id="p-auth">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Auth Guard — JWT Validation + RBAC Extract</h2></div>
-    <div class="nt rd"><strong>Vai trò:</strong> Xác thực người dùng (authentication) và trích xuất quyền hạn (authorization data). Validate JWT signature + expiry, kiểm tra token chưa bị revoke, đảm bảo tenant claim khớp với Tenant Resolver output. Output: userId, roles, permissions.</div>
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Auth Guard — JWT Validation + RBAC Extract</span><span data-lang="en">Auth Guard — JWT Validation + RBAC Extract</span></h2></div>
+    <div class="nt rd" data-lang="vi"><strong>Vai trò:</strong> Xác thực người dùng (authentication) và trích xuất quyền hạn (authorization data). Validate JWT signature + expiry, kiểm tra token chưa bị revoke, đảm bảo tenant claim khớp với Tenant Resolver output. Output: userId, roles, permissions.</div>
+    <div class="nt rd" data-lang="en"><strong>Role:</strong> Authenticate users and extract authorization data. Validate JWT signature + expiry, check token has not been revoked, ensure tenant claim matches Tenant Resolver output. Output: userId, roles, permissions.</div>
     <div class="dg"><div class="dg-label">auth guard</div><pre>
 <span class="ty">INPUT:</span> Header "Authorization: Bearer eyJhbG..."
 
@@ -303,8 +313,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- RATE LIMITER -->
 <div class="pnl" id="p-rl">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Rate Limiter — Per-Tier Throttling</h2></div>
-    <div class="nt am"><strong>Vai trò:</strong> Bảo vệ hệ thống khỏi overload — cả cố ý (DDoS) lẫn vô ý (script bug gọi API lặp). Giới hạn PER-TENANT, không per-user — tenant Basic 100 req/min, Premium 500, Enterprise 2000, VIP unlimited.</div>
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t"><span data-lang="vi">Rate Limiter — Per-Tier Throttling</span><span data-lang="en">Rate Limiter — Per-Tier Throttling</span></h2></div>
+    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Bảo vệ hệ thống khỏi overload — cả cố ý (DDoS) lẫn vô ý (script bug gọi API lặp). Giới hạn PER-TENANT, không per-user — tenant Basic 100 req/min, Premium 500, Enterprise 2000, VIP unlimited.</div>
+    <div class="nt am" data-lang="en"><strong>Role:</strong> Protect the system from overload — both intentional (DDoS) and unintentional (script bug calling API repeatedly). Limit is PER-TENANT, not per-user — Basic tenant 100 req/min, Premium 500, Enterprise 2000, VIP unlimited.</div>
     <div class="dg"><div class="dg-label">rate limiter</div><pre>
 <span class="ty">ALGORITHM: Sliding Window Counter (Redis Sorted Set)</span>
 
@@ -365,8 +376,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- ROUTE MATCHER -->
 <div class="pnl" id="p-rm">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Route Matcher — URL → Plugin + Method</h2></div>
-    <div class="nt bl"><strong>Vai trò:</strong> Map URL + HTTP method vào đúng plugin + handler method. Dùng routeTable từ Plugin Registry (populated khi plugin deploy). Output là tín hiệu cho L3 biết chính xác plugin nào xử lý, method nào gọi, permission nào cần.</div>
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">Route Matcher — URL → Plugin + Method</span><span data-lang="en">Route Matcher — URL → Plugin + Method</span></h2></div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Map URL + HTTP method vào đúng plugin + handler method. Dùng routeTable từ Plugin Registry (populated khi plugin deploy). Output là tín hiệu cho L3 biết chính xác plugin nào xử lý, method nào gọi, permission nào cần.</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> Map URL + HTTP method to the correct plugin + handler method. Uses routeTable from Plugin Registry (populated when plugin is deployed). Output signals L3 exactly which plugin handles the request, which method to call, and which permission is required.</div>
     <div class="dg"><div class="dg-label">route matcher</div><pre>
 <span class="ty">INPUT:</span> POST /api/v1/sales
 
@@ -421,8 +433,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- PERMISSION CHECK -->
 <div class="pnl" id="p-perm">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Permission Check — Plugin + User + Tenant</h2></div>
-    <div class="nt am"><strong>Vai trò:</strong> Kiểm tra 3 lớp quyền: plugin có enabled cho tenant? User có quyền? Tenant tier có bao gồm feature? Đây là bước cuối trước khi request vào L3. Dùng data đã extract từ Tenant Resolver + Auth Guard + Route Matcher.</div>
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Permission Check — Plugin + User + Tenant</span><span data-lang="en">Permission Check — Plugin + User + Tenant</span></h2></div>
+    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Kiểm tra 3 lớp quyền: plugin có enabled cho tenant? User có quyền? Tenant tier có bao gồm feature? Đây là bước cuối trước khi request vào L3. Dùng data đã extract từ Tenant Resolver + Auth Guard + Route Matcher.</div>
+    <div class="nt am" data-lang="en"><strong>Role:</strong> Check 3 permission layers: is the plugin enabled for the tenant? Does the user have permission? Does the tenant tier include the feature? This is the final step before the request enters L3. Uses data already extracted from Tenant Resolver + Auth Guard + Route Matcher.</div>
     <div class="dg"><div class="dg-label">permission check</div><pre>
 <span class="ty">3 LỚP KIỂM TRA:</span>
 
@@ -502,7 +515,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- ERROR RESPONSES -->
 <div class="pnl" id="p-err">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Error Responses — Bảng tổng hợp</h2></div>
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t"><span data-lang="vi">Error Responses — Bảng tổng hợp</span><span data-lang="en">Error Responses — Summary Table</span></h2></div>
     <div class="dg"><div class="dg-label">gateway errors</div><pre>
 <span class="ty">MỖI MIDDLEWARE CÓ THỂ TRẢ LỖI RIÊNG:</span>
 
@@ -570,6 +583,17 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
+function toggleLang(){
+    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+    document.documentElement.className='lang-'+next;
+    localStorage.setItem('crm-docs-lang',next);
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=next==='en'?'VI':'EN';
+}
+(function(){
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+})();
 </script>
 </body>
 </html>

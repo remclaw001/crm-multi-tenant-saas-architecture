@@ -145,15 +145,15 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <p><strong>Đi từ trong ra ngoài:</strong> Data Layer → Logic Layer → API Layer → UI Layer. Không bao giờ xây UI trước khi API ổn định.</p>
     <p><strong>Observability sớm hơn bạn nghĩ</strong> — Phase 4, không phải Phase cuối. Debug giai đoạn phát triển không có structured log và trace là cực kỳ tốn thời gian.</p>
     <div class="code-block">
-<span class="k">Phase  1</span>  <span class="v">Infra local</span>        PG + Redis + RabbitMQ + Schema + RLS
-<span class="k">Phase  2</span>  <span class="w">L4 Core ★</span>          Query Interceptor + Pool Registry + Cache
-<span class="k">Phase  3</span>  <span class="v">API + Auth</span>         NestJS + Tenant resolution + JWT
-<span class="k">Phase  4</span>  <span class="v">Observability</span>      Pino + OpenTelemetry + Prometheus
-<span class="k">Phase  5</span>  <span class="v">Plugin Registry</span>    ExecutionContext + Manifest + Hook Registry
-<span class="k">Phase  6</span>  <span class="v">Plugin Sandbox</span>     Isolated-VM + Resource limits
-<span class="k">Phase  7</span>  <span class="v">Cross-cutting</span>      DI + Error handling + Security
-<span class="k">Phase  8</span>  <span class="v">Async Workers</span>      RabbitMQ consumers + BullMQ
-<span class="k">Phase  9</span>  <span class="v">Presentation</span>       Admin → Web → Module Federation → Mobile
+<span class="k">Phase  1</span>  <span class="v">Infra local</span>        PG + Redis + RabbitMQ + Schema + RLS  <span class="c">✓ DONE</span>
+<span class="k">Phase  2</span>  <span class="w">L4 Core ★</span>          Query Interceptor + Pool Registry + Cache  <span class="c">✓ DONE</span>
+<span class="k">Phase  3</span>  <span class="v">API + Auth</span>         NestJS + Tenant resolution + JWT  <span class="c">✓ DONE</span>
+<span class="k">Phase  4</span>  <span class="v">Observability</span>      Pino + OpenTelemetry + Prometheus  <span class="c">✓ DONE</span>
+<span class="k">Phase  5</span>  <span class="v">Plugin Registry</span>    ExecutionContext + Manifest + Hook Registry  <span class="c">✓ DONE</span>
+<span class="k">Phase  6</span>  <span class="v">Plugin Sandbox</span>     Isolated-VM + Resource limits  <span class="c">✓ DONE</span>
+<span class="k">Phase  7</span>  <span class="v">Cross-cutting</span>      DI + Error handling + Security  <span class="c">✓ DONE</span>
+<span class="k">Phase  8</span>  <span class="v">Async Workers</span>      RabbitMQ consumers + BullMQ  <span class="c">✓ DONE</span>
+<span class="k">Phase  9</span>  <span class="v">Presentation</span>       Admin → Web → Module Federation → Mobile  <span class="c">✓ DONE</span>
 <span class="k">Phase 10</span>  <span class="v">Production</span>         Kong + k8s + HA + IaC + CI/CD
     </div>
   </div>
@@ -164,12 +164,12 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <!-- P1 -->
     <div class="tl-item ph1" onclick="go(1)">
       <div class="tl-dot-col">
-        <div class="tl-dot" style="background:rgba(52,211,153,.12);border-color:#34d399;color:#34d399">P1</div>
+        <div class="tl-dot" style="background:rgba(52,211,153,.25);border-color:#34d399;color:#34d399">✓1</div>
       </div>
-      <div class="tl-content" style="--ph-color:#34d399">
+      <div class="tl-content active" style="--ph-color:#34d399">
         <div class="tl-head">
           <span class="ph-label" style="background:rgba(52,211,153,.12);color:#34d399">Infrastructure</span>
-          <span class="tl-title">Local Dev Environment</span>
+          <span class="tl-title">Local Dev Environment</span><span class="critical-flag" style="background:rgba(52,211,153,.12);border-color:#34d399;color:#34d399">DONE</span>
         </div>
         <div class="tl-sub">Docker Compose · PostgreSQL 16 + RLS · Redis 7 · RabbitMQ · Tenant schema · dotenv + Zod config</div>
         <div class="tl-tags">
@@ -182,13 +182,13 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <!-- P2 -->
     <div class="tl-item ph2" onclick="go(2)">
       <div class="tl-dot-col">
-        <div class="tl-dot" style="background:rgba(248,113,113,.12);border-color:#f87171;color:#f87171">P2</div>
+        <div class="tl-dot" style="background:rgba(248,113,113,.25);border-color:#f87171;color:#f87171">✓2</div>
       </div>
-      <div class="tl-content" style="--ph-color:#f87171">
+      <div class="tl-content active" style="--ph-color:#f87171">
         <div class="tl-head">
           <span class="ph-label" style="background:rgba(248,113,113,.12);color:#f87171">L4 Core</span>
           <span class="tl-title">Query Interceptor + Data Access Layer</span>
-          <span class="critical-flag">★ CRITICAL</span>
+          <span class="critical-flag" style="background:rgba(248,113,113,.12);border-color:#f87171;color:#f87171">DONE</span>
         </div>
         <div class="tl-sub">Knex.js query hook tự động scope tenant_id · AsyncLocalStorage context · Connection Pool Registry · Cache Manager ioredis · QueryCounterMiddleware</div>
         <div class="tl-tags">
@@ -201,12 +201,12 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <!-- P3 -->
     <div class="tl-item ph3" onclick="go(3)">
       <div class="tl-dot-col">
-        <div class="tl-dot" style="background:rgba(129,140,248,.12);border-color:#818cf8;color:#818cf8">P3</div>
+        <div class="tl-dot" style="background:rgba(129,140,248,.25);border-color:#818cf8;color:#818cf8">✓3</div>
       </div>
-      <div class="tl-content" style="--ph-color:#818cf8">
+      <div class="tl-content active" style="--ph-color:#818cf8">
         <div class="tl-head">
           <span class="ph-label" style="background:rgba(129,140,248,.12);color:#818cf8">L2–L3</span>
-          <span class="tl-title">API Server + Tenant Resolution + Auth</span>
+          <span class="tl-title">API Server + Tenant Resolution + Auth</span><span class="critical-flag" style="background:rgba(129,140,248,.12);border-color:#818cf8;color:#818cf8">DONE</span>
         </div>
         <div class="tl-sub">NestJS v10 + TypeScript · Tenant middleware (subdomain/header → tenant_id) · JWT verification (JWKS) · Set AsyncLocalStorage context</div>
         <div class="tl-tags">
@@ -219,12 +219,12 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <!-- P4 -->
     <div class="tl-item ph4" onclick="go(4)">
       <div class="tl-dot-col">
-        <div class="tl-dot" style="background:rgba(250,204,21,.12);border-color:#facc15;color:#facc15">P4</div>
+        <div class="tl-dot" style="background:rgba(250,204,21,.25);border-color:#facc15;color:#facc15">✓4</div>
       </div>
-      <div class="tl-content" style="--ph-color:#facc15">
+      <div class="tl-content active" style="--ph-color:#facc15">
         <div class="tl-head">
           <span class="ph-label" style="background:rgba(250,204,21,.12);color:#facc15">L7</span>
-          <span class="tl-title">Observability — Logging · Tracing · Metrics</span>
+          <span class="tl-title">Observability — Logging · Tracing · Metrics</span><span class="critical-flag" style="background:rgba(250,204,21,.12);border-color:#facc15;color:#facc15">DONE</span>
         </div>
         <div class="tl-sub">Pino structured logs (tenant_id + request_id) · OpenTelemetry auto-instrument · Prometheus /metrics endpoint · Grafana dashboard cơ bản</div>
         <div class="tl-tags">
@@ -237,12 +237,12 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <!-- P5 -->
     <div class="tl-item ph5" onclick="go(5)">
       <div class="tl-dot-col">
-        <div class="tl-dot" style="background:rgba(6,182,212,.12);border-color:#06b6d4;color:#06b6d4">P5</div>
+        <div class="tl-dot" style="background:rgba(6,182,212,.25);border-color:#06b6d4;color:#06b6d4">✓5</div>
       </div>
-      <div class="tl-content" style="--ph-color:#06b6d4">
+      <div class="tl-content active" style="--ph-color:#06b6d4">
         <div class="tl-head">
           <span class="ph-label" style="background:rgba(6,182,212,.12);color:#06b6d4">L3</span>
-          <span class="tl-title">Execution Context + Plugin Registry</span>
+          <span class="tl-title">Execution Context + Plugin Registry</span><span class="critical-flag" style="background:rgba(6,182,212,.12);border-color:#06b6d4;color:#06b6d4">DONE</span>
         </div>
         <div class="tl-sub">ExecutionContext builder · Manifest loader (Zod validate) · Plugin Registry (cores) · Hook Registry (before/after/filter + priority queue)</div>
         <div class="tl-tags">
@@ -255,12 +255,12 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
     <!-- P6 -->
     <div class="tl-item ph6" onclick="go(6)">
       <div class="tl-dot-col">
-        <div class="tl-dot" style="background:rgba(251,146,60,.12);border-color:#fb923c;color:#fb923c">P6</div>
+        <div class="tl-dot" style="background:rgba(251,146,60,.25);border-color:#fb923c;color:#fb923c">✓6</div>
       </div>
-      <div class="tl-content" style="--ph-color:#fb923c">
+      <div class="tl-content active" style="--ph-color:#fb923c">
         <div class="tl-head">
           <span class="ph-label" style="background:rgba(251,146,60,.12);color:#fb923c">L3</span>
-          <span class="tl-title">Plugin Sandbox — Hard Resource Limits</span>
+          <span class="tl-title">Plugin Sandbox — Hard Resource Limits</span><span class="critical-flag" style="background:rgba(251,146,60,.12);border-color:#fb923c;color:#fb923c">DONE</span>
         </div>
         <div class="tl-sub">Isolated-VM wrapper · 5s timeout · 50 MB memoryLimitMb · 50 queries/req counter · Plugin chạy trong V8 isolate độc lập</div>
         <div class="tl-tags">

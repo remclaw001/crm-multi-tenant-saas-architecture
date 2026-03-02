@@ -142,12 +142,12 @@ html.lang-vi [data-lang="en"]{display:none}
   │                       │ hot reload, feature flags                    │
   │                       │                                              │
   │ <span class="vi">④ Dependency Mgmt</span>    │ Plugin dependency resolution, disable chain  │
-  │                       │ enforcement — xuyên L3 + L4                  │
+  │                       │ enforcement — <span data-lang="vi">xuyên</span><span data-lang="en">cross</span> L3 + L4                  │
   └───────────────────────┴──────────────────────────────────────────────┘
 
-  <span class="cm">L6 KHÔNG xử lý request trực tiếp.</span>
-  <span class="cm">L6 cung cấp POLICIES + RULES mà L1→L5 phải tuân thủ.</span>
-  <span class="cm">Plugin KHÔNG implement security riêng — L6 enforce tự động.</span></pre></div>
+  <span class="cm"><span data-lang="vi">L6 KHÔNG xử lý request trực tiếp.</span><span data-lang="en">L6 does NOT handle requests directly.</span></span>
+  <span class="cm"><span data-lang="vi">L6 cung cấp POLICIES + RULES mà L1→L5 phải tuân thủ.</span><span data-lang="en">L6 provides POLICIES + RULES that L1→L5 must follow.</span></span>
+  <span class="cm"><span data-lang="vi">Plugin KHÔNG implement security riêng — L6 enforce tự động.</span><span data-lang="en">Plugins do NOT implement their own security — L6 enforces automatically.</span></span></pre></div>
 </div>
 </div>
 
@@ -162,26 +162,26 @@ html.lang-vi [data-lang="en"]{display:none}
 
   ┌──────────────────────────────────────────────────────────────────────┐
   │                                                                      │
-  │  <span class="hi">L1</span>  CSP headers            → chỉ load script từ CDN whitelist     │
+  │  <span class="hi">L1</span>  CSP headers            → <span data-lang="vi">chỉ load script từ CDN whitelist</span><span data-lang="en">only load scripts from CDN wlist</span>     │
   │      XSS sanitization       → React auto-escape + DOMPurify        │
-  │      CORS per-tenant        → acme.crm.com ≠ gọi globex API       │
-  │      JWT in memory          → XSS không đọc được token             │
+  │      CORS per-tenant        → acme.crm.com ≠ <span data-lang="vi">gọi globex API</span><span data-lang="en">call globex API</span>       │
+  │      JWT in memory          → <span data-lang="vi">XSS không đọc được token</span><span data-lang="en">XSS cannot read the token   </span>             │
   │      SRI hashes             → CDN compromise → browser refuse load │
   │      ─────────────────────────────────────────────────────────────  │
-  │  <span class="hi">L2</span>  TLS 1.3 terminate       → encrypt mọi data in transit          │
+  │  <span class="hi">L2</span>  TLS 1.3 terminate       → encrypt <span data-lang="vi">mọi</span><span data-lang="en">all</span> data in transit          │
   │      JWT validation         → signature + expiry + tenant claim    │
   │      Token blacklist        → logout/revoke → Redis check          │
   │      Rate limiting          → DDoS/abuse protection per-tenant     │
-  │      RBAC permission check  → user chỉ access đúng quyền          │
+  │      RBAC permission check  → <span data-lang="vi">user chỉ access đúng quyền</span><span data-lang="en">user accesses only allowed scope</span>          │
   │      IP whitelist (VIP)     → VIP tenant lock IP range             │
   │      ─────────────────────────────────────────────────────────────  │
-  │  <span class="hi">L3</span>  Sandbox isolation       → plugin KHÔNG access fs/net/process   │
+  │  <span class="hi">L3</span>  Sandbox isolation       → plugin <span data-lang="vi">KHÔNG</span><span data-lang="en">CANNOT</span> access fs/net/process   │
   │      Input validation       → typed schema, reject malformed       │
   │      CSRF protection        → SameSite cookie + custom header      │
   │      PII redaction (logs)   → email → al***@***.com               │
   │      ─────────────────────────────────────────────────────────────  │
   │  <span class="hi">L4</span>  Query Interceptor       → auto tenant_id, block cross-tenant   │
-  │      PostgreSQL RLS         → DB-level backup nếu interceptor bug  │
+  │      PostgreSQL RLS         → DB-level backup <span data-lang="vi">nếu interceptor bug</span><span data-lang="en">if interceptor bug </span>  │
   │      Parameterized queries  → SQL injection impossible             │
   │      QueryValidator         → 6 safety checks per query           │
   │      ─────────────────────────────────────────────────────────────  │
@@ -213,7 +213,7 @@ html.lang-vi [data-lang="en"]{display:none}
   └── App → S3:            HTTPS (AWS SDK default)
 
   <span class="gn">At Rest:</span>
-  ├── PostgreSQL:  dm-crypt (volume) + pgcrypto (column-level cho PII)
+  ├── PostgreSQL:  dm-crypt (volume) + pgcrypto (column-level <span data-lang="vi">cho</span><span data-lang="en">for</span> PII)
   ├── Redis:       encrypted memory (AWS ElastiCache encryption)
   ├── S3:          SSE-KMS (AWS KMS managed keys)
   ├── Elasticsearch: encrypted-at-rest (node-level)
@@ -224,7 +224,7 @@ html.lang-vi [data-lang="en"]{display:none}
 
   ┌────────────────────────────────────────────────────────────────────┐
   │                                                                    │
-  │  <span class="rd">KHÔNG BAO GIỜ</span> hardcode secrets trong code hoặc env vars.          │
+  │  <span class="rd"><span data-lang="vi">KHÔNG BAO GIỜ</span><span data-lang="en">NEVER</span></span> <span data-lang="vi">hardcode secrets trong code hoặc env vars.</span><span data-lang="en">hardcode secrets in code or env vars.      </span>          │
   │                                                                    │
   │  Secrets stored in Vault/KMS:                                     │
   │  ├── DB connection strings (host, user, password)                 │
@@ -268,9 +268,9 @@ html.lang-vi [data-lang="en"]{display:none}
   SELECT * FROM customers WHERE status = 'active' <span class="rd">AND tenant_id = 'acme-123'</span>
 
   <span class="fn">TenantInjector</span>:
-  ├── AUTO-inject tenant_id vào mọi SELECT, INSERT, UPDATE, DELETE
-  ├── Plugin KHÔNG CẦN (và KHÔNG THỂ) chỉ định tenant_id
-  ├── INSERT: auto-add tenant_id = $current vào column list
+  ├── AUTO-inject tenant_id <span data-lang="vi">vào mọi</span><span data-lang="en">into every</span> SELECT, INSERT, UPDATE, DELETE
+  ├── Plugin <span data-lang="vi">KHÔNG CẦN (và KHÔNG THỂ) chỉ định</span><span data-lang="en">does NOT NEED (and CANNOT) specify</span> tenant_id
+  ├── INSERT: auto-add tenant_id = $current <span data-lang="vi">vào</span><span data-lang="en">into</span> column list
   └── Cross-table JOIN: validate BOTH tables have tenant_id filter
 
   <span class="fn">QueryValidator</span> (6 safety checks):
@@ -284,34 +284,34 @@ html.lang-vi [data-lang="en"]{display:none}
 
 <span class="ty">LAYER 2: POSTGRESQL RLS (L5 — database level)</span>
 
-  Backup layer. Nếu Query Interceptor có bug → RLS vẫn block:
+  <span data-lang="vi">Backup layer. Nếu Query Interceptor có bug → RLS vẫn block:</span><span data-lang="en">Backup layer. If Query Interceptor has a bug → RLS still blocks:</span>
 
   CREATE POLICY tenant_isolation ON customers
     USING (tenant_id = current_setting('app.current_tenant'));
 
   ├── Connection: SET app.current_tenant = 'acme-123' (before queries)
-  ├── RLS evaluated by PostgreSQL engine, KHÔNG bypass được
-  ├── Nếu interceptor quên inject → RLS vẫn filter đúng tenant
-  ├── Nếu interceptor inject SAI tenant → RLS override
-  └── Apply cho MỌI table có tenant_id column
+  ├── RLS evaluated by PostgreSQL engine, <span data-lang="vi">KHÔNG bypass được</span><span data-lang="en">CANNOT be bypassed</span>
+  ├── <span data-lang="vi">Nếu interceptor quên inject → RLS vẫn filter đúng tenant</span><span data-lang="en">If interceptor forgets to inject → RLS still filters correctly</span>
+  ├── <span data-lang="vi">Nếu interceptor inject SAI tenant → RLS override</span><span data-lang="en">If interceptor injects WRONG tenant → RLS overrides it</span>
+  └── Apply <span data-lang="vi">cho MỌI table có</span><span data-lang="en">to EVERY table with</span> tenant_id column
 
-  <span class="cm">Double safety: 2 systems independent, cùng enforce 1 rule.</span>
-  <span class="cm">Probability cả 2 fail cùng lúc = gần bằng 0.</span>
+  <span class="cm"><span data-lang="vi">Double safety: 2 systems independent, cùng enforce 1 rule.</span><span data-lang="en">Double safety: 2 independent systems, both enforcing 1 rule.</span></span>
+  <span class="cm"><span data-lang="vi">Probability cả 2 fail cùng lúc = gần bằng 0.</span><span data-lang="en">Probability of both failing at the same time ≈ zero.</span></span>
 
 
 <span class="ty">LAYER 3: AUDIT + ALERT (L7 — detection level)</span>
 
-  Nếu (impossible nhưng) cross-tenant access xảy ra:
+  <span data-lang="vi">Nếu (impossible nhưng) cross-tenant access xảy ra:</span><span data-lang="en">If (impossible but) cross-tenant access occurs:</span>
 
   ├── Audit Trail ghi: user_id, tenant_id, resource accessed
-  ├── Anomaly detection: query patterns bất thường
+  ├── Anomaly detection: query patterns <span data-lang="vi">bất thường</span><span data-lang="en">anomalous</span>
   │   → Tenant A user query data with Tenant B tenant_id in result
   │   → <span class="rd">IMMEDIATE ALERT: PagerDuty P1</span>
   ├── Forensic: full trace available (request_id → Jaeger → log → audit)
   └── Response: auto-block user, investigate
 
 
-<span class="ty">ISOLATION NGOÀI DB:</span>
+<span class="ty"><span data-lang="vi">ISOLATION NGOÀI DB:</span><span data-lang="en">ISOLATION OUTSIDE DB:</span></span>
 
   ┌────────────────────┬───────────────────────────────────────────────┐
   │ Resource            │ Isolation mechanism                           │
@@ -342,25 +342,25 @@ html.lang-vi [data-lang="en"]{display:none}
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │                                                                        │
-  │  <span class="kw">CrmError</span> (base class, mọi error trong hệ thống)                     │
+  │  <span class="kw">CrmError</span> (base class, <span data-lang="vi">mọi error trong hệ thống</span><span data-lang="en">all errors in the system  </span>)                     │
   │  │                                                                     │
-  │  ├── <span class="am">BusinessError</span> (permanent — KHÔNG retry)                         │
+  │  ├── <span class="am">BusinessError</span> (permanent — <span data-lang="vi">KHÔNG retry</span><span data-lang="en">NO retry  </span>)                         │
   │  │   ├── code: "CUSTOMER_NOT_FOUND"   → 404                          │
   │  │   ├── code: "INVALID_INPUT"        → 400                          │
   │  │   ├── code: "DUPLICATE_ENTRY"      → 409                          │
   │  │   ├── code: "FORBIDDEN"            → 403                          │
   │  │   └── code: "QUOTA_EXCEEDED"       → 402                          │
-  │  │   <span class="cm">Plugin throw BusinessError → client KHÔNG nên retry.</span>              │
+  │  │   <span class="cm"><span data-lang="vi">Plugin throw BusinessError → client KHÔNG nên retry.</span><span data-lang="en">Plugin throws BusinessError → client should NOT retry.</span></span>              │
   │  │                                                                     │
-  │  ├── <span class="rd">SystemError</span> (transient — CÓ THỂ retry)                           │
+  │  ├── <span class="rd">SystemError</span> (transient — <span data-lang="vi">CÓ THỂ retry</span><span data-lang="en">CAN retry   </span>)                           │
   │  │   ├── code: "DB_TIMEOUT"           → 504                          │
   │  │   ├── code: "DB_POOL_EXHAUSTED"    → 503 + Retry-After           │
   │  │   ├── code: "REDIS_UNAVAILABLE"    → 503                          │
   │  │   ├── code: "MQ_PUBLISH_FAILED"    → 503                          │
   │  │   └── code: "EXTERNAL_API_TIMEOUT" → 502                          │
-  │  │   <span class="cm">SystemError → client CÓ THỂ retry sau Retry-After.</span>               │
+  │  │   <span class="cm"><span data-lang="vi">SystemError → client CÓ THỂ retry sau Retry-After.</span><span data-lang="en">SystemError → client CAN retry after Retry-After.</span></span>               │
   │  │                                                                     │
-  │  └── <span class="vi">PluginError</span> (plugin-specific — có thể retry tùy loại)           │
+  │  └── <span class="vi">PluginError</span> (plugin-specific — <span data-lang="vi">có thể retry tùy loại</span><span data-lang="en">retry depends on type</span>)           │
   │      ├── code: "PLUGIN_TIMEOUT"       → 504                          │
   │      ├── code: "PLUGIN_CRASH"         → 500                          │
   │      ├── code: "MEMORY_EXCEEDED"      → 500                          │
@@ -370,20 +370,20 @@ html.lang-vi [data-lang="en"]{display:none}
   │                                                                        │
   └────────────────────────────────────────────────────────────────────────┘
 
-  <span class="ty">Response format (nhất quán toàn hệ thống):</span>
+  <span class="ty"><span data-lang="vi">Response format (nhất quán toàn hệ thống):</span><span data-lang="en">Response format (consistent across the entire system):</span></span>
   {
     "error": { "code": "CUSTOMER_NOT_FOUND", "message": "...", "status": 404 },
     "requestId": "req-789",
     "timestamp": "2026-02-10T14:30:00Z"
   }
-  <span class="cm">→ Không leak stack trace, DB error, internal state.</span>
+  <span class="cm">→ <span data-lang="vi">Không leak stack trace, DB error, internal state.</span><span data-lang="en">Does not leak stack trace, DB errors, or internal state.</span></span>
 
 
 <span class="ty">RESILIENCE PATTERNS:</span>
 
-  ┌─ <span class="rd">CIRCUIT BREAKER</span> (protect downstream khi service lỗi) ──────────────┐
+  ┌─ <span class="rd">CIRCUIT BREAKER</span> (<span data-lang="vi">protect downstream khi service lỗi</span><span data-lang="en">protect downstream when service fails</span>) ──────────────┐
   │                                                                        │
-  │  Áp dụng cho: DB Pool, Redis, Elasticsearch, External APIs           │
+  │  <span data-lang="vi">Áp dụng cho</span><span data-lang="en">Applies to</span>: DB Pool, Redis, Elasticsearch, External APIs           │
   │                                                                        │
   │  ┌──────────┐   fail > threshold   ┌──────────┐   30s timer   ┌─────┐│
   │  │  CLOSED  │ ──────────────────▶  │   OPEN   │ ──────────▶  │HALF ││
@@ -397,13 +397,13 @@ html.lang-vi [data-lang="en"]{display:none}
   │  30s later → HALF-OPEN → try 1 request                              │
   │  Success → CLOSED (resume normal). Fail → OPEN again (30s more)    │
   │                                                                        │
-  │  <span class="gn">Benefit:</span> không queue 1000 requests chờ DB recover              │
-  │  → fast-fail + Retry-After cho client biết khi nào retry             │
+  │  <span class="gn">Benefit:</span> <span data-lang="vi">không</span><span data-lang="en">no need to</span> queue 1000 requests <span data-lang="vi">chờ</span><span data-lang="en">waiting for</span> DB recover              │
+  │  → fast-fail + Retry-After <span data-lang="vi">cho client biết khi nào retry</span><span data-lang="en">so client knows when to retry  </span>             │
   └────────────────────────────────────────────────────────────────────────┘
 
-  ┌─ <span class="am">RETRY WITH BACKOFF</span> (tự phục hồi transient errors) ────────────────┐
+  ┌─ <span class="am">RETRY WITH BACKOFF</span> (<span data-lang="vi">tự phục hồi transient errors</span><span data-lang="en">self-heal transient errors   </span>) ────────────────┐
   │                                                                        │
-  │  Áp dụng cho: MQ publish, ES index, External API calls              │
+  │  <span data-lang="vi">Áp dụng cho</span><span data-lang="en">Applies to</span>: MQ publish, ES index, External API calls              │
   │                                                                        │
   │  Attempt 1: fail → wait 5s                                           │
   │  Attempt 2: fail → wait 30s                                          │
@@ -411,7 +411,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │  All 3 fail → DLQ (Dead Letter Queue) → manual investigation       │
   │                                                                        │
   │  Jitter: random ±20% delay → prevent thundering herd                │
-  │  <span class="rd">CHỈ retry SystemError (transient). BusinessError KHÔNG retry.</span>        │
+  │  <span class="rd"><span data-lang="vi">CHỈ retry SystemError (transient). BusinessError KHÔNG retry.</span><span data-lang="en">ONLY retry SystemError (transient). BusinessError NO retry.</span></span>        │
   └────────────────────────────────────────────────────────────────────────┘
 
   ┌─ <span class="cy">BULKHEAD</span> (isolate failure domains) ─────────────────────────────────┐
@@ -419,28 +419,28 @@ html.lang-vi [data-lang="en"]{display:none}
   │  Per-tenant connection caps (Pool Manager):                          │
   │  ├── Shared Pool: 200 total connections                              │
   │  ├── Per-tenant cap: 20 connections max                              │
-  │  │   → 1 tenant spike KHÔNG starve other tenants                    │
+  │  │   → 1 tenant spike <span data-lang="vi">KHÔNG</span><span data-lang="en">does NOT</span> starve other tenants                    │
   │  └── VIP: own pool, own cap (no shared resource contention)         │
   │                                                                        │
   │  Per-plugin Sandbox limits:                                          │
   │  ├── timeout: 5000ms, maxMemory: 50MB, maxQueries: 50              │
-  │  │   → 1 plugin bug KHÔNG affect other plugins                     │
+  │  │   → 1 plugin bug <span data-lang="vi">KHÔNG</span><span data-lang="en">does NOT</span> affect other plugins                     │
   │  └── Error boundary: plugin crash → only that request fails        │
   │                                                                        │
   │  MQ queue isolation:                                                  │
   │  ├── Separate queues per concern (notification, search, webhook)    │
-  │  │   → notification backlog KHÔNG block search indexing             │
+  │  │   → notification backlog <span data-lang="vi">KHÔNG</span><span data-lang="en">does NOT</span> block search indexing             │
   │  └── VIP priority queues (10/5/1)                                   │
   └────────────────────────────────────────────────────────────────────────┘
 
-  ┌─ <span class="gn">FALLBACK</span> (degraded nhưng vẫn hoạt động) ───────────────────────────┐
+  ┌─ <span class="gn">FALLBACK</span> (<span data-lang="vi">degraded nhưng vẫn hoạt động</span><span data-lang="en">degraded but still operational</span>) ───────────────────────────┐
   │                                                                        │
-  │  Redis down     → fallback to Metadata DB (chậm hơn ~5ms/call)     │
-  │  ES down        → fallback to DB LIKE query (chậm, basic search)   │
-  │  MQ down        → log to disk queue → replay khi MQ recover        │
+  │  Redis down     → fallback to Metadata DB (<span data-lang="vi">chậm hơn</span><span data-lang="en">slower </span> ~5ms/call)     │
+  │  ES down        → fallback to DB LIKE query (<span data-lang="vi">chậm, basic search</span><span data-lang="en">slow, basic search</span>)   │
+  │  MQ down        → log to disk queue → replay <span data-lang="vi">khi MQ recover</span><span data-lang="en">when MQ recovers</span>        │
   │  Cache miss     → rebuild from DB → cache for next request         │
-  │  Plugin crash   → 500 graceful error, process vẫn chạy            │
-  │  CDN down       → origin server serve static files (chậm hơn)     │
+  │  Plugin crash   → 500 graceful error, process <span data-lang="vi">vẫn chạy</span><span data-lang="en">still runs</span>            │
+  │  CDN down       → origin server serve static files (<span data-lang="vi">chậm hơn</span><span data-lang="en">slower  </span>)     │
   │                                                                        │
   └────────────────────────────────────────────────────────────────────────┘
 
@@ -454,8 +454,8 @@ html.lang-vi [data-lang="en"]{display:none}
   ├── L5 Retry:    catch transient → retry 3x → DLQ
   └── L7 Alert:    detect pattern → alert ops team
 
-  <span class="cm">Mỗi layer catch lỗi CỦA NÓ. Không để lỗi leak ra ngoài.</span>
-  <span class="cm">Plugin crash ≠ process crash. DB down ≠ toàn bộ hệ thống down.</span></pre></div>
+  <span class="cm"><span data-lang="vi">Mỗi layer catch lỗi CỦA NÓ. Không để lỗi leak ra ngoài.</span><span data-lang="en">Each layer catches ITS OWN errors. Errors do not leak out.</span></span>
+  <span class="cm"><span data-lang="vi">Plugin crash ≠ process crash. DB down ≠ toàn bộ hệ thống down.</span><span data-lang="en">Plugin crash ≠ process crash. DB down ≠ entire system down.</span></span></pre></div>
 </div>
 </div>
 
@@ -470,7 +470,7 @@ html.lang-vi [data-lang="en"]{display:none}
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │                                                                        │
-  │  <span class="vi">Level 1: GLOBAL CONFIG</span> (áp dụng mọi tenant, mọi tier)                │
+  │  <span class="vi">Level 1: GLOBAL CONFIG</span> (<span data-lang="vi">áp dụng mọi tenant, mọi tier</span><span data-lang="en">applies to every tenant, every tier</span>)                │
   │  Source: system_config table / environment variables                   │
   │  ┌──────────────────────────────────────────────────────────────────┐ │
   │  │ max_upload_size:     10MB                                        │ │
@@ -481,7 +481,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │  │ password_min_length: 8                                           │ │
   │  └──────────────────────────────────────────────────────────────────┘ │
   │       │                                                                │
-  │       ▼ override bởi                                                   │
+  │       ▼ <span data-lang="vi">override bởi</span><span data-lang="en">overridden by</span>                                                   │
   │  <span class="am">Level 2: TIER CONFIG</span> (per-plan defaults)                               │
   │  Source: tier_config table                                            │
   │  ┌──────────────────────────────────────────────────────────────────┐ │
@@ -492,7 +492,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │  │             <span class="cm">(-1 = unlimited)</span>                                    │ │
   │  └──────────────────────────────────────────────────────────────────┘ │
   │       │                                                                │
-  │       ▼ override bởi                                                   │
+  │       ▼ <span data-lang="vi">override bởi</span><span data-lang="en">overridden by</span>                                                   │
   │  <span class="gn">Level 3: TENANT CONFIG</span> (per-tenant customization)                     │
   │  Source: tenants.config + tenant_plugins.config                       │
   │  ┌──────────────────────────────────────────────────────────────────┐ │
@@ -519,24 +519,24 @@ html.lang-vi [data-lang="en"]{display:none}
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">HOT RELOAD — Thay đổi config KHÔNG cần restart:</span>
+<span class="ty"><span data-lang="vi">HOT RELOAD — Thay đổi config KHÔNG cần restart:</span><span data-lang="en">HOT RELOAD — Config changes WITHOUT restarting:</span></span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │                                                                        │
-  │  <span class="nu">1.</span> Admin thay đổi config (Tenant Admin hoặc System Admin)            │
+  │  <span class="nu">1.</span> Admin <span data-lang="vi">thay đổi</span><span data-lang="en">changes </span> config (Tenant Admin <span data-lang="vi">hoặc</span><span data-lang="en">or  </span> System Admin)            │
   │  <span class="nu">2.</span> API: PUT /api/v1/admin/config → validate against schema           │
   │  <span class="nu">3.</span> Write to DB (tenants.config / system_config)                      │
   │  <span class="nu">4.</span> Publish Redis Pub/Sub: "config:updated:{tenantId}"                │
   │  <span class="nu">5.</span> ALL instances receive → invalidate in-memory cache                │
-  │  <span class="nu">6.</span> Next request → reload config from DB → cache lại                 │
+  │  <span class="nu">6.</span> Next request → reload config from DB → <span data-lang="vi">cache lại</span><span data-lang="en">re-cache</span>                 │
   │                                                                        │
-  │  Latency: ~5 giây (Pub/Sub delivery + next request trigger)          │
-  │  <span class="cm">Không cần restart. Không cần redeploy. Không cần downtime.</span>          │
+  │  Latency: <span data-lang="vi">~5 giây</span><span data-lang="en">~5 secs</span> (Pub/Sub delivery + next request trigger)          │
+  │  <span class="cm"><span data-lang="vi">Không cần restart. Không cần redeploy. Không cần downtime.</span><span data-lang="en">No restart. No redeploy. No downtime.</span></span>          │
   │                                                                        │
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">FEATURE FLAGS — Bật/tắt feature không cần deploy:</span>
+<span class="ty"><span data-lang="vi">FEATURE FLAGS — Bật/tắt feature không cần deploy:</span><span data-lang="en">FEATURE FLAGS — Enable/disable features without deploying:</span></span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │                                                                        │
@@ -559,12 +559,12 @@ html.lang-vi [data-lang="en"]{display:none}
   │  ├── Kill switch: turn off buggy feature instantly (no deploy)       │
   │  └── A/B testing: 50% tenants see new UI                            │
   │                                                                        │
-  │  <span class="ty">Tương tác với L1:</span>                                                    │
+  │  <span class="ty"><span data-lang="vi">Tương tác với L1:</span><span data-lang="en">Interaction with L1:</span></span>                                                    │
   │  GET /api/v1/me/context → includes featureFlags                     │
   │  Host Shell: if (flags.new_pipeline_ui) render NewPipeline          │
   │              else render ClassicPipeline                             │
   │                                                                        │
-  │  <span class="ty">Tương tác với L3:</span>                                                    │
+  │  <span class="ty"><span data-lang="vi">Tương tác với L3:</span><span data-lang="en">Interaction with L3:</span></span>                                                    │
   │  if (ctx.featureFlags.get('ai_suggestions')) { ... }                │
   │  Plugin code check flag → enable/skip feature branch                │
   │                                                                        │
@@ -599,7 +599,7 @@ html.lang-vi [data-lang="en"]{display:none}
             │(Enterpr.)│
             └──────────┘
 
-  <span class="cm">Mỗi plugin khai báo deps trong manifest.json:</span>
+  <span class="cm"><span data-lang="vi">Mỗi plugin khai báo deps trong manifest.json:</span><span data-lang="en">Each plugin declares deps in manifest.json:</span></span>
   <span class="cm">customer-care:  dependencies: ["customer-data"]</span>
   <span class="cm">automation:     dependencies: ["customer-data", "customer-care"]</span>
   <span class="cm">marketing:      dependencies: ["customer-data", "customer-care"]</span>
@@ -607,7 +607,7 @@ html.lang-vi [data-lang="en"]{display:none}
 
 <span class="ty">ENABLE ENFORCEMENT (Plugin Manager — L3):</span>
 
-  Tenant ACME muốn enable "automation":
+  <span data-lang="vi">Tenant ACME muốn enable "automation":</span><span data-lang="en">Tenant ACME wants to enable "automation":</span>
   ┌────────────────────────────────────────────────────────────────────┐
   │                                                                    │
   │  DependencyResolver.checkCanEnable("acme-123", "automation"):     │
@@ -621,7 +621,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │  → Response: { missingDeps: ["customer-care"],                    │
   │               suggestion: "Enable customer-care first" }          │
   │                                                                    │
-  │  <span class="ty">Tương tác L1:</span> Admin Console hiển thị:                              │
+  │  <span class="ty"><span data-lang="vi">Tương tác L1:</span><span data-lang="en">L1 interaction:</span></span> Admin Console <span data-lang="vi">hiển thị</span><span data-lang="en">shows</span>:                              │
   │  [automation] ⚠️ Requires: customer-care (not enabled)            │
   │  [Enable customer-care first] button                               │
   │                                                                    │
@@ -630,12 +630,12 @@ html.lang-vi [data-lang="en"]{display:none}
 
 <span class="ty">DISABLE CHAIN ENFORCEMENT (Plugin Manager — L3):</span>
 
-  Tenant ACME muốn disable "customer-care":
+  <span data-lang="vi">Tenant ACME muốn disable "customer-care":</span><span data-lang="en">Tenant ACME wants to disable "customer-care":</span>
   ┌────────────────────────────────────────────────────────────────────┐
   │                                                                    │
   │  DependencyResolver.checkCanDisable("acme-123", "customer-care"): │
   │                                                                    │
-  │  Scan enabledPlugins có deps on customer-care:                    │
+  │  Scan enabledPlugins <span data-lang="vi">có deps on</span><span data-lang="en">with deps on</span> customer-care:                    │
   │  ├── automation: deps = [customer-data, <span class="rd">customer-care</span>] → ENABLED   │
   │  └── marketing:  deps = [customer-data, <span class="rd">customer-care</span>] → DISABLED  │
   │                                                                    │
@@ -644,7 +644,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │  → Response: { dependents: ["automation"],                        │
   │               suggestion: "Disable automation first" }            │
   │                                                                    │
-  │  <span class="ty">Tương tác L1:</span> Admin Console hiển thị:                              │
+  │  <span class="ty"><span data-lang="vi">Tương tác L1:</span><span data-lang="en">L1 interaction:</span></span> Admin Console <span data-lang="vi">hiển thị</span><span data-lang="en">shows</span>:                              │
   │  [customer-care] ⚠️ Cannot disable: automation depends on it     │
   │  [Disable automation first] button                                 │
   │                                                                    │
@@ -669,15 +669,15 @@ html.lang-vi [data-lang="en"]{display:none}
   └────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">TẠI SAO L6 (KHÔNG PHẢI L3)?</span>
+<span class="ty"><span data-lang="vi">TẠI SAO L6 (KHÔNG PHẢI L3)?</span><span data-lang="en">WHY L6 (NOT L3)?</span></span>
 
-  Dependency enforcement xuyên NHIỀU layer:
-  ├── L1: Admin UI hiển thị dep warnings, suggest enable order
-  ├── L3: Plugin Manager check deps trước enable/disable
-  ├── L4: Migration Engine respect dep order cho DDL/DML
-  └── L7: Alert nếu orphaned state detected (edge case)
+  <span data-lang="vi">Dependency enforcement xuyên NHIỀU layer:</span><span data-lang="en">Dependency enforcement spans MULTIPLE layers:</span>
+  ├── L1: Admin UI <span data-lang="vi">hiển thị</span><span data-lang="en">shows   </span> dep warnings, suggest enable order
+  ├── L3: Plugin Manager check deps <span data-lang="vi">trước</span><span data-lang="en">before</span> enable/disable
+  ├── L4: Migration Engine respect dep order <span data-lang="vi">cho</span><span data-lang="en">for</span> DDL/DML
+  └── L7: Alert <span data-lang="vi">nếu</span><span data-lang="en">if  </span> orphaned state detected (edge case)
 
-  → Không thuộc riêng L3 hay L4. Nó là cross-cutting concern.</pre></div>
+  → <span data-lang="vi">Không thuộc riêng L3 hay L4. Nó là cross-cutting concern.</span><span data-lang="en">Does not belong to L3 or L4 alone. It is a cross-cutting concern.</span></pre></div>
 </div>
 </div>
 
@@ -798,22 +798,22 @@ html.lang-vi [data-lang="en"]{display:none}
   └───────┴───────────────────────┴───────────────────────────────────────┘
 
 
-<span class="ty">TÓM TẮT — L6 enforce NHƯ THẾ NÀO:</span>
+<span class="ty"><span data-lang="vi">TÓM TẮT — L6 enforce NHƯ THẾ NÀO:</span><span data-lang="en">SUMMARY — HOW L6 enforces:</span></span>
 
-  L6 KHÔNG có code xử lý request.
-  L6 cung cấp:
+  <span data-lang="vi">L6 KHÔNG có code xử lý request.</span><span data-lang="en">L6 has NO code that handles requests.</span>
+  <span data-lang="vi">L6 cung cấp:</span><span data-lang="en">L6 provides:</span>
   ├── <span class="rd">Policies</span>:  "Encrypt at rest", "PII must be redacted"
   ├── <span class="am">Patterns</span>:  CircuitBreaker class, RetryWithBackoff util
   ├── <span class="cy">Config</span>:    Cascading resolver, hot reload mechanism
   ├── <span class="vi">Rules</span>:     Dependency graph, enable/disable validators
   └── <span class="gn">Libraries</span>: Shared error classes, config loaders, crypto utils
 
-  L1→L5 CONSUME từ L6:
-  ├── L2 Rate Limiter dùng tier config từ Config Management
-  ├── L3 Sandbox dùng error classes từ Error Framework
-  ├── L4 Pool Manager dùng CircuitBreaker pattern
-  ├── L5 Redis client dùng encryption + secrets từ Security
-  └── L3 Plugin Manager dùng DependencyResolver từ Dep Mgmt</pre></div>
+  <span data-lang="vi">L1→L5 CONSUME từ L6:</span><span data-lang="en">L1→L5 CONSUME from L6:</span>
+  ├── L2 Rate Limiter <span data-lang="vi">dùng</span><span data-lang="en">uses</span> tier config <span data-lang="vi">từ</span><span data-lang="en">from</span> Config Management
+  ├── L3 Sandbox <span data-lang="vi">dùng</span><span data-lang="en">uses</span> error classes <span data-lang="vi">từ</span><span data-lang="en">from</span> Error Framework
+  ├── L4 Pool Manager <span data-lang="vi">dùng</span><span data-lang="en">uses</span> CircuitBreaker pattern
+  ├── L5 Redis client <span data-lang="vi">dùng</span><span data-lang="en">uses</span> encryption + secrets <span data-lang="vi">từ</span><span data-lang="en">from</span> Security
+  └── L3 Plugin Manager <span data-lang="vi">dùng</span><span data-lang="en">uses</span> DependencyResolver <span data-lang="vi">từ</span><span data-lang="en">from</span> Dep Mgmt</pre></div>
 </div>
 </div>
 

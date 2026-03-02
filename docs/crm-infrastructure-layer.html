@@ -461,10 +461,10 @@
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 
 
-<span class="ty">VAI TRÒ TỪNG THÀNH PHẦN:</span>
+<span class="ty"><span data-lang="vi">VAI TRÒ TỪNG THÀNH PHẦN:</span><span data-lang="en">COMPONENT ROLES:</span></span>
 
   ┌────────────────────┬───────────┬──────────────────────────────────────────┐
-  │ Component          │ Loại      │ Chức năng chính                         │
+  │ Component          │ <span data-lang="vi">Loại      </span><span data-lang="en">Type      </span>│ <span data-lang="vi">Chức năng chính                         </span><span data-lang="en">Main Function                           </span>│
   ├────────────────────┼───────────┼──────────────────────────────────────────┤
   │ <span class="kw">DIP Boundary</span>       │ Adapter   │ ISQLDialect (SQL per DB), ITenantStrategy│
   │                    │           │ (isolation per DB), IMigrationDialect    │
@@ -502,7 +502,7 @@
 │
 │  ┌────────────────────────────────────────────────────────────────────┐
 │  │                                                                    │
-│  │  <span class="am">Purpose:</span> Hệ thống biết "ai là ai, dùng gì"                      │
+│  │  <span class="am">Purpose:</span> <span data-lang="vi">Hệ thống biết "ai là ai, dùng gì"                    </span><span data-lang="en">System knows "who's who and what they use"            </span>│
 │  │                                                                    │
 │  │  <span class="am">Tables:</span>                                                         │
 │  │  ├── tenants              (tenant identity + tier + DB routing)    │
@@ -518,7 +518,7 @@
 │  │  <span class="am">Backup:</span>  Daily full + hourly WAL archive                        │
 │  │  <span class="am">HA:</span>      Streaming replication → standby (auto-failover)         │
 │  │                                                                    │
-│  │  <span class="ty">Ai kết nối:</span>                                                     │
+│  │  <span class="ty"><span data-lang="vi">Ai kết nối:</span><span data-lang="en">Who connects:</span></span>                                                     │
 │  │  ├── L4 Pool Manager (metadata pool, max 20 conns)                │
 │  │  ├── L2 Tenant Resolver (on cache miss)                           │
 │  │  ├── L3 Plugin Manager (bootstrap + deploy)                       │
@@ -531,7 +531,7 @@
 │
 │  ┌────────────────────────────────────────────────────────────────────┐
 │  │                                                                    │
-│  │  <span class="gn">Purpose:</span> Business data cho TẤT CẢ standard tenants               │
+│  │  <span class="gn">Purpose:</span> <span data-lang="vi">Business data cho TẤT CẢ standard tenants             </span><span data-lang="en">Business data for ALL standard tenants                </span>│
 │  │                                                                    │
 │  │  <span class="gn">Tables</span> (created by plugin migrations):                            │
 │  │  ├── customers, companies, contacts    (plugin: customer-data)    │
@@ -541,7 +541,7 @@
 │  │  ├── campaigns, segments               (plugin: marketing)        │
 │  │  └── ... (new plugins → new tables)                               │
 │  │                                                                    │
-│  │  <span class="gn">Mọi table có:</span>                                                    │
+│  │  <span class="gn"><span data-lang="vi">Mọi table có:</span><span data-lang="en">All tables have:</span></span>                                                    │
 │  │  ├── tenant_id UUID NOT NULL                                      │
 │  │  ├── INDEX on (tenant_id, ...)                                    │
 │  │  └── RLS POLICY: USING (tenant_id = current_setting('app.current_tenant'))   │
@@ -577,7 +577,7 @@
 │  │  ├── SELECT (search worker)      → <span class="cy">Replica-2</span>                     │
 │  │  └── SELECT (general read)       → <span class="cy">any Replica</span> round-robin       │
 │  │                                                                    │
-│  │  <span class="ty">Ai kết nối:</span>                                                     │
+│  │  <span class="ty"><span data-lang="vi">Ai kết nối:</span><span data-lang="en">Who connects:</span></span>                                                     │
 │  │  ├── L4 Pool Manager (shared pool, max 200 conns via PgBouncer)  │
 │  │  ├── L4 Migration Engine (DDL for enable/disable plugins)         │
 │  │  └── Async Workers (via own pool, max 30 conns)                   │
@@ -589,16 +589,16 @@
 │
 │  ┌────────────────────────────────────────────────────────────────────┐
 │  │                                                                    │
-│  │  <span class="vi">Purpose:</span> Business data cho 1 VIP tenant duy nhất                 │
+│  │  <span class="vi">Purpose:</span> <span data-lang="vi">Business data cho 1 VIP tenant duy nhất               </span><span data-lang="en">Business data for 1 VIP tenant only                  </span>│
 │  │                                                                    │
 │  │  <span class="vi">1 Instance = 1 Tenant.</span>                                            │
 │  │  INITECH → Instance #3                                             │
 │  │  STARK   → Instance #4                                             │
 │  │                                                                    │
-│  │  <span class="vi">Schema:</span> Giống hệt Shared Data, nhưng:                             │
-│  │  ├── Chỉ 1 tenant → không cần RLS (vẫn apply cho consistency)    │
+│  │  <span class="vi">Schema:</span> <span data-lang="vi">Giống hệt Shared Data, nhưng:                           </span><span data-lang="en">Same schema as Shared Data, but:                        </span>│
+│  │  ├── <span data-lang="vi">Chỉ 1 tenant → không cần RLS (vẫn apply cho consistency)</span><span data-lang="en">Single tenant → RLS not required (still applied)       </span>│
 │  │  ├── Custom PostgreSQL tuning (shared_buffers, work_mem...)       │
-│  │  ├── Own backup schedule (có thể hourly cho VIP)                  │
+│  │  ├── Own backup schedule <span data-lang="vi">(có thể hourly cho VIP)                 </span><span data-lang="en">(can be hourly for VIP)                                </span>│
 │  │  ├── Own maintenance window (vacuum, reindex)                     │
 │  │  └── Optional own read replica                                     │
 │  │                                                                    │
@@ -617,7 +617,7 @@
 │  │  │  7. Verify → delete old data from Shared DB            │       │
 │  │  └────────────────────────────────────────────────────────┘       │
 │  │                                                                    │
-│  │  <span class="ty">Ai kết nối:</span>                                                     │
+│  │  <span class="ty"><span data-lang="vi">Ai kết nối:</span><span data-lang="en">Who connects:</span></span>                                                     │
 │  │  ├── L4 Pool Manager (vip pool, max 30 conns)                     │
 │  │  ├── VIP-dedicated app instances (sticky routing)                 │
 │  │  └── VIP-dedicated async workers                                   │
@@ -654,7 +654,7 @@
 │  └──────────────────────────────────────────────────────────────────────┘ │
 │                                                                            │
 │                                                                            │
-│  <span class="ty">Redis phục vụ 6 VAI TRÒ khác nhau:</span>                                     │
+│  <span class="ty"><span data-lang="vi">Redis phục vụ 6 VAI TRÒ khác nhau:</span><span data-lang="en">Redis serves 6 DIFFERENT ROLES:</span></span>                                     │
 │                                                                            │
 │                                                                            │
 │  <span class="nu">❶</span> <span class="hi">L2 CACHE</span> — Cache Manager L2 layer                                   │
@@ -664,8 +664,8 @@
 │  │  TTL:           5–15 min (per data type)                               │
 │  │  Compression:   LZ4 for values > 1KB                                   │
 │  │                                                                         │
-│  │  Gọi bởi:      L4 Cache Manager (khi L1 miss)                         │
-│  │  Traffic:       HIGH (mọi cache miss từ mọi instance)                  │
+│  │  <span data-lang="vi">Gọi bởi:      L4 Cache Manager (khi L1 miss)                        </span><span data-lang="en">Called by:    L4 Cache Manager (on L1 miss)                         </span>│
+│  │  <span data-lang="vi">Traffic:       HIGH (mọi cache miss từ mọi instance)                 </span><span data-lang="en">Traffic:      HIGH (all cache misses from all instances)             </span>│
 │  │                                                                         │
 │                                                                            │
 │  <span class="nu">❷</span> <span class="hi">DOMAIN MAP</span> — Tenant Resolver cache                                  │
@@ -674,8 +674,8 @@
 │  │  Example:       domain-map:acme → "acme-123"                          │
 │  │  TTL:           5 min                                                   │
 │  │                                                                         │
-│  │  Gọi bởi:      L2 Tenant Resolver (mỗi request)                       │
-│  │  Traffic:       HIGH read, LOW write (chỉ khi miss → query Meta DB)   │
+│  │  <span data-lang="vi">Gọi bởi:      L2 Tenant Resolver (mỗi request)                      </span><span data-lang="en">Called by:    L2 Tenant Resolver (each request)                     </span>│
+│  │  <span data-lang="vi">Traffic:       HIGH read, LOW write (chỉ khi miss → query Meta DB)  </span><span data-lang="en">Traffic:      HIGH read, LOW write (only on miss → query Meta DB)   </span>│
 │  │                                                                         │
 │                                                                            │
 │  <span class="nu">❸</span> <span class="hi">RATE LIMIT</span> — Sliding window counters                                │
@@ -684,7 +684,7 @@
 │  │  Members:       timestamps of recent requests                          │
 │  │  TTL:           60 seconds (sliding window)                             │
 │  │                                                                         │
-│  │  Gọi bởi:      L2 Rate Limiter (mỗi request)                          │
+│  │  <span data-lang="vi">Gọi bởi:      L2 Rate Limiter (mỗi request)                         </span><span data-lang="en">Called by:    L2 Rate Limiter (each request)                        </span>│
 │  │  Operations:    ZADD + ZRANGEBYSCORE + ZCARD                           │
 │  │  Traffic:       HIGH (3 Redis ops per request)                          │
 │  │                                                                         │
@@ -695,7 +695,7 @@
 │  │  Value:         "revoked"                                              │
 │  │  TTL:           = token remaining lifetime                              │
 │  │                                                                         │
-│  │  Gọi bởi:      L2 Auth Guard (mỗi request)                            │
+│  │  <span data-lang="vi">Gọi bởi:      L2 Auth Guard (mỗi request)                           </span><span data-lang="en">Called by:    L2 Auth Guard (each request)                          </span>│
 │  │  Operations:    EXISTS (fast, O(1))                                     │
 │  │  Traffic:       HIGH read, VERY LOW write (only on token revoke)       │
 │  │                                                                         │
@@ -715,8 +715,8 @@
 │  │      payload: { pluginName, version }                                  │
 │  │      subscribers: all app instances                                     │
 │  │                                                                         │
-│  │  <span class="cm">Pub/Sub KHÔNG persistent — nếu instance down thì miss message.</span>     │
-│  │  <span class="cm">OK vì: cache/context rebuild tự động ở next request.</span>               │
+│  │  <span class="cm"><span data-lang="vi">Pub/Sub KHÔNG persistent — nếu instance down thì miss message.</span><span data-lang="en">Pub/Sub is NOT persistent — if instance is down, messages are missed.</span></span>     │
+│  │  <span class="cm"><span data-lang="vi">OK vì: cache/context rebuild tự động ở next request.</span><span data-lang="en">OK because: cache/context is auto-rebuilt on the next request.</span></span>               │
 │  │                                                                         │
 │                                                                            │
 │  <span class="nu">❻</span> <span class="hi">REALTIME COUNTERS</span> — Analytics plugin fast counters                   │
@@ -726,8 +726,8 @@
 │     │                 t:acme-123:stats:sales_total  → 4250000             │
 │     │  Operations:    INCR, INCRBY (atomic, O(1))                          │
 │     │                                                                      │
-│     │  Gọi bởi:      Analytics sync event handlers                        │
-│     │  <span class="cm">Nhanh hơn nhiều so với DB aggregate queries.</span>                    │
+│     │  <span data-lang="vi">Gọi bởi:      Analytics sync event handlers                       </span><span data-lang="en">Called by:    Analytics sync event handlers                        </span>│
+│     │  <span class="cm"><span data-lang="vi">Nhanh hơn nhiều so với DB aggregate queries.</span><span data-lang="en">Much faster than DB aggregate queries.</span></span>                    │
 │     │  <span class="cm">Periodic sync: Redis counters → DB snapshots (every 5min).</span>       │
 │                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘</pre>
@@ -780,7 +780,7 @@
 │  │  │  │ sales.created    │  analytics.aggregate                 │      │ │
 │  │  │  └──────────────────┴──────────────────────────────────────┘      │ │
 │  │  │                                                                   │ │
-│  │  │  1 message → có thể route tới NHIỀU queues                       │ │
+│  │  │  <span data-lang="vi">1 message → có thể route tới NHIỀU queues                      </span><span data-lang="en">1 message → can route to MULTIPLE queues                       </span>│ │
 │  │  │  "sales.created" → notification + search + webhook + analytics   │ │
 │  │  │                                                                   │ │
 │  └──┴───────────────────────────────────────────────────────────────────┘ │
@@ -838,7 +838,7 @@
 │  │  ├── priority 5  (ent/prem): processed SECOND                     │   │
 │  │  └── priority 1  (basic):   processed LAST                        │   │
 │  │                                                                    │   │
-│  │  → VIP messages xử lý nhanh hơn ngay cả khi queue dài.           │   │
+│  │  <span data-lang="vi">→ VIP messages xử lý nhanh hơn ngay cả khi queue dài.          </span><span data-lang="en">→ VIP messages are processed faster even with a long queue.     </span>│   │
 │  │                                                                    │   │
 │  └────────────────────────────────────────────────────────────────────┘   │
 │                                                                            │
@@ -921,18 +921,18 @@
 │  <span class="ty">Tenant Isolation:</span>                                                       │
 │  ┌────────────────────────────────────────────────────────────────────┐   │
 │  │                                                                    │   │
-│  │  Plugin gọi: ctx.storage.upload(file)                              │   │
+│  │  <span data-lang="vi">Plugin gọi: ctx.storage.upload(file)                             </span><span data-lang="en">Plugin calls: ctx.storage.upload(file)                           </span>│   │
 │  │  Storage Service auto-prefix: /tenants/{tenantId}/uploads/         │   │
 │  │                                                                    │   │
-│  │  <span class="rd">Plugin KHÔNG THỂ chỉ định path tùy ý.</span>                            │   │
-│  │  <span class="rd">Luôn bị scope vào /tenants/{tenantId}/</span>                            │   │
+│  │  <span class="rd"><span data-lang="vi">Plugin KHÔNG THỂ chỉ định path tùy ý.</span><span data-lang="en">Plugin CANNOT specify arbitrary paths.</span></span>                            │   │
+│  │  <span class="rd"><span data-lang="vi">Luôn bị scope vào /tenants/{tenantId}/</span><span data-lang="en">Always scoped to /tenants/{tenantId}/</span></span>                            │   │
 │  │                                                                    │   │
-│  │  S3 bucket policy: IAM role chỉ cho phép prefix tenants/*         │   │
-│  │  Pre-signed URLs: expire sau 15 phút, tenant-scoped               │   │
+│  │  S3 bucket policy: IAM role <span data-lang="vi">chỉ cho phép</span><span data-lang="en">only allows</span> prefix tenants/*         │   │
+│  │  Pre-signed URLs: expire <span data-lang="vi">sau 15 phút</span><span data-lang="en">after 15 minutes</span>, tenant-scoped               │   │
 │  │                                                                    │   │
 │  └────────────────────────────────────────────────────────────────────┘   │
 │                                                                            │
-│  <span class="ty">Ai kết nối:</span>                                                             │
+│  <span class="ty"><span data-lang="vi">Ai kết nối:</span><span data-lang="en">Who connects:</span></span>                                                             │
 │  ├── L3 Storage Service (upload/download, called by plugins via ctx)      │
 │  ├── Async Workers (export jobs, backup jobs)                              │
 │  ├── L3 Plugin Manager (pull artifacts from system/plugin-artifacts/)     │
@@ -952,9 +952,9 @@
           <pre>
 ┌─ <span class="pk">ELASTICSEARCH CLUSTER</span> ── <span class="cm">3 nodes</span> ──────────────────────────────────────┐
 │                                                                            │
-│  <span class="ty">Purpose:</span> Full-text search cho customers, sales, contacts, tickets      │
-│  <span class="cm">PostgreSQL LIKE queries chậm với >100K records.</span>                         │
-│  <span class="cm">Elasticsearch trả kết quả &lt;50ms cho millions of documents.</span>              │
+│  <span class="ty">Purpose:</span> Full-text search <span data-lang="vi">cho</span><span data-lang="en">for</span> customers, sales, contacts, tickets      │
+│  <span class="cm"><span data-lang="vi">PostgreSQL LIKE queries chậm với >100K records.</span><span data-lang="en">PostgreSQL LIKE queries are slow with >100K records.</span></span>                         │
+│  <span class="cm"><span data-lang="vi">Elasticsearch trả kết quả &lt;50ms cho millions of documents.</span><span data-lang="en">Elasticsearch returns results in &lt;50ms for millions of documents.</span></span>              │
 │                                                                            │
 │                                                                            │
 │  <span class="ty">Index Strategy: Per-tenant indices</span>                                      │
@@ -968,12 +968,12 @@
 │  │  ├── globex-456-sales       (GLOBEX's sales docs)                 │   │
 │  │  └── ...                                                           │   │
 │  │                                                                    │   │
-│  │  Tại sao per-tenant index (không phải shared + filter)?           │   │
-│  │  ├── <span class="gn">Isolation:</span> tenant delete → drop index (nhanh, sạch)           │   │
+│  │  <span data-lang="vi">Tại sao per-tenant index (không phải shared + filter)?          </span><span data-lang="en">Why per-tenant index (not shared + filter)?                     </span>│   │
+│  │  ├── <span class="gn">Isolation:</span> tenant delete → drop index <span data-lang="vi">(nhanh, sạch)</span><span data-lang="en">(fast, clean)</span>           │   │
 │  │  ├── <span class="gn">Performance:</span> smaller indices = faster queries                  │   │
 │  │  ├── <span class="gn">Scaling:</span> VIP tenant index → dedicated shard/node               │   │
-│  │  └── <span class="am">Trade-off:</span> nhiều indices = more cluster overhead               │   │
-│  │      → cho small tenants: alias pointing to shared index          │   │
+│  │  └── <span class="am">Trade-off:</span> <span data-lang="vi">nhiều indices = more cluster overhead</span><span data-lang="en">more indices = more cluster overhead</span>               │   │
+│  │      → <span data-lang="vi">cho</span><span data-lang="en">for</span> small tenants: alias pointing to shared index          │   │
 │  │                                                                    │   │
 │  └────────────────────────────────────────────────────────────────────┘   │
 │                                                                            │
@@ -982,8 +982,8 @@
 │                                                                            │
 │  ┌────────────────────────────────────────────────────────────────────┐   │
 │  │                                                                    │   │
-│  │  Plugin gọi ctx.db.insert('customers', data)                      │   │
-│  │  → DB insert thành công                                            │   │
+│  │  <span data-lang="vi">Plugin gọi ctx.db.insert('customers', data)                     </span><span data-lang="en">Plugin calls ctx.db.insert('customers', data)                   </span>│   │
+│  │  <span data-lang="vi">→ DB insert thành công                                           </span><span data-lang="en">→ DB insert succeeds                                             </span>│   │
 │  │  → Async event publish: "customer.created"                        │   │
 │  │  → RabbitMQ → search.index queue                                  │   │
 │  │  → Search Index Worker consume:                                    │   │
@@ -991,7 +991,7 @@
 │  │    ├── Index to: {tenantId}-customers                             │   │
 │  │    └── <span class="am">Near-realtime: ~1-2 seconds lag</span>                            │   │
 │  │                                                                    │   │
-│  │  Plugin gọi ctx.search.query("customers", { q: "Alice" })        │   │
+│  │  <span data-lang="vi">Plugin gọi ctx.search.query("customers", { q: "Alice" })       </span><span data-lang="en">Plugin calls ctx.search.query("customers", { q: "Alice" })     </span>│   │
 │  │  → Search Service:                                                 │   │
 │  │    ├── Index: {ctx.tenantId}-customers                             │   │
 │  │    ├── Query: { match: { _all: "Alice" } }                       │   │
@@ -999,7 +999,7 @@
 │  │                                                                    │   │
 │  └────────────────────────────────────────────────────────────────────┘   │
 │                                                                            │
-│  <span class="ty">Ai kết nối:</span>                                                             │
+│  <span class="ty"><span data-lang="vi">Ai kết nối:</span><span data-lang="en">Who connects:</span></span>                                                             │
 │  ├── Search Index Worker (write: index documents after DB changes)        │
 │  ├── L3 Search Service (read: full-text queries from plugins)             │
 │  └── Analytics Replica (read: aggregate search analytics)                  │
@@ -1027,7 +1027,7 @@
           <pre>
 <span class="ty">ISQLDialect — AST → Parameterized SQL per DB</span>
 
-  L4 TenantScopedDB gọi: dialect.generateSelect(ast) → { text, params }
+  <span data-lang="vi">L4 TenantScopedDB gọi: dialect.generateSelect(ast) → { text, params }</span><span data-lang="en">L4 TenantScopedDB calls: dialect.generateSelect(ast) → { text, params }</span>
 
   ┌──────────────────────┬───────────────────┬──────────────────┬──────────────────┐
   │ Feature              │ <span class="hi">PostgresDialect</span>   │ <span class="gn">MySQLDialect</span>      │ <span class="or">SQLiteDialect</span>    │
@@ -1043,7 +1043,7 @@
   │ Full-text search     │ to_tsvector()     │ MATCH AGAINST    │ FTS5             │
   └──────────────────────┴───────────────────┴──────────────────┴──────────────────┘
 
-  <span class="cm">Ví dụ cùng AST: { table:'sales', op:'INSERT', data:{title:'Deal',amount:50000} }</span>
+  <span class="cm"><span data-lang="vi">Ví dụ cùng AST: { table:'sales', op:'INSERT', data:{title:'Deal',amount:50000} }</span><span data-lang="en">Same AST example: { table:'sales', op:'INSERT', data:{title:'Deal',amount:50000} }</span></span>
 
   <span class="hi">PostgresDialect:</span>  INSERT INTO sales (tenant_id,title,amount) VALUES ($1,$2,$3) RETURNING *
   <span class="gn">MySQLDialect:</span>     INSERT INTO sales (tenant_id,title,amount) VALUES (?,?,?)
@@ -1057,7 +1057,7 @@
           <pre>
 <span class="ty">ITenantStrategy — Tenant Isolation per DB</span>
 
-  L4 TenantScopedDB gọi: strategy.injectTenant(ast, tid) → modified AST
+  <span data-lang="vi">L4 TenantScopedDB gọi: strategy.injectTenant(ast, tid) → modified AST</span><span data-lang="en">L4 TenantScopedDB calls: strategy.injectTenant(ast, tid) → modified AST</span>
                           strategy.configureConnection(conn, tid)
 
   ┌──────────────────────┬─────────────────────┬───────────────────┬──────────────────┐
@@ -1073,9 +1073,9 @@
   │ <span class="cm">Use case</span>             │ <span class="cm">Production primary</span>  │ <span class="cm">Enterprise custom</span> │ <span class="cm">Mobile + Test</span>    │
   └──────────────────────┴─────────────────────┴───────────────────┴──────────────────┘
 
-  <span class="am">MySQL không có RLS → chỉ 2 tầng bảo vệ.</span>
+  <span class="am"><span data-lang="vi">MySQL không có RLS → chỉ 2 tầng bảo vệ.</span><span data-lang="en">MySQL has no RLS → only 2 protection layers.</span></span>
   <span class="am">ITenantStrategy.supportsDBLevelIsolation() → false</span>
-  <span class="am">→ hệ thống enforce stricter QueryValidator rules để bù.</span></pre>
+  <span class="am"><span data-lang="vi">→ hệ thống enforce stricter QueryValidator rules để bù.</span><span data-lang="en">→ system enforces stricter QueryValidator rules to compensate.</span></span></pre>
         </div>
 
         <div class="dg">
@@ -1083,7 +1083,7 @@
           <pre>
 <span class="ty">IMigrationDialect — DDL Generation per DB</span>
 
-  L4 SchemaMigrationRunner gọi: migDialect.generateCreateTable(schema)
+  <span data-lang="vi">L4 SchemaMigrationRunner gọi: migDialect.generateCreateTable(schema)</span><span data-lang="en">L4 SchemaMigrationRunner calls: migDialect.generateCreateTable(schema)</span>
                                  migDialect.generateRLSPolicy(table, col)
 
   ┌──────────────────────┬─────────────────────┬───────────────────┬──────────────────┐
@@ -1097,7 +1097,7 @@
   └──────────────────────┴─────────────────────┴───────────────────┴──────────────────┘
 
 
-<span class="ty">BOOTSTRAP — Ai inject gì:</span>
+<span class="ty">BOOTSTRAP — <span data-lang="vi">Ai inject gì:</span><span data-lang="en">Who injects what:</span></span>
 
   <span class="cm">// App startup (config/database.ts)</span>
   if (dbType === 'postgres') {
@@ -1114,23 +1114,23 @@
   const dialect  = container.resolve('ISQLDialect');
   const strategy = container.resolve('ITenantStrategy');
   ctx.db = new TenantScopedDB(conn, tenantId, dialect, strategy);
-  <span class="gn">// Plugin nhận ctx.db (IDbContext) — không biết DB nào bên dưới.</span>
+  <span class="gn">// <span data-lang="vi">Plugin nhận ctx.db (IDbContext) — không biết DB nào bên dưới.</span><span data-lang="en">Plugin receives ctx.db (IDbContext) — doesn't know which DB is underneath.</span></span>
 
 
-<span class="ty">SWAP DB = tạo 3 implementations ở L5:</span>
+<span class="ty"><span data-lang="vi">SWAP DB = tạo 3 implementations ở L5:</span><span data-lang="en">SWAP DB = create 3 implementations in L5:</span></span>
 
   ┌────────────────────────────────────────────────────────────────┐
-  │  <span class="am">Tạo mới ở L5:</span>     (~535 LOC)                                │
+  │  <span class="am"><span data-lang="vi">Tạo mới ở L5:</span><span data-lang="en">Create new in L5:</span></span>     (~535 LOC)                                │
   │  ├── MySQLDialect              implements ISQLDialect         │
   │  ├── MySQLTenantStrategy       implements ITenantStrategy     │
   │  └── MySQLMigrationDialect     implements IMigrationDialect   │
   │                                                                │
-  │  <span class="gn">KHÔNG đổi ở L4:</span>                                              │
+  │  <span class="gn"><span data-lang="vi">KHÔNG đổi ở L4:</span><span data-lang="en">NO changes in L4:</span></span>                                              │
   │  ├── CrmQueryBuilder, QueryAST, QueryValidator                │
   │  ├── TenantScopedDB, PoolRouter, Cache Manager                │
   │  └── SchemaMigrationRunner, TenantMigrationRunner             │
   │                                                                │
-  │  <span class="gn">KHÔNG đổi ở L3:</span>   Mọi Plugin Core code                      │
+  │  <span class="gn"><span data-lang="vi">KHÔNG đổi ở L3:</span><span data-lang="en">NO changes in L3:</span></span>   <span data-lang="vi">Mọi Plugin Core code</span><span data-lang="en">All Plugin Core code</span>                      │
   └────────────────────────────────────────────────────────────────┘</pre>
         </div>
       </div>
@@ -1184,8 +1184,8 @@
 │                      │              │              │              │              │
 └──────────────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
 
-<span class="cm">* VIP có thể dùng dedicated Redis/MQ nếu workload justify — nhưng mặc định shared.</span>
-<span class="cm">  VIP isolation chủ yếu ở PostgreSQL vì đây là bottleneck chính.</span></pre>
+<span class="cm">* <span data-lang="vi">VIP có thể dùng dedicated Redis/MQ nếu workload justify — nhưng mặc định shared.</span><span data-lang="en">VIP can use dedicated Redis/MQ if workload justifies it — but defaults to shared.</span></span>
+<span class="cm">  <span data-lang="vi">VIP isolation chủ yếu ở PostgreSQL vì đây là bottleneck chính.</span><span data-lang="en">VIP isolation is primarily at PostgreSQL level as it's the main bottleneck.</span></span></pre>
         </div>
       </div>
     </div>

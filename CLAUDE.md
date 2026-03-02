@@ -48,17 +48,35 @@ npm test       # vitest (web, admin); no test runner configured for mobile
 
 Integration tests (`src/**/__tests__/integration/`) are excluded from the default test run and require live DB/Redis.
 
+Unit tests require `OTEL_DISABLED=true` in the test environment (already set in `vitest.config.ts`) to prevent OpenTelemetry overhead.
+
 ## Environment
 
-Copy `.env.example` to `.env` in `backend/`. Required variables (validated at startup via Zod in `src/config/env.ts`):
+Copy `.env.example` to `.env` in `backend/`. Variables are validated at startup via Zod in `src/config/env.ts`.
+
+**Required:**
 
 | Variable | Notes |
 |---|---|
-| `DATABASE_URL` | Shared PostgreSQL pool |
+| `DATABASE_URL` | Shared PostgreSQL pool (max 200 connections) |
 | `REDIS_URL` | ioredis |
 | `RABBITMQ_URL` | amqplib |
-| `JWT_JWKS_URI` **or** `JWT_SECRET_FALLBACK` | One is required; use `JWT_SECRET_FALLBACK` in dev |
-| `ENCRYPTION_KEY` | 64 hex chars (32 bytes AES-256-GCM); insecure default exists for dev |
+| `JWT_JWKS_URI` **or** `JWT_SECRET_FALLBACK` | One is required; use `JWT_SECRET_FALLBACK` (min 32 chars) in dev |
+
+**Key optional (affect significant behavior):**
+
+| Variable | Default | Notes |
+|---|---|---|
+| `ENCRYPTION_KEY` | Dev insecure key | 64 hex chars (32 bytes AES-256-GCM); override in production |
+| `DATABASE_METADATA_URL` | Same as `DATABASE_URL` | Secondary pool for migrations & tenant lookup (max 20) |
+| `CORS_ORIGINS` | Allow all | Comma-separated global fallback; per-tenant origins take precedence |
+| `SENTRY_DSN` | Disabled | Error tracking; no-op when unset |
+| `ELASTICSEARCH_URL` | Disabled | Search indexing gracefully degraded when unset |
+| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | Dev log mode | Emails logged to console when unset |
+| `EMAIL_FROM` | `noreply@crm.dev` | Sender address |
+| `LOG_LEVEL` | `info` | Pino log level |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Disabled | Jaeger/collector gRPC endpoint |
+| `OTEL_DISABLED` | `false` | Set `true` in unit tests |
 
 ## Backend Architecture
 
@@ -71,7 +89,7 @@ Copy `.env.example` to `.env` in `backend/`. Required variables (validated at st
 4. `WorkersModule` — RabbitMQ (amqplib), BullMQ queues, node-cron
 5. `GatewayModule` — middleware pipeline, JWT guard, CORS
 6. `HealthModule` — `/health` endpoint
-7. `ApiModule` — REST routes under `src/api/v1/`
+7. `ApiModule` — REST routes under `src/api/v1/` + `PluginsModule`
 
 **Bootstrap import order** (`src/main.ts`) is critical:
 1. `tracing.setup` (OpenTelemetry must patch before NestJS loads modules)
@@ -81,32 +99,57 @@ Copy `.env.example` to `.env` in `backend/`. Required variables (validated at st
 
 ### L2 Gateway (`src/gateway/`)
 
-Request pipeline (applied in order):
+Middleware pipeline (applied in order):
 - `CorrelationIdMiddleware` — injects `X-Correlation-ID`
 - `TenantResolverMiddleware` — resolves tenant from subdomain/header, stores in `TenantContext`
 - `TenantCorsMiddleware` — per-tenant CORS (do **not** call `app.enableCors()`)
 - `JwtAuthGuard` — validates JWT via JWKS or fallback secret
+
+**Tenant resolution priority:** `X-Tenant-ID` header → `X-Tenant-Slug` header → Host subdomain (`acme.app.com` → `acme`).
+
+**Decorators** (both in `src/gateway/decorators/current-tenant.decorator.ts`):
+- `@CurrentTenant()` — extracts `ResolvedTenant` set by `TenantResolverMiddleware`
+- `@CurrentUser()` — extracts `JwtClaims` set by `JwtAuthGuard`
+- `@Public()` — bypasses `JwtAuthGuard` (in `public.decorator.ts`)
 
 ### L4 Data Access (`src/dal/`)
 
 - `PoolRegistry` — manages shared (200), metadata (20), and VIP (30 each) connection pools
 - `CacheManager` — ioredis wrapper; all keys follow `t:<tenant-id>:<resource-type>:<id>`
 - `QueryInterceptor` — wraps Knex; automatically scopes every query to the current tenant. **Business logic must never manually add `WHERE tenant_id = ?`.**
-- `TenantContext` — AsyncLocalStorage-backed context; carries tenant ID, config, user claims through the request
+- `TenantContext` — AsyncLocalStorage-backed context; carries tenant ID, config, user claims through the request. Use `.getStore()` to read (not `.get()`).
 
 ### L3 Plugin System (`src/plugins/`)
 
 - Plugin cores (`cores/`) are stateless singletons: CustomerData, CustomerCare, Analytics, Automation, Marketing
-- `SandboxService` — executes plugin logic via `isolated-vm`; hard limits: 5 s timeout, 50 MB memory, 50 queries/request
+- `SandboxService` — executes plugin logic via timeout-race (`Promise.race`); hard limits: 5 s timeout, 50 queries/request
 - `HookRegistry` — `before` / `after` / `filter` hooks with priority ordering
-- Each plugin declares `plugin.manifest.json` (dependencies, permissions, resource limits)
+- Each plugin declares a manifest via `built-in-manifests.ts` (dependencies, permissions, resource limits)
+- **`PluginInfraModule` must be first** in `PluginsModule.imports` — makes `PluginRegistryService`, `ExecutionContextBuilder`, `HookRegistryService`, `SandboxService` available as globals before core modules initialize
+
+**Standard plugin controller pattern** (see `customer-data.controller.ts` for reference):
+```typescript
+const ctx = await this.contextBuilder.build(tenant, user, req.correlationId ?? 'n/a');
+if (!ctx.enabledPlugins.includes(PLUGIN_NAME)) throw new ForbiddenException(…);
+const result = await this.sandbox.execute(() => this.core.method(ctx), this.core.manifest.limits.timeoutMs);
+```
+
+**Plugin routes:** `GET /api/v1/plugins/{plugin-name}/...`
 
 ### L5 Async Workers (`src/workers/`)
 
-- `AmqpModule` — `@Global()` RabbitMQ publisher/consumer (amqplib)
-- BullMQ queues: `QUEUE_EMAIL`, `QUEUE_WEBHOOK`
+- `AmqpModule` — `@Global()` RabbitMQ publisher/consumer (amqplib); 4 exchanges with DLX: audit, notifications, search.index, webhooks
+- `AmqpPublisher` — `publishAudit/Notification/SearchIndex/Webhook` with persistent delivery
+- BullMQ queues: `QUEUE_EMAIL` (5 retries, exponential backoff) + `QUEUE_WEBHOOK` (7 retries, HMAC-SHA256 delivery)
 - Bull Board UI at `/admin/queues` (dev only)
-- Cron jobs via node-cron
+- Cron jobs via node-cron: session cleanup (2 AM daily), queue depth check (every 5 min)
+
+### L6 Cross-Cutting (`src/common/`)
+
+- `SecurityModule` (`@Global`) — `EncryptionService` (AES-256-GCM, format: `base64(iv):base64(authTag):base64(ciphertext)`), `PasswordService` (bcrypt cost 12)
+- Error hierarchy: `AppError` (base, statusCode+code) → `DomainError` (4xx), `PluginError` (5xx), `ValidationError` (400) in `src/common/errors/`
+- Specific errors include: `TenantNotFoundError`, `PluginDisabledError`, `PermissionDeniedError`, `ResourceNotFoundError`, `ConflictError`, `PluginTimeoutError`, `PluginQueryLimitError`
+- `HttpExceptionFilter` maps `AppError` → RFC 7807 Problem Details JSON; reports 5xx to Sentry
 
 ## Frontend Architecture
 
@@ -132,11 +175,6 @@ Both web and admin use Vitest + Testing Library for tests.
 
 **Multi-tenancy:** Standard tenants share a PostgreSQL DB (RLS + `tenant_id`). VIP/Enterprise tenants get dedicated PostgreSQL instances. `QueryInterceptor` at L4 handles all scoping automatically.
 
-### L6 Cross-Cutting (`src/common/`)
-
-- `SecurityModule` (`@Global`) — `EncryptionService` (AES-256-GCM), `PasswordService` (bcrypt cost 12)
-- Error hierarchy: `AppError` base → `DomainError`, `PluginError`, `ValidationError` subclasses in `src/common/errors/`
-
 ## Critical Constraints
 
 These rules are enforced by framework infrastructure — violating them causes silent data corruption or auth bypass:
@@ -144,6 +182,7 @@ These rules are enforced by framework infrastructure — violating them causes s
 1. **Never add `WHERE tenant_id = ?` in business logic.** `QueryInterceptor` scopes every Knex query automatically. Duplicate filtering will break cross-tenant admin operations.
 2. **Never call `app.enableCors()`.** `TenantCorsMiddleware` handles per-tenant CORS. Global CORS would override tenant-specific policies.
 3. **Module and bootstrap import order is not negotiable.** OpenTelemetry must monkey-patch before any NestJS module loads (see `src/main.ts`). `DalModule` must be first in `app.module.ts` because subsequent modules inject `KNEX_INSTANCE` and `PoolRegistry`.
+4. **`PluginInfraModule` must be first in `PluginsModule.imports`.** Core modules call `registry.register(this)` in `OnModuleInit` — the registry must exist before that.
 
 ## Architectural Reference Docs
 
@@ -157,3 +196,8 @@ HTML docs in `docs/` can be opened directly in a browser. Key files:
 | `crm-plugin-deep-dive.html` | Plugin manifest, lifecycle, sandbox |
 | `crm-database-topology.html` | 3-tier DB, RLS, connection pooling |
 | `crm-observability-layer.html` | Logging, tracing, metrics patterns |
+| `crm-auth-flow.html` | JWT, JWKS, tenant cross-validation |
+| `crm-gateway-layer.html` | Middleware pipeline detail |
+| `crm-crosscutting-layer.html` | Security module, error hierarchy |
+| `crm-infrastructure-layer.html` | RabbitMQ, BullMQ, cron topology |
+| `crm-build-roadmap.html` | Phase-by-phase implementation plan |

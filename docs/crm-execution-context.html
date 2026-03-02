@@ -71,24 +71,30 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .pnl.on .sec:nth-child(4){animation-delay:.12s}
 .pnl.on .sec:nth-child(5){animation-delay:.16s}
 .pnl.on .sec:nth-child(6){animation-delay:.2s}
+html.lang-en [data-lang="vi"]{display:none}
+html.lang-vi [data-lang="en"]{display:none}
 </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Context System Deep Dive</div>
-    <h1>Execution <span>Context</span></h1>
-    <p>Hai loại context, quá trình build, vòng đời, cơ chế cache, và cách context điều khiển toàn bộ event/hook filtering.</p>
+    <h1 data-lang="vi">Execution <span>Context</span></h1>
+    <h1 data-lang="en">Execution <span>Context</span></h1>
+    <p data-lang="vi">Hai loại context, quá trình build, vòng đời, cơ chế cache, và cách context điều khiển toàn bộ event/hook filtering.</p>
+    <p data-lang="en">Two context types, the build process, lifecycle, cache strategy, and how context drives all event/hook filtering.</p>
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('map')">Bản đồ tổng quan</button>
+    <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ tổng quan</span><span data-lang="en">Overview Map</span></button>
     <button onclick="go('tenant')">Tenant Context</button>
     <button onclick="go('exec')">Execution Context</button>
-    <button onclick="go('build')">Quá trình Build</button>
-    <button onclick="go('filter')">Cơ chế Filtering</button>
-    <button onclick="go('lifecycle')">Vòng đời & Cache</button>
-    <button onclick="go('multi')">Multi-tenant Song song</button>
+    <button onclick="go('build')"><span data-lang="vi">Quá trình Build</span><span data-lang="en">Build Process</span></button>
+    <button onclick="go('filter')"><span data-lang="vi">Cơ chế Filtering</span><span data-lang="en">Filtering Mechanism</span></button>
+    <button onclick="go('lifecycle')"><span data-lang="vi">Vòng đời & Cache</span><span data-lang="en">Lifecycle & Cache</span></button>
+    <button onclick="go('multi')"><span data-lang="vi">Multi-tenant Song song</span><span data-lang="en">Multi-tenant Parallel</span></button>
+    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 </div></div>
 
 <div class="wrap">
@@ -99,9 +105,10 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl on" id="p-map">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Hai loại Context trong hệ thống</h2></div>
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Hai loại Context trong hệ thống</span><span data-lang="en">Two Context Types in the System</span></h2></div>
 
-    <div class="nt bl"><strong>Tại sao cần 2 loại?</strong> Tenant Context giữ thông tin "tenant này là ai, dùng gì" — tồn tại lâu dài, dùng chung cho mọi request. Execution Context giữ thông tin "request này cần gì để chạy" — chỉ sống trong 1 request rồi bị hủy.</div>
+    <div class="nt bl" data-lang="vi"><strong>Tại sao cần 2 loại?</strong> Tenant Context giữ thông tin "tenant này là ai, dùng gì" — tồn tại lâu dài, dùng chung cho mọi request. Execution Context giữ thông tin "request này cần gì để chạy" — chỉ sống trong 1 request rồi bị hủy.</div>
+    <div class="nt bl" data-lang="en"><strong>Why 2 types?</strong> Tenant Context holds "who is this tenant, what do they use" — long-lived, shared across all requests. Execution Context holds "what does this request need to run" — lives for only 1 request then is destroyed.</div>
 
     <div class="dg"><div class="dg-label">context overview</div><pre>
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -169,7 +176,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-tenant">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Tenant Context — Cấu trúc chi tiết</h2></div>
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span data-lang="vi">Tenant Context — Cấu trúc chi tiết</span><span data-lang="en">Tenant Context — Detailed Structure</span></h2></div>
 
     <div class="dg"><div class="dg-label">tenant context anatomy</div><pre>
 ┌─ <span class="ty">TENANT CONTEXT</span> ──────────────────────────────────────────────────────────┐
@@ -260,7 +267,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-exec">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Execution Context — Cấu trúc chi tiết</h2></div>
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Execution Context — Cấu trúc chi tiết</span><span data-lang="en">Execution Context — Detailed Structure</span></h2></div>
 
     <div class="dg"><div class="dg-label">execution context anatomy</div><pre>
 ┌─ <span class="ty">EXECUTION CONTEXT</span> ─── <span class="cm">tồn tại DUY NHẤT trong 1 request</span> ──────────────────┐
@@ -372,7 +379,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-build">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Quá trình Build — Từ request đến context hoàn chỉnh</h2></div>
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t"><span data-lang="vi">Quá trình Build — Từ request đến context hoàn chỉnh</span><span data-lang="en">Build Process — From Request to Complete Context</span></h2></div>
 
     <div class="dg"><div class="dg-label">full build sequence</div><pre>
 <span class="hi">REQUEST ĐẾN: POST https://acme.crm.com/api/v1/sales</span>
@@ -536,7 +543,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 </div>
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Cost summary — Build context cho request</h2></div>
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">Cost summary — Build context cho request</span><span data-lang="en">Cost Summary — Building Context per Request</span></h2></div>
 
     <div class="dg"><div class="dg-label">timing breakdown</div><pre>
 <span class="ty">Request đầu tiên từ tenant</span> (cold — no cached context):
@@ -593,9 +600,10 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-filter">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Cơ chế Filtering — Đăng ký global, thực thi filtered</h2></div>
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Cơ chế Filtering — Đăng ký global, thực thi filtered</span><span data-lang="en">Filtering Mechanism — Global Registration, Filtered Execution</span></h2></div>
 
-    <div class="nt am"><strong>Nguyên tắc cốt lõi:</strong> Hooks và events được đăng ký ở system level (bootstrap). Nhưng khi thực thi, Execution Context chứa enabledPlugins của tenant → hệ thống lọc, chỉ gọi handlers thuộc plugins tenant đã enable.</div>
+    <div class="nt am" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> Hooks và events được đăng ký ở system level (bootstrap). Nhưng khi thực thi, Execution Context chứa enabledPlugins của tenant → hệ thống lọc, chỉ gọi handlers thuộc plugins tenant đã enable.</div>
+    <div class="nt am" data-lang="en"><strong>Core principle:</strong> Hooks and events are registered at the system level (bootstrap). But at runtime, the Execution Context holds the tenant's enabledPlugins → the system filters and only calls handlers belonging to plugins the tenant has enabled.</div>
 
     <div class="dg"><div class="dg-label">event filtering</div><pre>
 <span class="ty">VÍ DỤ: Event "customer.created" được emit</span>
@@ -654,7 +662,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 </div>
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Hook Filtering — Tương tự</h2></div>
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t"><span data-lang="vi">Hook Filtering — Tương tự</span><span data-lang="en">Hook Filtering — Same Principle</span></h2></div>
 
     <div class="dg"><div class="dg-label">hook filtering</div><pre>
 <span class="ty">VÍ DỤ: Hook point "before:saleCreate" trong customer-care</span>
@@ -733,7 +741,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-lifecycle">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Vòng đời & Cache Strategy</h2></div>
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t"><span data-lang="vi">Vòng đời & Cache Strategy</span><span data-lang="en">Lifecycle & Cache Strategy</span></h2></div>
 
     <div class="dg"><div class="dg-label">context lifecycle</div><pre>
 <span class="ty">TENANT CONTEXT LIFECYCLE</span>
@@ -874,7 +882,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-multi">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">10</span><h2 class="sec-t">Multi-tenant song song — 3 tenants, cùng lúc, cùng instance</h2></div>
+    <div class="sec-h"><span class="sec-n">10</span><h2 class="sec-t"><span data-lang="vi">Multi-tenant song song — 3 tenants, cùng lúc, cùng instance</span><span data-lang="en">Multi-tenant Parallel — 3 Tenants, Simultaneously, Same Instance</span></h2></div>
 
     <div class="dg"><div class="dg-label">parallel execution</div><pre>
 <span class="hi">3 REQUESTS ĐẾN CÙNG LÚC trên cùng 1 App Instance</span>
@@ -990,6 +998,17 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
+function toggleLang(){
+    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+    document.documentElement.className='lang-'+next;
+    localStorage.setItem('crm-docs-lang',next);
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=next==='en'?'VI':'EN';
+}
+(function(){
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+})();
 </script>
 </body>
 </html>

@@ -55,23 +55,29 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .pnl.on .sec:nth-child(2){animation-delay:.04s}
 .pnl.on .sec:nth-child(3){animation-delay:.08s}
 .pnl.on .sec:nth-child(4){animation-delay:.12s}
+html.lang-en [data-lang="vi"]{display:none}
+html.lang-vi [data-lang="en"]{display:none}
 </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Layer 4 — Data Access</div>
-    <h1>Data Access <span>Layer</span></h1>
-    <p>5 thực thể cốt lõi: Query Builder + Pipeline, Pool Manager, Cache Manager, Migration Engine, DIP Boundary — cấu trúc nội tại, liên kết xuyên tầng, và hành vi trong mỗi request.</p>
+    <h1 data-lang="vi">Data Access <span>Layer</span></h1>
+    <h1 data-lang="en">Data Access <span>Layer</span></h1>
+    <p data-lang="vi">5 thực thể cốt lõi: Query Builder + Pipeline, Pool Manager, Cache Manager, Migration Engine, DIP Boundary — cấu trúc nội tại, liên kết xuyên tầng, và hành vi trong mỗi request.</p>
+    <p data-lang="en">5 core entities: Query Builder + Pipeline, Pool Manager, Cache Manager, Migration Engine, DIP Boundary — internal structure, cross-layer connections, and behavior within each request.</p>
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('map')">Bản đồ L4</button>
+    <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ L4</span><span data-lang="en">L4 Map</span></button>
     <button onclick="go('qi')">Query Builder + Pipeline</button>
     <button onclick="go('pm')">Pool Manager</button>
     <button onclick="go('cm')">Cache Manager</button>
     <button onclick="go('me')">Migration Engine</button>
-    <button onclick="go('req')">Tham gia xử lý Request</button>
+    <button onclick="go('req')"><span data-lang="vi">Tham gia xử lý Request</span><span data-lang="en">Request Processing</span></button>
+    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 </div></div>
 
 <div class="wrap">
@@ -82,9 +88,10 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl on" id="p-map">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ tổng quan L4 — 5 thực thể và vị trí</h2></div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ tổng quan L4 — 5 thực thể và vị trí</span><span data-lang="en">L4 Overview Map — 5 Entities &amp; Positions</span></h2></div>
 
-    <div class="nt rd"><strong>Nguyên tắc tối thượng của L4:</strong> Không plugin nào, không tầng nào được truy cập database trực tiếp. Mọi đường đi đều phải qua L4. L4 là lớp bảo vệ duy nhất giữa business logic và data.</div>
+    <div class="nt rd" data-lang="vi"><strong>Nguyên tắc tối thượng của L4:</strong> Không plugin nào, không tầng nào được truy cập database trực tiếp. Mọi đường đi đều phải qua L4. L4 là lớp bảo vệ duy nhất giữa business logic và data.</div>
+    <div class="nt rd" data-lang="en"><strong>L4's supreme principle:</strong> No plugin, no layer may access the database directly. Every path must go through L4. L4 is the sole protective barrier between business logic and data.</div>
 
     <div class="dg"><div class="dg-label">L4 position &amp; entities</div><pre>
   ┌─────────────────────────────────────────────────────────────────────────┐
@@ -168,7 +175,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-qi">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Query Builder + Pipeline — Cấu trúc nội tại</h2></div>
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Query Builder + Pipeline — Cấu trúc nội tại</span><span data-lang="en">Query Builder + Pipeline — Internal Structure</span></h2></div>
 
     <div class="dg"><div class="dg-label">query builder pipeline anatomy</div><pre>
 ┌─ <span class="rd">QUERY BUILDER + PIPELINE</span> ─────────────────────────────────────────────────┐
@@ -312,9 +319,10 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 </div>
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">3 tầng bảo vệ — Builder + Validator + RLS</h2></div>
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span data-lang="vi">3 tầng bảo vệ — Builder + Validator + RLS</span><span data-lang="en">3 Defence Layers — Builder + Validator + RLS</span></h2></div>
 
-    <div class="nt rd"><strong>Defense in Depth:</strong> Nếu 1 tầng có bug, 2 tầng còn lại vẫn chặn (PostgreSQL). MySQL chỉ 2 tầng (no RLS) → stricter validation.</div>
+    <div class="nt rd" data-lang="vi"><strong>Defense in Depth:</strong> Nếu 1 tầng có bug, 2 tầng còn lại vẫn chặn (PostgreSQL). MySQL chỉ 2 tầng (no RLS) → stricter validation.</div>
+    <div class="nt rd" data-lang="en"><strong>Defense in Depth:</strong> If one layer has a bug, the other two still block (PostgreSQL). MySQL has only 2 layers (no RLS) → stricter validation.</div>
 
     <div class="dg"><div class="dg-label">3-layer security</div><pre>
     Plugin: ctx.db.query('sales').where({ status: 'new' }).execute()
@@ -389,7 +397,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-pm">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Pool Manager — Cấu trúc nội tại</h2></div>
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Pool Manager — Cấu trúc nội tại</span><span data-lang="en">Pool Manager — Internal Structure</span></h2></div>
 
     <div class="dg"><div class="dg-label">pool manager anatomy</div><pre>
 ┌─ <span class="am">POOL MANAGER</span> ─── <span class="cm">Singleton, tạo khi bootstrap</span> ──────────────────────────┐
@@ -511,7 +519,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-cm">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Cache Manager — 3-Level Cache</h2></div>
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t"><span data-lang="vi">Cache Manager — 3-Level Cache</span><span data-lang="en">Cache Manager — 3-Level Cache</span></h2></div>
 
     <div class="dg"><div class="dg-label">cache manager anatomy</div><pre>
 ┌─ <span class="cy">CACHE MANAGER</span> ────────────────────────────────────────────────────────────┐
@@ -655,9 +663,10 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-me">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Migration Engine — Schema Versioning (DIP)</h2></div>
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">Migration Engine — Schema Versioning (DIP)</span><span data-lang="en">Migration Engine — Schema Versioning (DIP)</span></h2></div>
 
-    <div class="nt am"><strong>Khác 3 thực thể kia:</strong> Migration Engine KHÔNG tham gia xử lý request. Nó chỉ chạy khi: plugin được enable/disable cho tenant, hoặc plugin version được upgrade. Đây là admin operation, không phải request-time operation.</div>
+    <div class="nt am" data-lang="vi"><strong>Khác 3 thực thể kia:</strong> Migration Engine KHÔNG tham gia xử lý request. Nó chỉ chạy khi: plugin được enable/disable cho tenant, hoặc plugin version được upgrade. Đây là admin operation, không phải request-time operation.</div>
+    <div class="nt am" data-lang="en"><strong>Unlike the other 3 entities:</strong> Migration Engine does NOT participate in request handling. It only runs when: a plugin is enabled/disabled for a tenant, or a plugin version is upgraded. This is an admin operation, not a request-time operation.</div>
 
     <div class="dg"><div class="dg-label">migration engine</div><pre>
 ┌─ <span class="rd">MIGRATION ENGINE</span> ─────────────────────────────────────────────────────────┐
@@ -735,9 +744,10 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-req">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Cách L4 tham gia xử lý request — Trace đầy đủ</h2></div>
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t"><span data-lang="vi">Cách L4 tham gia xử lý request — Trace đầy đủ</span><span data-lang="en">How L4 Participates in Request Processing — Full Trace</span></h2></div>
 
-    <div class="nt bl"><strong>Trace 1 request:</strong> POST /api/plugins/customer-care/sales — tạo sale mới. Theo dõi từng bước L4 tham gia: context build → SELECT verify → INSERT sale → UPDATE customer → cache invalidate.</div>
+    <div class="nt bl" data-lang="vi"><strong>Trace 1 request:</strong> POST /api/plugins/customer-care/sales — tạo sale mới. Theo dõi từng bước L4 tham gia: context build → SELECT verify → INSERT sale → UPDATE customer → cache invalidate.</div>
+    <div class="nt bl" data-lang="en"><strong>Trace 1 request:</strong> POST /api/plugins/customer-care/sales — creating a new sale. Follow each step L4 participates in: context build → SELECT verify → INSERT sale → UPDATE customer → cache invalidate.</div>
 
     <div class="dg"><div class="dg-label">request trace</div><pre>
 <span class="ty">GIAI ĐOẠN 0: Context Build</span> (ExecutionContextBuilder, trước khi plugin chạy)
@@ -881,6 +891,17 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
+function toggleLang(){
+    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+    document.documentElement.className='lang-'+next;
+    localStorage.setItem('crm-docs-lang',next);
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=next==='en'?'VI':'EN';
+}
+(function(){
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+})();
 </script>
 </body>
 </html>

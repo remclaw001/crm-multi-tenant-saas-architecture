@@ -71,7 +71,10 @@
     .pnl.on .sec:nth-child(2) { animation-delay: .04s }
     .pnl.on .sec:nth-child(3) { animation-delay: .08s }
     .pnl.on .sec:nth-child(4) { animation-delay: .12s }
+    html.lang-en [data-lang="vi"]{display:none}
+    html.lang-vi [data-lang="en"]{display:none}
   </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 
 <body>
@@ -79,16 +82,18 @@
 <div class="hero">
   <div class="hero-tag">Security — L2 Gateway</div>
   <h1>Authentication &amp; <span>Authorization Flow</span></h1>
-  <p>Toàn bộ luồng xác thực: đăng nhập → JWT → xác thực mỗi request → refresh → revoke → phân quyền RBAC.</p>
+  <p data-lang="vi">Toàn bộ luồng xác thực: đăng nhập → JWT → xác thực mỗi request → refresh → revoke → phân quyền RBAC.</p>
+  <p data-lang="en">Complete authentication flow: login → JWT → per-request verification → refresh → revoke → RBAC authorization.</p>
 </div>
 
 <div class="nw"><div class="nav">
-  <button class="on" onclick="go('map')">Bản đồ Auth</button>
-  <button onclick="go('login')">Đăng nhập</button>
+  <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ Auth</span><span data-lang="en">Auth Map</span></button>
+  <button onclick="go('login')"><span data-lang="vi">Đăng nhập</span><span data-lang="en">Login</span></button>
   <button onclick="go('jwt')">JWT & Claims</button>
-  <button onclick="go('verify')">Xác thực Request</button>
+  <button onclick="go('verify')"><span data-lang="vi">Xác thực Request</span><span data-lang="en">Verify Request</span></button>
   <button onclick="go('refresh')">Refresh & Revoke</button>
-  <button onclick="go('authz')">Phân quyền</button>
+  <button onclick="go('authz')"><span data-lang="vi">Phân quyền</span><span data-lang="en">Authorization</span></button>
+  <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 </div></div>
 
 <div class="wrap">
@@ -96,8 +101,9 @@
 <!-- MAP -->
 <div class="pnl on" id="p-map">
 <div class="sec">
-  <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ Auth — Hai luồng chính</h2></div>
-  <div class="nt bl"><strong>Nguyên tắc cốt lõi:</strong> JWT là nguồn sự thật duy nhất về danh tính. Tenant được xác định từ subdomain (TenantResolver), sau đó được xác nhận khớp với tenantId trong JWT (AuthGuard). Hai bước này tách biệt để tránh tenant impersonation.</div>
+  <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ Auth — Hai luồng chính</span><span data-lang="en">Auth Map — Two Main Flows</span></h2></div>
+  <div class="nt bl" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> JWT là nguồn sự thật duy nhất về danh tính. Tenant được xác định từ subdomain (TenantResolver), sau đó được xác nhận khớp với tenantId trong JWT (AuthGuard). Hai bước này tách biệt để tránh tenant impersonation.</div>
+  <div class="nt bl" data-lang="en"><strong>Core principle:</strong> JWT is the single source of truth for identity. The tenant is resolved from the subdomain (TenantResolver), then verified to match the tenantId inside the JWT (AuthGuard). These two steps are separate to prevent tenant impersonation.</div>
   <div class="dg"><div class="dg-label">auth architecture</div><pre>
   <span class="ty">LUỒNG 1: ĐĂNG NHẬP — Lấy tokens</span>
 
@@ -170,8 +176,9 @@
 <!-- LOGIN -->
 <div class="pnl" id="p-login">
 <div class="sec">
-  <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Đăng nhập — Login Flow</h2></div>
-  <div class="nt bl"><strong>Endpoint public:</strong> <code>POST /auth/login</code> là endpoint duy nhất không qua AuthGuard. TenantResolver vẫn chạy để xác định tenant từ subdomain trước khi tìm user trong đúng tenant scope.</div>
+  <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Đăng nhập — Login Flow</span><span data-lang="en">Login — Login Flow</span></h2></div>
+  <div class="nt bl" data-lang="vi"><strong>Endpoint public:</strong> <code>POST /auth/login</code> là endpoint duy nhất không qua AuthGuard. TenantResolver vẫn chạy để xác định tenant từ subdomain trước khi tìm user trong đúng tenant scope.</div>
+  <div class="nt bl" data-lang="en"><strong>Public endpoint:</strong> <code>POST /auth/login</code> is the only endpoint that bypasses AuthGuard. TenantResolver still runs to identify the tenant from the subdomain before looking up the user in the correct tenant scope.</div>
   <div class="dg"><div class="dg-label">login flow</div><pre>
 <span class="ty">POST /auth/login</span>
 Host: acme.crm.com
@@ -276,8 +283,9 @@ Body: { email: "alice@acme.com", password: "..." }
 <!-- JWT -->
 <div class="pnl" id="p-jwt">
 <div class="sec">
-  <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">JWT & Claims — Cấu trúc Token</h2></div>
-  <div class="nt bl"><strong>JWT là source of truth:</strong> Mọi thông tin cần thiết cho một request đều nằm trong JWT — không cần query DB để biết userId, tenantId, roles, permissions. AuthGuard chỉ cần verify signature và check blacklist.</div>
+  <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">JWT & Claims — <span data-lang="vi">Cấu trúc Token</span><span data-lang="en">Token Structure</span></h2></div>
+  <div class="nt bl" data-lang="vi"><strong>JWT là source of truth:</strong> Mọi thông tin cần thiết cho một request đều nằm trong JWT — không cần query DB để biết userId, tenantId, roles, permissions. AuthGuard chỉ cần verify signature và check blacklist.</div>
+  <div class="nt bl" data-lang="en"><strong>JWT is the source of truth:</strong> All information needed for a request is embedded in the JWT — no DB query is required to know userId, tenantId, roles, or permissions. AuthGuard only needs to verify the signature and check the blacklist.</div>
   <div class="dg"><div class="dg-label">jwt structure</div><pre>
 <span class="ty">ACCESS TOKEN — JWT (RS256)</span>
 
@@ -356,8 +364,9 @@ Body: { email: "alice@acme.com", password: "..." }
 <!-- VERIFY -->
 <div class="pnl" id="p-verify">
 <div class="sec">
-  <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Xác thực Request — AuthGuard Pipeline</h2></div>
-  <div class="nt bl"><strong>Chạy trên mỗi request (trừ /auth/*):</strong> AuthGuard là middleware thứ 3 trong L2 Gateway, sau TenantResolver và trước RateLimiter. Nếu bất kỳ bước nào fail, request bị reject ngay, không forward xuống L3.</div>
+  <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Xác thực Request — AuthGuard Pipeline</span><span data-lang="en">Verify Request — AuthGuard Pipeline</span></h2></div>
+  <div class="nt bl" data-lang="vi"><strong>Chạy trên mỗi request (trừ /auth/*):</strong> AuthGuard là middleware thứ 3 trong L2 Gateway, sau TenantResolver và trước RateLimiter. Nếu bất kỳ bước nào fail, request bị reject ngay, không forward xuống L3.</div>
+  <div class="nt bl" data-lang="en"><strong>Runs on every request (except /auth/*):</strong> AuthGuard is the 3rd middleware in the L2 Gateway, after TenantResolver and before RateLimiter. If any step fails, the request is rejected immediately without being forwarded to L3.</div>
   <div class="dg"><div class="dg-label">authguard pipeline</div><pre>
 <span class="ty">Mỗi request có Authorization: Bearer &lt;token&gt;</span>
 
@@ -459,7 +468,8 @@ Body: { email: "alice@acme.com", password: "..." }
 <div class="pnl" id="p-refresh">
 <div class="sec">
   <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Refresh & Revoke — Token Lifecycle</h2></div>
-  <div class="nt bl"><strong>Refresh token rotation:</strong> Mỗi lần refresh đều sinh ra cả access token mới lẫn refresh token mới, đồng thời vô hiệu hóa refresh token cũ. Điều này giúp phát hiện refresh token bị đánh cắp (nếu token cũ được dùng lại sau rotation → alert).</div>
+  <div class="nt bl" data-lang="vi"><strong>Refresh token rotation:</strong> Mỗi lần refresh đều sinh ra cả access token mới lẫn refresh token mới, đồng thời vô hiệu hóa refresh token cũ. Điều này giúp phát hiện refresh token bị đánh cắp (nếu token cũ được dùng lại sau rotation → alert).</div>
+  <div class="nt bl" data-lang="en"><strong>Refresh token rotation:</strong> Every refresh issues both a new access token and a new refresh token, while simultaneously invalidating the old refresh token. This enables detection of stolen refresh tokens (if the old token is reused after rotation → alert).</div>
   <div class="dg"><div class="dg-label">token refresh flow</div><pre>
 <span class="ty">ACCESS TOKEN HẾT HẠN — Client nhận 401 TOKEN_EXPIRED</span>
 
@@ -577,8 +587,9 @@ Cookie: refreshToken=a3f9b2...
 <!-- AUTHORIZATION -->
 <div class="pnl" id="p-authz">
 <div class="sec">
-  <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Phân quyền — RBAC & Permission Check</h2></div>
-  <div class="nt bl"><strong>3 lớp kiểm tra độc lập:</strong> (1) Plugin có được enable cho tenant không? (2) User có role/permission không? (3) Tier của tenant có hỗ trợ feature này không? Cả 3 phải PASS thì request mới được forward xuống L3.</div>
+  <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">Phân quyền — RBAC & Permission Check</span><span data-lang="en">Authorization — RBAC & Permission Check</span></h2></div>
+  <div class="nt bl" data-lang="vi"><strong>3 lớp kiểm tra độc lập:</strong> (1) Plugin có được enable cho tenant không? (2) User có role/permission không? (3) Tier của tenant có hỗ trợ feature này không? Cả 3 phải PASS thì request mới được forward xuống L3.</div>
+  <div class="nt bl" data-lang="en"><strong>3 independent check layers:</strong> (1) Is the plugin enabled for the tenant? (2) Does the user have the required role/permission? (3) Does the tenant's tier support this feature? All 3 must PASS before the request is forwarded to L3.</div>
   <div class="dg"><div class="dg-label">rbac model</div><pre>
 <span class="ty">MÔ HÌNH RBAC — Tenant-scoped</span>
 
@@ -724,6 +735,17 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
+function toggleLang(){
+    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+    document.documentElement.className='lang-'+next;
+    localStorage.setItem('crm-docs-lang',next);
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=next==='en'?'VI':'EN';
+}
+(function(){
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+})();
 </script>
 </body>
 

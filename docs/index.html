@@ -49,6 +49,9 @@
         .sidebar-header {
             padding: 24px 20px;
             border-bottom: 1px solid var(--bd);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .sidebar-header h1 {
@@ -121,15 +124,21 @@
             border: none;
             display: block;
         }
+        html.lang-en .vi { display: none }
+        html.lang-vi .en { display: none }
     </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 
 <body>
 
     <div class="sidebar">
         <div class="sidebar-header">
-            <h1>CRM Architecture</h1>
-            <p>v3.0 Documentation</p>
+            <div>
+                <h1>CRM Architecture</h1>
+                <p>v3.0 Documentation</p>
+            </div>
+            <button id="lang-btn" onclick="toggleLang()" style="flex-shrink:0;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
         </div>
 
         <nav class="nav">
@@ -140,7 +149,7 @@
             </div>
 
             <div class="nav-group">
-                <div class="nav-group-title">Các layers</div>
+                <div class="nav-group-title"><span class="vi">Các layers</span><span class="en">Layers</span></div>
                 <a href="crm-presentation-layer.html" target="content-frame" class="nav-item">Presentation Layer</a>
                 <a href="crm-gateway-layer.html" target="content-frame" class="nav-item">Gateway Layer</a>
                 <a href="crm-business-logic-layer.html" target="content-frame" class="nav-item">Business Logic Layer</a>
@@ -219,6 +228,24 @@
                 console.log('Cannot access iframe content due to cross-origin policy');
             }
         });
+
+        function toggleLang() {
+            var next = document.documentElement.classList.contains('lang-vi') ? 'en' : 'vi';
+            document.documentElement.className = 'lang-' + next;
+            localStorage.setItem('crm-docs-lang', next);
+            var btn = document.getElementById('lang-btn');
+            if (btn) btn.textContent = next === 'en' ? 'VI' : 'EN';
+            // Propagate to iframe (same-origin)
+            try {
+                iframe.contentDocument.documentElement.className = 'lang-' + next;
+                var iframeBtn = iframe.contentDocument.getElementById('lang-btn');
+                if (iframeBtn) iframeBtn.textContent = next === 'en' ? 'VI' : 'EN';
+            } catch(e) {}
+        }
+        (function(){
+            var btn = document.getElementById('lang-btn');
+            if (btn) btn.textContent = document.documentElement.classList.contains('lang-en') ? 'VI' : 'EN';
+        })();
     </script>
 
 </body>

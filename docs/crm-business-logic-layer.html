@@ -55,18 +55,23 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .pnl.on .sec:nth-child(2){animation-delay:.04s}
 .pnl.on .sec:nth-child(3){animation-delay:.08s}
 .pnl.on .sec:nth-child(4){animation-delay:.12s}
+html.lang-en [data-lang="vi"]{display:none}
+html.lang-vi [data-lang="en"]{display:none}
 </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Layer 3 — Business Logic</div>
-    <h1>Mọi thứ bên trong <span>Business Logic Layer</span></h1>
-    <p>4 nhóm thành phần: Plugin Management, Plugin Cores, Context Building, Shared Services.</p>
+    <h1 data-lang="vi">Mọi thứ bên trong <span>Business Logic Layer</span></h1>
+    <h1 data-lang="en">Everything inside the <span>Business Logic Layer</span></h1>
+    <p data-lang="vi">4 nhóm thành phần: Plugin Management, Plugin Cores, Context Building, Shared Services.</p>
+    <p data-lang="en">4 component groups: Plugin Management, Plugin Cores, Context Building, Shared Services.</p>
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('map')">Bản đồ L3</button>
+    <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ L3</span><span data-lang="en">L3 Map</span></button>
     <button onclick="go('mgr')">Plugin Manager</button>
     <button onclick="go('reg')">Plugin Registry</button>
     <button onclick="go('sand')">Sandbox Engine</button>
@@ -75,6 +80,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
     <button onclick="go('core')">Plugin Cores</button>
     <button onclick="go('ctx')">Context Building</button>
     <button onclick="go('svc')">Shared Services</button>
+    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 </div></div>
 
 <div class="wrap">
@@ -82,8 +88,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- MAP -->
 <div class="pnl on" id="p-map">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L3 — 4 nhóm, 15 thành phần</h2></div>
-    <div class="nt bl"><strong>Nguyên tắc cốt lõi:</strong> L3 là nơi business logic THỰC SỰ xảy ra. Nhưng không phải code business logic viết trực tiếp ở đây — code nằm trong Plugin Cores. L3 cung cấp hạ tầng để plugins CHẠY AN TOÀN: quản lý lifecycle, sandbox, giao tiếp, context, và shared services.</div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ L3 — 4 nhóm, 15 thành phần</span><span data-lang="en">L3 Map — 4 groups, 15 components</span></h2></div>
+    <div class="nt bl" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> L3 là nơi business logic THỰC SỰ xảy ra. Nhưng không phải code business logic viết trực tiếp ở đây — code nằm trong Plugin Cores. L3 cung cấp hạ tầng để plugins CHẠY AN TOÀN: quản lý lifecycle, sandbox, giao tiếp, context, và shared services.</div>
+    <div class="nt bl" data-lang="en"><strong>Core principle:</strong> L3 is where business logic ACTUALLY happens. But business logic code is not written directly here — code lives in Plugin Cores. L3 provides the infrastructure for plugins to RUN SAFELY: lifecycle management, sandbox, communication, context, and shared services.</div>
     <div class="dg"><div class="dg-label">L3 overview</div><pre>
   L2 Gateway output: { tenantId, userId, plugin, method, permission }
                                             │
@@ -145,7 +152,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-mgr">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Plugin Manager — Lifecycle Controller</h2></div>
-    <div class="nt bl"><strong>Vai trò:</strong> Quản lý toàn bộ vòng đời plugin — deploy, upgrade, enable/disable per-tenant, canary rollout, rollback. Phối hợp với Registry, Sandbox, Migration Engine (L4), và MQ (L5).</div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Quản lý toàn bộ vòng đời plugin — deploy, upgrade, enable/disable per-tenant, canary rollout, rollback. Phối hợp với Registry, Sandbox, Migration Engine (L4), và MQ (L5).</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> Manages the complete plugin lifecycle — deploy, upgrade, enable/disable per-tenant, canary rollout, rollback. Coordinates with Registry, Sandbox, Migration Engine (L4), and MQ (L5).</div>
     <div class="dg"><div class="dg-label">plugin manager</div><pre>
 <span class="ty">CẤU TRÚC NỘI BỘ:</span>
 
@@ -218,7 +226,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-reg">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Plugin Registry — Metadata Store</h2></div>
-    <div class="nt bl"><strong>Vai trò:</strong> Bộ nhớ trung tâm chứa metadata mọi plugin. Gateway cần biết URL thuộc plugin nào, Event Bus cần biết ai lắng nghe, Hook Registry cần biết ai hook — tất cả query Registry.</div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Bộ nhớ trung tâm chứa metadata mọi plugin. Gateway cần biết URL thuộc plugin nào, Event Bus cần biết ai lắng nghe, Hook Registry cần biết ai hook — tất cả query Registry.</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> Central store for all plugin metadata. Gateway needs to know which plugin owns a URL, Event Bus needs to know who is listening, Hook Registry needs to know who hooks — all query the Registry.</div>
     <div class="dg"><div class="dg-label">registry</div><pre>
 <span class="ty">REGISTRY CHỨA 5 MAP:</span>
 
@@ -291,7 +300,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-sand">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Sandbox Engine — Isolation & Resource Limits</h2></div>
-    <div class="nt rd"><strong>Tại sao?</strong> Plugin code có thể có bug: vô hạn loop, memory leak, cố truy cập hệ thống. Sandbox ngăn chặn: plugin crash → graceful error, không crash process, không ảnh hưởng requests khác.</div>
+    <div class="nt rd" data-lang="vi"><strong>Tại sao?</strong> Plugin code có thể có bug: vô hạn loop, memory leak, cố truy cập hệ thống. Sandbox ngăn chặn: plugin crash → graceful error, không crash process, không ảnh hưởng requests khác.</div>
+    <div class="nt rd" data-lang="en"><strong>Why?</strong> Plugin code can have bugs: infinite loops, memory leaks, attempts to access the system. Sandbox prevents: plugin crash → graceful error, no process crash, no impact on other requests.</div>
     <div class="dg"><div class="dg-label">sandbox</div><pre>
 <span class="ty">CƠ CHẾ:</span>
 
@@ -341,7 +351,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-evt">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Event Bus — Plugin Communication</h2></div>
-    <div class="nt bl"><strong>Vai trò:</strong> Cho phép plugins giao tiếp MÀ KHÔNG biết nhau. Plugin A emit event → Event Bus deliver tới handlers — A không biết ai lắng nghe. Loose coupling.</div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Cho phép plugins giao tiếp MÀ KHÔNG biết nhau. Plugin A emit event → Event Bus deliver tới handlers — A không biết ai lắng nghe. Loose coupling.</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> Allows plugins to communicate WITHOUT knowing each other. Plugin A emits event → Event Bus delivers to handlers — A does not know who is listening. Loose coupling.</div>
     <div class="dg"><div class="dg-label">event bus</div><pre>
 <span class="ty">2 CHẾ ĐỘ:</span>
 
@@ -395,7 +406,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-hook">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Hook Registry — Extension Points</h2></div>
-    <div class="nt am"><strong>Vai trò:</strong> Quản lý "điểm mở rộng" giữa plugins. Plugin A CỐ TÌNH tạo hook points — cho phép plugins KHÁC can thiệp vào luồng xử lý mà KHÔNG sửa code gốc.</div>
+    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Quản lý "điểm mở rộng" giữa plugins. Plugin A CỐ TÌNH tạo hook points — cho phép plugins KHÁC can thiệp vào luồng xử lý mà KHÔNG sửa code gốc.</div>
+    <div class="nt am" data-lang="en"><strong>Role:</strong> Manages "extension points" between plugins. Plugin A DELIBERATELY creates hook points — allowing OTHER plugins to intervene in the processing flow WITHOUT modifying the original code.</div>
     <div class="dg"><div class="dg-label">hooks</div><pre>
 <span class="ty">3 LOẠI HOOK:</span>
 
@@ -452,7 +464,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-core">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Plugin Cores — Business Logic Code</h2></div>
-    <div class="nt gn"><strong>Vai trò:</strong> Chứa code business logic thực tế — CRUD, validation, business rules. Mỗi core là singleton stateless: instantiate 1 lần, dùng chung cho MỌI tenant. State per-tenant nằm ở database (L4/L5).</div>
+    <div class="nt gn" data-lang="vi"><strong>Vai trò:</strong> Chứa code business logic thực tế — CRUD, validation, business rules. Mỗi core là singleton stateless: instantiate 1 lần, dùng chung cho MỌI tenant. State per-tenant nằm ở database (L4/L5).</div>
+    <div class="nt gn" data-lang="en"><strong>Role:</strong> Contains the actual business logic code — CRUD, validation, business rules. Each core is a stateless singleton: instantiated once, shared across ALL tenants. Per-tenant state lives in the database (L4/L5).</div>
     <div class="dg"><div class="dg-label">plugin cores</div><pre>
 <span class="ty">CẤU TRÚC THƯ MỤC:</span>
 
@@ -534,8 +547,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- CONTEXT BUILDING -->
 <div class="pnl" id="p-ctx">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Context Building — Chuẩn bị thế giới cho Plugin</h2></div>
-    <div class="nt bl"><strong>Vai trò:</strong> Giai đoạn GIỮA Gateway và Plugin execution. Tạo Tenant Context (tenant là ai, dùng gì) + Execution Context (request cần gì). Plugin CHỈ nhận Execution Context.</div>
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t"><span data-lang="vi">Context Building — Chuẩn bị thế giới cho Plugin</span><span data-lang="en">Context Building — Preparing the World for Plugins</span></h2></div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Giai đoạn GIỮA Gateway và Plugin execution. Tạo Tenant Context (tenant là ai, dùng gì) + Execution Context (request cần gì). Plugin CHỈ nhận Execution Context.</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> The stage BETWEEN Gateway and Plugin execution. Creates Tenant Context (who the tenant is, what they use) + Execution Context (what the request needs). Plugins ONLY receive the Execution Context.</div>
     <div class="dg"><div class="dg-label">context building</div><pre>
 <span class="ty">TENANT CONTEXT MANAGER:</span>
 
@@ -581,8 +595,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- SHARED SERVICES -->
 <div class="pnl" id="p-svc">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Shared Services — Utility dùng chung</h2></div>
-    <div class="nt bl"><strong>Vai trò:</strong> Singletons cung cấp utility cho mọi plugin. Plugin gọi qua ctx.services — không cần biết S3 bucket nào, Redis cluster nào, MQ exchange nào. Tất cả tenant-aware.</div>
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t"><span data-lang="vi">Shared Services — Utility dùng chung</span><span data-lang="en">Shared Services — Common Utilities</span></h2></div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Singletons cung cấp utility cho mọi plugin. Plugin gọi qua ctx.services — không cần biết S3 bucket nào, Redis cluster nào, MQ exchange nào. Tất cả tenant-aware.</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> Singletons providing utilities to every plugin. Plugins call via ctx.services — no need to know which S3 bucket, Redis cluster, or MQ exchange. All are tenant-aware.</div>
     <div class="dg"><div class="dg-label">shared services</div><pre>
 <span class="or">① Email Service</span>
   ctx.services.email.send({ to, template, data })
@@ -646,6 +661,17 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
+function toggleLang(){
+    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+    document.documentElement.className='lang-'+next;
+    localStorage.setItem('crm-docs-lang',next);
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=next==='en'?'VI':'EN';
+}
+(function(){
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+})();
 </script>
 </body>
 </html>

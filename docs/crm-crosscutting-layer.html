@@ -54,24 +54,30 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .pnl.on .sec{animation:fu .3s ease both}
 .pnl.on .sec:nth-child(2){animation-delay:.04s}
 .pnl.on .sec:nth-child(3){animation-delay:.08s}
+html.lang-en [data-lang="vi"]{display:none}
+html.lang-vi [data-lang="en"]{display:none}
 </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Layer 6 — Cross-cutting Concerns</div>
-    <h1>Mọi thứ bên trong <span>Cross-cutting Concerns</span></h1>
-    <p>4 hệ thống xuyên suốt L1→L5: Security, Error Handling, Config Management, Dependency Management. Không thuộc riêng layer nào — enforce nhất quán xuyên toàn bộ kiến trúc.</p>
+    <h1 data-lang="vi">Mọi thứ bên trong <span>Cross-cutting Concerns</span></h1>
+    <h1 data-lang="en">Inside the <span>Cross-cutting Concerns</span></h1>
+    <p data-lang="vi">4 hệ thống xuyên suốt L1→L5: Security, Error Handling, Config Management, Dependency Management. Không thuộc riêng layer nào — enforce nhất quán xuyên toàn bộ kiến trúc.</p>
+    <p data-lang="en">4 systems spanning L1→L5: Security, Error Handling, Config Management, Dependency Management. Belonging to no single layer — enforcing consistency across the entire architecture.</p>
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('map')">Bản đồ L6</button>
+    <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ L6</span><span data-lang="en">L6 Map</span></button>
     <button onclick="go('sec')">Security</button>
     <button onclick="go('iso')">Tenant Isolation</button>
     <button onclick="go('err')">Error Handling</button>
     <button onclick="go('cfg')">Config Management</button>
     <button onclick="go('dep')">Dependency Mgmt</button>
     <button onclick="go('xref')">Cross-layer Map</button>
+    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 </div></div>
 
 <div class="wrap">
@@ -79,8 +85,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- MAP -->
 <div class="pnl on" id="p-map">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L6 — Vertical Layer xuyên suốt L1→L5</h2></div>
-    <div class="nt rd"><strong>L6 KHÁC mọi layer khác.</strong> L1→L5 là horizontal — request đi tuần tự từ trên xuống. L6 là VERTICAL — mỗi concern xuyên qua TẤT CẢ layers. Security không chỉ ở Gateway, Error handling không chỉ ở Plugin, Config không chỉ ở DB. Chúng ENFORCE nhất quán ở mọi nơi.</div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ L6 — Vertical Layer xuyên suốt L1→L5</span><span data-lang="en">L6 Map — Vertical Layer Spanning L1→L5</span></h2></div>
+    <div class="nt rd" data-lang="vi"><strong>L6 KHÁC mọi layer khác.</strong> L1→L5 là horizontal — request đi tuần tự từ trên xuống. L6 là VERTICAL — mỗi concern xuyên qua TẤT CẢ layers. Security không chỉ ở Gateway, Error handling không chỉ ở Plugin, Config không chỉ ở DB. Chúng ENFORCE nhất quán ở mọi nơi.</div>
+    <div class="nt rd" data-lang="en"><strong>L6 is DIFFERENT from every other layer.</strong> L1→L5 are horizontal — requests flow sequentially top-down. L6 is VERTICAL — each concern cuts through ALL layers. Security is not only at the Gateway, Error handling is not only in Plugins, Config is not only at the DB. They ENFORCE consistency everywhere.</div>
     <div class="dg"><div class="dg-label">L6 vertical map</div><pre>
          <span class="rd">L6 CROSS-CUTTING CONCERNS</span>
          │         │             │            │
@@ -147,8 +154,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- SECURITY -->
 <div class="pnl" id="p-sec">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Security — Defense in Depth</h2></div>
-    <div class="nt rd"><strong>Nguyên tắc:</strong> Security không phải 1 bức tường — nó là nhiều lớp chồng lên nhau. Mỗi layer có defense riêng. Attacker phá được 1 lớp → vẫn còn nhiều lớp phía sau. Plugin developer KHÔNG CẦN tự implement security — hệ thống enforce tự động.</div>
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Security — Defense in Depth</span><span data-lang="en">Security — Defense in Depth</span></h2></div>
+    <div class="nt rd" data-lang="vi"><strong>Nguyên tắc:</strong> Security không phải 1 bức tường — nó là nhiều lớp chồng lên nhau. Mỗi layer có defense riêng. Attacker phá được 1 lớp → vẫn còn nhiều lớp phía sau. Plugin developer KHÔNG CẦN tự implement security — hệ thống enforce tự động.</div>
+    <div class="nt rd" data-lang="en"><strong>Principle:</strong> Security is not a single wall — it is many layers stacked on top of each other. Each layer has its own defense. An attacker breaking through one layer → still faces many more layers behind. Plugin developers do NOT need to implement security themselves — the system enforces it automatically.</div>
     <div class="dg"><div class="dg-label">defense in depth</div><pre>
 <span class="ty">7 LAYERS OF DEFENSE:</span>
 
@@ -246,8 +254,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- TENANT ISOLATION -->
 <div class="pnl" id="p-iso">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Tenant Isolation — 3-Layer Protection</h2></div>
-    <div class="nt rd"><strong>Zero cross-tenant data leak là yêu cầu TUYỆT ĐỐI.</strong> Một tenant KHÔNG BAO GIỜ nhìn thấy data của tenant khác. Hệ thống enforce tự động ở 3 tầng — plugin developer KHÔNG THỂ bypass dù cố ý hay vô ý.</div>
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span data-lang="vi">Tenant Isolation — 3-Layer Protection</span><span data-lang="en">Tenant Isolation — 3-Layer Protection</span></h2></div>
+    <div class="nt rd" data-lang="vi"><strong>Zero cross-tenant data leak là yêu cầu TUYỆT ĐỐI.</strong> Một tenant KHÔNG BAO GIỜ nhìn thấy data của tenant khác. Hệ thống enforce tự động ở 3 tầng — plugin developer KHÔNG THỂ bypass dù cố ý hay vô ý.</div>
+    <div class="nt rd" data-lang="en"><strong>Zero cross-tenant data leaks are an ABSOLUTE requirement.</strong> A tenant will NEVER see another tenant's data. The system enforces this automatically at 3 layers — plugin developers CANNOT bypass it whether intentionally or accidentally.</div>
     <div class="dg"><div class="dg-label">3-layer tenant isolation</div><pre>
 <span class="ty">LAYER 1: QUERY INTERCEPTOR (L4 — application level)</span>
 
@@ -325,8 +334,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- ERROR HANDLING -->
 <div class="pnl" id="p-err">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Error Handling — Resilience Framework</h2></div>
-    <div class="nt am"><strong>Vai trò:</strong> Cung cấp framework thống nhất để MỌI layer xử lý lỗi nhất quán: phân loại lỗi (permanent vs transient), pattern phục hồi (retry, circuit breaker, bulkhead, fallback), và error boundary cho plugins. Plugin developer throw error → framework tự phân loại + response đúng HTTP status.</div>
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Error Handling — Resilience Framework</span><span data-lang="en">Error Handling — Resilience Framework</span></h2></div>
+    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Cung cấp framework thống nhất để MỌI layer xử lý lỗi nhất quán: phân loại lỗi (permanent vs transient), pattern phục hồi (retry, circuit breaker, bulkhead, fallback), và error boundary cho plugins. Plugin developer throw error → framework tự phân loại + response đúng HTTP status.</div>
+    <div class="nt am" data-lang="en"><strong>Role:</strong> Provides a unified framework so that EVERY layer handles errors consistently: error classification (permanent vs transient), recovery patterns (retry, circuit breaker, bulkhead, fallback), and error boundaries for plugins. Plugin developer throws an error → framework automatically classifies it + responds with the correct HTTP status.</div>
     <div class="dg"><div class="dg-label">error framework</div><pre>
 <span class="ty">TYPED ERROR HIERARCHY:</span>
 
@@ -452,8 +462,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- CONFIG MANAGEMENT -->
 <div class="pnl" id="p-cfg">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Config Management — 3-Level Configuration</h2></div>
-    <div class="nt bl"><strong>Vai trò:</strong> Quản lý cấu hình ở 3 cấp: Global (toàn hệ thống), Tier (per-plan), Tenant (per-tenant). Config cascade: Tenant override Tier, Tier override Global. Hỗ trợ hot reload (thay đổi mà không restart) và feature flags (bật/tắt feature không cần deploy).</div>
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t"><span data-lang="vi">Config Management — 3-Level Configuration</span><span data-lang="en">Config Management — 3-Level Configuration</span></h2></div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Quản lý cấu hình ở 3 cấp: Global (toàn hệ thống), Tier (per-plan), Tenant (per-tenant). Config cascade: Tenant override Tier, Tier override Global. Hỗ trợ hot reload (thay đổi mà không restart) và feature flags (bật/tắt feature không cần deploy).</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> Manages configuration at 3 levels: Global (system-wide), Tier (per-plan), Tenant (per-tenant). Config cascade: Tenant overrides Tier, Tier overrides Global. Supports hot reload (changes without restart) and feature flags (enable/disable features without deploying).</div>
     <div class="dg"><div class="dg-label">config management</div><pre>
 <span class="ty">3-LEVEL CONFIG CASCADE:</span>
 
@@ -564,8 +575,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- DEPENDENCY MANAGEMENT -->
 <div class="pnl" id="p-dep">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Dependency Management — Plugin Dependency Graph</h2></div>
-    <div class="nt am"><strong>Vai trò:</strong> Quản lý dependency giữa plugins: A depends on B → không enable A nếu B chưa enable, không disable B nếu A vẫn enable. Thuộc L6 vì XUYÊN TẦNG: enforcement diễn ra ở L3 (Plugin Manager), L4 (Migration Engine), và L1 (UI hiển thị).</div>
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">Dependency Management — Plugin Dependency Graph</span><span data-lang="en">Dependency Management — Plugin Dependency Graph</span></h2></div>
+    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Quản lý dependency giữa plugins: A depends on B → không enable A nếu B chưa enable, không disable B nếu A vẫn enable. Thuộc L6 vì XUYÊN TẦNG: enforcement diễn ra ở L3 (Plugin Manager), L4 (Migration Engine), và L1 (UI hiển thị).</div>
+    <div class="nt am" data-lang="en"><strong>Role:</strong> Manages dependencies between plugins: A depends on B → cannot enable A if B is not yet enabled, cannot disable B if A is still enabled. Belongs to L6 because it is CROSS-LAYER: enforcement occurs at L3 (Plugin Manager), L4 (Migration Engine), and L1 (UI display).</div>
     <div class="dg"><div class="dg-label">dependency management</div><pre>
 <span class="ty">DEPENDENCY GRAPH:</span>
 
@@ -672,8 +684,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- CROSS-LAYER MAP -->
 <div class="pnl" id="p-xref">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Cross-layer Map — L6 ↔ L1→L5 tương tác</h2></div>
-    <div class="nt bl"><strong>Tổng hợp:</strong> Bảng ma trận chi tiết mỗi L6 concern tương tác với component cụ thể nào ở mỗi layer, ai enforce, và cơ chế ra sao.</div>
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Cross-layer Map — L6 ↔ L1→L5 tương tác</span><span data-lang="en">Cross-layer Map — L6 ↔ L1→L5 Interactions</span></h2></div>
+    <div class="nt bl" data-lang="vi"><strong>Tổng hợp:</strong> Bảng ma trận chi tiết mỗi L6 concern tương tác với component cụ thể nào ở mỗi layer, ai enforce, và cơ chế ra sao.</div>
+    <div class="nt bl" data-lang="en"><strong>Summary:</strong> Detailed matrix of how each L6 concern interacts with specific components at each layer, who enforces it, and how the mechanism works.</div>
     <div class="dg"><div class="dg-label">interaction matrix</div><pre>
 <span class="rd">━━━ ① SECURITY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
 
@@ -818,6 +831,17 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
+function toggleLang(){
+    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+    document.documentElement.className='lang-'+next;
+    localStorage.setItem('crm-docs-lang',next);
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=next==='en'?'VI':'EN';
+}
+(function(){
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+})();
 </script>
 </body>
 </html>

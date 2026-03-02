@@ -361,7 +361,10 @@
     .pnl.on .sec:nth-child(4) {
       animation-delay: .12s
     }
+    html.lang-en [data-lang="vi"]{display:none}
+    html.lang-vi [data-lang="en"]{display:none}
   </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 
 <body>
@@ -369,19 +372,20 @@
   <div class="hero">
     <div class="hero-tag">Layer 5 — Infrastructure</div>
     <h1>Infrastructure <span>Layer</span></h1>
-    <p>PostgreSQL, Redis, RabbitMQ, S3, Elasticsearch — cấu trúc, vai trò, cấu hình per-tier, và cách từng thành phần
-      phục vụ hệ thống.</p>
+    <p data-lang="vi">PostgreSQL, Redis, RabbitMQ, S3, Elasticsearch — cấu trúc, vai trò, cấu hình per-tier, và cách từng thành phần phục vụ hệ thống.</p>
+    <p data-lang="en">PostgreSQL, Redis, RabbitMQ, S3, Elasticsearch — structure, roles, per-tier configuration, and how each component serves the system.</p>
   </div>
 
   <div class="nw">
     <div class="nav">
-      <button class="on" onclick="go('map')">Bản đồ L5</button>
+      <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ L5</span><span data-lang="en">L5 Map</span></button>
       <button onclick="go('dip')">Dialect & Strategy</button>
       <button onclick="go('pg')">PostgreSQL</button>
       <button onclick="go('redis')">Redis</button>
       <button onclick="go('mq')">RabbitMQ</button>
       <button onclick="go('s3')">S3 + Elasticsearch</button>
-      <button onclick="go('tier')">Cấu hình per-Tier</button>
+      <button onclick="go('tier')"><span data-lang="vi">Cấu hình per-Tier</span><span data-lang="en">Per-Tier Config</span></button>
+      <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
     </div>
   </div>
 
@@ -394,7 +398,7 @@
 
       <div class="sec">
         <div class="sec-h"><span class="sec-n">00</span>
-          <h2 class="sec-t">Bản đồ L5 — 5 thành phần + DIP Boundary</h2>
+          <h2 class="sec-t"><span data-lang="vi">Bản đồ L5 — 5 thành phần + DIP Boundary</span><span data-lang="en">L5 Map — 5 Components + DIP Boundary</span></h2>
         </div>
 
         <div class="dg">
@@ -488,7 +492,7 @@
 
       <div class="sec">
         <div class="sec-h"><span class="sec-n">01</span>
-          <h2 class="sec-t">PostgreSQL — 3 loại instance</h2>
+          <h2 class="sec-t"><span data-lang="vi">PostgreSQL — 3 loại instance</span><span data-lang="en">PostgreSQL — 3 Instance Types</span></h2>
         </div>
 
         <div class="dg">
@@ -630,7 +634,7 @@
 
       <div class="sec">
         <div class="sec-h"><span class="sec-n">02</span>
-          <h2 class="sec-t">Redis Cluster — 6 vai trò trong hệ thống</h2>
+          <h2 class="sec-t"><span data-lang="vi">Redis Cluster — 6 vai trò trong hệ thống</span><span data-lang="en">Redis Cluster — 6 Roles in the System</span></h2>
         </div>
 
         <div class="dg">
@@ -1015,9 +1019,8 @@
           <h2 class="sec-t">Dialect & Strategy — DIP Implementations</h2>
         </div>
 
-        <div class="nt vi"><strong>Dependency Inversion:</strong> L4 (Query Builder, Migration Engine) depend on
-          interfaces (ISQLDialect, ITenantStrategy, IMigrationDialect). L5 cung cấp implementations. Swap DB = tạo 3
-          implementations mới ở L5, zero code change ở L4.</div>
+        <div class="nt vi" data-lang="vi"><strong>Dependency Inversion:</strong> L4 (Query Builder, Migration Engine) depend on interfaces (ISQLDialect, ITenantStrategy, IMigrationDialect). L5 cung cấp implementations. Swap DB = tạo 3 implementations mới ở L5, zero code change ở L4.</div>
+        <div class="nt vi" data-lang="en"><strong>Dependency Inversion:</strong> L4 (Query Builder, Migration Engine) depends on interfaces (ISQLDialect, ITenantStrategy, IMigrationDialect). L5 provides the implementations. Swapping DBs = create 3 new implementations in L5, zero code change in L4.</div>
 
         <div class="dg">
           <div class="dg-label">ISQLDialect implementations</div>
@@ -1136,7 +1139,7 @@
 
       <div class="sec">
         <div class="sec-h"><span class="sec-n">06</span>
-          <h2 class="sec-t">Cấu hình Infrastructure per Tier</h2>
+          <h2 class="sec-t"><span data-lang="vi">Cấu hình Infrastructure per Tier</span><span data-lang="en">Infrastructure Configuration per Tier</span></h2>
         </div>
 
         <div class="dg">
@@ -1207,6 +1210,17 @@
       if (i >= 0 && btns[i]) btns[i].classList.add('on');
       window.scrollTo({ top: 160, behavior: 'smooth' });
     }
+    function toggleLang(){
+        var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+        document.documentElement.className='lang-'+next;
+        localStorage.setItem('crm-docs-lang',next);
+        var btn=document.getElementById('lang-btn');
+        if(btn)btn.textContent=next==='en'?'VI':'EN';
+    }
+    (function(){
+        var btn=document.getElementById('lang-btn');
+        if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+    })();
   </script>
 </body>
 

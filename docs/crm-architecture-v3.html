@@ -362,6 +362,9 @@
          animation-delay: .12s
       }
 
+      html.lang-en [data-lang="vi"]{display:none}
+      html.lang-vi [data-lang="en"]{display:none}
+
       .split-layout {
          display: grid;
          grid-template-columns: 1fr 1fr;
@@ -375,6 +378,7 @@
          }
       }
    </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 
 <body>
@@ -382,15 +386,17 @@
    <div class="hero">
       <div class="hero-tag">Architecture v3 — Consolidated</div>
       <h1>CRM Multi-tenant <span>SaaS</span></h1>
-      <p>Kiến trúc 7 layers hợp nhất — đồng bộ với mọi tài liệu chi tiết đã xây dựng.</p>
+      <p data-lang="vi">Kiến trúc 7 layers hợp nhất — đồng bộ với mọi tài liệu chi tiết đã xây dựng.</p>
+      <p data-lang="en">Unified 7-layer architecture — consistent with all detailed documents built.</p>
    </div>
 
    <div class="nw">
       <div class="nav">
-         <button class="on" onclick="go('arch')">Kiến trúc tổng quan</button>
+         <button class="on" onclick="go('arch')"><span data-lang="vi">Kiến trúc tổng quan</span><span data-lang="en">Architecture Overview</span></button>
          <button onclick="go('data')">Database Topology</button>
          <button onclick="go('deploy')">Deployment Topology</button>
          <button onclick="go('tier')">Tier Comparison</button>
+         <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 
       </div>
    </div>
@@ -404,7 +410,7 @@
 
          <div class="sec">
             <div class="sec-h"><span class="sec-n">ARCH</span>
-               <h2 class="sec-t">Kiến trúc 7 Layers — Sơ đồ & Vai trò</h2>
+               <h2 class="sec-t"><span data-lang="vi">Kiến trúc 7 Layers — Sơ đồ & Vai trò</span><span data-lang="en">7-Layer Architecture — Diagram & Roles</span></h2>
             </div>
 
             <div class="split-layout">
@@ -699,7 +705,7 @@
 
       <div class="sec">
          <div class="sec-h"><span class="sec-n">DB</span>
-            <h2 class="sec-t">Database Topology — 3 loại DB + Connection Pools</h2>
+            <h2 class="sec-t"><span data-lang="vi">Database Topology — 3 loại DB + Connection Pools</span><span data-lang="en">Database Topology — 3 DB Types + Connection Pools</span></h2>
          </div>
 
          <div class="dg">
@@ -806,6 +812,17 @@ Enterprise dùng Shared+RLS, giống Premium. Chỉ VIP có Dedicated DB.</pre>
          if (i >= 0 && btns[i]) btns[i].classList.add('on');
          window.scrollTo({ top: 160, behavior: 'smooth' });
       }
+      function toggleLang(){
+         var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+         document.documentElement.className='lang-'+next;
+         localStorage.setItem('crm-docs-lang',next);
+         var btn=document.getElementById('lang-btn');
+         if(btn)btn.textContent=next==='en'?'VI':'EN';
+      }
+      (function(){
+         var btn=document.getElementById('lang-btn');
+         if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+      })();
    </script>
 </body>
 

@@ -71,24 +71,29 @@
     .pnl.on .sec:nth-child(2) { animation-delay: .04s }
     .pnl.on .sec:nth-child(3) { animation-delay: .08s }
     .pnl.on .sec:nth-child(4) { animation-delay: .12s }
+    html.lang-en [data-lang="vi"]{display:none}
+    html.lang-vi [data-lang="en"]{display:none}
   </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 
 <body>
 
 <div class="hero">
   <div class="hero-tag">Tenant Management</div>
-  <h1>Vòng đời <span>Tenant</span></h1>
-  <p>Provisioning → Active → Tier Change → Offboard. Bao gồm VIP migration và Billing & Quota enforcement.</p>
+  <h1><span data-lang="vi">Vòng đời <span>Tenant</span></span><span data-lang="en">Tenant <span>Lifecycle</span></span></h1>
+  <p data-lang="vi">Provisioning → Active → Tier Change → Offboard. Bao gồm VIP migration và Billing & Quota enforcement.</p>
+  <p data-lang="en">Provisioning → Active → Tier Change → Offboard. Includes VIP migration and Billing & Quota enforcement.</p>
 </div>
 
 <div class="nw"><div class="nav">
-  <button class="on" onclick="go('map')">Bản đồ vòng đời</button>
-  <button onclick="go('prov')">Tạo Tenant</button>
-  <button onclick="go('up')">Nâng Tier</button>
-  <button onclick="go('down')">Hạ Tier</button>
+  <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ vòng đời</span><span data-lang="en">Lifecycle Map</span></button>
+  <button onclick="go('prov')"><span data-lang="vi">Tạo Tenant</span><span data-lang="en">Create Tenant</span></button>
+  <button onclick="go('up')"><span data-lang="vi">Nâng Tier</span><span data-lang="en">Upgrade Tier</span></button>
+  <button onclick="go('down')"><span data-lang="vi">Hạ Tier</span><span data-lang="en">Downgrade Tier</span></button>
   <button onclick="go('off')">Offboard</button>
   <button onclick="go('bill')">Billing & Quota</button>
+  <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 </div></div>
 
 <div class="wrap">
@@ -96,8 +101,9 @@
 <!-- MAP -->
 <div class="pnl on" id="p-map">
 <div class="sec">
-  <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ vòng đời Tenant</h2></div>
-  <div class="nt bl"><strong>Tenant lifecycle:</strong> Một tenant đi qua nhiều trạng thái trong suốt vòng đời. Mỗi chuyển trạng thái đều có flow cụ thể ảnh hưởng đến Metadata DB, connection pool, plugin registry, Redis cache, và billing.</div>
+  <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ vòng đời Tenant</span><span data-lang="en">Tenant Lifecycle Map</span></h2></div>
+  <div class="nt bl" data-lang="vi"><strong>Tenant lifecycle:</strong> Một tenant đi qua nhiều trạng thái trong suốt vòng đời. Mỗi chuyển trạng thái đều có flow cụ thể ảnh hưởng đến Metadata DB, connection pool, plugin registry, Redis cache, và billing.</div>
+  <div class="nt bl" data-lang="en"><strong>Tenant lifecycle:</strong> A tenant passes through multiple states throughout its lifetime. Each state transition has a specific flow that affects the Metadata DB, connection pool, plugin registry, Redis cache, and billing.</div>
   <div class="dg"><div class="dg-label">lifecycle overview</div><pre>
   <span class="ty">TRẠNG THÁI TENANT:</span>
 
@@ -157,8 +163,9 @@
 <!-- PROVISIONING -->
 <div class="pnl" id="p-prov">
 <div class="sec">
-  <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Tạo Tenant — Provisioning Flow</h2></div>
-  <div class="nt bl"><strong>Mục tiêu:</strong> Trong ~30ms sync, một tenant mới phải có record trong Metadata DB, domain routing trong Redis, connection pool slot, và tất cả default plugins sẵn sàng với schema + seed data.</div>
+  <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Tạo Tenant — Provisioning Flow</span><span data-lang="en">Create Tenant — Provisioning Flow</span></h2></div>
+  <div class="nt bl" data-lang="vi"><strong>Mục tiêu:</strong> Trong ~30ms sync, một tenant mới phải có record trong Metadata DB, domain routing trong Redis, connection pool slot, và tất cả default plugins sẵn sàng với schema + seed data.</div>
+  <div class="nt bl" data-lang="en"><strong>Goal:</strong> Within ~30ms sync, a new tenant must have a record in the Metadata DB, domain routing in Redis, a connection pool slot, and all default plugins ready with schema + seed data.</div>
   <div class="dg"><div class="dg-label">provisioning flow</div><pre>
 <span class="ty">POST /system/tenants</span>  (System Admin)
 Body: { name, domain, tier, adminEmail }
@@ -259,8 +266,9 @@ Body: { name, domain, tier, adminEmail }
 <!-- UPGRADE -->
 <div class="pnl" id="p-up">
 <div class="sec">
-  <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Nâng Tier — Upgrade Flow</h2></div>
-  <div class="nt bl"><strong>Hai trường hợp:</strong> Nâng Basic/Premium/Enterprise lên nhau là thao tác đơn giản, không downtime. Nâng lên VIP phức tạp hơn nhiều vì phải provision Dedicated DB mới và migrate toàn bộ dữ liệu.</div>
+  <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span data-lang="vi">Nâng Tier — Upgrade Flow</span><span data-lang="en">Upgrade Tier — Upgrade Flow</span></h2></div>
+  <div class="nt bl" data-lang="vi"><strong>Hai trường hợp:</strong> Nâng Basic/Premium/Enterprise lên nhau là thao tác đơn giản, không downtime. Nâng lên VIP phức tạp hơn nhiều vì phải provision Dedicated DB mới và migrate toàn bộ dữ liệu.</div>
+  <div class="nt bl" data-lang="en"><strong>Two cases:</strong> Upgrading between Basic/Premium/Enterprise is a simple operation with no downtime. Upgrading to VIP is far more complex as it requires provisioning a new Dedicated DB and migrating all data.</div>
   <div class="dg"><div class="dg-label">upgrade — shared tiers</div><pre>
 <span class="ty">TRƯỜNG HỢP 1: Basic / Premium / Enterprise → cao hơn (không phải VIP)</span>
 <span class="cm">Ví dụ: acme-123 từ Premium → Enterprise. Không downtime.</span>
@@ -352,8 +360,9 @@ Body: { name, domain, tier, adminEmail }
 <!-- DOWNGRADE -->
 <div class="pnl" id="p-down">
 <div class="sec">
-  <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Hạ Tier — Downgrade Flow</h2></div>
-  <div class="nt am"><strong>Cần cảnh báo trước:</strong> Hạ tier có thể disable một số plugins và tenant sẽ không truy cập được data của plugins đó (data vẫn còn trong DB, không bị xóa). Hệ thống phải hiện impact rõ ràng và yêu cầu confirm trước khi thực hiện.</div>
+  <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Hạ Tier — Downgrade Flow</span><span data-lang="en">Downgrade Tier — Downgrade Flow</span></h2></div>
+  <div class="nt am" data-lang="vi"><strong>Cần cảnh báo trước:</strong> Hạ tier có thể disable một số plugins và tenant sẽ không truy cập được data của plugins đó (data vẫn còn trong DB, không bị xóa). Hệ thống phải hiện impact rõ ràng và yêu cầu confirm trước khi thực hiện.</div>
+  <div class="nt am" data-lang="en"><strong>Advance warning required:</strong> Downgrading a tier may disable some plugins and the tenant will lose access to that plugin data (data remains in DB, not deleted). The system must clearly show the impact and require confirmation before proceeding.</div>
   <div class="dg"><div class="dg-label">downgrade — shared tiers</div><pre>
 <span class="ty">TRƯỜNG HỢP 1: Enterprise / Premium → thấp hơn (không phải VIP)</span>
 <span class="cm">Ví dụ: acme-123 từ Enterprise → Premium.</span>
@@ -439,8 +448,9 @@ Body: { name, domain, tier, adminEmail }
 <!-- OFFBOARD -->
 <div class="pnl" id="p-off">
 <div class="sec">
-  <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Offboard — Xóa Tenant</h2></div>
-  <div class="nt rd"><strong>Không thể hoàn tác sau retention period:</strong> Offboard có 2 nguồn trigger — Tenant Admin tự nguyện, hoặc Billing system tự động sau khi hết suspension period. Cả hai đi qua cùng flow nhưng với origin khác nhau trong audit log.</div>
+  <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t"><span data-lang="vi">Offboard — Xóa Tenant</span><span data-lang="en">Offboard — Remove Tenant</span></h2></div>
+  <div class="nt rd" data-lang="vi"><strong>Không thể hoàn tác sau retention period:</strong> Offboard có 2 nguồn trigger — Tenant Admin tự nguyện, hoặc Billing system tự động sau khi hết suspension period. Cả hai đi qua cùng flow nhưng với origin khác nhau trong audit log.</div>
+  <div class="nt rd" data-lang="en"><strong>Irreversible after retention period:</strong> Offboard has 2 trigger sources — voluntary by Tenant Admin, or automatically by the Billing system after the suspension period expires. Both go through the same flow but with different origins in the audit log.</div>
   <div class="dg"><div class="dg-label">offboard flow</div><pre>
 <span class="ty">TRIGGER:</span>
   A) Tự nguyện:  POST /tenant/offboard  (Tenant Admin)
@@ -532,7 +542,8 @@ Body: { name, domain, tier, adminEmail }
 <div class="pnl" id="p-bill">
 <div class="sec">
   <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Billing & Quota Enforcement</h2></div>
-  <div class="nt bl"><strong>Nguyên tắc:</strong> Không hard-block ngay khi vượt giới hạn mà dùng grace period để tránh mất data không cần thiết. Chỉ suspend sau khi đã cảnh báo đủ số lần và hết thời gian grace.</div>
+  <div class="nt bl" data-lang="vi"><strong>Nguyên tắc:</strong> Không hard-block ngay khi vượt giới hạn mà dùng grace period để tránh mất data không cần thiết. Chỉ suspend sau khi đã cảnh báo đủ số lần và hết thời gian grace.</div>
+  <div class="nt bl" data-lang="en"><strong>Principle:</strong> Do not hard-block immediately when limits are exceeded; use a grace period to avoid unnecessary data loss. Only suspend after sufficient warnings have been issued and the grace period has expired.</div>
   <div class="dg"><div class="dg-label">subscription lifecycle</div><pre>
 <span class="ty">SUBSCRIPTION LIFECYCLE:</span>
 
@@ -659,6 +670,17 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
+function toggleLang(){
+    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+    document.documentElement.className='lang-'+next;
+    localStorage.setItem('crm-docs-lang',next);
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=next==='en'?'VI':'EN';
+}
+(function(){
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+})();
 </script>
 </body>
 

@@ -369,7 +369,10 @@
     .pnl.on .sec:nth-child(6) {
       animation-delay: .2s
     }
+html.lang-en [data-lang="vi"]{display:none}
+html.lang-vi [data-lang="en"]{display:none}
   </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
     mermaid.initialize({ startOnLoad: true, theme: 'dark' });
@@ -381,22 +384,24 @@
 
   <div class="hero">
     <div class="hero-tag">Request Flow Deep Dive</div>
-    <h1>Luồng xử lý <span>1 Request</span></h1>
-    <p>Trace từ byte đầu tiên đến byte cuối cùng — mọi thành phần, mọi plugin, mọi quyết định.</p>
+    <h1 data-lang="vi">Luồng xử lý <span>1 Request</span></h1>
+    <h1 data-lang="en">Processing Flow of <span>1 Request</span></h1>
+    <p data-lang="vi">Trace từ byte đầu tiên đến byte cuối cùng — mọi thành phần, mọi plugin, mọi quyết định.</p>
+    <p data-lang="en">Trace from the first byte to the last — every component, every plugin, every decision.</p>
   </div>
 
   <div class="nw">
     <div class="nav">
-      <button class="on" onclick="go('full')">Luồng đầy đủ</button>
+      <button class="on" onclick="go('full')"><span data-lang="vi">Luồng đầy đủ</span><span data-lang="en">Full Flow</span></button>
       <button onclick="go('gw')">① Gateway</button>
       <button onclick="go('ctx')">② Build Context</button>
       <button onclick="go('exec')">③ Sandbox & Plugin</button>
       <button onclick="go('side')">④ Events & Async</button>
       <button onclick="go('end')">⑤ Response & Cleanup</button>
-      <button onclick="go('err')">Khi lỗi xảy ra</button>
+      <button onclick="go('err')"><span data-lang="vi">Khi lỗi xảy ra</span><span data-lang="en">Error Handling</span></button>
       <button onclick="go('time')">Timeline</button>
       <button onclick="go('diag')">Diagram</button>
-
+      <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
     </div>
   </div>
 
@@ -409,11 +414,13 @@
 
       <div class="sec">
         <div class="sec-h"><span class="sec-n">00</span>
-          <h2 class="sec-t">Bản đồ toàn bộ luồng</h2>
+          <h2 class="sec-t"><span data-lang="vi">Bản đồ toàn bộ luồng</span><span data-lang="en">Complete Flow Map</span></h2>
         </div>
 
-        <div class="nt bl"><strong>Request mẫu:</strong> POST https://acme.crm.com/api/v1/sales — User tạo sales
+        <div class="nt bl" data-lang="vi"><strong>Request mẫu:</strong> POST https://acme.crm.com/api/v1/sales — User tạo sales
           opportunity mới. Tenant ACME (Premium), enabled: customer-data, customer-care, analytics.</div>
+        <div class="nt bl" data-lang="en"><strong>Sample Request:</strong> POST https://acme.crm.com/api/v1/sales — User creates a new sales
+          opportunity. Tenant ACME (Premium), enabled: customer-data, customer-care, analytics.</div>
 
         <div class="dg">
           <div class="dg-label">complete request map</div>
@@ -536,7 +543,7 @@
 
       <div class="sec">
         <div class="sec-h"><span class="sec-n">①</span>
-          <h2 class="sec-t">API Gateway — Chi tiết từng thành phần</h2>
+          <h2 class="sec-t"><span data-lang="vi">API Gateway — Chi tiết từng thành phần</span><span data-lang="en">API Gateway — Component Details</span></h2>
         </div>
 
         <div class="dg">
@@ -693,7 +700,7 @@
 
       <div class="sec">
         <div class="sec-h"><span class="sec-n">②</span>
-          <h2 class="sec-t">Build Context — Chi tiết từng thành phần</h2>
+          <h2 class="sec-t"><span data-lang="vi">Build Context — Chi tiết từng thành phần</span><span data-lang="en">Build Context — Component Details</span></h2>
         </div>
 
         <div class="dg">
@@ -841,7 +848,7 @@
 
       <div class="sec">
         <div class="sec-h"><span class="sec-n">③</span>
-          <h2 class="sec-t">Sandbox & Plugin Execution — Từng bước bên trong</h2>
+          <h2 class="sec-t"><span data-lang="vi">Sandbox & Plugin Execution — Từng bước bên trong</span><span data-lang="en">Sandbox & Plugin Execution — Step by Step Inside</span></h2>
         </div>
 
         <div class="dg">
@@ -1279,7 +1286,7 @@
 
       <div class="sec">
         <div class="sec-h"><span class="sec-n">ERR</span>
-          <h2 class="sec-t">Khi lỗi xảy ra — tại từng điểm</h2>
+          <h2 class="sec-t"><span data-lang="vi">Khi lỗi xảy ra — tại từng điểm</span><span data-lang="en">When Errors Occur — At Each Point</span></h2>
         </div>
 
         <div class="dg">
@@ -1435,7 +1442,7 @@
 
       <div class="sec">
         <div class="sec-h"><span class="sec-n">TIME</span>
-          <h2 class="sec-t">Timeline — Tổng hợp thời gian</h2>
+          <h2 class="sec-t"><span data-lang="vi">Timeline — Tổng hợp thời gian</span><span data-lang="en">Timeline — Time Summary</span></h2>
         </div>
 
         <div class="dg">
@@ -1724,12 +1731,22 @@ sequenceDiagram
       var p = document.getElementById('p-' + n);
       if (p) p.classList.add('on');
       var names = ['full', 'gw', 'ctx', 'exec', 'side', 'end', 'err', 'time', 'diag'];
-
       var i = names.indexOf(n);
       var btns = document.querySelectorAll('.nav button');
       if (i >= 0 && btns[i]) btns[i].classList.add('on');
       window.scrollTo({ top: 160, behavior: 'smooth' });
     }
+function toggleLang(){
+    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+    document.documentElement.className='lang-'+next;
+    localStorage.setItem('crm-docs-lang',next);
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=next==='en'?'VI':'EN';
+}
+(function(){
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+})();
     var scale = 1, panning = false, pointX = 0, pointY = 0, startX = 0, startY = 0;
 
     function setTransform() {

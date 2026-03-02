@@ -46,35 +46,42 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .nt strong{color:inherit}
 @keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .pnl.on .sec{animation:fu .3s ease both}
+html.lang-en [data-lang="vi"]{display:none}
+html.lang-vi [data-lang="en"]{display:none}
 </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Knowledge Base — Multi-Tenant SaaS</div>
-    <h1>Kiến trúc <span>Multi-Tenant SaaS</span></h1>
-    <p>Tổng quan kiến trúc, patterns và trade-offs cho hệ thống multi-tenant SaaS. Nền tảng lý thuyết chung — không gắn với implementation cụ thể nào.</p>
+    <h1 data-lang="vi">Kiến trúc <span>Multi-Tenant SaaS</span></h1>
+    <h1 data-lang="en">Architecture <span>Multi-Tenant SaaS</span></h1>
+    <p data-lang="vi">Tổng quan kiến trúc, patterns và trade-offs cho hệ thống multi-tenant SaaS. Nền tảng lý thuyết chung — không gắn với implementation cụ thể nào.</p>
+    <p data-lang="en">Architecture overview, patterns and trade-offs for multi-tenant SaaS systems. General theoretical foundation — not tied to any specific implementation.</p>
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('overview')">Tổng quan</button>
+    <button class="on" onclick="go('overview')"><span data-lang="vi">Tổng quan</span><span data-lang="en">Overview</span></button>
     <button onclick="go('iso')">Isolation Strategies</button>
     <button onclick="go('shared')">Shared DB</button>
     <button onclick="go('dedicated')">DB-per-Tenant</button>
     <button onclick="go('hybrid')">Hybrid</button>
-    <button onclick="go('compare')">So sánh</button>
+    <button onclick="go('compare')"><span data-lang="vi">So sánh</span><span data-lang="en">Comparison</span></button>
     <button onclick="go('authn')">Authentication</button>
     <button onclick="go('authz')">Authorization</button>
     <button onclick="go('matrix')">Decision Matrix</button>
+    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 </div></div>
 
 <div class="wrap">
 <!-- OVERVIEW -->
 <div class="pnl on" id="p-overview">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Multi-Tenant SaaS — Khái niệm cốt lõi</h2></div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Multi-Tenant SaaS — Khái niệm cốt lõi</span><span data-lang="en">Multi-Tenant SaaS — Core Concepts</span></h2></div>
 
-    <div class="nt cy"><strong>Định nghĩa:</strong> Multi-tenant = 1 application instance phục vụ nhiều tổ chức (tenants). Mỗi tenant thấy hệ thống như riêng của họ — dữ liệu cách ly, cấu hình riêng, billing riêng — nhưng chia sẻ cùng codebase và infrastructure.</div>
+    <div class="nt cy" data-lang="vi"><strong>Định nghĩa:</strong> Multi-tenant = 1 application instance phục vụ nhiều tổ chức (tenants). Mỗi tenant thấy hệ thống như riêng của họ — dữ liệu cách ly, cấu hình riêng, billing riêng — nhưng chia sẻ cùng codebase và infrastructure.</div>
+    <div class="nt cy" data-lang="en"><strong>Definition:</strong> Multi-tenant = 1 application instance serving multiple organizations (tenants). Each tenant sees the system as their own — isolated data, individual configuration, individual billing — but shares the same codebase and infrastructure.</div>
 
     <div class="dg"><div class="dg-label">core concepts</div><pre>
 <span class="ty">SINGLE-TENANT vs MULTI-TENANT:</span>
@@ -160,7 +167,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- ISOLATION STRATEGIES -->
 <div class="pnl" id="p-iso">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Tenant Isolation — 3 chiến lược chính</h2></div>
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Tenant Isolation — 3 chiến lược chính</span><span data-lang="en">Tenant Isolation — 3 Main Strategies</span></h2></div>
 
     <div class="dg"><div class="dg-label">3 strategies overview</div><pre>
 <span class="ty">3 CHIẾN LƯỢC ISOLATION:</span>
@@ -396,9 +403,10 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- HYBRID -->
 <div class="pnl" id="p-hybrid">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Hybrid — Chiến lược phổ biến nhất</h2></div>
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t"><span data-lang="vi">Hybrid — Chiến lược phổ biến nhất</span><span data-lang="en">Hybrid — The Most Common Strategy</span></h2></div>
 
-    <div class="nt gn"><strong>Thực tế:</strong> Hầu hết SaaS thành công đều dùng Hybrid. Shared DB cho 95% tenants (cost-effective), dedicated DB cho 5% VIP (premium revenue). Đây là sweet spot giữa cost và isolation.</div>
+    <div class="nt gn" data-lang="vi"><strong>Thực tế:</strong> Hầu hết SaaS thành công đều dùng Hybrid. Shared DB cho 95% tenants (cost-effective), dedicated DB cho 5% VIP (premium revenue). Đây là sweet spot giữa cost và isolation.</div>
+    <div class="nt gn" data-lang="en"><strong>In practice:</strong> Most successful SaaS products use Hybrid. Shared DB for 95% of tenants (cost-effective), dedicated DB for 5% VIP tenants (premium revenue). This is the sweet spot between cost and isolation.</div>
 
     <div class="dg"><div class="dg-label">hybrid architecture</div><pre>
 <span class="ty">CẤU TRÚC HYBRID:</span>
@@ -490,7 +498,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- COMPARISON -->
 <div class="pnl" id="p-compare">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">So sánh chi tiết — Mọi khía cạnh</h2></div>
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">So sánh chi tiết — Mọi khía cạnh</span><span data-lang="en">Detailed Comparison — Every Dimension</span></h2></div>
 
     <div class="dg"><div class="dg-label">comprehensive comparison</div><pre>
 <span class="ty">SO SÁNH TOÀN DIỆN:</span>
@@ -555,7 +563,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- AUTHENTICATION -->
 <div class="pnl" id="p-authn">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Authentication — Identity trong Multi-Tenant</h2></div>
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Authentication — Identity trong Multi-Tenant</span><span data-lang="en">Authentication — Identity in Multi-Tenant</span></h2></div>
 
     <div class="dg"><div class="dg-label">authentication patterns</div><pre>
 <span class="ty">NGUYÊN TẮC: USER LUÔN THUỘC VỀ 1 TENANT</span>
@@ -656,7 +664,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- AUTHORIZATION -->
 <div class="pnl" id="p-authz">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t">Authorization — RBAC trong Multi-Tenant</h2></div>
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t"><span data-lang="vi">Authorization — RBAC trong Multi-Tenant</span><span data-lang="en">Authorization — RBAC in Multi-Tenant</span></h2></div>
 
     <div class="dg"><div class="dg-label">authorization patterns</div><pre>
 <span class="ty">NGUYÊN TẮC: ROLES + PERMISSIONS SCOPED BY TENANT</span>
@@ -774,7 +782,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- DECISION MATRIX -->
 <div class="pnl" id="p-matrix">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t">Decision Matrix — Chọn gì cho dự án của bạn</h2></div>
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t"><span data-lang="vi">Decision Matrix — Chọn gì cho dự án của bạn</span><span data-lang="en">Decision Matrix — What to Choose for Your Project</span></h2></div>
 
     <div class="dg"><div class="dg-label">decision framework</div><pre>
 <span class="ty">ISOLATION STRATEGY — CHỌN THEO CONTEXT:</span>
@@ -911,6 +919,17 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
+function toggleLang(){
+    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+    document.documentElement.className='lang-'+next;
+    localStorage.setItem('crm-docs-lang',next);
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=next==='en'?'VI':'EN';
+}
+(function(){
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+})();
 </script>
 </body>
 </html>

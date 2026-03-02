@@ -55,24 +55,30 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .pnl.on .sec:nth-child(2){animation-delay:.04s}
 .pnl.on .sec:nth-child(3){animation-delay:.08s}
 .pnl.on .sec:nth-child(4){animation-delay:.12s}
+html.lang-en [data-lang="vi"]{display:none}
+html.lang-vi [data-lang="en"]{display:none}
 </style>
+<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Layer 1 — Presentation</div>
-    <h1>Mọi thứ bên trong <span>Presentation Layer</span></h1>
-    <p>4 thành phần: Web App (Host Shell + Plugin Remotes), Mobile App, Admin Console, Plugin UI System.</p>
+    <h1 data-lang="vi">Mọi thứ bên trong <span>Presentation Layer</span></h1>
+    <h1 data-lang="en">Everything Inside the <span>Presentation Layer</span></h1>
+    <p data-lang="vi">4 thành phần: Web App (Host Shell + Plugin Remotes), Mobile App, Admin Console, Plugin UI System.</p>
+    <p data-lang="en">4 components: Web App (Host Shell + Plugin Remotes), Mobile App, Admin Console, Plugin UI System.</p>
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('map')">Bản đồ L1</button>
+    <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ L1</span><span data-lang="en">L1 Map</span></button>
     <button onclick="go('web')">Web App</button>
     <button onclick="go('fed')">Module Federation</button>
     <button onclick="go('mob')">Mobile App</button>
     <button onclick="go('adm')">Admin Console</button>
     <button onclick="go('sec')">Security (L1)</button>
-    <button onclick="go('flow')">Luồng tổng hợp</button>
+    <button onclick="go('flow')"><span data-lang="vi">Luồng tổng hợp</span><span data-lang="en">Complete Flow</span></button>
+    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 </div></div>
 
 <div class="wrap">
@@ -80,8 +86,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- MAP -->
 <div class="pnl on" id="p-map">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t">Bản đồ L1 — 4 thành phần</h2></div>
-    <div class="nt bl"><strong>Nguyên tắc cốt lõi:</strong> L1 là lớp DUY NHẤT user nhìn thấy. L1 hoàn toàn client-side (chạy trên browser/mobile device). Mọi tương tác đều gọi API tới L2 Gateway — L1 KHÔNG truy cập database, cache, hay MQ trực tiếp. Plugin UI được load ĐỘNG dựa trên tenant đã enable plugins nào.</div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ L1 — 4 thành phần</span><span data-lang="en">L1 Map — 4 Components</span></h2></div>
+    <div class="nt bl" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> L1 là lớp DUY NHẤT user nhìn thấy. L1 hoàn toàn client-side (chạy trên browser/mobile device). Mọi tương tác đều gọi API tới L2 Gateway — L1 KHÔNG truy cập database, cache, hay MQ trực tiếp. Plugin UI được load ĐỘNG dựa trên tenant đã enable plugins nào.</div>
+    <div class="nt bl" data-lang="en"><strong>Core principle:</strong> L1 is the ONLY layer users see. L1 is entirely client-side (runs in browser/mobile device). Every interaction calls the API to L2 Gateway — L1 does NOT directly access database, cache, or MQ. Plugin UI is loaded DYNAMICALLY based on which plugins the tenant has enabled.</div>
     <div class="dg"><div class="dg-label">L1 overview</div><pre>
   ┌─ <span class="ty">L1 PRESENTATION</span> ────────────────────────────────────────────────────────┐
   │                                                                          │
@@ -147,7 +154,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-web">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Web App — Host Shell + Plugin Remotes</h2></div>
-    <div class="nt bl"><strong>Vai trò:</strong> SPA chính mà user truy cập qua browser. Gồm Host Shell (khung ứng dụng) và Plugin Remotes (UI modules load động). Host Shell luôn giống nhau cho mọi tenant — sự khác biệt nằm ở REMOTES nào được load, dựa trên enabledPlugins.</div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> SPA chính mà user truy cập qua browser. Gồm Host Shell (khung ứng dụng) và Plugin Remotes (UI modules load động). Host Shell luôn giống nhau cho mọi tenant — sự khác biệt nằm ở REMOTES nào được load, dựa trên enabledPlugins.</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> The primary SPA that users access via browser. Consists of Host Shell (application frame) and Plugin Remotes (dynamically loaded UI modules). Host Shell is always the same for every tenant — the difference lies in which REMOTES are loaded, based on enabledPlugins.</div>
     <div class="dg"><div class="dg-label">web app architecture</div><pre>
 <span class="ty">HOST SHELL (luôn load, ~200KB gzipped):</span>
 
@@ -242,7 +250,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-fed">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Module Federation — Plugin UI System</h2></div>
-    <div class="nt am"><strong>Vai trò:</strong> Webpack Module Federation cho phép load plugin UI code TẠI RUNTIME mà không cần rebuild Host Shell. Plugin team build UI riêng → publish remoteEntry.js → Host Shell load động. Shared dependencies (React, UI Kit) chỉ load 1 lần.</div>
+    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Webpack Module Federation cho phép load plugin UI code TẠI RUNTIME mà không cần rebuild Host Shell. Plugin team build UI riêng → publish remoteEntry.js → Host Shell load động. Shared dependencies (React, UI Kit) chỉ load 1 lần.</div>
+    <div class="nt am" data-lang="en"><strong>Role:</strong> Webpack Module Federation allows loading plugin UI code AT RUNTIME without rebuilding the Host Shell. Plugin teams build their own UI → publish remoteEntry.js → Host Shell loads dynamically. Shared dependencies (React, UI Kit) are loaded only once.</div>
     <div class="dg"><div class="dg-label">module federation</div><pre>
 <span class="ty">KIẾN TRÚC:</span>
 
@@ -336,7 +345,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-mob">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Mobile App — Dynamic Feature Modules</h2></div>
-    <div class="nt gn"><strong>Vai trò:</strong> Native/cross-platform app cho iOS + Android. Tương tự Web App nhưng thích nghi cho mobile: dynamic feature modules (thay cho Module Federation), OTA updates, offline-first với sync queue.</div>
+    <div class="nt gn" data-lang="vi"><strong>Vai trò:</strong> Native/cross-platform app cho iOS + Android. Tương tự Web App nhưng thích nghi cho mobile: dynamic feature modules (thay cho Module Federation), OTA updates, offline-first với sync queue.</div>
+    <div class="nt gn" data-lang="en"><strong>Role:</strong> Native/cross-platform app for iOS + Android. Similar to Web App but adapted for mobile: dynamic feature modules (replacing Module Federation), OTA updates, offline-first with sync queue.</div>
     <div class="dg"><div class="dg-label">mobile app</div><pre>
 <span class="ty">KIẾN TRÚC:</span>
 
@@ -414,7 +424,8 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <div class="pnl" id="p-adm">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Admin Console — Tenant Admin + System Admin</h2></div>
-    <div class="nt am"><strong>Vai trò:</strong> 2 ứng dụng tách biệt hoàn toàn (domain riêng, auth riêng). Tenant Admin cho quản trị viên từng tenant. System Admin cho đội vận hành platform. Cả hai đều gọi API tới cùng L2 Gateway nhưng qua các endpoint khác nhau.</div>
+    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> 2 ứng dụng tách biệt hoàn toàn (domain riêng, auth riêng). Tenant Admin cho quản trị viên từng tenant. System Admin cho đội vận hành platform. Cả hai đều gọi API tới cùng L2 Gateway nhưng qua các endpoint khác nhau.</div>
+    <div class="nt am" data-lang="en"><strong>Role:</strong> 2 completely separate applications (separate domain, separate auth). Tenant Admin for each tenant's administrators. System Admin for the platform operations team. Both call the API to the same L2 Gateway but through different endpoints.</div>
     <div class="dg"><div class="dg-label">admin console</div><pre>
 <span class="ty">❶ TENANT ADMIN</span> (admin.{subdomain}.crm.com)
 
@@ -500,8 +511,9 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- SECURITY L1 -->
 <div class="pnl" id="p-sec">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Security tại L1 — Client-side Defense</h2></div>
-    <div class="nt rd"><strong>L1 là tuyến phòng thủ đầu tiên.</strong> Mặc dù backend (L2-L7) có defense in depth, L1 vẫn cần security riêng để ngăn chặn tấn công phía client: XSS, clickjacking, data leak qua browser, token theft.</div>
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">Security tại L1 — Client-side Defense</span><span data-lang="en">Security at L1 — Client-side Defense</span></h2></div>
+    <div class="nt rd" data-lang="vi"><strong>L1 là tuyến phòng thủ đầu tiên.</strong> Mặc dù backend (L2-L7) có defense in depth, L1 vẫn cần security riêng để ngăn chặn tấn công phía client: XSS, clickjacking, data leak qua browser, token theft.</div>
+    <div class="nt rd" data-lang="en"><strong>L1 is the first line of defense.</strong> Although the backend (L2-L7) has defense in depth, L1 still needs its own security to prevent client-side attacks: XSS, clickjacking, data leak via browser, token theft.</div>
     <div class="dg"><div class="dg-label">L1 security</div><pre>
 <span class="ty">CSP (Content Security Policy) HEADERS:</span>
 
@@ -578,7 +590,7 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 <!-- FLOW -->
 <div class="pnl" id="p-flow">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t">Luồng tổng hợp — User mở trang Sales</h2></div>
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Luồng tổng hợp — User mở trang Sales</span><span data-lang="en">Complete Flow — User Opens the Sales Page</span></h2></div>
     <div class="dg"><div class="dg-label">L1 complete flow</div><pre>
 <span class="ty">User (ACME sales_manager) mở browser → acme.crm.com → click "Sales"</span>
 
@@ -685,6 +697,17 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
+function toggleLang(){
+    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
+    document.documentElement.className='lang-'+next;
+    localStorage.setItem('crm-docs-lang',next);
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=next==='en'?'VI':'EN';
+}
+(function(){
+    var btn=document.getElementById('lang-btn');
+    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
+})();
 </script>
 </body>
 </html>

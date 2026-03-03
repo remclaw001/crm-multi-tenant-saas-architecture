@@ -30,8 +30,9 @@ npm run db:reset             # rollback-all → migrate → seed
 npm run db:status            # show migration status
 
 # Backend
-npm run start:dev           # ts-node dev server on port 3000 (set in .env)
+npm run start:dev           # ts-node dev server (port from PORT env, default 3000)
 npm run build               # tsc compile to dist/
+npm run start               # run compiled dist/main.js (after build)
 
 # Tests (backend)
 npm test                                       # vitest run (unit tests only, no integration)
@@ -46,7 +47,7 @@ npm run build
 npm test       # vitest (web, admin); no test runner configured for mobile
 ```
 
-Integration tests (`src/**/__tests__/integration/`) are excluded from the default test run and require live DB/Redis.
+Test files must live inside `src/**/__tests__/` directories — vitest only picks up `src/**/__tests__/**/*.{test,spec}.ts`. Integration tests (`src/**/__tests__/integration/`) are excluded from the default test run and require live DB/Redis.
 
 Unit tests require `OTEL_DISABLED=true` in the test environment (already set in `vitest.config.ts`) to prevent OpenTelemetry overhead.
 
@@ -77,6 +78,9 @@ Copy `.env.example` to `.env` in `backend/`. Variables are validated at startup 
 | `LOG_LEVEL` | `info` | Pino log level |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Disabled | Jaeger/collector gRPC endpoint |
 | `OTEL_DISABLED` | `false` | Set `true` in unit tests |
+| `OTEL_SERVICE_NAME` | `crm-api` | Service name on spans and log entries |
+| `PORT` | `3000` | HTTP server port |
+| `THROTTLE_LIMIT` / `THROTTLE_TTL_MS` | `100` / `60000` | Global rate limit (requests per TTL window in ms) |
 
 ## Backend Architecture
 
@@ -117,14 +121,14 @@ Middleware pipeline (applied in order):
 - `PoolRegistry` — manages shared (200), metadata (20), and VIP (30 each) connection pools
 - `CacheManager` — ioredis wrapper; all keys follow `t:<tenant-id>:<resource-type>:<id>`
 - `QueryInterceptor` — wraps Knex; automatically scopes every query to the current tenant. **Business logic must never manually add `WHERE tenant_id = ?`.**
-- `TenantContext` — AsyncLocalStorage-backed context; carries tenant ID, config, user claims through the request. Use `.getStore()` to read (not `.get()`).
+- `TenantContext` — AsyncLocalStorage-backed context; carries tenant ID, tier, and per-request query count. Use `TenantContext.requireTenantId()` in business logic (throws if called outside a request context); `getTenantId()` returns `undefined` when called outside.
 
 ### L3 Plugin System (`src/plugins/`)
 
 - Plugin cores (`cores/`) are stateless singletons: CustomerData, CustomerCare, Analytics, Automation, Marketing
 - `SandboxService` — executes plugin logic via timeout-race (`Promise.race`); hard limits: 5 s timeout, 50 queries/request
 - `HookRegistry` — `before` / `after` / `filter` hooks with priority ordering
-- Each plugin declares a manifest via `built-in-manifests.ts` (dependencies, permissions, resource limits)
+- Each plugin declares a manifest via `built-in-manifests.ts` (dependencies, permissions, resource limits). Plugin dependency graph: `customer-care` → `customer-data`; `automation` → `customer-data` + `analytics`; `marketing` → `customer-data`. A plugin cannot be enabled unless its dependencies are enabled first.
 - **`PluginInfraModule` must be first** in `PluginsModule.imports` — makes `PluginRegistryService`, `ExecutionContextBuilder`, `HookRegistryService`, `SandboxService` available as globals before core modules initialize
 
 **Standard plugin controller pattern** (see `customer-data.controller.ts` for reference):

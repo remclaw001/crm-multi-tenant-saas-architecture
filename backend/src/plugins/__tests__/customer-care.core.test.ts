@@ -36,13 +36,25 @@ function makeCtx(builderOverrides = {}): IExecutionContext {
 }
 
 const mockRegistry = { register: vi.fn() };
+const mockHookRegistry = { register: vi.fn(), runBefore: vi.fn(), runAfter: vi.fn() };
 
 describe('CustomerCareCore', () => {
   let core: CustomerCareCore;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    core = new CustomerCareCore(mockRegistry as any);
+    core = new CustomerCareCore(mockRegistry as any, mockHookRegistry as any);
+  });
+
+  describe('onModuleInit', () => {
+    it('registers after:customer.create hook', () => {
+      core.onModuleInit();
+      expect(mockHookRegistry.register).toHaveBeenCalledWith(
+        'customer-care',
+        expect.objectContaining({ event: 'customer.create', type: 'after' }),
+        expect.any(Function),
+      );
+    });
   });
 
   describe('listCases', () => {

@@ -4,6 +4,7 @@ import type { IPluginCore } from '../../interfaces/plugin-core.interface';
 import type { PluginManifest } from '../../interfaces/plugin-manifest.interface';
 import type { IExecutionContext } from '../../interfaces/execution-context.interface';
 import { PluginRegistryService } from '../../registry/plugin-registry.service';
+import { HookRegistryService } from '../../hooks/hook-registry.service';
 import { ResourceNotFoundError } from '../../../common/errors/domain.errors';
 
 export interface SupportCase {
@@ -40,10 +41,20 @@ export interface UpdateCaseInput {
 export class CustomerCareCore implements IPluginCore, OnModuleInit {
   readonly manifest: PluginManifest = CUSTOMER_CARE_MANIFEST;
 
-  constructor(private readonly registry: PluginRegistryService) {}
+  constructor(
+    private readonly registry: PluginRegistryService,
+    private readonly hookRegistry: HookRegistryService,
+  ) {}
 
   onModuleInit(): void {
     this.registry.register(this);
+    this.hookRegistry.register(
+      'customer-care',
+      { event: 'customer.create', type: 'after', priority: 10 },
+      async (_ctx, _data) => {
+        // Phase 5: no-op. Phase 7+ will auto-create an onboarding case.
+      },
+    );
   }
 
   async listCases(ctx: IExecutionContext): Promise<SupportCase[]> {

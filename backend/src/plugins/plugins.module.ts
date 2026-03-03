@@ -20,6 +20,7 @@ import { CustomerCareModule } from './cores/customer-care/customer-care.module';
 import { AnalyticsModule } from './cores/analytics/analytics.module';
 import { AutomationModule } from './cores/automation/automation.module';
 import { MarketingModule } from './cores/marketing/marketing.module';
+import { PluginsListController } from './plugins-list.controller';
 
 @Module({
   imports: [
@@ -31,5 +32,6 @@ import { MarketingModule } from './cores/marketing/marketing.module';
     AutomationModule,
     MarketingModule,
   ],
+  controllers: [PluginsListController],
 })
 export class PluginsModule {}

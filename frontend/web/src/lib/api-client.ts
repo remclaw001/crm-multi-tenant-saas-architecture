@@ -150,4 +150,9 @@ export const crmApi = {
       ...ctx,
     });
   },
+
+  // ─── Plugins ─────────────────────────────────────────────────────────────────
+  getEnabledPlugins(ctx: AuthCtx): Promise<{ enabledPlugins: string[] }> {
+    return request('/api/v1/plugins', ctx);
+  },
 };

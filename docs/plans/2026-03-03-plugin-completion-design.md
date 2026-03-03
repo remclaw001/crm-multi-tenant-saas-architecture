@@ -1,19 +1,31 @@
-# Plugin Completion Design — Group A + B
+# Plugin Completion Design
 
 **Date:** 2026-03-03
-**Scope:** customer-data (full CRUD) + customer-care (real DB)
+**Scope:** Complete all 5 built-in plugin cores — real DB-backed CRUD, hook wiring, full unit tests.
 **Status:** Approved
 
 ---
 
 ## Context
 
-The CRM has 5 built-in plugins. Two are currently implemented with real DB queries
-(`customer-data` reads from `users`, `analytics` reads from `users`). Three are
-placeholders returning hardcoded data (`customer-care`, `automation`, `marketing`).
+The system has 5 plugin cores. Two have real DB queries; three return hardcoded stubs.
 
-This design covers completing **Group A** (customer-data full CRUD) and **Group B**
-(customer-care real DB) in a single implementation pass.
+| Plugin | Status Before | Target |
+|---|---|---|
+| `customer-data` | Read-only (list, get — on `users`) | Full CRUD on `customers` table + hooks |
+| `analytics` | Implemented (summary, trends on `users`) | Update to aggregate on `customers` |
+| `customer-care` | Stubbed | Full CRUD on `support_cases` |
+| `automation` | Stubbed | Full CRUD on `automation_triggers` |
+| `marketing` | Stubbed | Full CRUD on `marketing_campaigns` |
+
+### Domain Model Clarification
+
+| Table | Purpose | Auth |
+|---|---|---|
+| `users` | Employees, sales reps, admins — **internal staff** of a tenant | JWT login with `password_hash` |
+| `customers` | CRM contacts managed by the tenant — **external parties** | No login |
+
+Previously `customer-data` incorrectly read from `users`. All customer/contact operations move to a new dedicated `customers` table.
 
 ---
 
@@ -21,179 +33,244 @@ This design covers completing **Group A** (customer-data full CRUD) and **Group 
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Contact model | Separate `customers` table | `users` = employees/admins who login; `customers` = CRM contacts who don't |
-| API naming | Rename to "customers" everywhere | Semantic alignment with DB; no backward compat concern in learning project |
-| Delete strategy | Soft delete (`is_active = false`) | cases FK → customers; hard delete would cascade-destroy case history |
-| RLS | Enabled + Forced on both tables | Matches existing project pattern; double safety with QueryInterceptor |
-| Validation | Lightweight in core (no class-validator) | Consistent with existing plugin core pattern |
+| Contact model | Separate `customers` table | `users` = staff who login; `customers` = CRM contacts who don't |
+| API naming | `/customers` everywhere (not `/contacts`) | Matches table name; no backward-compat concern in learning project |
+| Delete strategy for customers | Soft delete (`is_active = false`) | FK chains (cases → customers) would break on hard delete |
+| Delete strategy for cases/triggers/campaigns | Hard delete | No downstream dependencies |
+| RLS | FORCE on all new tables | Consistent with existing pattern; double safety with QueryInterceptor |
+| Validation | Lightweight in core (no class-validator DTOs) | Matches existing plugin core pattern; Phase 6 adds full validation |
+| Hook handlers (Phase 5) | No-op + log | Infrastructure wired correctly; business logic deferred to Phase 7+ |
 
 ---
 
 ## Section 1: Database Schema
 
-### Migration: `customers` table
+Single migration file: `backend/src/db/migrations/20260303000004_plugin_tables.ts`
 
-File: `backend/src/db/migrations/20260303000004_customers.ts`
-
-```
-customers
-  id           UUID PK     DEFAULT uuid_generate_v4()
-  tenant_id    UUID NN      → tenants(id) ON DELETE CASCADE
-  email        VARCHAR(255) NN
-  name         VARCHAR(255) NN
-  phone        VARCHAR(50)  NULLABLE
-  is_active    BOOLEAN NN   DEFAULT true
-  created_at   TIMESTAMPTZ  DEFAULT NOW()
-  updated_at   TIMESTAMPTZ  DEFAULT NOW()
-
-Constraints:
-  UNIQUE(tenant_id, email)
-
-Indexes:
-  idx_customers_tenant_id
-  idx_customers_tenant_email (unique)
-
-RLS:
-  ENABLE ROW LEVEL SECURITY
-  FORCE ROW LEVEL SECURITY
-  POLICY tenant_isolation:
-    USING     (tenant_id = current_setting('app.tenant_id', true)::uuid)
-    WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid)
-```
-
-### Migration: `cases` table
-
-File: `backend/src/db/migrations/20260303000005_cases.ts`
+### Table: `customers`
 
 ```
-cases
-  id           UUID PK     DEFAULT uuid_generate_v4()
-  tenant_id    UUID NN      → tenants(id) ON DELETE CASCADE
-  customer_id  UUID NN      → customers(id) ON DELETE CASCADE
-  subject      VARCHAR(500) NN
-  description  TEXT         NULLABLE
-  status       VARCHAR(20)  NN DEFAULT 'open'
-               -- enum: open | in-progress | resolved
-  priority     VARCHAR(20)  NN DEFAULT 'medium'
-               -- enum: low | medium | high | urgent
-  created_by   UUID NN      → users(id)
-  created_at   TIMESTAMPTZ  DEFAULT NOW()
-  updated_at   TIMESTAMPTZ  DEFAULT NOW()
-
-Indexes:
-  idx_cases_tenant_id
-  idx_cases_tenant_customer   (tenant_id, customer_id) — "all cases for customer X"
-  idx_cases_tenant_status     (tenant_id, status)      — "all open cases"
-
-RLS:
-  ENABLE ROW LEVEL SECURITY
-  FORCE ROW LEVEL SECURITY
-  POLICY tenant_isolation (same pattern as customers)
+id          UUID        PK   DEFAULT gen_random_uuid()
+tenant_id   UUID        NN   FK → tenants(id) ON DELETE CASCADE
+email       TEXT             NULLABLE
+name        TEXT        NN
+phone       TEXT             NULLABLE
+company     TEXT             NULLABLE
+is_active   BOOLEAN     NN   DEFAULT true
+created_at  TIMESTAMPTZ      DEFAULT NOW()
+updated_at  TIMESTAMPTZ      DEFAULT NOW()
 ```
+
+- RLS FORCE: `tenant_id = current_setting('app.tenant_id', true)::uuid`
+- Indexes: `(tenant_id)`, `(tenant_id, email) WHERE email IS NOT NULL`
+
+### Table: `support_cases`
+
+```
+id           UUID        PK   DEFAULT gen_random_uuid()
+tenant_id    UUID        NN   FK → tenants(id)
+customer_id  UUID        NN   FK → customers(id) ON DELETE CASCADE
+title        TEXT        NN
+status       TEXT        NN   DEFAULT 'open'   -- open | in_progress | resolved | closed
+priority     TEXT        NN   DEFAULT 'medium' -- low | medium | high
+assigned_to  UUID             NULLABLE FK → users(id)  -- internal staff member
+description  TEXT             NULLABLE
+resolved_at  TIMESTAMPTZ      NULLABLE
+created_at   TIMESTAMPTZ      DEFAULT NOW()
+updated_at   TIMESTAMPTZ      DEFAULT NOW()
+```
+
+- RLS FORCE on `tenant_id`
+- Indexes: `(tenant_id, status)`, `(tenant_id, customer_id)`
+- `assigned_to` → FK to `users` (an internal employee, never a customer)
+
+### Table: `automation_triggers`
+
+```
+id          UUID        PK   DEFAULT gen_random_uuid()
+tenant_id   UUID        NN   FK → tenants(id)
+name        TEXT        NN
+event_type  TEXT        NN   -- e.g. 'customer.create', 'case.open'
+conditions  JSONB            DEFAULT '{}'
+actions     JSONB            DEFAULT '[]'
+is_active   BOOLEAN     NN   DEFAULT true
+created_at  TIMESTAMPTZ      DEFAULT NOW()
+updated_at  TIMESTAMPTZ      DEFAULT NOW()
+```
+
+- RLS FORCE on `tenant_id`
+- Indexes: `(tenant_id, is_active)`, `(tenant_id, event_type)`
+
+### Table: `marketing_campaigns`
+
+```
+id             UUID        PK   DEFAULT gen_random_uuid()
+tenant_id      UUID        NN   FK → tenants(id)
+name           TEXT        NN
+status         TEXT        NN   DEFAULT 'draft' -- draft | active | paused | completed
+campaign_type  TEXT        NN   DEFAULT 'email' -- email | sms
+target_count   INTEGER          DEFAULT 0
+sent_count     INTEGER          DEFAULT 0
+scheduled_at   TIMESTAMPTZ      NULLABLE
+created_at     TIMESTAMPTZ      DEFAULT NOW()
+updated_at     TIMESTAMPTZ      DEFAULT NOW()
+```
+
+- RLS FORCE on `tenant_id`
+- Index: `(tenant_id, status)`
 
 ---
 
 ## Section 2: API Routes
 
-### Group A — customer-data plugin
+### `customer-data` — `/api/v1/plugins/customer-data/customers`
 
-| Method | Route | Core Method | Notes |
+| Method | Path | Body | Notes |
 |---|---|---|---|
-| GET | `/api/v1/plugins/customer-data/customers` | `listCustomers` | is_active=true only |
-| GET | `/api/v1/plugins/customer-data/customers/:id` | `getCustomer` | 404 if not found |
-| POST | `/api/v1/plugins/customer-data/customers` | `createCustomer` | email unique per tenant |
-| PUT | `/api/v1/plugins/customer-data/customers/:id` | `updateCustomer` | 404 if not found |
-| DELETE | `/api/v1/plugins/customer-data/customers/:id` | `deleteCustomer` | soft delete only |
+| GET | `/customers` | — | List active customers; ORDER BY created_at DESC |
+| GET | `/customers/:id` | — | Single customer or ResourceNotFoundError |
+| POST | `/customers` | `{ name, email?, phone?, company? }` | Insert + fire `customer.create` hooks |
+| PUT | `/customers/:id` | `{ name?, email?, phone?, company?, is_active? }` | Partial update |
+| DELETE | `/customers/:id` | — | Soft delete: `is_active = false` |
 
-**Request bodies:**
-```typescript
-// POST /customers
-{ email: string, name: string, phone?: string }
+### `customer-care` — `/api/v1/plugins/customer-care/cases`
 
-// PUT /customers/:id
-{ name?: string, phone?: string, is_active?: boolean }
-```
-
-### Group B — customer-care plugin
-
-| Method | Route | Core Method | Notes |
+| Method | Path | Body | Notes |
 |---|---|---|---|
-| GET | `/api/v1/plugins/customer-care/cases` | `listCases` | JOINs customer name |
-| GET | `/api/v1/plugins/customer-care/cases/:id` | `getCase` | 404 if not found |
-| POST | `/api/v1/plugins/customer-care/cases` | `createCase` | validates customer_id exists |
-| PATCH | `/api/v1/plugins/customer-care/cases/:id` | `updateCase` | status + priority only |
+| GET | `/cases` | — | List cases; JOIN customers for customer name |
+| GET | `/cases/:id` | — | Single case or ResourceNotFoundError |
+| POST | `/cases` | `{ customer_id, title, priority?, description? }` | Verify customer_id exists first |
+| PUT | `/cases/:id` | `{ status?, priority?, assigned_to?, description? }` | Partial update; set resolved_at when status→resolved |
+| DELETE | `/cases/:id` | — | Hard delete |
 
-**Request bodies:**
-```typescript
-// POST /cases
-{ customer_id: string, subject: string, description?: string, priority?: 'low'|'medium'|'high'|'urgent' }
+### `automation` — `/api/v1/plugins/automation/triggers`
 
-// PATCH /cases/:id
-{ status?: 'open'|'in-progress'|'resolved', priority?: 'low'|'medium'|'high'|'urgent' }
-```
+| Method | Path | Body | Notes |
+|---|---|---|---|
+| GET | `/triggers` | — | List triggers |
+| GET | `/triggers/:id` | — | Single trigger or ResourceNotFoundError |
+| POST | `/triggers` | `{ name, event_type, conditions?, actions?, is_active? }` | Create trigger |
+| PUT | `/triggers/:id` | `{ name?, event_type?, conditions?, actions?, is_active? }` | Partial update |
+| DELETE | `/triggers/:id` | — | Hard delete |
 
-**Response format** — consistent with existing pattern:
-```json
-{ "plugin": "customer-data", "data": { ... } }
-{ "plugin": "customer-data", "data": [ ... ], "count": 3 }
-```
+### `marketing` — `/api/v1/plugins/marketing/campaigns`
+
+| Method | Path | Body | Notes |
+|---|---|---|---|
+| GET | `/campaigns` | — | List campaigns |
+| GET | `/campaigns/:id` | — | Single campaign or ResourceNotFoundError |
+| POST | `/campaigns` | `{ name, campaign_type?, scheduled_at? }` | Create campaign |
+| PUT | `/campaigns/:id` | `{ name?, status?, target_count?, scheduled_at? }` | Partial update |
+| DELETE | `/campaigns/:id` | — | Hard delete |
+
+### `analytics` — update queries
+
+`GET /api/v1/plugins/analytics/reports/:type` — same routes unchanged. Update `summary` and
+`trends` core methods to query `customers` table instead of `users`.
 
 ---
 
-## Section 3: Core Methods
+## Section 3: Hook Wiring
 
-### CustomerDataCore (full rewrite)
+### Event: `customer.create`
 
-```typescript
-// reads from: customers table
-listCustomers(ctx)              → SELECT * WHERE is_active=true ORDER BY created_at DESC LIMIT 100
-getCustomer(ctx, id)            → SELECT WHERE id=? → Customer | null
-createCustomer(ctx, input)      → validate email format → INSERT → return new row
-updateCustomer(ctx, id, input)  → UPDATE SET ...fields WHERE id=? → return updated row | null
-deleteCustomer(ctx, id)         → UPDATE SET is_active=false, updated_at=NOW() WHERE id=?
+Fired from `CustomerDataCore.createCustomer()`. Execution order:
+
+```
+POST /customers
+  │
+  ├─ 1. hookRegistry.runBefore('customer.create', ctx, input)
+  │     └─ automation (priority=5)  — inspect trigger rules, may enrich input
+  │
+  ├─ 2. INSERT INTO customers (...)
+  │
+  └─ 3. hookRegistry.runAfter('customer.create', ctx, newCustomer)
+        └─ customer-care (priority=10)  — may auto-create an onboarding case
 ```
 
-Validation in `createCustomer`: basic email regex check, throw `ValidationError` if invalid.
-
-### CustomerCareCore (replace placeholders)
+**Implementation in `CustomerDataCore.createCustomer()`:**
 
 ```typescript
-// reads from: cases JOIN customers
-listCases(ctx)              → SELECT cases.*, customers.name as customer_name ORDER BY created_at DESC
-getCase(ctx, id)            → SELECT ... WHERE cases.id=? → Case | null
-createCase(ctx, input)      → verify customer_id exists in tenant → INSERT → return new row
-updateCase(ctx, id, input)  → UPDATE SET status/priority, updated_at=NOW() WHERE id=? → return updated | null
+async createCustomer(ctx: IExecutionContext, input: CreateCustomerInput): Promise<Customer> {
+  await this.hookRegistry.runBefore('customer.create', ctx, input);
+  const [customer] = await ctx.db.db('customers').insert({
+    tenant_id: ctx.tenantId,
+    ...input,
+  }).returning('*');
+  await this.hookRegistry.runAfter('customer.create', ctx, customer);
+  return customer;
+}
 ```
 
-Validation in `createCase`: SELECT customer by `customer_id` first; throw `ResourceNotFoundError` if not found.
+**Hook handlers in Phase 5:** Both `AutomationCore` and `CustomerCareCore` register no-op handlers
+that log the event. The infrastructure is correctly wired; business logic (workflow engine,
+auto-case creation) is deferred to Phase 7+.
+
+`HookRegistryService` is injected via `PluginInfraModule` global DI — passed into cores that
+need it through their module providers.
 
 ---
 
-## Section 4: Seed Data
+## Section 4: Testing Strategy
 
-New seed files to support development testing:
+New test files in `backend/src/plugins/__tests__/`, following the existing `sandbox.test.ts`
+and `hook-registry.test.ts` patterns: `vi.mock` for DB, mock Knex builder chain, mock CacheManager.
 
-- `03_customers.ts` — 3–5 sample customers per tenant (name, email, phone)
-- `04_cases.ts` — 3–5 sample cases per tenant referencing seeded customers
+| File | Methods covered |
+|---|---|
+| `customer-data.core.test.ts` | `listCustomers`, `getCustomer`, `createCustomer` (hook call order verified), `updateCustomer`, `deleteCustomer` (soft delete assertion) |
+| `customer-care.core.test.ts` | `listCases`, `getCase`, `createCase` (customer_id validation), `updateCase` (resolved_at side-effect), `deleteCase` |
+| `automation.core.test.ts` | `listTriggers`, `getTrigger`, `createTrigger`, `updateTrigger`, `deleteTrigger` |
+| `marketing.core.test.ts` | `listCampaigns`, `getCampaign`, `createCampaign`, `updateCampaign`, `deleteCampaign` |
+| `analytics.core.test.ts` (update) | `summary` and `trends` now query `customers`; update mocks accordingly |
+
+**Coverage requirements per test:**
+- Happy path: correct return shape
+- Not found: `ResourceNotFoundError` thrown
+- Hook call order for `createCustomer`: `runBefore` → insert → `runAfter` (use `vi.fn()` + call order assertion)
+- DB error propagation: errors from Knex bubble up unchanged
 
 ---
 
 ## Files Affected
 
 ### New files
-- `backend/src/db/migrations/20260303000004_customers.ts`
-- `backend/src/db/migrations/20260303000005_cases.ts`
-- `backend/src/db/seeds/03_customers.ts`
-- `backend/src/db/seeds/04_cases.ts`
+
+```
+backend/src/db/migrations/20260303000004_plugin_tables.ts
+backend/src/plugins/cores/customer-data/dto/create-customer.dto.ts
+backend/src/plugins/cores/customer-data/dto/update-customer.dto.ts
+backend/src/plugins/cores/customer-care/dto/create-case.dto.ts
+backend/src/plugins/cores/customer-care/dto/update-case.dto.ts
+backend/src/plugins/cores/automation/dto/create-trigger.dto.ts
+backend/src/plugins/cores/automation/dto/update-trigger.dto.ts
+backend/src/plugins/cores/marketing/dto/create-campaign.dto.ts
+backend/src/plugins/cores/marketing/dto/update-campaign.dto.ts
+backend/src/plugins/__tests__/customer-data.core.test.ts
+backend/src/plugins/__tests__/customer-care.core.test.ts
+backend/src/plugins/__tests__/automation.core.test.ts
+backend/src/plugins/__tests__/marketing.core.test.ts
+```
 
 ### Modified files
-- `backend/src/plugins/cores/customer-data/customer-data.core.ts` — full rewrite
-- `backend/src/plugins/cores/customer-data/customer-data.controller.ts` — add 3 new routes
-- `backend/src/plugins/cores/customer-care/customer-care.core.ts` — replace placeholders
-- `backend/src/plugins/cores/customer-care/customer-care.controller.ts` — add GET/:id + PATCH
 
-### No changes needed
+```
+backend/src/plugins/cores/customer-data/customer-data.core.ts   — full rewrite (customers table, hooks)
+backend/src/plugins/cores/customer-data/customer-data.controller.ts — add POST/PUT/DELETE routes
+backend/src/plugins/cores/customer-data/customer-data.module.ts  — inject HookRegistryService
+backend/src/plugins/cores/customer-care/customer-care.core.ts   — replace stubs with real queries
+backend/src/plugins/cores/customer-care/customer-care.controller.ts — add GET/:id + PUT + DELETE
+backend/src/plugins/cores/automation/automation.core.ts         — replace stubs + register hook handler
+backend/src/plugins/cores/automation/automation.controller.ts   — add GET/:id + PUT + DELETE
+backend/src/plugins/cores/marketing/marketing.core.ts           — replace stubs with real queries
+backend/src/plugins/cores/marketing/marketing.controller.ts     — add GET/:id + PUT + DELETE
+backend/src/plugins/cores/analytics/analytics.core.ts           — update queries to customers table
+backend/src/plugins/__tests__/analytics.core.test.ts            — update mocks (if exists)
+```
+
+### Unchanged
+
 - Migrations 1–3 (existing schema untouched)
-- SandboxService, ExecutionContextBuilder, HookRegistry
-- analytics, automation, marketing plugins
-- Gateway, DAL, Observability layers
+- `users` table and auth flow
+- `SandboxService`, `ExecutionContextBuilder`, `HookRegistry` infrastructure
+- Gateway, DAL, Observability, Workers layers

@@ -24,7 +24,8 @@ docker compose --profile observability up -d  # + jaeger, prometheus, grafana, l
 
 # Database
 npm run db:migrate           # run pending Knex migrations
-npm run db:migrate:rollback  # rollback the last migration batch
+npm run db:migrate:rollback      # rollback the last migration batch
+npm run db:migrate:rollback:all  # rollback ALL migrations
 npm run db:seed              # seed dev data
 npm run db:reset             # rollback-all → migrate → seed
 npm run db:status            # show migration status
@@ -50,6 +51,8 @@ npm test       # vitest (web, admin); no test runner configured for mobile
 Test files must live inside `src/**/__tests__/` directories — vitest only picks up `src/**/__tests__/**/*.{test,spec}.ts`. Integration tests (`src/**/__tests__/integration/`) are excluded from the default test run and require live DB/Redis.
 
 Unit tests require `OTEL_DISABLED=true` in the test environment (already set in `vitest.config.ts`) to prevent OpenTelemetry overhead.
+
+**Vitest mock gotcha:** Variables referenced inside `vi.mock()` factory functions must be declared with `vi.hoisted()` — otherwise the mock fails with "cannot access before initialization".
 
 ## Environment
 
@@ -81,6 +84,17 @@ Copy `.env.example` to `.env` in `backend/`. Variables are validated at startup 
 | `OTEL_SERVICE_NAME` | `crm-api` | Service name on spans and log entries |
 | `PORT` | `3000` | HTTP server port |
 | `THROTTLE_LIMIT` / `THROTTLE_TTL_MS` | `100` / `60000` | Global rate limit (requests per TTL window in ms) |
+
+## Database Migrations
+
+4 migrations in `backend/src/db/migrations/` (run in order):
+
+| Migration | Tables Added |
+|-----------|-------------|
+| `20260222000001_init_schema` | tenants, users, roles, user_roles, permissions (RLS on users/roles/user_roles) |
+| `20260226000002_tenant_plugins` | tenant_plugins (no RLS) |
+| `20260228000003_audit_logs` | audit_logs (no RLS) |
+| `20260303000004_plugin_tables` | customers, support_cases, automation_triggers, marketing_campaigns (all RLS + FORCE ROW LEVEL SECURITY) |
 
 ## Backend Architecture
 
@@ -125,9 +139,14 @@ Middleware pipeline (applied in order):
 
 ### L3 Plugin System (`src/plugins/`)
 
-- Plugin cores (`cores/`) are stateless singletons: CustomerData, CustomerCare, Analytics, Automation, Marketing
+- Plugin cores (`cores/`) are stateless singletons with real DB-backed implementations:
+  - `customer-data` — CRUD on `customers` table
+  - `customer-care` — CRUD on `support_cases` (FK → customers); registers `after:customer.create` hook
+  - `analytics` — aggregate reports (`summary`, `trends`) from `customers` + `support_cases`
+  - `automation` — CRUD on `automation_triggers`
+  - `marketing` — CRUD on `marketing_campaigns`
 - `SandboxService` — executes plugin logic via timeout-race (`Promise.race`); hard limits: 5 s timeout, 50 queries/request
-- `HookRegistry` — `before` / `after` / `filter` hooks with priority ordering
+- `HookRegistry` — `before` / `after` / `filter` hooks with priority ordering. Hook keys use `"<type>:<event>"` format (e.g. `before:customer.create`, `after:customer.create`). Register in `OnModuleInit`; fire via `hookRegistry.emit(type, event, ctx, data)`.
 - Each plugin declares a manifest via `built-in-manifests.ts` (dependencies, permissions, resource limits). Plugin dependency graph: `customer-care` → `customer-data`; `automation` → `customer-data` + `analytics`; `marketing` → `customer-data`. A plugin cannot be enabled unless its dependencies are enabled first.
 - **`PluginInfraModule` must be first** in `PluginsModule.imports` — makes `PluginRegistryService`, `ExecutionContextBuilder`, `HookRegistryService`, `SandboxService` available as globals before core modules initialize
 
@@ -138,7 +157,15 @@ if (!ctx.enabledPlugins.includes(PLUGIN_NAME)) throw new ForbiddenException(…)
 const result = await this.sandbox.execute(() => this.core.method(ctx), this.core.manifest.limits.timeoutMs);
 ```
 
-**Plugin routes:** `GET /api/v1/plugins/{plugin-name}/...`
+**Plugin REST routes (all under `/api/v1/plugins/`):**
+
+| Plugin | Routes |
+|--------|--------|
+| customer-data | GET/POST `/customers`, GET/PUT/DELETE `/customers/:id` |
+| customer-care | GET/POST `/cases`, GET/PUT/DELETE `/cases/:id` |
+| analytics | GET `/reports/:type` (`summary` \| `trends`) |
+| automation | GET/POST `/triggers`, GET/PUT/DELETE `/triggers/:id` |
+| marketing | GET/POST `/campaigns`, GET/PUT/DELETE `/campaigns/:id` |
 
 ### L5 Async Workers (`src/workers/`)
 

@@ -83,7 +83,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="nt cy" data-lang="vi"><strong>Định nghĩa:</strong> Multi-tenant = 1 application instance phục vụ nhiều tổ chức (tenants). Mỗi tenant thấy hệ thống như riêng của họ — dữ liệu cách ly, cấu hình riêng, billing riêng — nhưng chia sẻ cùng codebase và infrastructure.</div>
     <div class="nt cy" data-lang="en"><strong>Definition:</strong> Multi-tenant = 1 application instance serving multiple organizations (tenants). Each tenant sees the system as their own — isolated data, individual configuration, individual billing — but shares the same codebase and infrastructure.</div>
 
-    <div class="dg"><div class="dg-label">core concepts</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">core concepts</div><pre>
 <span class="ty">SINGLE-TENANT vs MULTI-TENANT:</span>
 
   <span class="rd">Single-tenant:</span>                       <span class="gn">Multi-tenant:</span>
@@ -162,6 +162,87 @@ html.lang-vi [data-lang="en"]{display:none}
   ├── Dedicated resources cho VIP tenants (riêng DB, riêng cache)
   ├── Read replicas + query routing (heavy reads → replica)
   └── Background job queues per tenant (fair scheduling)</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">core concepts</div><pre>
+<span class="ty">SINGLE-TENANT vs MULTI-TENANT:</span>
+
+  <span class="rd">Single-tenant:</span>                       <span class="gn">Multi-tenant:</span>
+  ┌─────────┐ ┌─────────┐ ┌─────────┐  ┌──────────────────────────────┐
+  │ App     │ │ App     │ │ App     │  │ App Instance                 │
+  │ ACME    │ │ GLOBEX  │ │ INITECH │  │                              │
+  │         │ │         │ │         │  │  ┌─────┐ ┌──────┐ ┌───────┐ │
+  │ DB      │ │ DB      │ │ DB      │  │  │ACME │ │GLOBEX│ │INITECH│ │
+  │ ACME    │ │ GLOBEX  │ │ INITECH │  │  └─────┘ └──────┘ └───────┘ │
+  └─────────┘ └─────────┘ └─────────┘  │  DB (shared or partitioned) │
+                                        └──────────────────────────────┘
+  3 deployments, 3 DBs,                1 deployment, shared resources,
+  3x ops cost, simple isolation         lower cost, complex isolation
+
+
+<span class="ty">5 PILLARS OF MULTI-TENANT:</span>
+
+  ┌────────────────────┬──────────────────────────────────────────────────┐
+  │ <span class="hi">① Tenant Isolation</span> │ Tenant A's data is never exposed to tenant B.   │
+  │                    │ This is an ABSOLUTE requirement, no exceptions. │
+  ├────────────────────┼──────────────────────────────────────────────────┤
+  │ <span class="am">② Identity & Auth</span>  │ Each tenant has its own user pool. Users belong │
+  │                    │ to exactly 1 tenant. Roles/permissions scoped   │
+  │                    │ by tenant.                                       │
+  ├────────────────────┼──────────────────────────────────────────────────┤
+  │ <span class="gn">③ Configuration</span>    │ Each tenant has its own config: theme, features,│
+  │                    │ limits, integrations. Does not affect others.   │
+  ├────────────────────┼──────────────────────────────────────────────────┤
+  │ <span class="cy">④ Resource Mgmt</span>    │ Fair usage: tenant A using a lot doesn't slow   │
+  │                    │ down tenant B. Rate limiting, quotas, noisy     │
+  │                    │ neighbor protection.                             │
+  ├────────────────────┼──────────────────────────────────────────────────┤
+  │ <span class="vi">⑤ Billing</span>          │ Each tenant has their own plan, usage tracking, │
+  │                    │ and invoice. Tiered pricing: Free→Pro→Enterprise.│
+  └────────────────────┴──────────────────────────────────────────────────┘
+
+
+<span class="ty">TENANT CONTEXT — TENANT RESOLUTION FLOW:</span>
+
+  Request arrives → identify tenant → scope EVERYTHING by tenant:
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │                                                                      │
+  │  HTTP Request arrives                                                │
+  │       │                                                              │
+  │       ▼                                                              │
+  │  <span class="hi">Tenant Resolution</span> — identify tenant from:                          │
+  │  │  ├── Subdomain:    acme.app.com → tenant = "acme"               │
+  │  │  ├── Custom domain: crm.acme.com → lookup DNS → "acme"         │
+  │  │  ├── Header:       X-Tenant-ID: acme-123                       │
+  │  │  ├── JWT claim:    { tenantId: "acme-123", ... }                │
+  │  │  └── Path:         /api/tenants/acme-123/...                    │
+  │       │                                                              │
+  │       ▼                                                              │
+  │  <span class="am">Tenant Context</span> — object attached to request:                       │
+  │  │  { tenantId, tier, dbPool, features, limits, config }           │
+  │       │                                                              │
+  │       ▼                                                              │
+  │  All operations are scoped:                                         │
+  │  ├── DB queries: WHERE tenant_id = ctx.tenantId                    │
+  │  ├── Cache keys: t:{tenantId}:...                                  │
+  │  ├── File paths: /tenants/{tenantId}/...                           │
+  │  ├── Search index: {tenantId}-customers                            │
+  │  ├── Event routing: headers.tenantId = ctx.tenantId                │
+  │  └── Logging: every log line includes tenantId                     │
+  │                                                                      │
+  └──────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">NOISY NEIGHBOR — THE CLASSIC PROBLEM:</span>
+
+  Tenant A runs a heavy report → DB CPU 100% → Tenant B, C, D slow down.
+
+  <span class="rd">Common solutions:</span>
+  ├── Rate limiting per tenant (request/min, query/request)
+  ├── Connection pool quota per tenant (max connections)
+  ├── Query timeout per tier (Basic: 5s, Premium: 15s)
+  ├── Dedicated resources for VIP tenants (own DB, own cache)
+  ├── Read replicas + query routing (heavy reads → replica)
+  └── Background job queues per tenant (fair scheduling)</pre></div>
 </div>
 </div>
 <!-- ISOLATION STRATEGIES -->
@@ -169,7 +250,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Tenant Isolation — 3 chiến lược chính</span><span data-lang="en">Tenant Isolation — 3 Main Strategies</span></h2></div>
 
-    <div class="dg"><div class="dg-label">3 strategies overview</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">3 strategies overview</div><pre>
 <span class="ty">3 CHIẾN LƯỢC ISOLATION:</span>
 
   ┌─────────────────────────────────────────────────────────────────────────┐
@@ -243,6 +324,80 @@ html.lang-vi [data-lang="en"]{display:none}
 
   <span class="am">Hầu hết SaaS không bao giờ cần per-tenant DB cho TẤT CẢ tenants.</span>
   <span class="am">Hybrid là chiến lược phổ biến nhất trong thực tế.</span></pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">3 strategies overview</div><pre>
+<span class="ty">3 ISOLATION STRATEGIES:</span>
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                                                                         │
+  │  <span class="hi">Strategy A: SHARED DATABASE</span>                                          │
+  │  All tenants share 1 DB and the same tables. Isolation via tenant_id.  │
+  │                                                                         │
+  │  ┌──────────────────────────────────────────┐                          │
+  │  │ DB Instance                               │                          │
+  │  │ ┌─────────────────────────────────────┐  │                          │
+  │  │ │ customers table                      │  │                          │
+  │  │ │  ACME row | ACME row | GLOBEX row   │  │                          │
+  │  │ │  INITECH row | ACME row | ...       │  │                          │
+  │  │ └─────────────────────────────────────┘  │                          │
+  │  └──────────────────────────────────────────┘                          │
+  │  <span class="gn">Lowest cost. Simplest ops.</span>                                            │
+  │  <span class="rd">Most complex isolation. Highest noisy neighbor risk.</span>                  │
+  │                                                                         │
+  ├─────────────────────────────────────────────────────────────────────────┤
+  │                                                                         │
+  │  <span class="am">Strategy B: DATABASE-PER-TENANT</span>                                      │
+  │  Each tenant has its own DB instance. Isolation at infrastructure level.│
+  │                                                                         │
+  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                 │
+  │  │ DB ACME  │ │ DB GLOBEX│ │DB INITECH│ │ DB ...   │                 │
+  │  │ customers│ │ customers│ │ customers│ │ customers│                 │
+  │  │ sales    │ │ sales    │ │ sales    │ │ sales    │                 │
+  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘                 │
+  │  <span class="gn">Simplest isolation. Predictable performance.</span>                          │
+  │  <span class="rd">Highest cost. Most complex ops (N DBs to manage).</span>                    │
+  │                                                                         │
+  ├─────────────────────────────────────────────────────────────────────────┤
+  │                                                                         │
+  │  <span class="vi">Strategy C: HYBRID</span>                                                   │
+  │  Most tenants use shared DB. VIP/enterprise tenants get their own DB.  │
+  │                                                                         │
+  │  ┌──────────────────────────┐ ┌──────────┐ ┌──────────┐              │
+  │  │ Shared DB                │ │ DB VIP-1 │ │ DB VIP-2 │              │
+  │  │ ACME | GLOBEX | 500 more│ │ INITECH  │ │ STARK    │              │
+  │  └──────────────────────────┘ └──────────┘ └──────────┘              │
+  │  <span class="gn">Best of both worlds: cost-effective for most, premium for VIP.</span>        │
+  │  <span class="rd">Complex routing logic. Requires a good abstraction layer.</span>            │
+  │                                                                         │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">NO "RIGHT OR WRONG" — ONLY TRADE-OFFS:</span>
+
+  ┌──────────────┬───────────┬───────────┬───────────┐
+  │ Criterion    │ Shared DB │ Per-Tenant│ Hybrid    │
+  ├──────────────┼───────────┼───────────┼───────────┤
+  │ Cost/tenant  │ <span class="gn">Low</span>      │ <span class="rd">High</span>     │ <span class="am">Medium</span>    │
+  │ Isolation    │ <span class="am">App-level</span> │ <span class="gn">Infra</span>    │ <span class="gn">Both</span>     │
+  │ Ops complexity│ <span class="gn">Low</span>     │ <span class="rd">High</span>     │ <span class="am">Medium</span>    │
+  │ Scale tenants│ <span class="gn">10K+</span>     │ <span class="rd">100s</span>     │ <span class="gn">10K+</span>     │
+  │ Compliance   │ <span class="am">Needs audit</span>│ <span class="gn">Easy proof</span>│ <span class="gn">Per-tier</span> │
+  │ Backup       │ <span class="am">Complex</span>  │ <span class="gn">Simple</span>   │ <span class="am">Per-tier</span> │
+  │ Migration    │ <span class="gn">1 run</span>    │ <span class="rd">N runs</span>   │ <span class="am">1+N runs</span> │
+  └──────────────┴───────────┴───────────┴───────────┘
+
+
+<span class="ty">TYPICAL GROWTH PROGRESSION:</span>
+
+  Startup MVP → Shared DB (fast, cheap)
+       │
+       ▼  Product-market fit, VIP customers emerge
+  Growth  → Hybrid (shared default + dedicated for VIP)
+       │
+       ▼  Enterprise compliance, data residency requirements
+  Scale   → Hybrid + Sharding (geo-distributed, regulation)
+
+  <span class="am">Most SaaS products never need per-tenant DB for ALL tenants.</span>
+  <span class="am">Hybrid is the most common strategy in practice.</span></pre></div>
 </div>
 </div>
 <!-- SHARED DB -->
@@ -250,7 +405,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Shared Database — Deep Dive</h2></div>
 
-    <div class="dg"><div class="dg-label">shared db architecture</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">shared db architecture</div><pre>
 <span class="ty">CẤU TRÚC:</span>
 
   Mọi tenant dùng chung DB instance, chung tables.
@@ -316,6 +471,74 @@ html.lang-vi [data-lang="en"]{display:none}
   ✓ Cross-tenant analytics dễ          ✗ Backup/restore per-tenant khó
   ✓ Connection pool hiệu quả           ✗ Data residency compliance khó
   ✓ Scale tới hàng nghìn tenants       ✗ Nếu DB down → TẤT CẢ tenants down</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">shared db architecture</div><pre>
+<span class="ty">STRUCTURE:</span>
+
+  All tenants share the same DB instance and tables.
+  Each table has a <span class="gn">tenant_id</span> column — the discriminator column.
+
+  ┌─ customers ──────────────────────────────────────────┐
+  │ id       │ <span class="gn">tenant_id</span>  │ name        │ email            │
+  ├──────────┼────────────┼─────────────┼──────────────────┤
+  │ cust-01  │ <span class="hi">acme-123</span>   │ John Doe    │ john@acme.com    │
+  │ cust-02  │ <span class="am">globex-456</span> │ Jane Smith  │ jane@globex.com  │
+  │ cust-03  │ <span class="hi">acme-123</span>   │ Bob Lee     │ bob@acme.com     │
+  │ cust-04  │ <span class="vi">initech-789</span>│ Alice Chen  │ alice@initech.com│
+  └──────────┴────────────┴─────────────┴──────────────────┘
+
+  Every query MUST include WHERE tenant_id = ? (or equivalent).
+  Missing tenant_id = data leak. This is the most critical bug.
+
+
+<span class="ty">4 PROTECTION LAYERS (defense in depth):</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  <span class="hi">Layer 1: Application-level injection</span>                           │
+  │  Middleware/interceptor automatically injects tenant_id into    │
+  │  every query. Developers do NOT write WHERE tenant_id manually  │
+  │  — the system injects it.                                        │
+  │                                                                  │
+  │  <span class="am">Layer 2: Query validation</span>                                      │
+  │  Before execution: verify the query HAS a tenant_id filter.    │
+  │  If not → BLOCK query, log security alert.                      │
+  │                                                                  │
+  │  <span class="gn">Layer 3: Database-level enforcement (if DB supports it)</span>         │
+  │  PostgreSQL RLS: CREATE POLICY ... USING (tenant_id = ...)      │
+  │  Oracle VPD: Virtual Private Database                           │
+  │  DB engine filters rows automatically — even if app has a bug. │
+  │  <span class="rd">MySQL, SQLite: do NOT have this feature.</span>                        │
+  │                                                                  │
+  │  <span class="vi">Layer 4: Audit & monitoring</span>                                    │
+  │  Log all queries + tenant context. Alert on cross-tenant        │
+  │  anomalies. Periodic audit: scan query logs for queries         │
+  │  missing tenant_id.                                              │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">INDEXING STRATEGY:</span>
+
+  <span class="gn">Composite index starting with tenant_id:</span>
+  CREATE INDEX idx_customers_tenant_email ON customers(tenant_id, email);
+  CREATE INDEX idx_sales_tenant_status   ON sales(tenant_id, status, created_at);
+
+  Why? Because every query has tenant_id → index prefix match.
+  Without tenant_id at the index prefix → full index scan → slow.
+
+  <span class="am">Partitioning (optional, when data > 100GB):</span>
+  PARTITION BY LIST (tenant_id)     — 1 partition per tenant
+  PARTITION BY HASH (tenant_id)     — N partitions, hash distribute
+  → Partition pruning: query scans only the tenant's partition.
+
+
+<span class="ty">ADVANTAGES:</span>                          <span class="ty">DISADVANTAGES:</span>
+
+  ✓ Lowest cost per tenant            ✗ Isolation depends on app code
+  ✓ Schema migration once             ✗ Noisy neighbor risk
+  ✓ Cross-tenant analytics easy       ✗ Per-tenant backup/restore difficult
+  ✓ Efficient connection pool         ✗ Data residency compliance difficult
+  ✓ Scale to thousands of tenants     ✗ If DB goes down → ALL tenants down</pre></div>
 </div>
 </div>
 <!-- DB PER TENANT -->
@@ -323,7 +546,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Database-per-Tenant — Deep Dive</h2></div>
 
-    <div class="dg"><div class="dg-label">db-per-tenant architecture</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">db-per-tenant architecture</div><pre>
 <span class="ty">CẤU TRÚC:</span>
 
   Mỗi tenant có DB instance (hoặc schema) riêng biệt.
@@ -398,6 +621,81 @@ html.lang-vi [data-lang="en"]{display:none}
   ✓ Backup/restore per-tenant dễ       ✗ Cross-tenant queries khó
   ✓ Compliance chứng minh dễ           ✗ Connection pool explosion
   ✓ Data residency đơn giản            ✗ Provisioning pipeline cần</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">db-per-tenant architecture</div><pre>
+<span class="ty">STRUCTURE:</span>
+
+  Each tenant has its own separate DB instance (or schema).
+  Isolation at infrastructure level — no tenant_id column needed.
+
+  <span class="hi">Variant A: Instance-per-tenant</span> (strongest isolation)
+
+  ┌──────────┐ ┌──────────┐ ┌──────────┐
+  │ PG Host 1│ │ PG Host 2│ │ PG Host 3│
+  │ DB: acme │ │ DB:globex│ │DB:initech│
+  │ customers│ │ customers│ │ customers│
+  │ sales    │ │ sales    │ │ sales    │
+  └──────────┘ └──────────┘ └──────────┘
+  Completely separate. Different host, different process.
+
+  <span class="am">Variant B: Schema-per-tenant</span> (moderate isolation)
+
+  ┌────────────────────────────────────────┐
+  │ PG Host 1 (shared instance)            │
+  │ ┌──────────┐┌──────────┐┌──────────┐ │
+  │ │ schema:  ││ schema:  ││ schema:  │ │
+  │ │ acme     ││ globex   ││ initech  │ │
+  │ │ customers││ customers││ customers│ │
+  │ │ sales    ││ sales    ││ sales    │ │
+  │ └──────────┘└──────────┘└──────────┘ │
+  └────────────────────────────────────────┘
+  Same instance, different schema. Easier to manage than variant A.
+
+
+<span class="ty">WHEN TO CHOOSE DB-PER-TENANT:</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  ✓ Compliance requires data isolation (HIPAA, SOC2, GDPR)       │
+  │  ✓ Tenant requires data residency (EU data in EU, US in US)    │
+  │  ✓ Enterprise tenant pays for dedicated resources                │
+  │  ✓ Workloads vary significantly between tenants (1 dominates)  │
+  │  ✓ Tenant wants custom DB tuning (index, extension, config)    │
+  │  ✓ Tenant needs independent backup/restore                      │
+  │                                                                  │
+  │  ✗ NOT suitable when:                                            │
+  │  ✗ Thousands of tenants (ops overhead too large)                │
+  │  ✗ Free/low-tier tenants (cost per tenant too high)             │
+  │  ✗ Cross-tenant analytics needed (query N databases)            │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">OPS CHALLENGES (N databases):</span>
+
+  ├── Schema migration: must run on N DBs, rollback complex
+  │   → needs migration orchestrator (parallel execute, track status)
+  │
+  ├── Monitoring: N connection pools, N sets of metrics
+  │   → needs centralized monitoring (Prometheus + per-tenant labels)
+  │
+  ├── Backup: N backup schedules, N restore procedures
+  │   → needs automated backup pipeline (snapshot → S3 → verify)
+  │
+  ├── Connection management: N pools → connection explosion
+  │   → needs a connection pooler (PgBouncer per-instance or shared)
+  │
+  └── Provisioning: tenant signup → create DB → migrate schema → seed
+      → needs automated provisioning pipeline (< 30 seconds target)
+
+
+<span class="ty">ADVANTAGES:</span>                          <span class="ty">DISADVANTAGES:</span>
+
+  ✓ Strongest isolation               ✗ Highest cost per tenant
+  ✓ No noisy neighbor                 ✗ Ops complexity O(N)
+  ✓ Custom tuning per tenant          ✗ Migration runs N times
+  ✓ Per-tenant backup/restore easy    ✗ Cross-tenant queries difficult
+  ✓ Compliance proof easy             ✗ Connection pool explosion
+  ✓ Data residency simple             ✗ Provisioning pipeline required</pre></div>
 </div>
 </div>
 <!-- HYBRID -->
@@ -408,7 +706,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="nt gn" data-lang="vi"><strong>Thực tế:</strong> Hầu hết SaaS thành công đều dùng Hybrid. Shared DB cho 95% tenants (cost-effective), dedicated DB cho 5% VIP (premium revenue). Đây là sweet spot giữa cost và isolation.</div>
     <div class="nt gn" data-lang="en"><strong>In practice:</strong> Most successful SaaS products use Hybrid. Shared DB for 95% of tenants (cost-effective), dedicated DB for 5% VIP tenants (premium revenue). This is the sweet spot between cost and isolation.</div>
 
-    <div class="dg"><div class="dg-label">hybrid architecture</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">hybrid architecture</div><pre>
 <span class="ty">CẤU TRÚC HYBRID:</span>
 
   ┌──────────────────────────────────────────────────────────────────────┐
@@ -493,6 +791,91 @@ html.lang-vi [data-lang="en"]{display:none}
        │   └── Không yêu cầu?  → <span class="gn">Shared DB</span> (upgrade later nếu cần)
        │
        └── Plan = VIP? → <span class="vi">Dedicated DB</span> (auto-provision)</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">hybrid architecture</div><pre>
+<span class="ty">HYBRID STRUCTURE:</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  <span class="hi">Tenant Context Manager</span> — routing brain                              │
+  │                                                                      │
+  │  tenantId → lookup tier → route to correct DB:                      │
+  │                                                                      │
+  │  ┌───────────────────────────────────────┐                          │
+  │  │ Tier: Free, Basic, Premium            │                          │
+  │  │ → Route to <span class="gn">Shared Data DB</span>              │                          │
+  │  │   (RLS isolation, connection pool)    │                          │
+  │  └───────────────────────────────────────┘                          │
+  │                                                                      │
+  │  ┌───────────────────────────────────────┐                          │
+  │  │ Tier: Enterprise                      │                          │
+  │  │ → Route to <span class="gn">Shared Data DB</span>              │                          │
+  │  │   (RLS isolation, elevated conn cap)  │                          │
+  │  └───────────────────────────────────────┘                          │
+  │                                                                      │
+  │  ┌───────────────────────────────────────┐                          │
+  │  │ Tier: VIP                             │                          │
+  │  │ → Route to <span class="vi">Dedicated DB</span>                │                          │
+  │  │   (own instance, custom config)       │                          │
+  │  └───────────────────────────────────────┘                          │
+  └──────────────────────────────────────────────────────────────────────┘
+
+       Shared Data DB                Dedicated DBs
+  ┌──────────────────────┐   ┌─────────┐  ┌─────────┐
+  │ 500 tenants          │   │ INITECH │  │ STARK   │
+  │ (Free/Basic/Premium/ │   │ (VIP)   │  │ (VIP)   │
+  │  Enterprise)         │   │         │  │         │
+  │                      │   │         │  │         │
+  │ tenant_id isolation  │   │ no RLS  │  │ no RLS  │
+  │ RLS + app-level      │   │ needed  │  │ needed  │
+  │ shared resources     │   │ custom  │  │ custom  │
+  └──────────────────────┘   └─────────┘  └─────────┘
+
+
+<span class="ty">ARCHITECTURE REQUIREMENTS FOR HYBRID:</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  <span class="hi">① Abstraction Layer</span>                                            │
+  │  Application code does NOT know whether it's using shared or    │
+  │  dedicated. Same API: ctx.db.query('sales').where({}).execute() │
+  │  Routing is transparent — only the infra layer knows.           │
+  │                                                                  │
+  │  <span class="am">② Pool Router</span>                                                  │
+  │  tenantId → tier lookup → pool selection → connection           │
+  │  Shared tenants → SharedPool (PgBouncer → Shared DB)           │
+  │  VIP tenants → VipPool-{name} (direct → Dedicated DB)          │
+  │                                                                  │
+  │  <span class="gn">③ Schema Consistency</span>                                           │
+  │  Shared DB and Dedicated DBs MUST have the same schema version. │
+  │  Migration runner: runs on Shared DB + ALL Dedicated DBs.       │
+  │  Version mismatch → tenant is blocked until migration completes.│
+  │                                                                  │
+  │  <span class="cy">④ Tenant Promotion Path</span>                                       │
+  │  Tenant upgrade Free → VIP:                                     │
+  │  1. Provision dedicated DB                                      │
+  │  2. Migrate schema + seed                                       │
+  │  3. Export tenant data from Shared DB                           │
+  │  4. Import data to Dedicated DB                                 │
+  │  5. Update routing config                                       │
+  │  6. Verify + switch (ideally zero-downtime)                     │
+  │                                                                  │
+  │  <span class="vi">⑤ Unified Observability</span>                                       │
+  │  Metrics, logs, alerts must cover both Shared + Dedicated DBs.  │
+  │  Dashboard shows ALL tenants regardless of which DB they're on. │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">DECISION FLOW — which pool for a new tenant:</span>
+
+  Tenant signup
+       │
+       ├── Plan = Free/Basic/Premium? → <span class="gn">Shared DB</span>
+       │
+       ├── Plan = Enterprise?
+       │   ├── Contract requires dedicated? → <span class="vi">Dedicated DB</span>
+       │   └── Not required?  → <span class="gn">Shared DB</span> (upgrade later if needed)
+       │
+       └── Plan = VIP? → <span class="vi">Dedicated DB</span> (auto-provision)</pre></div>
 </div>
 </div>
 <!-- COMPARISON -->
@@ -500,7 +883,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">So sánh chi tiết — Mọi khía cạnh</span><span data-lang="en">Detailed Comparison — Every Dimension</span></h2></div>
 
-    <div class="dg"><div class="dg-label">comprehensive comparison</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">comprehensive comparison</div><pre>
 <span class="ty">SO SÁNH TOÀN DIỆN:</span>
 
   ┌────────────────────────┬──────────────────┬──────────────────┬──────────────────┐
@@ -558,6 +941,64 @@ html.lang-vi [data-lang="en"]{display:none}
   ├── Atlassian — shared for small teams, dedicated for enterprise
   ├── Most mature B2B SaaS — default shared, opt-in dedicated
   └── Hầu hết SaaS scale-up sau Series B</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">comprehensive comparison</div><pre>
+<span class="ty">COMPREHENSIVE COMPARISON:</span>
+
+  ┌────────────────────────┬──────────────────┬──────────────────┬──────────────────┐
+  │ Dimension              │ <span class="hi">Shared DB</span>        │ <span class="am">DB-per-Tenant</span>    │ <span class="vi">Hybrid</span>           │
+  ├────────────────────────┼──────────────────┼──────────────────┼──────────────────┤
+  │                        │                  │                  │                  │
+  │ <span class="ty">COST</span>                   │                  │                  │                  │
+  │ Infra cost / tenant    │ <span class="gn">~$0.01-0.10</span>     │ <span class="rd">~$5-50</span>          │ <span class="am">$0.01 - $50</span>     │
+  │ Ops staffing           │ <span class="gn">1 DBA</span>           │ <span class="rd">team of DBAs</span>    │ <span class="am">1-2 DBAs</span>        │
+  │ Break-even tenant count│ <span class="gn">10+</span>             │ <span class="rd">N/A (always $$)</span> │ <span class="am">50+</span>             │
+  │                        │                  │                  │                  │
+  │ <span class="ty">ISOLATION</span>              │                  │                  │                  │
+  │ Data isolation          │ <span class="am">Application</span>     │ <span class="gn">Infrastructure</span>  │ <span class="gn">Both</span>            │
+  │ Performance isolation  │ <span class="rd">Weak</span>            │ <span class="gn">Strong</span>          │ <span class="am">VIP=strong</span>      │
+  │ Failure blast radius   │ <span class="rd">All tenants</span>     │ <span class="gn">1 tenant</span>        │ <span class="am">Shared group</span>   │
+  │ Compliance proof       │ <span class="rd">Complex audit</span>   │ <span class="gn">Simple</span>          │ <span class="gn">Per-tier</span>        │
+  │                        │                  │                  │                  │
+  │ <span class="ty">OPERATIONS</span>             │                  │                  │                  │
+  │ Schema migration       │ <span class="gn">1 run</span>           │ <span class="rd">N runs</span>          │ <span class="am">1 + M runs</span>      │
+  │ Backup per-tenant      │ <span class="rd">Extract from DB</span> │ <span class="gn">pg_dump</span>         │ <span class="am">Depends on tier</span>│
+  │ Monitoring complexity  │ <span class="gn">1 dashboard</span>     │ <span class="rd">N dashboards</span>    │ <span class="am">1 + M dashboards</span>│
+  │ Provisioning           │ <span class="gn">INSERT row</span>      │ <span class="rd">Create DB</span>       │ <span class="am">Depends on tier</span>│
+  │ Connection management  │ <span class="gn">1 pool</span>          │ <span class="rd">N pools</span>         │ <span class="am">1 + M pools</span>    │
+  │                        │                  │                  │                  │
+  │ <span class="ty">DEVELOPMENT</span>            │                  │                  │                  │
+  │ Code complexity        │ <span class="am">Moderate</span>        │ <span class="gn">Simple</span>          │ <span class="am">Moderate</span>        │
+  │ Tenant filter needed   │ <span class="rd">Every query</span>     │ <span class="gn">Not needed</span>      │ <span class="am">Shared only</span>    │
+  │ Cross-tenant query     │ <span class="gn">Easy (1 DB)</span>     │ <span class="rd">Hard (N DBs)</span>    │ <span class="am">Complex</span>        │
+  │ Testing                │ <span class="gn">Easy</span>            │ <span class="am">Moderate</span>        │ <span class="am">Moderate</span>        │
+  │                        │                  │                  │                  │
+  │ <span class="ty">SCALING</span>                │                  │                  │                  │
+  │ Max tenants            │ <span class="gn">10,000+</span>         │ <span class="rd">100-500</span>         │ <span class="gn">10,000+</span>         │
+  │ Horizontal scale       │ <span class="am">Read replicas</span>   │ <span class="gn">Per-tenant</span>      │ <span class="gn">Per-tier</span>        │
+  │ Data size limit        │ <span class="am">Shared limit</span>    │ <span class="gn">Per-tenant</span>      │ <span class="gn">Flexible</span>        │
+  │                        │                  │                  │                  │
+  └────────────────────────┴──────────────────┴──────────────────┴──────────────────┘
+
+
+<span class="ty">REAL-WORLD EXAMPLES:</span>
+
+  <span class="hi">Shared DB:</span>
+  ├── Slack (early days) — millions of workspaces, shared PostgreSQL
+  ├── Shopify (shared tables) — millions of stores, tenant_id per row
+  ├── Notion — shared database, application-level isolation
+  └── Most SaaS startups with < 1000 tenants
+
+  <span class="am">DB-per-Tenant:</span>
+  ├── Salesforce — per-org database pods
+  ├── Healthcare SaaS (HIPAA) — patient data isolation required
+  ├── Government SaaS — data residency mandated
+  └── Enterprise B2B with < 100 large customers
+
+  <span class="vi">Hybrid:</span>
+  ├── AWS (internal) — shared resources + dedicated for large accounts
+  ├── Atlassian — shared for small teams, dedicated for enterprise
+  ├── Most mature B2B SaaS — default shared, opt-in dedicated
+  └── Most SaaS scale-ups after Series B</pre></div>
 </div>
 </div>
 <!-- AUTHENTICATION -->
@@ -565,7 +1006,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Authentication — Identity trong Multi-Tenant</span><span data-lang="en">Authentication — Identity in Multi-Tenant</span></h2></div>
 
-    <div class="dg"><div class="dg-label">authentication patterns</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">authentication patterns</div><pre>
 <span class="ty">NGUYÊN TẮC: USER LUÔN THUỘC VỀ 1 TENANT</span>
 
   User = { userId, <span class="gn">tenantId</span>, email, passwordHash, roles[] }
@@ -659,6 +1100,101 @@ html.lang-vi [data-lang="en"]{display:none}
   <span class="gn">Flow:</span> User → Tenant's IdP → SAML assertion → App validates
        → Map SAML attributes to local user + tenant → Issue JWT
        → Từ đây trở đi giống flow thường (JWT-based)</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">authentication patterns</div><pre>
+<span class="ty">PRINCIPLE: USER ALWAYS BELONGS TO 1 TENANT</span>
+
+  User = { userId, <span class="gn">tenantId</span>, email, passwordHash, roles[] }
+
+  Login = verify identity + resolve tenant context.
+  All subsequent actions are scoped by tenantId from the token.
+
+
+<span class="ty">JWT — THE MOST COMMON PATTERN:</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  <span class="hi">Login Flow:</span>                                                    │
+  │                                                                  │
+  │  POST /auth/login { email, password, <span class="gn">tenant: "acme"</span> }           │
+  │       │                                                          │
+  │       ▼                                                          │
+  │  Auth Service:                                                   │
+  │  1. Resolve tenant (subdomain / body / email domain)            │
+  │  2. Verify credentials against tenant's user store              │
+  │  3. Issue JWT:                                                   │
+  │                                                                  │
+  │  {                                                               │
+  │    "sub": "user-42",                                             │
+  │    <span class="gn">"tenantId": "acme-123"</span>,                                      │
+  │    <span class="gn">"tenantTier": "premium"</span>,                                     │
+  │    "roles": ["sales-manager"],                                   │
+  │    "iat": 1708000000,                                            │
+  │    "exp": 1708000900     <span class="cm">← 15 minutes</span>                           │
+  │  }                                                               │
+  │       │                                                          │
+  │       ▼                                                          │
+  │  Client stores JWT → sends in Authorization header              │
+  │  Server validates → extract tenantId → scope everything         │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+  <span class="rd">CRITICAL: tenantId in JWT = source of truth.</span>
+  <span class="rd">Server NEVER trusts client-supplied tenantId outside of JWT.</span>
+  <span class="rd">JWT signed by server → client cannot tamper with tenantId.</span>
+
+
+<span class="ty">TENANT RESOLUTION STRATEGIES:</span>
+
+  ┌────────────────────┬──────────────────────────────────────────────┐
+  │ Strategy           │ How it works                                │
+  ├────────────────────┼──────────────────────────────────────────────┤
+  │ <span class="hi">Subdomain</span>          │ acme.app.com → extract "acme" → lookup      │
+  │                    │ Most common. Good UX. DNS wildcard *.app.com │
+  ├────────────────────┼──────────────────────────────────────────────┤
+  │ <span class="am">Custom domain</span>      │ crm.acme.com → CNAME → lookup domain map    │
+  │                    │ Enterprise feature. Requires SSL cert per   │
+  │                    │ domain.                                      │
+  ├────────────────────┼──────────────────────────────────────────────┤
+  │ <span class="gn">Email domain</span>       │ john@acme.com → extract "acme.com" → lookup  │
+  │                    │ Auto-join. Used at login, not runtime.      │
+  ├────────────────────┼──────────────────────────────────────────────┤
+  │ <span class="cy">JWT claim</span>          │ Token contains tenantId → trusted source     │
+  │                    │ Used for API calls after authentication.    │
+  ├────────────────────┼──────────────────────────────────────────────┤
+  │ <span class="vi">Path prefix</span>       │ /api/tenants/acme-123/... → extract from URL │
+  │                    │ Used for internal APIs, admin panels.       │
+  └────────────────────┴──────────────────────────────────────────────┘
+
+
+<span class="ty">TOKEN LIFECYCLE:</span>
+
+  Access Token (JWT, 15min-1hr)
+  ├── Short-lived. Contains tenantId, roles.
+  ├── Stateless verification (only needs public key).
+  └── Revocation: difficult (must blacklist or wait for expiry).
+
+  Refresh Token (opaque, 7-30 days)
+  ├── Long-lived. Stored in DB (revocable).
+  ├── Used to obtain a new Access Token.
+  └── Revoke: DELETE from DB → effective immediately.
+
+  <span class="am">Token Revocation Pattern:</span>
+  ├── Approach 1: Blacklist JWT ID in Redis (TTL = token lifetime)
+  ├── Approach 2: Short access token (15min) + refresh token rotation
+  └── Approach 3: Token version per-user (bump version = revoke all)
+
+
+<span class="ty">SSO / ENTERPRISE AUTH:</span>
+
+  Enterprise tenants often require:
+  ├── SAML 2.0 integration (Okta, Azure AD, OneLogin)
+  ├── OIDC / OAuth2 (Google Workspace, Microsoft Entra)
+  ├── SCIM provisioning (auto-create/deactivate users)
+  └── Mandatory MFA per tenant policy
+
+  <span class="gn">Flow:</span> User → Tenant's IdP → SAML assertion → App validates
+       → Map SAML attributes to local user + tenant → Issue JWT
+       → From here, same as regular flow (JWT-based)</pre></div>
 </div>
 </div>
 <!-- AUTHORIZATION -->
@@ -666,7 +1202,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t"><span data-lang="vi">Authorization — RBAC trong Multi-Tenant</span><span data-lang="en">Authorization — RBAC in Multi-Tenant</span></h2></div>
 
-    <div class="dg"><div class="dg-label">authorization patterns</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">authorization patterns</div><pre>
 <span class="ty">NGUYÊN TẮC: ROLES + PERMISSIONS SCOPED BY TENANT</span>
 
   Mỗi tenant có BỘ ROLES RIÊNG. "Admin" của tenant A ≠ "Admin" của tenant B.
@@ -777,6 +1313,117 @@ html.lang-vi [data-lang="en"]{display:none}
 
   <span class="rd">Ranh giới tuyệt đối: Tenant role KHÔNG BAO GIỜ grant quyền</span>
   <span class="rd">truy cập data tenant khác. Kể cả Tenant Owner.</span></pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">authorization patterns</div><pre>
+<span class="ty">PRINCIPLE: ROLES + PERMISSIONS SCOPED BY TENANT</span>
+
+  Each tenant has ITS OWN SET OF ROLES. "Admin" of tenant A ≠ "Admin" of tenant B.
+  Same user role "sales-manager" → permissions may differ between tenants.
+
+
+<span class="ty">RBAC MODEL:</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  User ──belongs to──▶ Tenant                                    │
+  │    │                                                             │
+  │    └──has──▶ Role(s) ──within──▶ Tenant                         │
+  │               │                                                  │
+  │               └──grants──▶ Permission(s)                         │
+  │                                                                  │
+  │  <span class="hi">Example:</span>                                                       │
+  │  User "john" @ Tenant "acme"                                    │
+  │    ├── Role: "sales-manager"                                    │
+  │    │   ├── sales:read, sales:create, sales:update               │
+  │    │   ├── customers:read                                       │
+  │    │   └── reports:read                                         │
+  │    └── Role: "team-lead"                                        │
+  │        └── users:read, users:invite                             │
+  │                                                                  │
+  │  <span class="am">Effective permissions = UNION of all roles' permissions</span>        │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">3 COMMON MODELS:</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  <span class="hi">① Fixed Roles (simplest)</span>                                       │
+  │                                                                  │
+  │  System defines N roles in advance. Tenant only assigns users. │
+  │  Example: Owner, Admin, Manager, Member, Viewer                 │
+  │                                                                  │
+  │  ✓ Simple to implement. Easy to understand.                     │
+  │  ✗ Not flexible. Tenant wants custom → not possible.            │
+  │                                                                  │
+  ├──────────────────────────────────────────────────────────────────┤
+  │                                                                  │
+  │  <span class="am">② Configurable Roles (most common)</span>                            │
+  │                                                                  │
+  │  System provides default roles + tenant can create more.       │
+  │  Each role = set of permissions. Tenant chooses permissions.   │
+  │                                                                  │
+  │  Default: Owner, Admin, Member                                  │
+  │  Tenant "ACME" adds: "Sales Lead", "Read-only Auditor"         │
+  │                                                                  │
+  │  ✓ Flexible but manageable.                                     │
+  │  ✓ Permissions defined by the system (bounded).                 │
+  │  ✗ More complex UI.                                             │
+  │                                                                  │
+  ├──────────────────────────────────────────────────────────────────┤
+  │                                                                  │
+  │  <span class="gn">③ ABAC — Attribute-Based (most complex)</span>                        │
+  │                                                                  │
+  │  Policy engine evaluates: user attributes + resource attributes │
+  │  + environment (time, IP, device) → allow/deny.                 │
+  │                                                                  │
+  │  Example: "Sales reps can only edit deals < $50K. Deals ≥ $50K │
+  │       require manager role. After 6pm, read-only for all."      │
+  │                                                                  │
+  │  ✓ Extremely flexible. Handles complex business rules.          │
+  │  ✗ Complex to implement, debug, and explain to users.           │
+  │  ✗ Performance overhead (policy evaluation per request).        │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">PERMISSION CHECK — WHERE IN THE PIPELINE:</span>
+
+  Request → Auth (who?) → Tenant (which org?) → <span class="rd">Authz (allowed?)</span> → Execute
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  <span class="hi">Route-level:</span> check before calling the handler                  │
+  │  Middleware: if (!user.can('sales:create')) → 403 Forbidden     │
+  │  Fast. Blocks early. Suitable for CRUD operations.              │
+  │                                                                  │
+  │  <span class="am">Field-level:</span> check per field in the response                   │
+  │  User "viewer" sees sales.title, but CANNOT see sales.amount   │
+  │  More complex. Requires field-level access control list.        │
+  │                                                                  │
+  │  <span class="gn">Row-level:</span> check per record                                    │
+  │  User "sales-rep" only sees deals assigned to them.             │
+  │  Need to filter query: WHERE assigned_to = currentUserId        │
+  │  Or DB-level: RLS policy per-user (heavy, rarely used for RBAC).│
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">SYSTEM-LEVEL vs TENANT-LEVEL ROLES:</span>
+
+  <span class="hi">System roles</span> (platform operator):
+  ├── Platform Admin: manages tenants, billing, system config
+  ├── Support Agent: read-only access to tenant data (with audit)
+  └── DevOps: infrastructure management, no business data access
+
+  <span class="am">Tenant roles</span> (within a tenant):
+  ├── Tenant Owner: full control within their org
+  ├── Tenant Admin: user management, config
+  ├── Custom roles: per-tenant defined
+  └── NEVER cross-tenant access
+
+  <span class="rd">Absolute boundary: Tenant role NEVER grants permission</span>
+  <span class="rd">to access another tenant's data. Not even the Tenant Owner.</span></pre></div>
 </div>
 </div>
 <!-- DECISION MATRIX -->
@@ -784,7 +1431,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t"><span data-lang="vi">Decision Matrix — Chọn gì cho dự án của bạn</span><span data-lang="en">Decision Matrix — What to Choose for Your Project</span></h2></div>
 
-    <div class="dg"><div class="dg-label">decision framework</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">decision framework</div><pre>
 <span class="ty">ISOLATION STRATEGY — CHỌN THEO CONTEXT:</span>
 
   Trả lời 5 câu hỏi → biết nên chọn gì:
@@ -902,6 +1549,124 @@ html.lang-vi [data-lang="en"]{display:none}
   ☐ Permission check trước mọi handler (middleware)
   ☐ Platform admin access qua riêng audit pipeline
   ☐ No hardcoded role checks (dùng permission-based, không role name)</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">decision framework</div><pre>
+<span class="ty">ISOLATION STRATEGY — CHOOSE BASED ON CONTEXT:</span>
+
+  Answer 5 questions → know what to choose:
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  <span class="hi">Q1: How many tenants expected in the next 2 years?</span>             │
+  │  ├── < 50 tenants, each large       → <span class="am">DB-per-Tenant</span>            │
+  │  ├── 50 - 500 tenants               → <span class="vi">Hybrid</span>                   │
+  │  └── > 500 tenants                  → <span class="gn">Shared DB</span> or <span class="vi">Hybrid</span>      │
+  │                                                                  │
+  │  <span class="hi">Q2: Are there special compliance requirements?</span>                  │
+  │  ├── HIPAA / FedRAMP / data residency → <span class="am">DB-per-Tenant</span> for that tier│
+  │  └── SOC2 / ISO 27001               → <span class="gn">Shared DB</span> + RLS is sufficient│
+  │                                                                  │
+  │  <span class="hi">Q3: Revenue model?</span>                                             │
+  │  ├── Self-serve, low ARPU ($10-50/mo)  → <span class="gn">Shared DB</span>              │
+  │  ├── Sales-led, high ARPU ($500+/mo)   → <span class="vi">Hybrid</span>                │
+  │  └── Enterprise-only ($5K+/mo)         → <span class="am">DB-per-Tenant</span>          │
+  │                                                                  │
+  │  <span class="hi">Q4: Team size?</span>                                                 │
+  │  ├── < 5 engineers    → <span class="gn">Shared DB</span> (simplest)                     │
+  │  ├── 5-20 engineers   → <span class="vi">Hybrid</span>                                   │
+  │  └── > 20 engineers   → Any (sufficient bandwidth)              │
+  │                                                                  │
+  │  <span class="hi">Q5: Which DB engine?</span>                                           │
+  │  ├── PostgreSQL → <span class="gn">Shared + RLS</span> (best for shared)                  │
+  │  ├── MySQL      → <span class="gn">Shared</span> (no RLS → app-level must be stricter)  │
+  │  └── SQLite     → <span class="am">Per-tenant</span> (file-based, natural isolation)      │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">AUTH STRATEGY — CHOOSE BASED ON CONTEXT:</span>
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │  <span class="hi">Authentication:</span>                                                │
+  │                                                                  │
+  │  MVP / Startup    → JWT (access 1hr + refresh 30d)              │
+  │                      Simple, stateless, sufficient for most.    │
+  │                                                                  │
+  │  Growth (SSO)     → JWT + SAML/OIDC adapter per tenant          │
+  │                      Enterprise tenants require SSO.            │
+  │                                                                  │
+  │  Scale            → JWT + short-lived (15min) + refresh rotate  │
+  │                      + Redis blacklist for revocation            │
+  │                                                                  │
+  ├──────────────────────────────────────────────────────────────────┤
+  │                                                                  │
+  │  <span class="hi">Authorization:</span>                                                 │
+  │                                                                  │
+  │  MVP              → Fixed roles (Owner, Admin, Member, Viewer)  │
+  │                      4 roles sufficient for 90% of use cases.   │
+  │                                                                  │
+  │  Growth           → Configurable roles + permissions            │
+  │                      Tenant creates their own custom roles.      │
+  │                                                                  │
+  │  Enterprise       → ABAC (attribute-based) or policy engine     │
+  │                      Only when business rules are truly complex. │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">ANTI-PATTERNS — AVOID THESE MISTAKES:</span>
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                                                                        │
+  │  <span class="rd">① Trust client-supplied tenantId</span>                                     │
+  │  Wrong: X-Tenant-ID header from client → used directly.              │
+  │  Right: tenantId from JWT (signed, server-issued) or subdomain.      │
+  │                                                                        │
+  │  <span class="rd">② Developer manually writes WHERE tenant_id = ...</span>                    │
+  │  Wrong: developer manually adds tenant filter to every query.         │
+  │  Right: framework auto-injects → developer CANNOT forget.             │
+  │                                                                        │
+  │  <span class="rd">③ Shared DB without backup enforcement</span>                               │
+  │  Wrong: only app-level injection, no DB-level safety net.             │
+  │  Right: RLS (if PG) or query validator + audit + monitoring.          │
+  │                                                                        │
+  │  <span class="rd">④ God role that crosses tenant boundary</span>                              │
+  │  Wrong: "super admin" role can query any tenant data.                 │
+  │  Right: platform admin access must go through a separate audit        │
+  │         pipeline, time-limited, logged, NOT the same auth flow.       │
+  │                                                                        │
+  │  <span class="rd">⑤ Over-engineer isolation too early</span>                                   │
+  │  Wrong: DB-per-tenant for 10 free-tier tenants.                       │
+  │  Right: Shared DB + good abstraction layer → migrate when needed.     │
+  │  <span class="gn">Good abstraction layer = swap strategy without changing business code.</span>  │
+  │                                                                        │
+  │  <span class="rd">⑥ No cross-tenant isolation testing</span>                                  │
+  │  Wrong: only testing happy path within 1 tenant.                      │
+  │  Right: integration tests: login as tenant A, try tenant B data.     │
+  │         Automated: every API endpoint tested with 2 tenants.          │
+  │                                                                        │
+  └────────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty">PRE-GO-LIVE CHECKLIST:</span>
+
+  <span class="hi">Isolation:</span>
+  ☐ Every DB query automatically has tenant_id filter (not manual)
+  ☐ DB-level safety (RLS / query validator / both)
+  ☐ Cross-tenant test suite (automated, runs on every deploy)
+  ☐ Audit log every data access with tenant context
+
+  <span class="am">Authentication:</span>
+  ☐ JWT contains tenantId, signed, short-lived
+  ☐ Refresh token rotation + revocation mechanism
+  ☐ Tenant resolution strategy clear (subdomain / domain / JWT)
+  ☐ Rate limiting per tenant per endpoint
+
+  <span class="gn">Authorization:</span>
+  ☐ Roles scoped by tenant (no global roles for business data)
+  ☐ Permission check before every handler (middleware)
+  ☐ Platform admin access through a separate audit pipeline
+  ☐ No hardcoded role checks (use permission-based, not role name)</pre></div>
 </div>
 </div>
 

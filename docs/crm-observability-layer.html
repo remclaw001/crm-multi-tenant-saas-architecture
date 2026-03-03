@@ -93,7 +93,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="nt bl" data-lang="vi"><strong>Nguyên tắc:</strong> L7 là tầng PASSIVE — không can thiệp vào business logic. Nó chỉ quan sát, thu thập, và cảnh báo. Mọi thành phần L7 nhận data từ các tầng khác nhưng không bao giờ thay đổi hành vi xử lý request.</div>
     <div class="nt bl" data-lang="en"><strong>Principle:</strong> L7 is a PASSIVE layer — it does not interfere with business logic. It only observes, collects, and alerts. Every L7 component receives data from other layers but never changes how requests are processed.</div>
 
-    <div class="dg"><div class="dg-label">L7 overview</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">L7 overview</div><pre>
   ┌─ <span class="hi">L2</span> Gateway ─┐ ┌─ <span class="hi">L3</span> Business ─┐ ┌─ <span class="hi">L4</span> Data Access ┐ ┌─ <span class="hi">L5</span> Infra ────┐
   │              │ │               │ │                │ │              │
   │ Tenant Res.  │ │ Plugin Cores  │ │ Query Interc.  │ │ PostgreSQL   │
@@ -154,6 +154,68 @@ html.lang-vi [data-lang="en"]{display:none}
   ├──────────────────────────┼─────────────────────────────────────────────┤
   │ <span class="or">Audit</span>      (Compliance)    │ Immutable legal record. Not for debugging.   │
   └──────────────────────────┴─────────────────────────────────────────────┘</pre></div>
+
+    <div class="dg" data-lang="en"><div class="dg-label">L7 overview</div><pre>
+  ┌─ <span class="hi">L2</span> Gateway ─┐ ┌─ <span class="hi">L3</span> Business ─┐ ┌─ <span class="hi">L4</span> Data Access ┐ ┌─ <span class="hi">L5</span> Infra ────┐
+  │              │ │               │ │                │ │              │
+  │ Tenant Res.  │ │ Plugin Cores  │ │ Query Interc.  │ │ PostgreSQL   │
+  │ Auth Guard   │ │ Event Bus     │ │ Pool Manager   │ │ Redis        │
+  │ Rate Limiter │ │ Hook Registry │ │ Cache Manager  │ │ RabbitMQ     │
+  │ Route Match  │ │ Sandbox       │ │ Migration Eng. │ │ ES, S3       │
+  └──────┬───────┘ └───────┬───────┘ └───────┬────────┘ └──────┬───────┘
+         │                 │                 │                 │
+         │  emit logs,     │  emit logs,     │  emit logs,     │  expose
+         │  metrics,       │  metrics,       │  metrics,       │  metrics,
+         │  trace spans    │  trace spans    │  trace spans    │  health
+         │                 │                 │                 │
+         └─────────────────┴────────┬────────┴─────────────────┘
+                                    │
+                                    ▼
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║                          <span class="pk">L7 OBSERVABILITY LAYER</span>                              ║
+║                                                                               ║
+║  ┌───────────────┐ ┌───────────────┐ ┌───────────────┐ ┌──────────────────┐ ║
+║  │               │ │               │ │               │ │                  │ ║
+║  │  <span class="gn">① LOGGING</span>    │ │  <span class="cy">② TRACING</span>   │ │  <span class="am">③ METRICS</span>   │ │  <span class="rd">④ ALERTING</span>    │ ║
+║  │               │ │               │ │               │ │                  │ ║
+║  │  Structured   │ │  Distributed  │ │  Time-series  │ │  Rules engine    │ ║
+║  │  JSON logs    │ │  request path │ │  counters &   │ │  + escalation    │ ║
+║  │               │ │  across svcs  │ │  histograms   │ │  + notification  │ ║
+║  │  ScopedLogger │ │  OpenTelemetry│ │  Prometheus   │ │  PagerDuty       │ ║
+║  │  → Loki/ELK   │ │  → Jaeger     │ │  → Grafana    │ │  Slack           │ ║
+║  │               │ │               │ │               │ │                  │ ║
+║  └───────────────┘ └───────────────┘ └───────────────┘ └──────────────────┘ ║
+║                                                                               ║
+║  ┌───────────────┐ ┌─────────────────────────────────────────────────────┐   ║
+║  │               │ │                                                     │   ║
+║  │  <span class="vi">⑤ HEALTH</span>     │ │  <span class="or">⑥ AUDIT TRAIL</span>                                    │   ║
+║  │  <span class="vi">   CHECKS</span>    │ │                                                     │   ║
+║  │               │ │  Immutable record of every data mutation.           │   ║
+║  │  Liveness     │ │  WHO did WHAT to WHICH resource, WHEN.              │   ║
+║  │  Readiness    │ │  Regulatory compliance + forensics.                 │   ║
+║  │  Dependency   │ │                                                     │   ║
+║  │               │ │  PostgreSQL (Metadata DB) → S3 archive              │   ║
+║  └───────────────┘ └─────────────────────────────────────────────────────┘   ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+
+<span class="ty">3 PILLARS OF OBSERVABILITY + 3 SUPPLEMENTS:</span>
+
+  ┌──────────────────────────┬─────────────────────────────────────────────┐
+  │ <span class="gn">Logging</span>    (What happened) │ Detailed events. Debug, audit, forensics.    │
+  ├──────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="cy">Tracing</span>    (Where &amp; How)   │ Request path across services &amp; plugins.      │
+  ├──────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="am">Metrics</span>    (How much)      │ Aggregated numbers. Trends, capacity.        │
+  ├──────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="rd">Alerting</span>   (React)         │ Threshold → trigger → notify → escalate.     │
+  ├──────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="vi">Health</span>     (Alive?)        │ K8s probes. Auto-restart, traffic routing.   │
+  ├──────────────────────────┼─────────────────────────────────────────────┤
+  │ <span class="or">Audit</span>      (Compliance)    │ Immutable legal record. Not for debugging.   │
+  └──────────────────────────┴─────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
 
@@ -165,7 +227,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Structured Logging — ScopedLogger → Loki/ELK</h2></div>
 
-    <div class="dg"><div class="dg-label">logging architecture</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">logging architecture</div><pre>
 ┌─ <span class="gn">STRUCTURED LOGGING</span> ─────────────────────────────────────────────────────────┐
 │                                                                              │
 │                                                                              │
@@ -277,6 +339,119 @@ html.lang-vi [data-lang="en"]{display:none}
 │  └── Cold (Glacier): 365 days — compliance archive                          │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘</pre></div>
+
+    <div class="dg" data-lang="en"><div class="dg-label">logging architecture</div><pre>
+┌─ <span class="gn">STRUCTURED LOGGING</span> ─────────────────────────────────────────────────────────┐
+│                                                                              │
+│                                                                              │
+│  <span class="ty">SCOPED LOGGER — created per-request in Execution Context</span>                  │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  When building Execution Context:                                      │ │
+│  │  ctx.logger = ScopedLogger.create({                                    │ │
+│  │    requestId:  "req-789",                                              │ │
+│  │    tenantId:   "acme-123",                                             │ │
+│  │    userId:     "user-5",                                               │ │
+│  │    plugin:     null          ← set when plugin begins processing      │ │
+│  │  })                                                                    │ │
+│  │                                                                        │ │
+│  │  Plugin calls: ctx.logger.info("Sale created", { saleId: "sale-42" }) │ │
+│  │                                                                        │ │
+│  │  ScopedLogger auto-produces:                                           │ │
+│  │  ┌──────────────────────────────────────────────────────────────────┐ │ │
+│  │  │  {                                                               │ │ │
+│  │  │    "timestamp": "2026-02-10T14:30:00.045Z",                      │ │ │
+│  │  │    "level":     "info",                                          │ │ │
+│  │  │    "message":   "Sale created",                                  │ │ │
+│  │  │    <span class="gn">"requestId": "req-789",</span>          ← auto from scope         │ │ │
+│  │  │    <span class="gn">"tenantId":  "acme-123",</span>         ← auto from scope         │ │ │
+│  │  │    <span class="gn">"userId":    "user-5",</span>           ← auto from scope         │ │ │
+│  │  │    <span class="gn">"plugin":    "customer-care",</span>    ← auto from scope         │ │ │
+│  │  │    "saleId":    "sale-42",           ← explicit from plugin    │ │ │
+│  │  │    "instance":  "app-3",             ← auto from env          │ │ │
+│  │  │    "env":       "production"         ← auto from env          │ │ │
+│  │  │  }                                                               │ │ │
+│  │  └──────────────────────────────────────────────────────────────────┘ │ │
+│  │                                                                        │ │
+│  │  <span class="rd">PII REDACTION — before shipping:</span>                                      │ │
+│  │  ├── email: "alice@example.com" → "al***@***.com"                     │ │
+│  │  ├── phone: "0901234567" → "****4567"                                 │ │
+│  │  └── token: "eyJhbG..." → "[REDACTED]"                                │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">LOG PIPELINE — from application → storage</span>                                   │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  App Instance           Collector            Storage         Query     │ │
+│  │  ┌─────────┐           ┌──────────┐        ┌──────────┐   ┌────────┐ │ │
+│  │  │Scoped   │  stdout   │ Promtail │  push  │  Loki    │   │Grafana │ │ │
+│  │  │Logger   │──────────▶│ /Fluent  │───────▶│  (logs   │──▶│ (query │ │ │
+│  │  │(JSON)   │  (stream) │ Bit      │  (HTTP)│  store)  │   │  UI)   │ │ │
+│  │  └─────────┘           └──────────┘        └──────────┘   └────────┘ │ │
+│  │                                                                        │ │
+│  │  <span class="cm">Logs ship async (stdout → collector picks up).</span>                       │ │
+│  │  <span class="cm">Zero performance impact on request processing.</span>                      │ │
+│  │                                                                        │ │
+│  │  ALT pipeline (ELK):                                                   │ │
+│  │  ScopedLogger → stdout → Filebeat → Elasticsearch → Kibana            │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">LOG LEVELS & where to call from:</span>                                              │
+│                                                                              │
+│  ┌──────────┬────────────────────────────────────────────────────────────┐  │
+│  │ <span class="gn">DEBUG</span>    │ Query details, cache hit/miss, hook execution             │  │
+│  │          │ <span class="cm">Enable only when debugging. Disable in production.</span>        │  │
+│  ├──────────┼────────────────────────────────────────────────────────────┤  │
+│  │ <span class="hi">INFO</span>     │ Request start/end, sale created, plugin enabled,          │  │
+│  │          │ customer updated, worker processed                        │  │
+│  │          │ <span class="cm">Default production level. Business events.</span>                │  │
+│  ├──────────┼────────────────────────────────────────────────────────────┤  │
+│  │ <span class="am">WARN</span>     │ Slow query (&gt;100ms), cache miss rate high,                │  │
+│  │          │ rate limit 80%, pool 80%, retry attempt                    │  │
+│  │          │ <span class="cm">Needs attention but not broken.</span>                            │  │
+│  ├──────────┼────────────────────────────────────────────────────────────┤  │
+│  │ <span class="rd">ERROR</span>    │ Query failed, plugin threw exception, webhook             │  │
+│  │          │ delivery failed, pool exhausted, auth bypass attempt       │  │
+│  │          │ <span class="cm">Needs investigation. May trigger alert.</span>                    │  │
+│  ├──────────┼────────────────────────────────────────────────────────────┤  │
+│  │ <span class="rd">FATAL</span>    │ DB connection lost, Redis unreachable, unrecoverable      │  │
+│  │          │ <span class="cm">Instance about to crash. Alert immediately.</span>                │  │
+│  └──────────┴────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">TENANT-AWARE QUERYING:</span>                                                    │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  Grafana / Kibana query:                                               │ │
+│  │                                                                        │ │
+│  │  "Show me all ERROR logs for tenant ACME in last 1 hour"              │ │
+│  │  → { tenantId="acme-123", level="error" }                             │ │
+│  │                                                                        │ │
+│  │  "Trace request req-789 across all components"                        │ │
+│  │  → { requestId="req-789" }                                             │ │
+│  │  → Result: gateway log + plugin log + DB log + event log              │ │
+│  │    → The entire request journey in ONE place.                         │ │
+│  │                                                                        │ │
+│  │  "All logs from plugin customer-care last 24h"                        │ │
+│  │  → { plugin="customer-care" }                                          │ │
+│  │                                                                        │ │
+│  │  <span class="cm">ScopedLogger auto-tags all logs → easy to query.</span>                     │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  <span class="ty">RETENTION:</span>                                                                │
+│  ├── Hot (Loki/ES):  30 days — fast query                                  │
+│  ├── Warm (S3):      90 days — slow but searchable                         │
+│  └── Cold (Glacier): 365 days — compliance archive                          │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
 
@@ -288,7 +463,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Distributed Tracing — OpenTelemetry → Jaeger</h2></div>
 
-    <div class="dg"><div class="dg-label">tracing architecture</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">tracing architecture</div><pre>
 ┌─ <span class="cy">DISTRIBUTED TRACING</span> ────────────────────────────────────────────────────────┐
 │                                                                              │
 │  <span class="ty">CONCEPTS:</span>                                                                │
@@ -389,6 +564,108 @@ html.lang-vi [data-lang="en"]{display:none}
 │  └── UI: Jaeger UI (trace timeline) + Grafana Tempo integration             │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘</pre></div>
+
+    <div class="dg" data-lang="en"><div class="dg-label">tracing architecture</div><pre>
+┌─ <span class="cy">DISTRIBUTED TRACING</span> ────────────────────────────────────────────────────────┐
+│                                                                              │
+│  <span class="ty">CONCEPTS:</span>                                                                │
+│                                                                              │
+│  <span class="hi">Trace</span>  = full journey of 1 request (1 trace per request)                │
+│  <span class="hi">Span</span>   = 1 operation in the trace (gateway, plugin, DB query, ...)       │
+│  <span class="hi">Context</span>= traceId + spanId, propagated through all components              │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">TRACE OF 1 REQUEST — POST /api/v1/sales</span>                                 │
+│                                                                              │
+│  Trace ID: <span class="hi">req-789</span>                                                         │
+│                                                                              │
+│  ┌─ <span class="pk">gateway</span> ──────────────────────────────────────────────────── 10ms ──┐  │
+│  │  ├─ <span class="am">tenant.resolve</span> ──── 1ms                                         │  │
+│  │  │  tags: { subdomain: "acme", tenantId: "acme-123" }              │  │
+│  │  │                                                                  │  │
+│  │  ├─ <span class="am">auth.validate</span> ──── 1ms                                          │  │
+│  │  │  tags: { userId: "user-5", roles: "sales_manager" }             │  │
+│  │  │                                                                  │  │
+│  │  ├─ <span class="am">rate.check</span> ── 1ms                                               │  │
+│  │  │  tags: { current: 249, limit: 500, remaining: 251 }             │  │
+│  │  │                                                                  │  │
+│  │  └─ <span class="am">route.match</span> ── 1ms                                              │  │
+│  │     tags: { plugin: "customer-care", method: "createSale" }        │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│  ┌─ <span class="cy">context.build</span> ────────────────────────────────────────────── 4ms ──┐  │
+│  │  ├─ <span class="am">tenant.context.get</span> ── 0.1ms                                     │  │
+│  │  │  tags: { source: "lru_cache" }                                   │  │
+│  │  │                                                                  │  │
+│  │  └─ <span class="am">exec.context.build</span> ─── 3ms                                     │  │
+│  │     tags: { pool: "shared", connId: 14 }                           │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│  ┌─ <span class="gn">plugin.customer-care.createSale</span> ────────────────────────── 37ms ──┐  │
+│  │  ├─ <span class="hi">db.query</span> customers ────── 5ms                                  │  │
+│  │  │  tags: { table: "customers", op: "SELECT", rows: 1 }            │  │
+│  │  │                                                                  │  │
+│  │  ├─ <span class="vi">hook</span> before:saleCreate ── 0.5ms                                │  │
+│  │  │  tags: { handlers: 0, skipped: 2 }                              │  │
+│  │  │                                                                  │  │
+│  │  ├─ <span class="hi">db.query</span> sales INSERT ──── 8ms                                 │  │
+│  │  │  tags: { table: "sales", op: "INSERT", rows: 1 }                │  │
+│  │  │                                                                  │  │
+│  │  ├─ <span class="hi">db.query</span> customers UPDATE ── 5ms                               │  │
+│  │  │  tags: { table: "customers", op: "UPDATE", rows: 1 }            │  │
+│  │  │                                                                  │  │
+│  │  ├─ <span class="vi">hook</span> after:saleCreate ── 0.5ms                                 │  │
+│  │  │  tags: { handlers: 0 }                                           │  │
+│  │  │                                                                  │  │
+│  │  ├─ <span class="or">event.sync</span> sales.created ──── 8ms                              │  │
+│  │  │  ├─ <span class="am">analytics.onSalesCreated</span> ── 8ms                              │  │
+│  │  │  │  tags: { plugin: "analytics", cache_ops: 2 }                  │  │
+│  │  │  └─ <span class="rd">automation.onSalesCreated</span> ── SKIPPED                         │  │
+│  │  │     tags: { reason: "not_enabled" }                              │  │
+│  │  │                                                                  │  │
+│  │  └─ <span class="or">mq.publish</span> sales.created ── 2ms                               │  │
+│  │     tags: { exchange: "crm.events", routing: "sales.created" }     │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│  ┌─ <span class="pk">response</span> ── 2ms ──────────────────────────────────────────────────┐  │
+│  │  tags: { status: 201, content_length: 245, db_queries: 3 }         │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+│  <span class="cm">...async spans (same traceId, linked to parent)...</span>                      │
+│                                                                              │
+│  ┌─ <span class="cy">worker.notification</span> ── 50ms ─── (linked, separate process) ────────┐ │
+│  │  tags: { tenantId: "acme-123", queue: "notification.sales" }        │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│  ┌─ <span class="cy">worker.search.index</span> ── 100ms ──────────────────────────────────────┐ │
+│  │  tags: { index: "acme-123-sales", docId: "sale-42" }                │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">TRACE CONTEXT PROPAGATION:</span>                                               │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  HTTP Request                                                          │ │
+│  │  → Gateway creates traceId (or uses from traceparent header)          │ │
+│  │  → Execution Context carries traceId                                   │ │
+│  │  → ScopedLogger attaches traceId to all logs                           │ │
+│  │  → Query Interceptor attaches traceId to DB comments                   │ │
+│  │  → MQ publish attaches traceId to message headers                      │ │
+│  │  → Workers receive traceId → create child spans in same trace          │ │
+│  │                                                                        │ │
+│  │  Result: 1 traceId → see the ENTIRE journey:                          │ │
+│  │  HTTP → gateway → plugin → DB → events → async workers               │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  <span class="ty">SAMPLING:</span>                                                                 │
+│  ├── Production: 5% random + 100% errors + 100% slow (&gt;500ms)             │
+│  ├── VIP tenants: 20% (more visibility for paying customers)               │
+│  └── Debug mode: 100% (temporary, per-tenant toggle)                        │
+│                                                                              │
+│  <span class="ty">STORAGE:</span>                                                                  │
+│  ├── Jaeger backend: Elasticsearch / Cassandra                              │
+│  ├── Retention: 7 days hot, 30 days warm                                    │
+│  └── UI: Jaeger UI (trace timeline) + Grafana Tempo integration             │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
 
@@ -400,7 +677,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Metrics — Prometheus → Grafana</h2></div>
 
-    <div class="dg"><div class="dg-label">metrics architecture</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">metrics architecture</div><pre>
 ┌─ <span class="am">METRICS SYSTEM</span> ────────────────────────────────────────────────────────────┐
 │                                                                              │
 │  <span class="ty">PIPELINE:</span>                                                                │
@@ -507,6 +784,114 @@ html.lang-vi [data-lang="en"]{display:none}
 │  └────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘</pre></div>
+
+    <div class="dg" data-lang="en"><div class="dg-label">metrics architecture</div><pre>
+┌─ <span class="am">METRICS SYSTEM</span> ────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  <span class="ty">PIPELINE:</span>                                                                │
+│                                                                              │
+│  App Instances          Prometheus             Grafana                       │
+│  ┌────────────┐        ┌──────────────┐      ┌──────────────┐              │
+│  │ /metrics   │ scrape │  Time-series │ query│  Dashboards  │              │
+│  │ endpoint   │◀───────│  Database    │─────▶│  Visualize   │              │
+│  │ (per inst) │ 15s    │  (15s res)   │      │  + Alert     │              │
+│  └────────────┘        └──────────────┘      └──────────────┘              │
+│                                                                              │
+│  <span class="cm">Prometheus scrapes /metrics endpoint every 15 seconds.</span>                   │
+│  <span class="cm">Each app instance exposes its own metrics → Prometheus aggregates them.</span>  │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">METRICS CATALOG — by layer:</span>                                              │
+│                                                                              │
+│                                                                              │
+│  <span class="hi">L2 GATEWAY METRICS</span>                                                       │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  <span class="fn">http_requests_total</span>                                                 │ │
+│  │  { method, path, plugin, status, tenant_tier }                         │ │
+│  │  Counter. Total requests. Used to calculate RPS, error rate.          │ │
+│  │                                                                        │ │
+│  │  <span class="fn">http_request_duration_seconds</span>                                       │ │
+│  │  { method, path, plugin, status }                                      │ │
+│  │  Histogram. Buckets: 10ms, 50ms, 100ms, 250ms, 500ms, 1s, 5s.        │ │
+│  │  Used to calculate P50, P95, P99 latency.                             │ │
+│  │                                                                        │ │
+│  │  <span class="fn">rate_limit_hits_total</span>                                               │ │
+│  │  { tenant_id }                                                         │ │
+│  │  Counter. How many times rate limited.                                │ │
+│  │                                                                        │ │
+│  │  <span class="fn">auth_failures_total</span>                                                 │ │
+│  │  { reason }   <span class="cm">reason: expired, invalid, blacklisted, tenant_mismatch</span> │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  <span class="hi">L3 BUSINESS METRICS</span>                                                      │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  <span class="fn">plugin_execution_duration_seconds</span>                                   │ │
+│  │  { plugin, method }                                                    │ │
+│  │  Histogram. Time taken by plugin core to process.                     │ │
+│  │                                                                        │ │
+│  │  <span class="fn">plugin_errors_total</span>                                                 │ │
+│  │  { plugin, error_type }                                                │ │
+│  │                                                                        │ │
+│  │  <span class="fn">event_handlers_executed_total</span>                                       │ │
+│  │  { event, handler_plugin, sync_or_async }                              │ │
+│  │                                                                        │ │
+│  │  <span class="fn">hooks_executed_total</span>                                                │ │
+│  │  { hook_name, consumer_plugin }                                        │ │
+│  │                                                                        │ │
+│  │  <span class="fn">sandbox_limit_reached_total</span>                                         │ │
+│  │  { plugin, limit_type }   <span class="cm">limit_type: timeout, memory, queries</span>       │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  <span class="hi">L4 DATA ACCESS METRICS</span>                                                   │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  <span class="fn">db_query_duration_seconds</span>                                           │ │
+│  │  { pool, table, operation }                                            │ │
+│  │  Histogram. Slow query detection.                                      │ │
+│  │                                                                        │ │
+│  │  <span class="fn">db_queries_per_request</span>                                              │ │
+│  │  { plugin }                                                            │ │
+│  │  Histogram. N+1 detection (spike = smell).                            │ │
+│  │                                                                        │ │
+│  │  <span class="fn">pool_connections_active</span>                                             │ │
+│  │  { pool }   <span class="cm">pool: metadata, shared, vip-initech</span>                      │ │
+│  │  Gauge. Number of active connections.                                 │ │
+│  │                                                                        │ │
+│  │  <span class="fn">pool_connections_idle</span>                                               │ │
+│  │  { pool }                                                              │ │
+│  │  Gauge. Number of idle connections.                                   │ │
+│  │                                                                        │ │
+│  │  <span class="fn">pool_wait_duration_seconds</span>                                          │ │
+│  │  { pool }                                                              │ │
+│  │  Histogram. How long a request waits to get a connection.             │ │
+│  │                                                                        │ │
+│  │  <span class="fn">cache_operations_total</span>                                              │ │
+│  │  { level, operation, result }   <span class="cm">level: l1/l2, result: hit/miss</span>       │ │
+│  │                                                                        │ │
+│  │  <span class="fn">cache_hit_ratio</span>                                                     │ │
+│  │  { level }                                                             │ │
+│  │  Gauge. L1 hit rate, L2 hit rate. Most important.                     │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  <span class="hi">L5 INFRASTRUCTURE METRICS</span> (exposed by infra itself)                      │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  <span class="fn">pg_stat_activity</span>           PostgreSQL active connections              │ │
+│  │  <span class="fn">pg_stat_user_tables</span>        Table row counts, dead tuples              │ │
+│  │  <span class="fn">redis_connected_clients</span>    Redis active clients                       │ │
+│  │  <span class="fn">redis_used_memory_bytes</span>    Redis memory usage                         │ │
+│  │  <span class="fn">rabbitmq_queue_messages</span>    Queue depth (messages waiting)             │ │
+│  │  <span class="fn">rabbitmq_queue_consumers</span>   Active workers per queue                   │ │
+│  │  <span class="fn">es_cluster_health</span>          Elasticsearch cluster status               │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
 
@@ -518,7 +903,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Alerting — Rules, Escalation, Channels</h2></div>
 
-    <div class="dg"><div class="dg-label">alerting system</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">alerting system</div><pre>
 ┌─ <span class="rd">ALERTING SYSTEM</span> ────────────────────────────────────────────────────────────┐
 │                                                                              │
 │  <span class="ty">PIPELINE:</span>                                                                │
@@ -607,6 +992,96 @@ html.lang-vi [data-lang="en"]{display:none}
 │  └────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘</pre></div>
+
+    <div class="dg" data-lang="en"><div class="dg-label">alerting system</div><pre>
+┌─ <span class="rd">ALERTING SYSTEM</span> ────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  <span class="ty">PIPELINE:</span>                                                                │
+│                                                                              │
+│  Metrics (Prometheus)   Rules Engine           Notification                  │
+│  Logs (Loki)            (Alertmanager)         Channels                      │
+│       │                      │                      │                        │
+│       │  threshold           │  group, dedupe,      │                        │
+│       │  breached            │  route, silence       │                        │
+│       ▼                      ▼                      ▼                        │
+│  ┌──────────┐          ┌──────────┐          ┌──────────────┐              │
+│  │ Alert    │ fire     │ Alert    │ route    │ PagerDuty    │              │
+│  │ Rules    │─────────▶│ Manager  │─────────▶│ Slack        │              │
+│  │          │          │          │          │ Email        │              │
+│  └──────────┘          └──────────┘          │ OpsGenie     │              │
+│                                               └──────────────┘              │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">ALERT RULES — SEVERITY LEVELS:</span>                                          │
+│                                                                              │
+│                                                                              │
+│  <span class="vi">INFO</span> — informational, no action required                                  │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │  Plugin deployed successfully                  → Slack #releases      │ │
+│  │  Tenant upgraded tier                          → Slack #accounts      │ │
+│  │  Daily report: RPS, error rate, top tenants    → Email ops team       │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  <span class="am">WARNING</span> — needs attention, investigate within hours                       │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  Error rate > 1% for 5min              → Slack #alerts                │ │
+│  │    rate(http_requests_total{status=~"5.."}[5m])                       │ │
+│  │    / rate(http_requests_total[5m]) > 0.01                             │ │
+│  │                                                                        │ │
+│  │  P95 latency > 500ms for 5min          → Slack #alerts                │ │
+│  │    histogram_quantile(0.95, http_request_duration_seconds) > 0.5      │ │
+│  │                                                                        │ │
+│  │  Pool utilization > 70% for 10min      → Slack #infra                 │ │
+│  │    pool_connections_active / pool_connections_total > 0.7              │ │
+│  │                                                                        │ │
+│  │  Cache hit ratio < 70% for 15min       → Slack #infra                 │ │
+│  │    cache_hit_ratio{level="l2"} < 0.7                                  │ │
+│  │                                                                        │ │
+│  │  Queue depth > 1000 for 5min           → Slack #infra                 │ │
+│  │    rabbitmq_queue_messages > 1000                                     │ │
+│  │                                                                        │ │
+│  │  DLQ messages > 0                      → Slack #alerts                │ │
+│  │    rabbitmq_queue_messages{queue=~".*dlq.*"} > 0                      │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  <span class="rd">CRITICAL</span> — requires immediate action, within minutes                      │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  Error rate > 5% for 2min              → PagerDuty (wake up on-call) │ │
+│  │                                                                        │ │
+│  │  P99 latency > 5s for 2min             → PagerDuty                   │ │
+│  │                                                                        │ │
+│  │  Pool utilization = 100% for 1min      → PagerDuty                   │ │
+│  │    pool_connections_active = pool_connections_total                    │ │
+│  │                                                                        │ │
+│  │  PostgreSQL replication lag > 30s       → PagerDuty                   │ │
+│  │                                                                        │ │
+│  │  Redis Sentinel failover triggered     → PagerDuty + Slack #incident │ │
+│  │                                                                        │ │
+│  │  Instance health check failing         → PagerDuty (K8s auto-restart)│ │
+│  │                                                                        │ │
+│  │  Security: auth bypass attempt > 10/min → PagerDuty + Slack #security│ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">ESCALATION POLICY:</span>                                                       │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  0 min:   Alert fires → Slack channel + PagerDuty                     │ │
+│  │  5 min:   No ACK → escalate to on-call engineer (phone)              │ │
+│  │  15 min:  No ACK → escalate to team lead                              │ │
+│  │  30 min:  No ACK → escalate to engineering manager                    │ │
+│  │  60 min:  No resolution → auto-create incident (P1)                   │ │
+│  │                                                                        │ │
+│  │  VIP tenant affected? → reduce all timers by 50%                     │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
 
@@ -618,7 +1093,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="sec">
     <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Health Checks — Liveness, Readiness, Dependencies</h2></div>
 
-    <div class="dg"><div class="dg-label">health check system</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">health check system</div><pre>
 ┌─ <span class="vi">HEALTH CHECK SYSTEM</span> ─────────────────────────────────────────────────────────┐
 │                                                                              │
 │                                                                              │
@@ -695,6 +1170,84 @@ html.lang-vi [data-lang="en"]{display:none}
 │     │  <span class="cm">Hiển thị trên ops dashboard. Trigger WARNING alert.</span>                 │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘</pre></div>
+
+    <div class="dg" data-lang="en"><div class="dg-label">health check system</div><pre>
+┌─ <span class="vi">HEALTH CHECK SYSTEM</span> ─────────────────────────────────────────────────────────┐
+│                                                                              │
+│                                                                              │
+│  <span class="ty">3 TYPES OF HEALTH CHECK:</span>                                                 │
+│                                                                              │
+│                                                                              │
+│  <span class="nu">❶</span> <span class="hi">LIVENESS</span> — "Is the instance still alive?"                               │
+│  │                                                                           │
+│  │  Endpoint:   GET /health/live                                            │
+│  │  Called by:  Kubernetes (kubelet, every 10s)                              │
+│  │                                                                           │
+│  │  Checks:                                                                  │
+│  │  ├── Process alive?                    → always true if responding       │
+│  │  ├── Event loop not blocked? (&lt;2s)     → check with async timer         │
+│  │  └── Memory < 90% of limit?            → prevent OOM                    │
+│  │                                                                           │
+│  │  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │  │  <span class="gn">200 OK</span> → instance healthy, keep running                       │     │
+│  │  │  <span class="rd">503</span>    → K8s kills pod, restarts container                     │     │
+│  │  │           (automatic recovery, no manual intervention)          │     │
+│  │  └─────────────────────────────────────────────────────────────────┘     │
+│  │                                                                           │
+│  │  <span class="cm">Liveness only checks the process. Does NOT check DB or Redis.</span>          │
+│  │  <span class="cm">If dependencies checked at liveness → DB down = restart ALL pods</span>        │
+│  │  <span class="cm">→ cascading failure. Dependencies are checked at Readiness.</span>             │
+│                                                                              │
+│                                                                              │
+│  <span class="nu">❷</span> <span class="hi">READINESS</span> — "Is the instance ready to receive traffic?"                │
+│  │                                                                           │
+│  │  Endpoint:   GET /health/ready                                           │
+│  │  Called by:  Kubernetes (kubelet, every 5s) + Load Balancer              │
+│  │                                                                           │
+│  │  Checks:                                                                  │
+│  │  ├── All plugins loaded?               → Plugin Manager status          │
+│  │  ├── DB pool initialized?              → SharedPool.isReady()           │
+│  │  ├── Redis connected?                  → Redis.ping() < 100ms          │
+│  │  ├── RabbitMQ connected?               → MQ channel open               │
+│  │  └── Warmup complete?                  → initial caches loaded          │
+│  │                                                                           │
+│  │  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │  │  <span class="gn">200 OK</span> → receive traffic from Load Balancer                     │     │
+│  │  │  <span class="am">503</span>    → removed from LB rotation, no new requests              │     │
+│  │  │           existing connections drain gracefully                  │     │
+│  │  │           K8s does NOT restart (unlike Liveness)                 │     │
+│  │  │           → retry every 5s until dependencies recover           │     │
+│  │  └─────────────────────────────────────────────────────────────────┘     │
+│                                                                              │
+│                                                                              │
+│  <span class="nu">❸</span> <span class="hi">DEPENDENCY</span> — "Are infrastructure components healthy?"                    │
+│     │                                                                        │
+│     │  Endpoint:   GET /health/deps                                         │
+│     │  Called by:  Monitoring system (every 30s), ops dashboard              │
+│     │                                                                        │
+│     │  ┌──────────────────────────────────────────────────────────────┐     │
+│     │  │                                                              │     │
+│     │  │  {                                                           │     │
+│     │  │    "status": "degraded",                                     │     │
+│     │  │    "checks": {                                               │     │
+│     │  │      "postgres_meta":  { "status": "<span class="gn">healthy</span>", "latency": 2  },│     │
+│     │  │      "postgres_shared":{ "status": "<span class="gn">healthy</span>", "latency": 3  },│     │
+│     │  │      "postgres_vip":   { "status": "<span class="gn">healthy</span>", "latency": 2  },│     │
+│     │  │      "redis":          { "status": "<span class="gn">healthy</span>", "latency": 1  },│     │
+│     │  │      "rabbitmq":       { "status": "<span class="am">degraded</span>","latency": 45 },│     │
+│     │  │      "elasticsearch":  { "status": "<span class="gn">healthy</span>", "latency": 5  },│     │
+│     │  │      "s3":             { "status": "<span class="gn">healthy</span>", "latency": 15 } │     │
+│     │  │    },                                                        │     │
+│     │  │    "uptime": "14d 6h 32m",                                   │     │
+│     │  │    "version": "2.1.0"                                        │     │
+│     │  │  }                                                           │     │
+│     │  │                                                              │     │
+│     │  └──────────────────────────────────────────────────────────────┘     │
+│     │                                                                        │
+│     │  <span class="cm">degraded = some dependencies slow/flaky but still functioning.</span>        │
+│     │  <span class="cm">Displayed on ops dashboard. Triggers WARNING alert.</span>                  │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
 
@@ -709,7 +1262,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="nt rd" data-lang="vi"><strong>Audit Trail ≠ Logging.</strong> Logs phục vụ debugging, có thể xóa. Audit Trail phục vụ compliance/pháp lý, KHÔNG THỂ xóa/sửa. Logs ghi mọi thứ. Audit chỉ ghi data mutations.</div>
     <div class="nt rd" data-lang="en"><strong>Audit Trail ≠ Logging.</strong> Logs serve debugging and can be deleted. Audit Trail serves compliance/legal purposes and CANNOT be deleted or modified. Logs record everything. Audit only records data mutations.</div>
 
-    <div class="dg"><div class="dg-label">audit trail architecture</div><pre>
+    <div class="dg" data-lang="vi"><div class="dg-label">audit trail architecture</div><pre>
 ┌─ <span class="or">AUDIT TRAIL</span> ───────────────────────────────────────────────────────────────┐
 │                                                                              │
 │                                                                              │
@@ -774,6 +1327,116 @@ html.lang-vi [data-lang="en"]{display:none}
 │  │  <span class="cm">Async batched → KHÔNG ảnh hưởng response latency.</span>                   │ │
 │  │  <span class="cm">Buffer in-memory → nếu instance crash → mất ~1s audit data.</span>         │ │
 │  │  <span class="cm">Acceptable trade-off cho performance. Logs vẫn có đầy đủ.</span>           │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">STORAGE & LIFECYCLE:</span>                                                      │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  audit_log table PARTITIONED BY RANGE (created_at) — monthly          │ │
+│  │                                                                        │ │
+│  │  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐         │ │
+│  │  │ audit_log       │ │ audit_log       │ │ audit_log       │         │ │
+│  │  │ _2026_01        │ │ _2026_02        │ │ _2025_12        │         │ │
+│  │  │ (hot, PG)       │ │ (hot, PG)       │ │ (warm, PG)      │         │ │
+│  │  └─────────────────┘ └─────────────────┘ └─────────────────┘         │ │
+│  │                                                                        │ │
+│  │  Hot  (0-3 months):   PostgreSQL, fast query                          │ │
+│  │  Warm (3-12 months):  PostgreSQL, compressed tablespace               │ │
+│  │  Cold (12+ months):   Export to S3 Parquet → detach partition          │ │
+│  │                        Still queryable via Athena/Presto               │ │
+│  │                                                                        │ │
+│  │  <span class="rd">IMMUTABLE:</span>                                                          │ │
+│  │  ├── No UPDATE permission on audit_log table                          │ │
+│  │  ├── No DELETE permission (even for superadmin)                        │ │
+│  │  ├── No TRUNCATE                                                       │ │
+│  │  └── S3 archives: Object Lock enabled (WORM)                          │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  <span class="ty">Audit ≠ Logging:</span>                                                         │
+│                                                                              │
+│  ┌──────────────────────┬───────────────────────┬──────────────────────┐   │
+│  │                      │ <span class="gn">Logging</span>               │ <span class="or">Audit Trail</span>          │   │
+│  ├──────────────────────┼───────────────────────┼──────────────────────┤   │
+│  │ Purpose              │ Debug, monitor         │ Compliance, legal    │   │
+│  │ Scope                │ EVERYTHING             │ Data mutations only  │   │
+│  │ Mutable              │ Yes (rotate, delete)   │ <span class="rd">NEVER</span>               │   │
+│  │ Storage              │ Loki/ELK (ephemeral)   │ PostgreSQL + S3      │   │
+│  │ Retention            │ 30-365 days            │ Indefinite           │   │
+│  │ PII                  │ Redacted               │ Full (encrypted)     │   │
+│  │ Performance impact   │ Near-zero (stdout)     │ Near-zero (batched)  │   │
+│  │ Query by             │ Ops team               │ Ops + Legal + Admin  │   │
+│  └──────────────────────┴───────────────────────┴──────────────────────┘   │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘</pre></div>
+    <div class="dg" data-lang="en"><div class="dg-label">audit trail architecture</div><pre>
+┌─ <span class="or">AUDIT TRAIL</span> ───────────────────────────────────────────────────────────────┐
+│                                                                              │
+│                                                                              │
+│  <span class="ty">WHAT IS RECORDED (data mutations only):</span>                                  │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  ✓ Customer created / updated / deleted                               │ │
+│  │  ✓ Sale created / status changed / won / lost                         │ │
+│  │  ✓ Plugin enabled / disabled / configured                             │ │
+│  │  ✓ User created / role changed / deactivated                          │ │
+│  │  ✓ Webhook registered / removed                                       │ │
+│  │  ✓ Config changed (system or tenant)                                   │ │
+│  │  ✓ Data exported / imported                                            │ │
+│  │                                                                        │ │
+│  │  ✗ NOT recorded: read operations, cache hits, search queries          │ │
+│  │  <span class="cm">(reads = logging territory, not audit)</span>                              │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">AUDIT RECORD STRUCTURE:</span>                                                   │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  {                                                                     │ │
+│  │    "id":            198472,                                            │ │
+│  │    <span class="gn">"tenant_id":</span>     "acme-123",                                       │ │
+│  │    <span class="gn">"user_id":</span>       "user-5",                                          │ │
+│  │    <span class="gn">"action":</span>        "sales.created",                                   │ │
+│  │    "resource_type": "sale",                                            │ │
+│  │    "resource_id":   "sale-42",                                         │ │
+│  │    <span class="am">"before_data":</span>   null,             <span class="cm">← null because create (new)</span>   │ │
+│  │    <span class="am">"after_data":</span>    {                 <span class="cm">← state after mutation</span>        │ │
+│  │                       "title": "Enterprise deal",                      │ │
+│  │                       "amount": 50000,                                 │ │
+│  │                       "status": "new"                                  │ │
+│  │                     },                                                 │ │
+│  │    "ip_address":    "203.0.113.42",                                    │ │
+│  │    "user_agent":    "Mozilla/5.0...",                                  │ │
+│  │    "request_id":    "req-789",       <span class="cm">← link to trace</span>                │ │
+│  │    "created_at":    "2026-02-10T14:30:00.059Z"                        │ │
+│  │  }                                                                     │ │
+│  │                                                                        │ │
+│  │  <span class="cm">For UPDATE: before_data holds old state, after_data holds new state.</span> │ │
+│  │  <span class="cm">→ Can diff to see exactly which fields changed.</span>                      │ │
+│  │                                                                        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│                                                                              │
+│  <span class="ty">WRITE PIPELINE — Async batched:</span>                                          │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                                                                        │ │
+│  │  Plugin completes write                                                │ │
+│  │  → Audit Logger receives event                                         │ │
+│  │  → Push into in-memory buffer (per instance)                           │ │
+│  │  → Buffer flushes every 1 second OR when buffer full (100 records)    │ │
+│  │  → Batch INSERT INTO audit_log VALUES (...), (...), (...)              │ │
+│  │  → Metadata DB (partitioned table)                                     │ │
+│  │                                                                        │ │
+│  │  <span class="cm">Async batched → does NOT affect response latency.</span>                   │ │
+│  │  <span class="cm">In-memory buffer → if instance crashes → ~1s of audit data lost.</span>    │ │
+│  │  <span class="cm">Acceptable trade-off for performance. Logs still have full data.</span>    │ │
 │  │                                                                        │ │
 │  └────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │

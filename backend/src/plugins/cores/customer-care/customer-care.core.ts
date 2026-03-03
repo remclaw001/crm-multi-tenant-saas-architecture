@@ -10,6 +10,7 @@ export interface SupportCase {
   id: string;
   tenant_id: string;
   customer_id: string;
+  customer_name: string | null;
   title: string;
   description: string | null;
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
@@ -48,8 +49,9 @@ export class CustomerCareCore implements IPluginCore, OnModuleInit {
   async listCases(ctx: IExecutionContext): Promise<SupportCase[]> {
     return ctx.db
       .db('support_cases')
-      .select('support_cases.*')
-      .orderBy('created_at', 'desc') as Promise<SupportCase[]>;
+      .select('support_cases.*', 'customers.name as customer_name')
+      .join('customers', 'support_cases.customer_id', 'customers.id')
+      .orderBy('support_cases.created_at', 'desc') as Promise<SupportCase[]>;
   }
 
   async getCase(ctx: IExecutionContext, id: string): Promise<SupportCase> {
@@ -62,6 +64,9 @@ export class CustomerCareCore implements IPluginCore, OnModuleInit {
   }
 
   async createCase(ctx: IExecutionContext, input: CreateCaseInput): Promise<SupportCase> {
+    const customer = await ctx.db.db('customers').where({ id: input.customer_id }).first();
+    if (!customer) throw new ResourceNotFoundError('Customer', input.customer_id);
+
     const [newCase] = await ctx.db
       .db('support_cases')
       .insert({

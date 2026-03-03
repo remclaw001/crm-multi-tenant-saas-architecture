@@ -57,6 +57,16 @@ describe('CustomerCareCore', () => {
       const result = await core.listCases(ctx);
       expect(result).toEqual([]);
     });
+
+    it('joins customers table for customer_name', async () => {
+      const rows = [{ id: 'case-1', title: 'Bug', customer_name: 'Alice' }];
+      const ctx = makeCtx({ orderBy: vi.fn().mockResolvedValue(rows) });
+      const result = await core.listCases(ctx);
+      expect(ctx.db.db).toHaveBeenCalledWith('support_cases');
+      const builder = (ctx.db.db as ReturnType<typeof vi.fn>).mock.results[0].value;
+      expect(builder.join).toHaveBeenCalledWith('customers', 'support_cases.customer_id', 'customers.id');
+      expect(result).toEqual(rows);
+    });
   });
 
   describe('getCase', () => {
@@ -76,10 +86,21 @@ describe('CustomerCareCore', () => {
   describe('createCase', () => {
     it('inserts into support_cases and returns new row', async () => {
       const newCase = { id: 'case-new', title: 'New issue' };
-      const ctx = makeCtx({ returning: vi.fn().mockResolvedValue([newCase]) });
+      const ctx = makeCtx({
+        first: vi.fn().mockResolvedValue({ id: 'cust-1', name: 'Alice' }),
+        returning: vi.fn().mockResolvedValue([newCase]),
+      });
       const result = await core.createCase(ctx, { customer_id: 'cust-1', title: 'New issue' });
+      expect(ctx.db.db).toHaveBeenCalledWith('customers');
       expect(ctx.db.db).toHaveBeenCalledWith('support_cases');
       expect(result).toEqual(newCase);
+    });
+
+    it('throws ResourceNotFoundError when customer_id does not exist', async () => {
+      const ctx = makeCtx({ first: vi.fn().mockResolvedValue(null) });
+      await expect(
+        core.createCase(ctx, { customer_id: 'bad-id', title: 'Test' })
+      ).rejects.toThrow(ResourceNotFoundError);
     });
   });
 

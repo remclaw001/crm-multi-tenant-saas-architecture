@@ -1,29 +1,38 @@
-// ============================================================
-// CustomerCareCore — support case management plugin core
-//
-// Phase 5 implementation: structured placeholder using ctx.
-// No dedicated cases table yet — demonstrates correct ctx usage
-// and ExecutionContext-driven patterns for Phase 6.
-// ============================================================
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { CUSTOMER_CARE_MANIFEST } from '../../manifest/built-in-manifests';
 import type { IPluginCore } from '../../interfaces/plugin-core.interface';
 import type { PluginManifest } from '../../interfaces/plugin-manifest.interface';
 import type { IExecutionContext } from '../../interfaces/execution-context.interface';
 import { PluginRegistryService } from '../../registry/plugin-registry.service';
+import { ResourceNotFoundError } from '../../../common/errors/domain.errors';
 
 export interface SupportCase {
   id: string;
-  subject: string;
-  status: 'open' | 'in-progress' | 'resolved';
-  tenantId: string;
-  createdBy: string;
-  createdAt: string;
+  tenant_id: string;
+  customer_id: string;
+  title: string;
+  description: string | null;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high';
+  assigned_to: string | null;
+  resolved_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface CreateCaseInput {
-  subject: string;
+  customer_id: string;
+  title: string;
   description?: string;
+  priority?: 'low' | 'medium' | 'high';
+}
+
+export interface UpdateCaseInput {
+  title?: string;
+  description?: string;
+  status?: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority?: 'low' | 'medium' | 'high';
+  assigned_to?: string;
 }
 
 @Injectable()
@@ -37,31 +46,63 @@ export class CustomerCareCore implements IPluginCore, OnModuleInit {
   }
 
   async listCases(ctx: IExecutionContext): Promise<SupportCase[]> {
-    // Phase 5 placeholder — cases table will be added in Phase 6
-    // ctx.db and ctx.cache are available and scoped to ctx.tenantId
-    return [
-      {
-        id: 'case-placeholder-001',
-        subject: 'Example support case',
-        status: 'open',
-        tenantId: ctx.tenantId,
-        createdBy: ctx.userId,
-        createdAt: new Date().toISOString(),
-      },
-    ];
+    return ctx.db
+      .db('support_cases')
+      .select('support_cases.*')
+      .orderBy('created_at', 'desc') as Promise<SupportCase[]>;
   }
 
-  async createCase(
+  async getCase(ctx: IExecutionContext, id: string): Promise<SupportCase> {
+    const row = await ctx.db
+      .db('support_cases')
+      .where({ id })
+      .first();
+    if (!row) throw new ResourceNotFoundError('SupportCase', id);
+    return row as SupportCase;
+  }
+
+  async createCase(ctx: IExecutionContext, input: CreateCaseInput): Promise<SupportCase> {
+    const [newCase] = await ctx.db
+      .db('support_cases')
+      .insert({
+        customer_id: input.customer_id,
+        title: input.title,
+        description: input.description ?? null,
+        priority: input.priority ?? 'medium',
+      })
+      .returning('*') as SupportCase[];
+    return newCase;
+  }
+
+  async updateCase(
     ctx: IExecutionContext,
-    input: CreateCaseInput,
+    id: string,
+    input: UpdateCaseInput,
   ): Promise<SupportCase> {
-    return {
-      id: `case-${Date.now()}`,
-      subject: input.subject,
-      status: 'open',
-      tenantId: ctx.tenantId,
-      createdBy: ctx.userId,
-      createdAt: new Date().toISOString(),
+    const patch: Record<string, unknown> = {
+      ...input,
+      updated_at: ctx.db.db.raw('NOW()'),
     };
+    // When resolving, set resolved_at timestamp
+    if (input.status === 'resolved') {
+      patch.resolved_at = ctx.db.db.raw('NOW()');
+    }
+
+    const [updated] = await ctx.db
+      .db('support_cases')
+      .where({ id })
+      .update(patch)
+      .returning('*') as SupportCase[];
+
+    if (!updated) throw new ResourceNotFoundError('SupportCase', id);
+    return updated;
+  }
+
+  async deleteCase(ctx: IExecutionContext, id: string): Promise<void> {
+    const count = await ctx.db
+      .db('support_cases')
+      .where({ id })
+      .del();
+    if (count === 0) throw new ResourceNotFoundError('SupportCase', id);
   }
 }

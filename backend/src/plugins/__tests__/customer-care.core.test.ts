@@ -75,7 +75,7 @@ describe('CustomerCareCore', () => {
       const ctx = makeCtx({ orderBy: vi.fn().mockResolvedValue(rows) });
       const result = await core.listCases(ctx);
       expect(ctx.db.db).toHaveBeenCalledWith('support_cases');
-      const builder = (ctx.db.db as ReturnType<typeof vi.fn>).mock.results[0].value;
+      const builder = (ctx.db.db as any).mock.results[0].value;
       expect(builder.join).toHaveBeenCalledWith('customers', 'support_cases.customer_id', 'customers.id');
       expect(result).toEqual(rows);
     });

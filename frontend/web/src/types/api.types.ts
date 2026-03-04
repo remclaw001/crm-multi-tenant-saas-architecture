@@ -1,39 +1,51 @@
-export interface Contact {
+// frontend/web/src/types/api.types.ts
+
+/** Matches backend Customer entity (customers table) */
+export interface Customer {
   id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  company?: string;
-  status: 'lead' | 'prospect' | 'customer' | 'churned';
-  assignedTo?: string;
-  createdAt: string;
-  updatedAt: string;
+  tenant_id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface Deal {
+/** Matches backend SupportCase entity (support_cases table) */
+export interface SupportCase {
   id: string;
+  tenant_id: string;
+  customer_id: string;
+  customer_name: string | null;
   title: string;
-  contactId: string;
-  contactName: string;
-  stage: 'new' | 'qualified' | 'proposal' | 'negotiation' | 'won' | 'lost';
-  value: number;
-  currency: string;
-  closeDate: string;
-  assignedTo?: string;
-  createdAt: string;
-}
-
-export interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  dueDate: string;
+  description: string | null;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
   priority: 'low' | 'medium' | 'high';
-  status: 'todo' | 'in_progress' | 'done';
-  relatedTo?: { type: 'contact' | 'deal'; id: string; name: string };
-  assignedTo?: string;
-  createdAt: string;
+  assigned_to: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Backend list response: { plugin, data, count } */
+export interface PluginListResponse<T> {
+  plugin: string;
+  data: T[];
+  count: number;
+}
+
+/** Backend single-item response: { plugin, data } */
+export interface PluginItemResponse<T> {
+  plugin: string;
+  data: T;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: { id: string; name: string; email: string; roles: string[] };
+  tenant: { id: string; subdomain: string; name: string; tier: string };
 }
 
 export interface ApiErrorBody {
@@ -42,11 +54,4 @@ export interface ApiErrorBody {
   status: number;
   detail: string;
   instance: string;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
 }

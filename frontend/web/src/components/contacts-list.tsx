@@ -1,8 +1,7 @@
 'use client';
 
-// This component is also exposed as a Module Federation REMOTE module
-// (see next.config.ts exposes). Any MF HOST can lazy-load it:
-//   const ContactsList = React.lazy(() => import('web/ContactsList'));
+// Also exposed as Module Federation remote module (see next.config.ts).
+// Admin Console can lazy-load: const ContactsList = React.lazy(() => import('web/ContactsList'));
 
 import {
   useReactTable,
@@ -14,61 +13,61 @@ import {
 } from '@tanstack/react-table';
 import { useState } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import type { Contact } from '@/types/api.types';
+import type { Customer } from '@/types/api.types';
 
-const STATUS_COLOR: Record<Contact['status'], string> = {
-  lead: 'bg-sky-100 text-sky-700',
-  prospect: 'bg-violet-100 text-violet-700',
-  customer: 'bg-green-100 text-green-700',
-  churned: 'bg-slate-100 text-slate-600',
-};
-
-const columns: ColumnDef<Contact>[] = [
+const columns: ColumnDef<Customer>[] = [
   {
-    accessorFn: (row) => `${row.firstName} ${row.lastName}`,
-    id: 'name',
+    accessorKey: 'name',
     header: ({ column }) => (
       <button onClick={() => column.toggleSorting()} className="flex items-center gap-1 font-medium">
         Name
-        {column.getIsSorted() === 'asc' ? <ArrowUp className="h-3 w-3" /> : column.getIsSorted() === 'desc' ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+        {column.getIsSorted() === 'asc' ? (
+          <ArrowUp className="h-3 w-3" />
+        ) : column.getIsSorted() === 'desc' ? (
+          <ArrowDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-40" />
+        )}
       </button>
     ),
-    cell: ({ row, getValue }) => (
+    cell: ({ row }) => (
       <div>
-        <p className="font-medium">{getValue<string>()}</p>
-        <p className="text-xs text-muted-foreground">{row.original.email}</p>
+        <p className="font-medium">{row.original.name}</p>
+        {row.original.email && (
+          <p className="text-xs text-muted-foreground">{row.original.email}</p>
+        )}
       </div>
     ),
   },
   {
     accessorKey: 'company',
     header: 'Company',
-    cell: ({ getValue }) => getValue<string>() ?? '—',
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ getValue }) => {
-      const s = getValue<Contact['status']>();
-      return (
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[s]}`}>
-          {s}
-        </span>
-      );
-    },
+    cell: ({ getValue }) => getValue<string | null>() ?? '—',
   },
   {
     accessorKey: 'phone',
     header: 'Phone',
-    cell: ({ getValue }) => getValue<string>() ?? '—',
+    cell: ({ getValue }) => getValue<string | null>() ?? '—',
+  },
+  {
+    accessorKey: 'is_active',
+    header: 'Status',
+    cell: ({ getValue }) => {
+      const active = getValue<boolean>();
+      return (
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+            active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+          }`}
+        >
+          {active ? 'Active' : 'Inactive'}
+        </span>
+      );
+    },
   },
 ];
 
-interface ContactsListProps {
-  contacts: Contact[];
-}
-
-export function ContactsList({ contacts }: ContactsListProps) {
+export function ContactsList({ contacts }: { contacts: Customer[] }) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const table = useReactTable({
@@ -88,7 +87,10 @@ export function ContactsList({ contacts }: ContactsListProps) {
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className="border-b border-border bg-muted/30">
                 {hg.headers.map((h) => (
-                  <th key={h.id} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <th
+                    key={h.id}
+                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  >
                     {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}
@@ -97,7 +99,10 @@ export function ContactsList({ contacts }: ContactsListProps) {
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-b border-border transition-colors last:border-0 hover:bg-muted/50">
+              <tr
+                key={row.id}
+                className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+              >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

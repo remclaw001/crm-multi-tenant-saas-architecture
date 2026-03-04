@@ -7,7 +7,9 @@ import { AuthService } from './auth.service';
 @Module({
   imports: [
     JwtModule.register({
-      secret: config.JWT_SECRET_FALLBACK,
+      secret: config.JWT_SECRET_FALLBACK ?? (() => {
+        throw new Error('JWT_SECRET_FALLBACK is required for POST /auth/login. Set it in .env (min 32 chars).');
+      })(),
       signOptions: { expiresIn: '24h', algorithm: 'HS256' },
     }),
   ],

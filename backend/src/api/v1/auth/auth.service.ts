@@ -50,12 +50,17 @@ export class AuthService {
       );
       const user = userRes.rows[0];
 
+      // 4. Commit DB work before CPU-intensive password check
       await client.query('COMMIT');
 
-      if (!user || !user.is_active) throw new UnauthorizedException('Invalid credentials');
+      // 5. Constant-time check: always run bcrypt to prevent timing oracle
+      const DUMMY_HASH = '$2b$12$invalidhashusedtoblindtimingXXXXXXXXXXXXXXXXXXXXXXX';
+      const hashToCompare = user?.password_hash ?? DUMMY_HASH;
+      const valid = await this.passwordService.verify(dto.password, hashToCompare);
 
-      const valid = await this.passwordService.verify(dto.password, user.password_hash);
-      if (!valid) throw new UnauthorizedException('Invalid credentials');
+      if (!user || !user.is_active || !valid) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
       const token = this.jwtService.sign({
         sub: user.id,

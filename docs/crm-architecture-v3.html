@@ -428,11 +428,11 @@
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  <span class="kw">L1  PRESENTATION</span>                                                              │
 │                                                                                 │
-│  ┌────────────┐  ┌────────────┐  ┌───────────────────┐  ┌────────────────────┐ │
-│  │  Web App   │  │ Mobile App │  │  Plugin UI Shell  │  │   Admin Console    │ │
-│  │  (React)   │  │ (RN/Flut.) │  │ (Module Federat.) │  │ (Tenant + System)  │ │
-│  └─────┬──────┘  └──────┬─────┘  └─────────┬─────────┘  └──────────┬─────────┘ │
-│        └────────────────┴──────────────────┴────────────────────────┘           │
+│  ┌────────────────────────────┐  ┌───────────────────┐  ┌────────────────────┐ │
+│  │          Web App           │  │  Plugin UI Shell  │  │   Admin Console    │ │
+│  │        (Next.js 15)        │  │ (Module Federat.) │  │ (Tenant + System)  │ │
+│  └──────────────┬─────────────┘  └─────────┬─────────┘  └──────────┬─────────┘ │
+│                 └──────────────────────────┴───────────────────────┘           │
 └─────────────────────────────────────┬───────────────────────────────────────────┘
                                       │
 ┌─────────────────────────────────────▼───────────────────────────────────────────┐
@@ -543,7 +543,7 @@
 <span class="kw">L1 PRESENTATION (Front-end)</span>
   • <span class="hi">Trách nhiệm:</span> UI/UX, hiển thị dữ liệu, nhận input.
   • <span class="hi">Đặc điểm:</span> Client-side (React/Flutter). No business logic.
-  • <span class="hi">Ví dụ:</span> Web App, Mobile App, Admin Console.
+  • <span class="hi">Ví dụ:</span> Web App, Plugin UI Shell, Admin Console.
 
 
 
@@ -651,7 +651,7 @@
 <span class="kw">L1 PRESENTATION (Front-end)</span>
   • <span class="hi">Responsibility:</span> UI/UX, data display, user input.
   • <span class="hi">Characteristics:</span> Client-side (React/Flutter). No business logic.
-  • <span class="hi">Examples:</span> Web App, Mobile App, Admin Console.
+  • <span class="hi">Examples:</span> Web App, Plugin UI Shell, Admin Console.
 
 
 
@@ -812,14 +812,9 @@
 
 
       <!-- ═══════════════════════════════════════ -->
-      <!-- LAYER DETAILS -->
+      <!-- DATABASE TOPOLOGY -->
       <!-- ═══════════════════════════════════════ -->
-   </div>
-
-   <!-- ═══════════════════════════════════════ -->
-   <!-- DATABASE TOPOLOGY -->
-   <!-- ═══════════════════════════════════════ -->
-   <div class="pnl" id="p-data">
+      <div class="pnl" id="p-data">
 
       <div class="sec">
          <div class="sec-h"><span class="sec-n">DB</span>

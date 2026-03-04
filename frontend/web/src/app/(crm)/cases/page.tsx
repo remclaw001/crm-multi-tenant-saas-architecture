@@ -22,7 +22,7 @@ export default function CasesPage() {
   const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
 
   const { data, isLoading } = useQuery({
-    queryKey: ['cases'],
+    queryKey: ['cases', tenantId],
     queryFn: () => crmApi.getCases(ctx),
     enabled: Boolean(token && tenantId),
   });

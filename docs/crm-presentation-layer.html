@@ -85,67 +85,53 @@ html.lang-vi [data-lang="en"]{display:none}
 <!-- MAP -->
 <div class="pnl on" id="p-map">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ L1 — 4 thành phần</span><span data-lang="en">L1 Map — 4 Components</span></h2></div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ L1 — 3 thành phần</span><span data-lang="en">L1 Map — 3 Components</span></h2></div>
     <div class="nt bl" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> L1 là lớp DUY NHẤT user nhìn thấy. L1 hoàn toàn client-side (chạy trên browser). Mọi tương tác đều gọi API tới L2 Gateway — L1 KHÔNG truy cập database, cache, hay MQ trực tiếp. Plugin UI được load ĐỘNG dựa trên tenant đã enable plugins nào.</div>
     <div class="nt bl" data-lang="en"><strong>Core principle:</strong> L1 is the ONLY layer users see. L1 is entirely client-side (runs in browser). Every interaction calls the API to L2 Gateway — L1 does NOT directly access database, cache, or MQ. Plugin UI is loaded DYNAMICALLY based on which plugins the tenant has enabled.</div>
     <div class="dg"><div class="dg-label">L1 overview</div><pre>
   ┌─ <span class="ty">L1 PRESENTATION</span> ────────────────────────────────────────────────────────┐
   │                                                                          │
-  │  <span class="hi">❶ WEB APP</span> (React SPA + Module Federation)                              │
+  │  <span class="hi">❶ WEB APP</span> (Next.js 15 — Module Federation <span class="gn">REMOTE</span>)                       │
   │  ┌─────────────────────────────────────────────────────────────────┐    │
-  │  │  <span class="am">Host Shell</span>  ─────────────────────────────────────────────────  │    │
-  │  │  │ App frame: sidebar, topbar, auth, routing                  │    │
-  │  │  │ Theme engine: per-tenant branding                          │    │
-  │  │  │ Plugin slot: &lt;PluginArea /&gt; renders active remote module  │    │
-  │  │  │                                                             │    │
-  │  │  │  ┌─ <span class="gn">Plugin Remotes</span> (load động via Module Federation) ─────┐ │    │
-  │  │  │  │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐│ │    │
-  │  │  │  │ │customer- │ │customer- │ │analytics │ │marketing ││ │    │
-  │  │  │  │ │data UI   │ │care UI   │ │UI        │ │UI        ││ │    │
-  │  │  │  │ │          │ │          │ │          │ │          ││ │    │
-  │  │  │  │ │remoteEnt.│ │remoteEnt.│ │remoteEnt.│ │remoteEnt.││ │    │
-  │  │  │  │ └──────────┘ └──────────┘ └──────────┘ └──────────┘│ │    │
-  │  │  │  │ <span class="cm"><span data-lang="vi">Chỉ load remotes mà tenant đã ENABLE.</span><span data-lang="en">Only loads remotes the tenant has ENABLED.</span></span>               │ │    │
-  │  │  │  │ <span class="cm"><span data-lang="vi">ACME enable data+care → chỉ load 2 remotes.</span><span data-lang="en">ACME enables data+care → loads only 2 remotes.</span></span>        │ │    │
-  │  │  │  └──────────────────────────────────────────────────────┘ │    │
-  │  │  └─────────────────────────────────────────────────────────────┘    │
-  │                                                                          │
-  │  <span class="hi">❷ MOBILE APP</span> (React Native / Flutter)                                  │
-  │  ┌─────────────────────────────────────────────────────────────────┐    │
-  │  │ Dynamic feature modules (per plugin)                            │    │
-  │  │ OTA updates cho plugin UI (CodePush / Shorebird)               │    │
-  │  │ Offline-first + sync queue (SQLite local → API batch sync)     │    │
+  │  │  Login:  tenantSlug + email + password → POST /auth/login      │    │
+  │  │  Layout: auth guard (Zustand hydration) + plugin-driven nav    │    │
+  │  │  Pages:  /contacts (customer-data), /cases (customer-care)     │    │
+  │  │  Gate:   &lt;PluginGate&gt; kiểm tra plugin enabled trước render    │    │
+  │  │  Auth:   Zustand persist → localStorage 'crm-web-auth'        │    │
+  │  │  MF:     exposes ./ContactsList (contacts-list.tsx)            │    │
   │  └─────────────────────────────────────────────────────────────────┘    │
   │                                                                          │
-  │  <span class="hi">❸ ADMIN CONSOLE</span> (<span data-lang="vi">React SPA, tách domain hoàn toàn</span><span data-lang="en">React SPA, fully separate domain</span>)                    │
-  │  ┌────────────────────────────┐  ┌────────────────────────────────┐    │
-  │  │ <span class="am">Tenant Admin</span>               │  │ <span class="vi">System Admin</span>                   │    │
-  │  │ admin.acme.crm.com        │  │ system.crm.internal           │    │
-  │  │                            │  │                                │    │
-  │  │ Plugins: enable/disable   │  │ Tenants: CRUD, tier change    │    │
-  │  │ Users: RBAC, invite       │  │ Plugins: deploy, rollback     │    │
-  │  │ Config: per-plugin config │  │ Monitoring: health, metrics    │    │
-  │  │ Billing: plan, usage      │  │ Migration: run, status        │    │
-  │  └────────────────────────────┘  └────────────────────────────────┘    │
-  │                                                                          │
-  │  <span class="hi">❹ PLUGIN UI SYSTEM</span> (Webpack Module Federation)                        │
+  │  <span class="hi">❷ ADMIN CONSOLE</span> (Next.js 15 — Module Federation <span class="am">HOST</span>)                 │
   │  ┌─────────────────────────────────────────────────────────────────┐    │
-  │  │ Build: plugin UI → remoteEntry.js → CDN/S3                     │    │
-  │  │ Load:  Host Shell fetch remoteEntry.js at runtime              │    │
-  │  │ Share: React, React-DOM, UI Kit → shared deps (no duplicate)   │    │
-  │  │ Route: /sales → customer-care remote, /customers → data remote │    │
+  │  │  Auth:    email + password → POST /api/v1/admin/auth/login     │    │
+  │  │           localStorage 'crm-admin-auth' (super_admin / admin)  │    │
+  │  │  Tenants: CRUD + tier/status management                        │    │
+  │  │  Plugins: enable/disable per tenant (PluginToggle component)   │    │
+  │  │  Metrics: system-wide summary dashboard                        │    │
+  │  │  MF:      HOST — loads customerPlugin + analyticsPlugin        │    │
+  │  │           exports ./DesignTokens cho plugin UIs                │    │
+  │  └─────────────────────────────────────────────────────────────────┘    │
+  │                                                                          │
+  │  <span class="hi">❸ PLUGIN UI SHELL</span> (@module-federation/nextjs-mf)                       │
+  │  ┌─────────────────────────────────────────────────────────────────┐    │
+  │  │  Admin = HOST → loads remotes qua env var URL                  │    │
+  │  │    customerPlugin  @ CUSTOMER_PLUGIN_URL  (dev: :3010)         │    │
+  │  │    analyticsPlugin @ ANALYTICS_PLUGIN_URL (dev: :3011)         │    │
+  │  │  Web = REMOTE → exposes ./ContactsList                         │    │
+  │  │  Shared: react + react-dom (singleton, không duplicate)        │    │
+  │  │  Design tokens: admin/DesignTokens → plugin UIs import         │    │
   │  └─────────────────────────────────────────────────────────────────┘    │
   │                                                                          │
   └──────────────────────────────────┬───────────────────────────────────────┘
-                                     │ HTTPS
+                                     │ HTTPS + Authorization + X-Tenant-ID
                                      ▼
                               L2 API Gateway
 
 
-  <span class="ty"><span data-lang="vi">L1 = HOÀN TOÀN CLIENT-SIDE.</span><span data-lang="en">L1 = FULLY CLIENT-SIDE.</span></span>
+  <span class="ty"><span data-lang="vi">L1 = Next.js 15, hoàn toàn client-side.</span><span data-lang="en">L1 = Next.js 15, fully client-side.</span></span>
   <span data-lang="vi">Không truy cập DB, Redis, MQ. Chỉ gọi API tới L2 Gateway.</span><span data-lang="en">No direct DB, Redis, or MQ access. Only calls API to L2 Gateway.</span>
-  <span data-lang="vi">Tenant isolation ở L1: chỉ load plugin UI mà tenant đã enable.</span><span data-lang="en">Tenant isolation at L1: only loads plugin UI for enabled plugins.</span>
-  <span data-lang="vi">Security ở L1: CSP headers, XSS sanitization, CORS whitelist.</span><span data-lang="en">Security at L1: CSP headers, XSS sanitization, CORS whitelist.</span></pre></div>
+  <span data-lang="vi">Tenant isolation: sidebar + PluginGate dựa trên enabledPlugins từ GET /api/v1/plugins.</span><span data-lang="en">Tenant isolation: sidebar + PluginGate based on enabledPlugins from GET /api/v1/plugins.</span>
+  <span data-lang="vi">Auth: JWT trong localStorage (Zustand persist), X-Tenant-ID header mỗi request.</span><span data-lang="en">Auth: JWT in localStorage (Zustand persist), X-Tenant-ID header on every request.</span></pre></div>
 </div>
 </div>
 
@@ -153,95 +139,97 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-web">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Web App — Host Shell + Plugin Remotes</h2></div>
-    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> SPA chính mà user truy cập qua browser. Gồm Host Shell (khung ứng dụng) và Plugin Remotes (UI modules load động). Host Shell luôn giống nhau cho mọi tenant — sự khác biệt nằm ở REMOTES nào được load, dựa trên enabledPlugins.</div>
-    <div class="nt bl" data-lang="en"><strong>Role:</strong> The primary SPA that users access via browser. Consists of Host Shell (application frame) and Plugin Remotes (dynamically loaded UI modules). Host Shell is always the same for every tenant — the difference lies in which REMOTES are loaded, based on enabledPlugins.</div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Next.js 15 app chính mà tenant users truy cập. Gồm login page, CRM layout với auth guard + plugin-driven sidebar, và các pages cho từng plugin. Sidebar và nội dung thay đổi theo plugin nào đang bật cho tenant — dựa trên <code>GET /api/v1/plugins</code>. Module Federation: Web = REMOTE, expose <code>./ContactsList</code>.</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> The primary Next.js 15 app that tenant users access. Consists of a login page, CRM layout with auth guard + plugin-driven sidebar, and pages for each plugin. Sidebar and content change based on which plugins are enabled for the tenant — driven by <code>GET /api/v1/plugins</code>. Module Federation: Web = REMOTE, exposes <code>./ContactsList</code>.</div>
     <div class="dg"><div class="dg-label">web app architecture</div><pre>
-<span class="ty">HOST SHELL (<span data-lang="vi">luôn load</span><span data-lang="en">always loaded</span>, ~200KB gzipped):</span>
+<span class="ty">CRM APP (Next.js 15, port 3002 — <span data-lang="vi">triển khai thực tế</span><span data-lang="en">actual implementation</span>):</span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
-  │  <span class="am">Host Shell</span> — React SPA, <span data-lang="vi">entry point cho mọi tenant</span><span data-lang="en">entry point for all tenants</span>                    │
+  │  <span class="am">Web App</span> — Next.js 15, <span data-lang="vi">entry point cho tenant users</span><span data-lang="en">entry point for tenant users</span>                  │
   │                                                                        │
-  │  ┌─ <span class="hi">App Frame</span> ─────────────────────────────────────────────────────┐   │
-  │  │                                                                  │   │
-  │  │  ┌─────────┐ ┌──────────────────────────────────────────────┐  │   │
-  │  │  │Sidebar  │ │ Top Bar                                      │  │   │
-  │  │  │         │ │ ┌──────┐ ┌────────────┐ ┌─────┐ ┌────────┐ │  │   │
-  │  │  │Nav items│ │ │Search│ │Notifications│ │User │ │Tenant  │ │  │   │
-  │  │  │built    │ │ │      │ │(WebSocket)  │ │Menu │ │Logo    │ │  │   │
-  │  │  │from     │ │ └──────┘ └────────────┘ └─────┘ └────────┘ │  │   │
-  │  │  │enabled  │ ├──────────────────────────────────────────────┤  │   │
-  │  │  │plugins  │ │                                              │  │   │
-  │  │  │         │ │  <span class="gn">&lt;PluginArea /&gt;</span>                             │  │   │
-  │  │  │Customers│ │                                              │  │   │
-  │  │  │Sales    │ │  Renders active plugin remote module         │  │   │
-  │  │  │Calls    │ │  based on current URL route.                 │  │   │
-  │  │  │Reports  │ │                                              │  │   │
-  │  │  │Settings │ │  /customers → customer-data remote           │  │   │
-  │  │  │         │ │  /sales     → customer-care remote           │  │   │
-  │  │  │         │ │  /reports   → analytics remote               │  │   │
-  │  │  │         │ │                                              │  │   │
-  │  │  └─────────┘ └──────────────────────────────────────────────┘  │   │
+  │  ┌─ <span class="hi">Login Page</span>  (/login) ──────────────────────────────────────────┐   │
+  │  │  tenantSlug + email + password                                   │   │
+  │  │  POST /auth/login → { token, user, tenant }                      │   │
+  │  │  setAuth() → Zustand persist → localStorage 'crm-web-auth'      │   │
+  │  │  router.push('/contacts')                                         │   │
   │  └──────────────────────────────────────────────────────────────────┘   │
   │                                                                        │
-  │  <span class="ty">Host Shell responsibilities:</span>                                        │
-  │  ├── Auth:     JWT storage (memory, NOT localStorage), refresh flow  │
-  │  ├── Routing:  React Router, URL → plugin remote mapping             │
-  │  ├── Theme:    CSS variables per-tenant (logo, colors, fonts)        │
-  │  ├── Sidebar:  build nav items from enabledPlugins list              │
-  │  ├── Topbar:   search, notifications (WebSocket), user menu          │
-  │  ├── Loader:   <span data-lang="vi">loading state khi remote module đang fetch</span><span data-lang="en">loading state while remote module is fetching</span>            │
-  │  ├── Error:    Error Boundary per plugin (crash → fallback UI)       │
-  │  └── API:      shared HTTP client (auto-attach JWT, tenant header)   │
+  │  ┌─ <span class="hi">CRM Layout</span>  ((crm)/layout.tsx) ───────────────────────────────┐   │
+  │  │  ┌──────────┐  ┌────────────────────────────────────────────┐  │   │
+  │  │  │ Sidebar  │  │ &lt;main&gt; — {children}                        │  │   │
+  │  │  │          │  │                                            │  │   │
+  │  │  │ tenantName│ │  /contacts → ContactsPage                 │  │   │
+  │  │  │          │  │    └── &lt;PluginGate plugin="customer-data"&gt; │  │   │
+  │  │  │ Contacts │  │         └── &lt;ContactsList /&gt;              │  │   │
+  │  │  │ (if data)│  │                                            │  │   │
+  │  │  │          │  │  /cases → CasesPage                       │  │   │
+  │  │  │ Cases    │  │    └── &lt;PluginGate plugin="customer-care"&gt; │  │   │
+  │  │  │ (if care)│  │         └── &lt;CasesList /&gt;                 │  │   │
+  │  │  │          │  │                                            │  │   │
+  │  │  │ [logout] │  │                                            │  │   │
+  │  │  └──────────┘  └────────────────────────────────────────────┘  │   │
+  │  └──────────────────────────────────────────────────────────────────┘   │
+  │                                                                        │
+  │  <span class="ty"><span data-lang="vi">Trách nhiệm thực tế:</span><span data-lang="en">Actual responsibilities:</span></span>                                    │
+  │  ├── Auth:    Zustand persist → localStorage (token, tenantId, ...)  │
+  │  │           onFinishHydration() guard trước khi redirect            │
+  │  ├── Nav:    GET /api/v1/plugins → filter PLUGIN_PAGES array         │
+  │  ├── Gate:   &lt;PluginGate&gt; check enabledPlugins trước render          │
+  │  ├── Cache:  TanStack Query, queryKey luôn include tenantId          │
+  │  └── API:    mọi request đính Authorization + X-Tenant-ID header     │
   │                                                                        │
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">PLUGIN REMOTES (<span data-lang="vi">load theo nhu cầu</span><span data-lang="en">loaded on demand</span>):</span>
+<span class="ty">MODULE FEDERATION — Web = REMOTE:</span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │                                                                        │
-  │  <span data-lang="vi">Mỗi plugin có UI riêng, build thành</span><span data-lang="en">Each plugin has its own UI, built as</span> <span class="fn">remoteEntry.js</span>:                  │
+  │  <span data-lang="vi">Web App expose component qua Module Federation:</span><span data-lang="en">Web App exposes component via Module Federation:</span>                    │
   │                                                                        │
-  │  customer-data UI:                                                    │
-  │  ├── Pages: CustomerList, CustomerDetail, CompanyList                 │
-  │  ├── Components: CustomerCard, ContactForm, TagEditor                │
-  │  └── remoteEntry.js → CDN: cdn.crm.com/plugins/customer-data/v2.1/  │
+  │  <span class="fn">next.config.ts</span> (web):                                               │
+  │  new NextFederationPlugin({                                            │
+  │    name: <span class="st">'web'</span>,                                                        │
+  │    filename: <span class="st">'static/chunks/remoteEntry.js'</span>,                          │
+  │    exposes: {                                                          │
+  │      <span class="st">'./ContactsList'</span>: <span class="st">'./src/components/contacts-list.tsx'</span>,        │
+  │    },                                                                  │
+  │    shared: { react: { singleton: true }, 'react-dom': { ... } }      │
+  │  })                                                                    │
   │                                                                        │
-  │  customer-care UI:                                                    │
-  │  ├── Pages: SalesPipeline, SaleDetail, CallLog, TicketList           │
-  │  ├── Components: PipelineBoard, SaleForm, CallWidget                 │
-  │  └── remoteEntry.js → CDN: cdn.crm.com/plugins/customer-care/v1.5/  │
+  │  → Admin Console (HOST) có thể lazy-load ContactsList widget          │
+  │    tại runtime mà không cần rebuild Web App                           │
   │                                                                        │
-  │  analytics UI:                                                        │
-  │  ├── Pages: Dashboard, ReportBuilder, ExportCenter                   │
-  │  ├── Components: ChartWidget, FilterPanel, DatePicker                │
-  │  └── remoteEntry.js → CDN: cdn.crm.com/plugins/analytics/v1.2/      │
-  │                                                                        │
-  │  <span class="am"><span data-lang="vi">Chỉ remotes mà tenant ENABLE mới được load.</span><span data-lang="en">Only remotes that the tenant has ENABLED are loaded.</span></span>                          │
-  │  ACME enable: data + care + analytics → load 3 remotes.              │
-  │  GLOBEX enable: data only → load 1 remote. Sales/Reports nav hidden. │
+  │  <span class="am"><span data-lang="vi">Plugin UI apps riêng (customer-plugin, analytics-plugin) chưa có.</span><span data-lang="en">Standalone plugin UI apps (customer-plugin, analytics-plugin) not yet built.</span></span>   │
+  │  <span class="cm"><span data-lang="vi">Roadmap: mỗi plugin sẽ có app riêng với remoteEntry.js.</span><span data-lang="en">Roadmap: each plugin will have its own app with remoteEntry.js.</span></span>         │
   │                                                                        │
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">BOOTSTRAPPING SEQUENCE:</span>
+<span class="ty">BOOTSTRAPPING SEQUENCE (<span data-lang="vi">thực tế</span><span data-lang="en">actual</span>):</span>
 
-  <span class="nu">1.</span> User navigates to acme.crm.com
-  <span class="nu">2.</span> CDN serves Host Shell (index.html + main.js, ~200KB gz)
-  <span class="nu">3.</span> Host Shell checks auth:
-     JWT in memory? → skip login
-     No JWT? → redirect to /login → user authenticates → JWT pair
-  <span class="nu">4.</span> Host Shell calls API: GET /api/v1/me/context
-     → Backend returns: enabledPlugins, permissions, theme, config
-  <span class="nu">5.</span> Host Shell builds sidebar nav from enabledPlugins
-  <span class="nu">6.</span> User clicks "Sales" → URL changes to /sales
-  <span class="nu">7.</span> Host Shell: /sales maps to customer-care remote
-     → <span class="fn">dynamic import()</span> → fetch remoteEntry.js from CDN
-     → ~50-150KB per plugin remote (gzipped)
-     → render SalesPipeline component inside &lt;PluginArea /&gt;
-  <span class="nu">8.</span> SalesPipeline calls API: GET /api/v1/sales → L2 Gateway
-     → normal request flow (Gateway → Context → Plugin → DB → response)
-  <span class="nu">9.</span> Subsequent navigation: remotes cached in browser → instant load</pre></div>
+  <span class="nu">1.</span> <span data-lang="vi">User truy cập</span><span data-lang="en">User navigates to</span> /login (Next.js SSR)
+  <span class="nu">2.</span> Zustand persist hydrates from localStorage <span class="st">'crm-web-auth'</span>
+     Token found? → redirect /contacts (<span data-lang="vi">đã đăng nhập</span><span data-lang="en">already authenticated</span>)
+     No token? → <span data-lang="vi">render login form</span><span data-lang="en">render login form</span>
+  <span class="nu">3.</span> <span data-lang="vi">User nhập</span><span data-lang="en">User enters</span> tenantSlug + email + password
+     POST /auth/login → { token, user: { id, name, email, roles },
+                          tenant: { id, subdomain, name, tier } }
+     setAuth() → Zustand persist → localStorage → router.push('/contacts')
+  <span class="nu">4.</span> CRM Layout: <span class="fn">onFinishHydration()</span> guard → auth check
+     GET /api/v1/plugins  (Headers: Authorization + X-Tenant-ID)
+     → { enabledPlugins: [<span class="st">"customer-data"</span>, <span class="st">"customer-care"</span>] }
+  <span class="nu">5.</span> Sidebar <span data-lang="vi">filter</span><span data-lang="en">filters</span> PLUGIN_PAGES <span data-lang="vi">theo</span><span data-lang="en">by</span> enabledPlugins:
+     customer-data → Contacts, customer-care → Cases
+  <span class="nu">6.</span> <span data-lang="vi">User click</span><span data-lang="en">User clicks</span> "Cases" → Next.js router → /cases
+  <span class="nu">7.</span> CasesPage renders → &lt;PluginGate plugin=<span class="st">"customer-care"</span>&gt;
+     <span data-lang="vi">Check enabledPlugins (TanStack Query cache, stale 5min)</span><span data-lang="en">Check enabledPlugins (TanStack Query cache, stale 5min)</span>
+     enabled → render &lt;CasesList /&gt;
+     disabled → ShieldOff icon + <span data-lang="vi">thông báo liên hệ admin</span><span data-lang="en">contact administrator message</span>
+  <span class="nu">8.</span> CasesList: GET /api/v1/plugins/customer-care/cases
+     queryKey: [<span class="st">'cases'</span>, tenantId]
+     → L2 Gateway → L3 Plugin → L4 DB → response
+  <span class="nu">9.</span> <span data-lang="vi">Navigation tiếp theo: TanStack Query cache → giảm API calls</span><span data-lang="en">Subsequent navigation: TanStack Query cache → fewer API calls</span></pre></div>
 </div>
 </div>
 
@@ -249,94 +237,82 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-fed">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Module Federation — Plugin UI System</h2></div>
-    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Webpack Module Federation cho phép load plugin UI code TẠI RUNTIME mà không cần rebuild Host Shell. Plugin team build UI riêng → publish remoteEntry.js → Host Shell load động. Shared dependencies (React, UI Kit) chỉ load 1 lần.</div>
-    <div class="nt am" data-lang="en"><strong>Role:</strong> Webpack Module Federation allows loading plugin UI code AT RUNTIME without rebuilding the Host Shell. Plugin teams build their own UI → publish remoteEntry.js → Host Shell loads dynamically. Shared dependencies (React, UI Kit) are loaded only once.</div>
+    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Admin Console = HOST (load remotes, export design tokens). Web App = REMOTE (expose ContactsList). URL của plugin remote lấy từ env var — không hardcode. Plugin UI apps riêng chưa được build, env var URL đã chuẩn bị sẵn để tích hợp sau.</div>
+    <div class="nt am" data-lang="en"><strong>Role:</strong> Admin Console = HOST (loads remotes, exports design tokens). Web App = REMOTE (exposes ContactsList). Plugin remote URLs come from env vars — not hardcoded. Standalone plugin UI apps are not yet built; env var URLs are prepared for future integration.</div>
     <div class="dg"><div class="dg-label">module federation</div><pre>
-<span class="ty"><span data-lang="vi">KIẾN TRÚC:</span><span data-lang="en">ARCHITECTURE:</span></span>
+<span class="ty"><span data-lang="vi">THỰC TẾ HIỆN TẠI:</span><span data-lang="en">CURRENT IMPLEMENTATION:</span></span>
 
-  ┌─ <span class="am">Host Shell</span> (Webpack config) ────────────────────────────────────────┐
-  │                                                                        │
-  │  <span class="kw">new</span> ModuleFederationPlugin({                                       │
-  │    name: <span class="st">'crmShell'</span>,                                                 │
-  │    <span class="fn">remotes</span>: {                                                        │
-  │      <span class="cm">// Loaded DYNAMICALLY based on tenant enabledPlugins</span>             │
-  │      <span class="cm">// <span data-lang="vi">Không hardcode</span><span data-lang="en">Not hardcoded</span> — resolve at runtime</span>                           │
-  │    },                                                                  │
-  │    <span class="fn">shared</span>: {                                                         │
-  │      <span class="st">'react'</span>:         { singleton: <span class="kw">true</span>, requiredVersion: <span class="st">'^18'</span> },     │
-  │      <span class="st">'react-dom'</span>:     { singleton: <span class="kw">true</span>, requiredVersion: <span class="st">'^18'</span> },     │
-  │      <span class="st">'react-router'</span>:  { singleton: <span class="kw">true</span> },                           │
-  │      <span class="st">'@crm/ui-kit'</span>:   { singleton: <span class="kw">true</span> },  <span class="cm">← shared design system</span>  │
-  │      <span class="st">'@crm/api-client'</span>:{ singleton: <span class="kw">true</span> }, <span class="cm">← shared HTTP client</span>    │
-  │    }                                                                   │
-  │  })                                                                    │
-  │                                                                        │
-  └────────────────────────────────────────────────────────────────────────┘
-
-  ┌─ <span class="gn">Plugin Remote</span> (<span data-lang="vi">mỗi plugin build riêng</span><span data-lang="en">each plugin built separately</span>) ──────────────────────────────┐
-  │                                                                        │
-  │  <span class="kw">new</span> ModuleFederationPlugin({                                       │
-  │    name: <span class="st">'customerCare'</span>,                                              │
-  │    filename: <span class="st">'remoteEntry.js'</span>,                                       │
-  │    <span class="fn">exposes</span>: {                                                        │
-  │      <span class="st">'./SalesPipeline'</span>: <span class="st">'./src/pages/SalesPipeline'</span>,                │
-  │      <span class="st">'./SaleDetail'</span>:    <span class="st">'./src/pages/SaleDetail'</span>,                    │
-  │      <span class="st">'./CallLog'</span>:       <span class="st">'./src/pages/CallLog'</span>,                       │
-  │      <span class="st">'./navItems'</span>:      <span class="st">'./src/nav.js'</span>,  <span class="cm">← sidebar items</span>            │
-  │    },                                                                  │
-  │    <span class="fn">shared</span>: {                                                         │
-  │      <span class="st">'react'</span>, <span class="st">'react-dom'</span>, <span class="st">'@crm/ui-kit'</span>, <span class="st">'@crm/api-client'</span>        │
-  │      <span class="cm">← <span data-lang="vi">dùng chung với Host Shell, KHÔNG bundle lại</span><span data-lang="en">shared with Host Shell, NOT re-bundled</span></span>                   │
-  │    }                                                                   │
-  │  })                                                                    │
-  │                                                                        │
-  └────────────────────────────────────────────────────────────────────────┘
+  <span class="am">Admin Console</span> = <span class="hi">HOST</span>                    <span class="gn">Web App</span> = <span class="hi">REMOTE</span>
+  ┌───────────────────────────────┐       ┌───────────────────────────┐
+  │ next.config.ts (admin)        │       │ next.config.ts (web)      │
+  │                               │       │                           │
+  │ new NextFederationPlugin({    │       │ new NextFederationPlugin({│
+  │   name: 'admin',              │       │   name: 'web',            │
+  │   remotes: {                  │       │   exposes: {              │
+  │     customerPlugin:           │       │     './ContactsList':     │
+  │       CUSTOMER_PLUGIN_URL     │◄──────│       './src/components/  │
+  │       ?? 'localhost:3010',    │       │        contacts-list.tsx' │
+  │     analyticsPlugin:          │       │   },                      │
+  │       ANALYTICS_PLUGIN_URL    │       │   shared: {               │
+  │       ?? 'localhost:3011',    │       │     react:    {singleton} │
+  │   },                          │       │     react-dom: {singleton}│
+  │   exposes: {                  │       │   }                       │
+  │     './DesignTokens':         │       │ })                        │
+  │       './src/lib/design-      │       └───────────────────────────┘
+  │        tokens.ts',            │
+  │   },                          │
+  │   shared: {                   │
+  │     react:    { singleton }   │
+  │     react-dom:{ singleton }   │
+  │   }                           │
+  │ })                            │
+  └───────────────────────────────┘
 
 
-<span class="ty">DYNAMIC REMOTE LOADING:</span>
+<span class="ty"><span data-lang="vi">SHARED DEPENDENCIES (thực tế):</span><span data-lang="en">SHARED DEPENDENCIES (actual):</span></span>
 
-  <span data-lang="vi">Host Shell không hardcode remotes. Load at runtime:</span><span data-lang="en">Host Shell does not hardcode remotes. Loaded at runtime:</span>
+  <span data-lang="vi">Chỉ 2 package được share:</span><span data-lang="en">Only 2 packages are shared:</span>
+  ├── react      { singleton: true, requiredVersion: false }
+  └── react-dom  { singleton: true, requiredVersion: false }
 
-  <span class="kw">async function</span> <span class="fn">loadPluginRemote</span>(pluginName, version) {
-    <span class="kw">const</span> url = <span class="st">`cdn.crm.com/plugins/${pluginName}/v${version}/remoteEntry.js`</span>;
-
-    <span class="cm">// 1. Inject script tag</span>
-    <span class="kw">await</span> loadScript(url);
-
-    <span class="cm">// 2. Initialize container</span>
-    <span class="kw">const</span> container = window[pluginName];
-    <span class="kw">await</span> container.init(__webpack_share_scopes__.default);
-
-    <span class="cm">// 3. Get module factory</span>
-    <span class="kw">const</span> factory = <span class="kw">await</span> container.get(<span class="st">'./SalesPipeline'</span>);
-    <span class="kw">return</span> factory();
-  }
-
-  <span class="cm">→ <span data-lang="vi">Plugin team deploy UI mới → CDN update → user refresh → load new UI</span><span data-lang="en">Plugin team deploys new UI → CDN updates → user refreshes → loads new UI</span></span>
-  <span class="cm">→ <span data-lang="vi">KHÔNG cần rebuild/redeploy Host Shell</span><span data-lang="en">NO need to rebuild/redeploy Host Shell</span></span>
+  <span class="cm"><span data-lang="vi">Không có react-router, @crm/ui-kit, @crm/api-client — chưa implement.</span><span data-lang="en">No react-router, @crm/ui-kit, @crm/api-client — not yet implemented.</span></span>
 
 
-<span class="ty">SHARED DEPS — <span data-lang="vi">KHÔNG DUPLICATE</span><span data-lang="en">NO DUPLICATES</span>:</span>
+<span class="ty"><span data-lang="vi">PLUGIN REMOTE URLs:</span><span data-lang="en">PLUGIN REMOTE URLs:</span></span>
 
-  <span data-lang="vi">Không có Module Federation:</span><span data-lang="en">Without Module Federation:</span>
-  Host Shell:  React 18 (120KB) + ReactDOM (130KB)
-  Plugin 1:    React 18 (120KB) + ReactDOM (130KB)  ← duplicate!
-  Plugin 2:    React 18 (120KB) + ReactDOM (130KB)  ← duplicate!
-  Total: 750KB
+  <span data-lang="vi">Admin HOST load remotes qua env var (không CDN dynamic, không versioned URL):</span><span data-lang="en">Admin HOST loads remotes via env var (no CDN dynamic loading, no versioned URL):</span>
 
-  <span data-lang="vi">Với Module Federation:</span><span data-lang="en">With Module Federation:</span>
-  Host Shell:  React 18 (120KB) + ReactDOM (130KB)  ← <span data-lang="vi">load 1 lần</span><span data-lang="en">loaded once</span>
-  Plugin 1:    <span data-lang="vi">dùng chung React từ Host Shell</span><span data-lang="en">reuses React from Host Shell</span>        ← 0KB extra
-  Plugin 2:    <span data-lang="vi">dùng chung React từ Host Shell</span><span data-lang="en">reuses React from Host Shell</span>        ← 0KB extra
-  Total: 250KB  (<span class="gn"><span data-lang="vi">giảm 67%</span><span data-lang="en">67% reduction</span></span>)
+  CUSTOMER_PLUGIN_URL  → <span class="st">'http://localhost:3010'</span> (dev default)
+  ANALYTICS_PLUGIN_URL → <span class="st">'http://localhost:3011'</span> (dev default)
+
+  <span class="fn">remoteEntry.js</span> path: <span class="st">/_next/static/chunks/remoteEntry.js</span>
+
+  <span class="am"><span data-lang="vi">Hiện tại: chưa có app nào chạy tại :3010 hay :3011.</span><span data-lang="en">Currently: no app is running at :3010 or :3011.</span></span>
+  <span class="am"><span data-lang="vi">Roadmap: build customer-plugin app và analytics-plugin app riêng biệt.</span><span data-lang="en">Roadmap: build standalone customer-plugin and analytics-plugin apps.</span></span>
 
 
-<span class="ty">VERSION MANAGEMENT:</span>
-  ├── Plugin remote URL chứa version: /plugins/care/v1.5/remoteEntry.js
-  ├── Tenant ACME enable care@1.5 → load v1.5 remote
-  ├── Tenant GLOBEX upgrade care@2.0 → load v2.0 remote
-  ├── Cache: CDN cache per-version (immutable), browser cache 1h
-  └── Rollback: server-side set version back → user loads old remote</pre></div>
+<span class="ty"><span data-lang="vi">DESIGN TOKENS (Admin → Plugin UIs):</span><span data-lang="en">DESIGN TOKENS (Admin → Plugin UIs):</span></span>
+
+  <span data-lang="vi">Admin export design tokens để plugin UIs giữ visual consistency:</span><span data-lang="en">Admin exports design tokens so plugin UIs stay visually consistent:</span>
+
+  <span class="cm">// admin/src/lib/design-tokens.ts — exposed as './DesignTokens'</span>
+  <span class="cm">// Plugin UI apps import: import tokens from 'admin/DesignTokens'</span>
+  <span class="cm">// → shared colors, spacing, typography — no re-bundling needed</span>
+
+
+<span class="ty"><span data-lang="vi">SƠ ĐỒ FLOW (hiện tại):</span><span data-lang="en">FLOW DIAGRAM (current):</span></span>
+
+  Admin Console (HOST, :3000)
+       │
+       ├── lazy-load customerPlugin remote  → :3010 (roadmap)
+       ├── lazy-load analyticsPlugin remote → :3011 (roadmap)
+       └── export ./DesignTokens → plugin UIs consume
+
+  Web App (REMOTE, :3002)
+       └── expose ./ContactsList → Admin HOST can lazy-load widget
+
+  <span class="gn"><span data-lang="vi">Thực tế hiện tại Web = REMOTE nhưng Admin chưa dùng ContactsList.</span><span data-lang="en">Currently Web = REMOTE but Admin does not yet consume ContactsList.</span></span>
+  <span class="gn"><span data-lang="vi">Kiến trúc MF đã sẵn sàng để mở rộng không cần rebuild host.</span><span data-lang="en">MF architecture is ready to expand without rebuilding the host.</span></span></pre></div>
 </div>
 </div>
 
@@ -422,88 +398,67 @@ html.lang-vi [data-lang="en"]{display:none}
 <!-- ADMIN CONSOLE -->
 <div class="pnl" id="p-adm">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Admin Console — Tenant Admin + System Admin</h2></div>
-    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> 2 ứng dụng tách biệt hoàn toàn (domain riêng, auth riêng). Tenant Admin cho quản trị viên từng tenant. System Admin cho đội vận hành platform. Cả hai đều gọi API tới cùng L2 Gateway nhưng qua các endpoint khác nhau.</div>
-    <div class="nt am" data-lang="en"><strong>Role:</strong> 2 completely separate applications (separate domain, separate auth). Tenant Admin for each tenant's administrators. System Admin for the platform operations team. Both call the API to the same L2 Gateway but through different endpoints.</div>
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Admin Console — VCC Platform Management</h2></div>
+    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Một Next.js 15 app duy nhất dành riêng cho đội VCC (không phải tenant users). Auth riêng biệt: email + password → POST /api/v1/admin/auth/login, trả về role super_admin hoặc admin. JWT lưu trong localStorage 'crm-admin-auth' (Zustand persist). Module Federation HOST.</div>
+    <div class="nt am" data-lang="en"><strong>Role:</strong> A single Next.js 15 app exclusively for the VCC team (not tenant users). Separate auth: email + password → POST /api/v1/admin/auth/login, returns role super_admin or admin. JWT stored in localStorage 'crm-admin-auth' (Zustand persist). Module Federation HOST.</div>
     <div class="dg"><div class="dg-label">admin console</div><pre>
-<span class="ty">❶ TENANT ADMIN</span> (admin.{subdomain}.crm.com)
+<span class="ty">ADMIN CONSOLE</span> (Next.js 15, port 3000)
 
-  <span data-lang="vi">Ai dùng:</span><span data-lang="en">Who uses:</span>  <span data-lang="vi">Admin/Manager của từng tenant (ACME admin, GLOBEX admin)</span><span data-lang="en">Admin/Manager of each tenant (ACME admin, GLOBEX admin)</span>
-  Domain:   admin.acme.crm.com (<span data-lang="vi">tách biệt khỏi app chính</span><span data-lang="en">separate from main app</span>)
-  Auth:     <span data-lang="vi">Cùng JWT system nhưng yêu cầu role "tenant_admin"</span><span data-lang="en">Same JWT system but requires role "tenant_admin"</span>
+  <span data-lang="vi">Ai dùng:</span><span data-lang="en">Who uses:</span>  <span data-lang="vi">Đội VCC — super_admin, admin</span><span data-lang="en">VCC team — super_admin, admin</span>
+  Port:     3000 (dev), <span data-lang="vi">domain riêng biệt với Web App (:3002)</span><span data-lang="en">separate domain from Web App (:3002)</span>
+  Auth:     email + password (<span data-lang="vi">không cần tenantSlug</span><span data-lang="en">no tenantSlug needed</span>)
 
   ┌────────────────────────────────────────────────────────────────────────┐
-  │  <span class="fn">Plugin Management</span>                                                     │
-  │  ├── <span data-lang="vi">Xem catalog plugins available cho tier hiện tại</span><span data-lang="en">View plugin catalog available for the current tier</span>                  │
-  │  ├── Enable/Disable plugin → triggers API:                           │
-  │  │   POST /api/v1/admin/plugins/{name}/enable                        │
-  │  │   → L3 Plugin Manager → dependency check → tenant migration → OK │
-  │  ├── <span data-lang="vi">Xem plugin version, config, status</span><span data-lang="en">View plugin version, config, status</span>                              │
-  │  └── Upgrade plugin version (<span data-lang="vi">nếu có bản mới</span><span data-lang="en">if a new version is available</span>)                        │
+  │  <span class="fn">Auth Flow</span>                                                            │
+  │  ├── /login → email + password form (Puzzle icon branding)          │
+  │  ├── POST /api/v1/admin/auth/login                                   │
+  │  │   → { token, user: { id, email, role: 'super_admin'|'admin' } }  │
+  │  ├── setAuth() → Zustand persist → localStorage 'crm-admin-auth'    │
+  │  └── router.replace('/dashboard/tenants')                            │
   │                                                                        │
-  │  <span class="fn">User Management (RBAC)</span>                                                │
-  │  ├── Invite users (email invitation flow)                            │
-  │  ├── Assign roles: admin, sales_manager, support, viewer, custom     │
-  │  ├── Create custom roles (combine permissions)                       │
-  │  ├── Deactivate/remove users                                         │
-  │  └── SSO configuration (SAML/OIDC — Enterprise+)                    │
+  │  <span class="fn">Auth Guard</span> ((dashboard)/layout.tsx)                                 │
+  │  ├── 'use client' + useAuthStore + useRouter                        │
+  │  ├── useAuthStore.persist.onFinishHydration() guard                 │
+  │  │   → <span data-lang="vi">chờ Zustand hydrate xong trước khi check token</span><span data-lang="en">waits for Zustand hydration before checking token</span>          │
+  │  ├── !token → router.replace('/login')                              │
+  │  └── !hydrated || !token → return null (<span data-lang="vi">không flash content</span><span data-lang="en">no content flash</span>)    │
   │                                                                        │
-  │  <span class="fn">Plugin Configuration</span>                                                  │
-  │  ├── <span data-lang="vi">Mỗi plugin expose config schema</span><span data-lang="en">Each plugin exposes its config schema</span> (manifest.json config.schema)   │
-  │  ├── Tenant Admin fill in tenant-specific values:                    │
-  │  │   customer-care: { twilioSid, slaThresholds, pipelineStages }    │
-  │  │   automation:    { emailTemplates, triggerRules }                 │
-  │  └── Validation: against schema before save                          │
+  │  <span class="fn">Sidebar</span>                                                              │
+  │  ├── Tenants → /dashboard/tenants                                   │
+  │  ├── Metrics → /dashboard/metrics                                   │
+  │  └── Log out → logout() + router.replace('/login')                  │
   │                                                                        │
-  │  <span class="fn">Billing & Usage</span>                                                      │
-  │  ├── Current plan, tier, billing cycle                               │
-  │  ├── Usage: storage, API calls, active users                         │
-  │  ├── Upgrade tier request                                            │
-  │  └── Invoice history                                                 │
+  │  <span class="fn">Tenant Management</span> (/dashboard/tenants)                               │
+  │  ├── List all tenants                                                │
+  │  ├── Create / update / delete tenant                                 │
+  │  ├── Change tier (Basic → Premium → Enterprise → VIP)               │
+  │  └── Change status (active → suspended)                             │
+  │                                                                        │
+  │  <span class="fn">Plugin Toggle</span> (per tenant)                                          │
+  │  ├── &lt;PluginToggle&gt; component — enable/disable plugins per tenant   │
+  │  └── POST /api/v1/admin/tenants/:id/plugins/{name}/enable|disable   │
+  │                                                                        │
+  │  <span class="fn">Metrics Dashboard</span> (/dashboard/metrics)                               │
+  │  └── System-wide summary (active tenants, plugin usage, etc.)       │
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">❷ SYSTEM ADMIN</span> (system.crm.internal — internal network only)
+<span class="ty">MODULE FEDERATION — Admin = HOST:</span>
 
-  <span data-lang="vi">Ai dùng:</span><span data-lang="en">Who uses:</span>  DevOps, Platform engineers, CTO
-  Domain:   system.crm.internal (<span data-lang="vi">KHÔNG public</span><span data-lang="en">NOT public</span>, VPN/internal only)
-  Auth:     Separate auth system, MFA required, IP whitelist
+  Admin Console loads plugin UIs at runtime (URLs from env vars):
+  ├── customerPlugin  @ CUSTOMER_PLUGIN_URL ?? <span class="st">'http://localhost:3010'</span>
+  ├── analyticsPlugin @ ANALYTICS_PLUGIN_URL ?? <span class="st">'http://localhost:3011'</span>
+  └── exports ./DesignTokens → plugin UIs stay visually consistent
 
-  ┌────────────────────────────────────────────────────────────────────────┐
-  │  <span class="fn">Tenant Management</span>                                                     │
-  │  ├── Create/suspend/delete tenants                                   │
-  │  ├── Change tier: Basic → Premium → Enterprise → VIP                │
-  │  │   VIP upgrade: trigger dedicated DB provisioning pipeline         │
-  │  ├── View all tenants, usage, health                                 │
-  │  └── Data export (GDPR compliance)                                   │
-  │                                                                        │
-  │  <span class="fn">Plugin Deployment</span>                                                     │
-  │  ├── Deploy new plugin version (from Artifact Registry)              │
-  │  ├── Canary rollout: 5% → 25% → 100%                               │
-  │  ├── Rollback to previous version                                    │
-  │  ├── Schema migration status (DDL tracking)                          │
-  │  └── Deprecate / undeploy plugin                                     │
-  │                                                                        │
-  │  <span class="fn">Monitoring & Observability</span>                                            │
-  │  ├── Health dashboard: all services, DB, Redis, MQ status           │
-  │  ├── Per-tenant metrics: latency, error rate, storage usage          │
-  │  ├── Per-plugin metrics: execution time, query count, cache hit      │
-  │  ├── Active alerts, incident history                                 │
-  │  └── Links: Grafana dashboards, Jaeger traces, Loki logs            │
-  │                                                                        │
-  │  <span class="fn">Migration Management</span>                                                  │
-  │  ├── View schema_migrations status (which DDL has run)              │
-  │  ├── View tenant_plugin_migrations per tenant                        │
-  │  ├── Manual retry failed migrations                                  │
-  │  └── Orphaned data cleanup (deprecated plugins)                     │
-  └────────────────────────────────────────────────────────────────────────┘
+  <span class="am"><span data-lang="vi">Hiện tại: plugin remote apps (:3010, :3011) chưa được build.</span><span data-lang="en">Currently: plugin remote apps (:3010, :3011) are not yet built.</span></span>
 
 
-<span class="ty"><span data-lang="vi">TẠI SAO TÁCH DOMAIN:</span><span data-lang="en">WHY SEPARATE DOMAINS:</span></span>
-  ├── Security: <span data-lang="vi">admin endpoints tách biệt, auth khác nhau</span><span data-lang="en">admin endpoints separated, different auth</span>
-  ├── System Admin: internal-only → <span data-lang="vi">KHÔNG thể truy cập từ internet</span><span data-lang="en">NOT accessible from the internet</span>
-  ├── CORS: main app CORS ≠ admin CORS ≠ system CORS
-  └── Deployment: <span data-lang="vi">admin console deploy riêng, không ảnh hưởng main app</span><span data-lang="en">admin console deployed separately, no impact on main app</span></pre></div>
+<span class="ty"><span data-lang="vi">SỰ KHÁC BIỆT VỚI WEB APP:</span><span data-lang="en">DIFFERENCES FROM WEB APP:</span></span>
+  ├── Auth: <span data-lang="vi">không có tenantSlug field</span><span data-lang="en">no tenantSlug field</span>, role = super_admin | admin
+  ├── API: <span data-lang="vi">KHÔNG gửi X-Tenant-ID header</span><span data-lang="en">does NOT send X-Tenant-ID header</span> (<span data-lang="vi">cross-tenant operations</span><span data-lang="en">cross-tenant operations</span>)
+  ├── Store: localStorage key = <span class="st">'crm-admin-auth'</span> (≠ <span class="st">'crm-web-auth'</span>)
+  ├── MF:   HOST (loads remotes) ≠ Web (REMOTE, exposes remoteEntry)
+  └── Port: 3000 ≠ Web App 3002</pre></div>
 </div>
 </div>
 
@@ -557,18 +512,17 @@ html.lang-vi [data-lang="en"]{display:none}
   └── * (wildcard) NEVER used → prevent cross-tenant request
 
 
-<span class="ty">JWT STORAGE:</span>
+<span class="ty">JWT STORAGE (<span data-lang="vi">thực tế</span><span data-lang="en">actual implementation</span>):</span>
 
-  <span class="rd"><span data-lang="vi">KHÔNG dùng localStorage / sessionStorage</span><span data-lang="en">DO NOT use localStorage / sessionStorage</span></span> (XSS accessible)
-  <span class="rd"><span data-lang="vi">KHÔNG dùng cookie</span><span data-lang="en">DO NOT use cookie</span></span> (CSRF risk, cookie sent automatically)
+  <span class="gn"><span data-lang="vi">DÙNG: localStorage via Zustand persist middleware</span><span data-lang="en">USE: localStorage via Zustand persist middleware</span></span>
+  ├── Web App:   localStorage key = <span class="st">'crm-web-auth'</span>   (token + tenantId + user)
+  ├── Admin:     localStorage key = <span class="st">'crm-admin-auth'</span> (token + user)
+  ├── Zustand <span class="fn">onFinishHydration()</span> guard: <span data-lang="vi">chờ hydrate xong trước redirect</span><span data-lang="en">waits for hydration before redirect</span>
+  ├── Tab close → token <span data-lang="vi">còn trong localStorage → không cần re-auth</span><span data-lang="en">stays in localStorage → no re-auth needed</span>
+  └── <span class="am">XSS risk: <span data-lang="vi">localStorage có thể bị đọc bởi injected script</span><span data-lang="en">localStorage can be read by injected scripts</span></span>
+      <span data-lang="vi">Giảm thiểu: CSP header ngăn inline script injection.</span><span data-lang="en">Mitigation: CSP header prevents inline script injection.</span>
 
-  <span class="gn"><span data-lang="vi">DÙNG: In-memory variable</span><span data-lang="en">USE: In-memory variable</span></span> (JavaScript closure / React context)
-  ├── Access token: <span data-lang="vi">giữ trong memory, mất khi tab close → re-auth</span><span data-lang="en">kept in memory, lost on tab close → re-auth</span>
-  ├── Refresh token: httpOnly secure cookie (server-set, JS cannot read)
-  │   → <span data-lang="vi">dùng để get new access token khi expired</span><span data-lang="en">used to get a new access token when expired</span>
-  ├── Tab close → access token <span data-lang="vi">mất</span><span data-lang="en">lost</span> → safe
-  ├── XSS → attacker <span data-lang="vi">KHÔNG thể đọc token từ memory dễ dàng</span><span data-lang="en">CANNOT easily read token from memory</span>
-  └── CSRF → refresh cookie httpOnly + SameSite=Strict
+  <span class="cm"><span data-lang="vi">Roadmap: chuyển sang httpOnly cookie + refresh token để tăng security.</span><span data-lang="en">Roadmap: migrate to httpOnly cookie + refresh token for better security.</span></span>
 
 
 <span class="ty">CLICKJACKING PROTECTION:</span>
@@ -591,92 +545,85 @@ html.lang-vi [data-lang="en"]{display:none}
 <!-- FLOW -->
 <div class="pnl" id="p-flow">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Luồng tổng hợp — User mở trang Sales</span><span data-lang="en">Complete Flow — User Opens the Sales Page</span></h2></div>
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Luồng tổng hợp — User xem Cases</span><span data-lang="en">Complete Flow — User Views Cases</span></h2></div>
     <div class="dg"><div class="dg-label">L1 complete flow</div><pre>
-<span class="ty">User (ACME sales_manager) <span data-lang="vi">mở browser → acme.crm.com → click "Sales"</span><span data-lang="en">opens browser → acme.crm.com → clicks "Sales"</span></span>
+<span class="ty">User (ACME) <span data-lang="vi">mở browser → localhost:3002 → đăng nhập → xem Cases</span><span data-lang="en">opens browser → localhost:3002 → logs in → views Cases</span></span>
 
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ <span class="hi">PHASE 1: Initial Load</span> (~800ms first visit, ~200ms cached)             │
+│ <span class="hi">PHASE 1: Login</span>                                                         │
 │                                                                         │
-│ ① Browser → acme.crm.com → CDN serves index.html + main.js   ~100ms  │
-│   (Host Shell bundle ~200KB gzipped, CDN edge cache)                   │
+│ ① <span data-lang="vi">Browser truy cập</span><span data-lang="en">Browser navigates to</span> /login (Next.js page render)              │
+│   Zustand hydrate từ localStorage <span class="st">'crm-web-auth'</span>                      │
+│   Token found → redirect /contacts                                     │
+│   No token → render login form                                         │
 │                                                                         │
-│ ② Host Shell boots:                                                    │
-│    Check memory → no JWT → redirect /login                    ~50ms   │
-│    User enters credentials → POST /api/v1/auth/login                   │
-│    → Backend validates → returns JWT pair                     ~300ms  │
-│    Access token → memory, Refresh token → httpOnly cookie              │
-│                                                                         │
-│ ③ Host Shell: GET /api/v1/me/context                          ~100ms  │
-│    Response: {                                                          │
-│      enabledPlugins: ["customer-data", "customer-care", "analytics"],  │
-│      permissions: ["sales:write", "customers:read", ...],              │
-│      theme: { logo: "acme-logo.png", primaryColor: "#2563eb" },       │
-│      config: { ... }                                                    │
-│    }                                                                    │
-│                                                                         │
-│ ④ Build sidebar: Customers, Sales, Calls, Reports, Settings  ~10ms   │
-│    (<span data-lang="vi">Chỉ items từ enabledPlugins, GLOBEX không thấy Sales</span><span data-lang="en">Only items from enabledPlugins; GLOBEX does not see Sales</span>)             │
-│    Apply theme: logo, colors → CSS variables                           │
-│                                                                         │
-│ ⑤ Default route /customers → load customer-data remote        ~200ms  │
-│    fetch cdn.crm.com/plugins/customer-data/v2.1/remoteEntry.js         │
-│    → render CustomerList inside PluginArea                             │
+│ ② <span data-lang="vi">User nhập</span><span data-lang="en">User enters</span> tenantSlug + email + password → click Sign in       │
+│   POST /auth/login                                                      │
+│   → { token, user: { id, name, email, roles },                        │
+│        tenant: { id, subdomain, name, tier } }                         │
+│   setAuth() → Zustand persist → localStorage <span class="st">'crm-web-auth'</span>         │
+│   router.push('/contacts')                                              │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ <span class="hi">PHASE 2: Navigate to Sales</span> (~250ms first, ~50ms cached)               │
+│ <span class="hi">PHASE 2: CRM Layout Bootstrap</span>                                          │
 │                                                                         │
-│ ⑥ User clicks "Sales" in sidebar                                      │
-│    URL → /sales (React Router, no page reload)                ~0ms    │
+│ ③ (crm)/layout.tsx — <span data-lang="vi">auth guard khởi động</span><span data-lang="en">auth guard initializes</span>                     │
+│   onFinishHydration() → hydrated = true                                │
+│   !token → redirect /login (nếu không có token)                        │
 │                                                                         │
-│ ⑦ Host Shell: /sales → customer-care remote                           │
-│    First time: fetch remoteEntry.js from CDN                  ~150ms  │
-│    Cached: browser cache → instant                            ~5ms    │
+│ ④ GET /api/v1/plugins                                                  │
+│   Headers: Authorization: Bearer &lt;token&gt;, X-Tenant-ID: &lt;tenantId&gt;    │
+│   → { enabledPlugins: ["customer-data", "customer-care"] }            │
+│   TanStack Query cache (staleTime: 5min)                               │
 │                                                                         │
-│ ⑧ customer-care remote: render SalesPipeline component        ~50ms   │
-│    SalesPipeline calls API: GET /api/v1/sales?status=open              │
-│    → L2 Gateway → L3 Plugin → L4 DB → response               ~45ms   │
-│                                                                         │
-│ ⑨ SalesPipeline renders pipeline board with sales data        ~20ms   │
-│    (Kanban board: New → Qualifying → Proposal → Closed)               │
+│ ⑤ Sidebar <span data-lang="vi">filter</span><span data-lang="en">filters</span> PLUGIN_PAGES <span data-lang="vi">theo</span><span data-lang="en">by</span> enabledPlugins:              │
+│   customer-data  → "Contacts" item (<span data-lang="vi">hiện</span><span data-lang="en">shown</span>)                          │
+│   customer-care  → "Cases" item (<span data-lang="vi">hiện</span><span data-lang="en">shown</span>)                             │
+│   (<span data-lang="vi">analytics, automation, marketing chưa enable → ẩn</span><span data-lang="en">analytics, automation, marketing not enabled → hidden</span>)         │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ <span class="hi">PHASE 3: Create Sale</span>                                                   │
+│ <span class="hi">PHASE 3: Navigate to Cases</span>                                             │
 │                                                                         │
-│ ⑩ User clicks "New Sale" → SaleForm modal opens               ~10ms  │
-│    Fill: customer, title, amount → click Save                          │
+│ ⑥ User click "Cases" trong sidebar                                    │
+│   Next.js router → /cases (client-side navigation)                     │
 │                                                                         │
-│ ⑪ API call: POST /api/v1/sales { customerId, title, amount }          │
-│    → L2 Gateway (3.9ms) → L3 Plugin (41ms)                            │
-│    → Response: 201 Created { id: "sale-42", status: "new" }   ~50ms   │
+│ ⑦ CasesPage render → &lt;PluginGate plugin="customer-care"&gt;              │
+│   Check enabledPlugins cache                                           │
+│   enabled → render &lt;CasesList /&gt;                                      │
+│   disabled → ShieldOff icon + <span data-lang="vi">thông báo liên hệ admin</span><span data-lang="en">contact administrator message</span>           │
 │                                                                         │
-│ ⑫ SalesPipeline: add new sale card to "New" column            ~5ms    │
-│    Optimistic update: card appears BEFORE API response                 │
-│    API success → confirm. API fail → rollback + error toast.          │
+│ ⑧ CasesList: GET /api/v1/plugins/customer-care/cases                  │
+│   queryKey: [<span class="st">'cases'</span>, tenantId]   <span class="cm">← tenantId ngăn cross-tenant cache</span>    │
+│   Headers: Authorization + X-Tenant-ID                                 │
+│   → L2 Gateway → L3 Plugin (customer-care core) → L4 DB              │
+│   → [{ id, subject, status, customerId, ... }, ...]                   │
 │                                                                         │
-│ ⑬ WebSocket: receive "sale.created" notification               ~1s    │
-│    → Toast: "New sale created: ACME Deal $50,000"                     │
-│    (Other team members online also receive notification)              │
+│ ⑨ CasesList render list of cases                                      │
+│   Subsequent navigation: TanStack Query cache → <span data-lang="vi">ít API call hơn</span><span data-lang="en">fewer API calls</span>  │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">TIMING SUMMARY:</span>
+<span class="ty"><span data-lang="vi">API ENDPOINTS THỰC TẾ:</span><span data-lang="en">ACTUAL API ENDPOINTS:</span></span>
 
-  ┌───────────────────────────────┬──────────┬──────────────────────────┐
-  │ Action                        │ Time     │ Note                     │
-  ├───────────────────────────────┼──────────┼──────────────────────────┤
-  │ Initial page load (uncached) │ ~800ms   │ CDN + auth + context     │
-  │ Initial page load (cached)   │ ~200ms   │ Service Worker + memory  │
-  │ Navigate to new plugin page  │ ~250ms   │ Fetch remote + API call  │
-  │ Navigate (cached remote)     │ ~50ms    │ In-memory + API call     │
-  │ Create/Update action         │ ~60ms    │ Optimistic + API confirm │
-  │ Real-time notification       │ ~1s      │ WebSocket push           │
-  └───────────────────────────────┴──────────┴──────────────────────────┘
+  ┌────────────────────────────────────────┬────────────────────────────┐
+  │ <span data-lang="vi">Endpoint</span><span data-lang="en">Endpoint</span>                              │ <span data-lang="vi">Ghi chú</span><span data-lang="en">Note</span>                   │
+  ├────────────────────────────────────────┼────────────────────────────┤
+  │ POST /auth/login                       │ <span data-lang="vi">đăng nhập Web App</span><span data-lang="en">Web App login</span>       │
+  │ POST /api/v1/admin/auth/login          │ <span data-lang="vi">đăng nhập Admin Console</span><span data-lang="en">Admin Console login</span>│
+  │ GET  /api/v1/plugins                   │ enabledPlugins[]           │
+  │ GET  /api/v1/plugins/customer-data/    │                            │
+  │        customers                       │ <span data-lang="vi">danh sách contacts</span><span data-lang="en">contacts list</span>       │
+  │ POST /api/v1/plugins/customer-data/    │                            │
+  │        customers                       │ <span data-lang="vi">tạo contact mới</span><span data-lang="en">create contact</span>       │
+  │ GET  /api/v1/plugins/customer-care/    │                            │
+  │        cases                           │ <span data-lang="vi">danh sách cases</span><span data-lang="en">cases list</span>          │
+  └────────────────────────────────────────┴────────────────────────────┘
+
 
   <span class="ty"><span data-lang="vi">L1 KHÔNG chứa business logic.</span><span data-lang="en">L1 does NOT contain business logic.</span></span>
   <span data-lang="vi">L1 chỉ: render UI, gọi API, hiển thị response.</span><span data-lang="en">L1 only: renders UI, calls API, displays response.</span>

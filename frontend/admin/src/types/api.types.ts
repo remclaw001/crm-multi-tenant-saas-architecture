@@ -31,6 +31,11 @@ export interface MetricsSummary {
   cacheHitRate: number;
 }
 
+export interface AdminLoginResponse {
+  token: string;
+  user: { id: string; email: string; role: 'super_admin' | 'admin' };
+}
+
 export interface ApiErrorBody {
   type: string;
   title: string;

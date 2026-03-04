@@ -1,20 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Building2, BarChart3, Settings, LogOut, Puzzle } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Building2, BarChart3, LogOut, Puzzle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 
 const NAV_ITEMS = [
-  { label: 'Dashboard', href: '/dashboard/tenants', icon: LayoutDashboard },
   { label: 'Tenants', href: '/dashboard/tenants', icon: Building2 },
   { label: 'Metrics', href: '/dashboard/metrics', icon: BarChart3 },
-  { label: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
 
   return (
@@ -44,7 +43,7 @@ export function Sidebar() {
 
       <div className="border-t border-border p-3">
         <button
-          onClick={logout}
+          onClick={() => { logout(); router.replace('/login'); }}
           className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
         >
           <LogOut className="h-4 w-4" />

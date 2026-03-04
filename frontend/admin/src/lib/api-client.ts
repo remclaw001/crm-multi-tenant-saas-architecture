@@ -5,10 +5,11 @@ import type {
   PaginatedResponse,
   CreateTenantInput,
   UpdateTenantInput,
+  AdminLoginResponse,
   ApiErrorBody,
 } from '@/types/api.types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 export class ApiError extends Error {
   constructor(
@@ -50,6 +51,14 @@ async function request<T>(
 }
 
 export const adminApi = {
+  // ─── Auth ─────────────────────────────────────────────────────────────────────
+  login(body: { email: string; password: string }): Promise<AdminLoginResponse> {
+    return request('/api/v1/admin/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
   // ─── Tenants ─────────────────────────────────────────────────────────────────
   getTenants(
     params: { page?: number; limit?: number; search?: string },

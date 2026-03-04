@@ -622,6 +622,8 @@ html.lang-vi [data-lang="en"]{display:none}
                 <div class="sec-h"><span class="sec-n">01</span>
                     <h2 class="sec-t"><span data-lang="vi">Cấu trúc tổng quan của một Plugin</span><span data-lang="en">Plugin Overall Structure</span></h2>
                 </div>
+                <div class="nt am" data-lang="vi"><strong>Phase 6+ Roadmap.</strong> Cấu trúc thư mục dưới đây mô tả kiến trúc plugin độc lập (third-party) mà Phase 6 hướng tới. <strong>Phase 5 thực tế:</strong> plugin là NestJS TypeScript modules, manifest là TypeScript constants trong <code>built-in-manifests.ts</code>, không có <code>plugin.manifest.json</code> per-directory, không có <code>ui/</code> riêng mỗi plugin.</div>
+                <div class="nt am" data-lang="en"><strong>Phase 6+ Roadmap.</strong> The directory structure below describes the standalone (third-party) plugin architecture that Phase 6 targets. <strong>Current Phase 5:</strong> plugins are NestJS TypeScript modules, manifests are TypeScript constants in <code>built-in-manifests.ts</code>, no per-directory <code>plugin.manifest.json</code>, no per-plugin <code>ui/</code> folder.</div>
 
                 <div class="dg">
                     <div class="dg-label">plugin anatomy</div>
@@ -759,6 +761,8 @@ html.lang-vi [data-lang="en"]{display:none}
                 <div class="sec-h"><span class="sec-n">03</span>
                     <h2 class="sec-t"><span data-lang="vi">Quy trình tạo một Plugin mới</span><span data-lang="en">Process for Creating a New Plugin</span></h2>
                 </div>
+                <div class="nt am" data-lang="vi"><strong>Phase 6+ Roadmap.</strong> CLI scaffold tool, artifact registry, canary deploy pipeline — chưa implement. <strong>Phase 5 thực tế:</strong> tạo plugin mới = thêm NestJS module vào codebase, khai báo manifest trong <code>built-in-manifests.ts</code>, register trong <code>PluginsModule</code>.</div>
+                <div class="nt am" data-lang="en"><strong>Phase 6+ Roadmap.</strong> CLI scaffold tool, artifact registry, canary deploy pipeline — not yet implemented. <strong>Current Phase 5:</strong> creating a new plugin = adding a NestJS module to the codebase, declaring manifest in <code>built-in-manifests.ts</code>, registering in <code>PluginsModule</code>.</div>
 
                 <div class="steps">
                     <div class="stp bl"><span class="sn">①</span>Scaffold</div>
@@ -891,9 +895,10 @@ html.lang-vi [data-lang="en"]{display:none}
                     <h2 class="sec-t"><span data-lang="vi">Cơ chế Scan & Load Plugin</span><span data-lang="en">Plugin Scan & Load Mechanism</span></h2>
                 </div>
 
-                <div class="nt bl" data-lang="vi"><strong>Khi nào scan xảy ra?</strong> (1) Application bootstrap, (2) Hot deploy
-                    plugin mới, (3) Plugin update broadcast từ instance khác.</div>
-                <div class="nt bl" data-lang="en"><strong>When does scanning occur?</strong> (1) Application bootstrap, (2) Hot deploy of a new plugin, (3) Plugin update broadcast from another instance.</div>
+                <div class="nt am" data-lang="vi"><strong>Phase 6+ Roadmap.</strong> Phase 1 Discovery (query <code>plugin_registry</code> table) và Hot Deploy qua MQ chưa implement. <strong>Phase 5 thực tế:</strong> plugin cores là NestJS providers hardcode, load một lần khi app khởi động qua DI container. Self-register bằng cách gọi <code>registry.register(this)</code> trong <code>OnModuleInit</code>.</div>
+                <div class="nt am" data-lang="en"><strong>Phase 6+ Roadmap.</strong> Phase 1 Discovery (query <code>plugin_registry</code> table) and hot deploy via MQ are not yet implemented. <strong>Current Phase 5:</strong> plugin cores are hardcoded NestJS providers, loaded once at app startup via DI container. Self-register by calling <code>registry.register(this)</code> in <code>OnModuleInit</code>.</div>
+                <div class="nt bl" data-lang="vi"><strong>Khi nào scan xảy ra?</strong> (1) Application bootstrap — plugin cores tự đăng ký. (2) Hot deploy (Phase 6+).</div>
+                <div class="nt bl" data-lang="en"><strong>When does scanning occur?</strong> (1) Application bootstrap — plugin cores self-register. (2) Hot deploy (Phase 6+).</div>
 
                 <div class="dg">
                     <div class="dg-label">bootstrap scan flow</div>
@@ -927,24 +932,23 @@ html.lang-vi [data-lang="en"]{display:none}
 │  │
 │  │   ┌──────────────────────────────────────────────────────────┐
 │  │   │                                                          │
-│  │   │            <span class="hi">customer-data</span>  (no deps — root)              │
-│  │   │               ▲      ▲                                   │
-│  │   │               │      │                                   │
-│  │   │     <span class="gn">customer-care</span>  <span class="am">analytics</span>                          │
-│  │   │          ▲                                               │
-│  │   │          │                                               │
-│  │   │     <span class="vi">automation</span>                                        │
-│  │   │          ▲                                               │
-│  │   │          │                                               │
-│  │   │     <span class="pk">marketing</span>                                         │
+│  │   │  <span class="hi">customer-data</span>           <span class="am">analytics</span>                   │
+│  │   │  (no deps — root)      (no deps — root)              │
+│  │   │   ▲    ▲    ▲                   ▲                    │
+│  │   │   │    │    │                   │                    │
+│  │   │   │    │    └──── <span class="vi">automation</span> ───┘                │
+│  │   │   │    │         (deps: customer-data               │
+│  │   │   │    │               + analytics)                 │
+│  │   │   │    └── <span class="pk">marketing</span>                               │
+│  │   │   │        (deps: customer-data)                    │
+│  │   │   <span class="gn">customer-care</span>                                    │
+│  │   │   (deps: customer-data)                             │
 │  │   │                                                          │
 │  │   └──────────────────────────────────────────────────────────┘
 │  │
 │  │   Topological sort → load order:
-│  │   <span class="nu">1.</span> customer-data
-│  │   <span class="nu">2.</span> customer-care, analytics  <span class="cm">(parallel — no deps on each other)</span>
-│  │   <span class="nu">3.</span> automation
-│  │   <span class="nu">4.</span> marketing
+│  │   <span class="nu">1.</span> customer-data, analytics  <span class="cm">(parallel — no deps)</span>
+│  │   <span class="nu">2.</span> customer-care, automation, marketing  <span class="cm">(parallel — all deps ready)</span>
 │  │
 │  ▼
 │  <span class="ty">Phase 3: Validation</span>
@@ -1009,6 +1013,8 @@ html.lang-vi [data-lang="en"]{display:none}
                 <div class="sec-h"><span class="sec-n">05</span>
                     <h2 class="sec-t">Hot Deploy Scan (runtime)</h2>
                 </div>
+                <div class="nt am" data-lang="vi"><strong>Phase 6+ Roadmap.</strong> Hot deploy qua MQ broadcast chưa implement. Phase 5: deploy plugin mới = restart app.</div>
+                <div class="nt am" data-lang="en"><strong>Phase 6+ Roadmap.</strong> Hot deploy via MQ broadcast is not yet implemented. Phase 5: deploying a new plugin requires an app restart.</div>
                 <div class="dg">
                     <div class="dg-label">hot deploy scan</div>
                     <pre>
@@ -1067,34 +1073,42 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
    • Nếu customer-data bị disable → care cũng bị disable
 
 
-<span class="ty">② EVENTS</span> (loose coupling, pub/sub)
+<span class="ty">② EVENTS</span> (Phase 6+ roadmap — async pub/sub qua MQ)
 ─────────────────────────────────────────────
-   customer-data  ──<span class="gn">emits</span>──▶  "customer.created"
+   <span class="cm">Phase 5: plugin-to-plugin communication dùng HOOKS (đồng bộ).</span>
+   <span class="cm">Phase 6+: MQ-based async events cho cross-plugin notifications.</span>
+
+   customer-data  ──<span class="gn">emits</span>──▶  "customer.created" (MQ — Phase 6+)
                                      │
                         ┌────────────┼──────────────┐
                         ▼            ▼              ▼
                    customer-care  automation    analytics
-                   <span class="cm">(tạo sales)</span>   <span class="cm">(send email)</span> <span class="cm">(update count)</span>
+                   <span class="cm">(create case)</span>  <span class="cm">(run rules)</span>  <span class="cm">(update count)</span>
 
    • Publisher không biết có bao nhiêu subscribers
    • Subscriber có thể thêm/bớt mà không sửa publisher
-   • Sync events (in-process) + Async events (MQ)
+   • <span class="am">Phase 5: chỉ có Hooks (sync, in-process)</span>
 
 
-<span class="ty">③ HOOKS</span> (extension points)
+<span class="ty">③ HOOKS</span> (in-process, synchronous — Phase 5 thực tế)
 ─────────────────────────────────────────────
-   customer-data  ──<span class="am">provides hook</span>──▶  "filter:customerList"
-                                              │
-                                     ┌────────┴────────┐
-                                     ▼                 ▼
-                              customer-care       analytics
-                              <span class="cm">(add sales data</span>    <span class="cm">(add score</span>
-                              <span class="cm"> to each customer)</span> <span class="cm"> to each customer)</span>
+   customer-data  ──<span class="am">fires hook</span>──▶  "before:customer.create"
+                                    "after:customer.create"
+                                            │
+                               ┌────────────┴──────────────┐
+                               ▼                           ▼
+                          <span class="vi">automation</span>               <span class="gn">customer-care</span>
+                       before hook (priority 5)   after hook (priority 10)
+                   <span class="cm">(runs TRƯỚC khi insert)</span>     <span class="cm">(runs SAU khi insert)</span>
+                   <span class="cm">Phase 5: no-op</span>              <span class="cm">Phase 5: no-op</span>
+                   <span class="cm">Phase 7+: apply triggers</span>    <span class="cm">Phase 7+: create onboarding case</span>
 
-   • Plugin A cung cấp hook point
-   • Plugin B, C đăng ký handler cho hook đó
-   • Khi A chạy đến hook point → gọi tất cả handlers
-   • Khác event: hooks MODIFY data (filter/transform)
+   • customer-data.createCustomer() gọi:
+     hookRegistry.runBefore('customer.create', ctx, input)
+     → INSERT customers
+     hookRegistry.runAfter('customer.create', ctx, customer)
+   • Hook handlers chạy tuần tự theo priority (số nhỏ = chạy trước)
+   • Khác event: hooks in-process, đồng bộ, không qua MQ
 
 
 <span class="ty">④ SHARED SERVICES</span> (indirect interaction)
@@ -1116,94 +1130,60 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
                 <div class="dg">
                     <div class="dg-label">dependency graph</div>
                     <pre>
-<span class="cm">Legend:  ───▶ hard dependency    - - ▶ event subscription    ═══▶ hook</span>
+<span class="cm">Legend:  ───▶ hard dependency    ═══▶ hook registration (in-process, sync)</span>
+<span class="cm">         Source: built-in-manifests.ts + actual OnModuleInit registrations</span>
 
-                          ┌──────────────────┐
-                          │                  │
-                          │  <span class="hi">customer-data</span>  │  <span class="cm">ROOT — no dependencies</span>
-                          │                  │
-                          │  <span class="cm">emits:</span>          │
-                          │  customer.created│
-                          │  customer.updated│
-                          │  customer.deleted│
-                          │                  │
-                          │  <span class="cm">hooks provided:</span> │
-                          │  filter:custList │
-                          │  before:custSave │
-                          │  after:custSave  │
-                          │                  │
-                          └────┬──────┬──────┘
-                     ┌─────────┘      └──────────┐
-                     │                           │
-                     ▼                           ▼
-           ┌─────────────────┐         ┌─────────────────┐
-           │                 │         │                 │
-           │ <span class="gn">customer-care</span>  │         │  <span class="am">analytics</span>     │
-           │                 │         │                 │
-           │ <span class="cm">depends:</span>       │         │ <span class="cm">depends:</span>       │
-           │  customer-data  │         │  customer-data  │
-           │                 │         │                 │
-           │ <span class="cm">listens:</span>       │         │ <span class="cm">listens:</span>       │
-           │  customer.*     │         │  customer.*     │
-           │                 │         │  sales.*        │
-           │ <span class="cm">emits:</span>         │         │  call.*         │
-           │  sales.created  │         │                 │
-           │  sales.updated  │         │ <span class="cm">hooks:</span>         │
-           │  call.logged    │         │  ═▶ filter:     │
-           │                 │         │     custList    │
-           │ <span class="cm">hooks:</span>         │         │                 │
-           │  ═▶ filter:     │         └────────┬────────┘
-           │     custList    │                  │
-           │                 │                  │ <span class="cm">event subscription</span>
-           └────────┬────────┘                  │
-                    │                           │
-                    ▼                           │
-           ┌─────────────────┐                  │
-           │                 │                  │
-           │  <span class="vi">automation</span>    │◀─ ─ ─ ─ ─ ─ ─ ─ ┘
-           │                 │
-           │ <span class="cm">depends:</span>       │
-           │  customer-care  │
-           │                 │
-           │ <span class="cm">listens:</span>       │
-           │  customer.*     │
-           │  sales.*        │
-           │                 │
-           │ <span class="cm">emits:</span>         │
-           │  automation.    │
-           │   triggered     │
-           │  email.queued   │
-           │                 │
-           └────────┬────────┘
-                    │
-                    ▼
-           ┌─────────────────┐
-           │                 │
-           │  <span class="pk">marketing</span>     │
-           │                 │
-           │ <span class="cm">depends:</span>       │
-           │  automation     │
-           │  customer-data  │
-           │                 │
-           │ <span class="cm">listens:</span>       │
-           │  customer.*     │
-           │  automation.*   │
-           │                 │
-           └─────────────────┘
+  ┌──────────────────────────────┐    ┌─────────────────────────┐
+  │         <span class="hi">customer-data</span>        │    │       <span class="am">analytics</span>         │
+  │         (no deps — root)     │    │       (no deps — root)  │
+  │                              │    │                         │
+  │  fires hooks on createCustomer:   │  no hooks registered    │
+  │  hookRegistry.runBefore(     │    │                         │
+  │    'customer.create', ...)   │    └─────────────┬───────────┘
+  │  hookRegistry.runAfter(      │                  │ dep
+  │    'customer.create', ...)   │                  │
+  └──────┬──────────┬────────────┘                  │
+         │dep       │dep                             │dep
+         ▼          ▼                                ▼
+  ┌──────────────┐  ┌──────────────┐    ┌────────────────────────┐
+  │ <span class="gn">customer-care</span>│  │  <span class="pk">marketing</span>  │    │       <span class="vi">automation</span>        │
+  │              │  │              │    │                        │
+  │ deps:        │  │ deps:        │    │ deps:                  │
+  │  [cust-data] │  │  [cust-data] │    │  [cust-data,analytics] │
+  │              │  │              │    │                        │
+  │ ═══▶ registers: after:         │    │ ═══▶ registers: before:│
+  │      customer.create           │    │      customer.create   │
+  │      priority 10               │    │      priority 5        │
+  │      (Phase 5: no-op)          │    │      (Phase 5: no-op)  │
+  └──────────────┘  └──────────────┘    └────────────────────────┘
 
 
-<span class="ty">Load Order</span> (topological):
-┌──────────┐   ┌──────────────┐   ┌───────────┐   ┌──────────┐
-│<span class="nu"> Round 1  </span>│──▶│<span class="nu">   Round 2    </span>│──▶│<span class="nu">  Round 3  </span>│──▶│<span class="nu"> Round 4  </span>│
-│cust-data │   │cust-care     │   │automation │   │marketing │
-│          │   │analytics     │   │           │   │          │
-└──────────┘   └──────────────┘   └───────────┘   └──────────┘
+<span class="ty">Hook Execution Order</span> (khi customer-data.createCustomer() chạy):
+
+  hookRegistry.runBefore('customer.create')
+    └── <span class="vi">automation</span> handler  (priority 5  — runs FIRST)
+         <span class="cm">Phase 5: no-op. Phase 7+: inspect trigger conditions.</span>
+
+  → INSERT INTO customers
+
+  hookRegistry.runAfter('customer.create')
+    └── <span class="gn">customer-care</span> handler (priority 10 — runs AFTER insert)
+         <span class="cm">Phase 5: no-op. Phase 7+: auto-create onboarding support case.</span>
 
 
-<span class="ty">Disable Cascade</span>:
-  Disable customer-data → <span class="rd">cascade disable</span>: care, analytics, automation, marketing
-  Disable customer-care → <span class="rd">cascade disable</span>: automation, marketing
-  Disable analytics     → <span class="gn">no cascade</span> (nothing depends on it)
+<span class="ty">Load Order</span> (topological sort từ built-in-manifests.ts):
+┌──────────────────────────────┐   ┌────────────────────────────────────────┐
+│<span class="nu">           Round 1            </span>│──▶│<span class="nu">                  Round 2               </span>│
+│  customer-data   analytics   │   │  customer-care  automation  marketing  │
+└──────────────────────────────┘   └────────────────────────────────────────┘
+<span class="cm">customer-care, automation, marketing đều có thể load song song — tất cả deps có sẵn sau Round 1.</span>
+
+
+<span class="ty">Disable Cascade</span> (dựa trên dependency graph thực tế):
+  Disable customer-data → <span class="rd">cascade disable</span>: customer-care, automation, marketing
+  Disable customer-care → <span class="gn">no cascade</span> (không plugin nào phụ thuộc care)
+  Disable analytics     → <span class="rd">cascade disable</span>: automation (automation phụ thuộc analytics)
+  Disable automation    → <span class="gn">no cascade</span> (leaf node)
   Disable marketing     → <span class="gn">no cascade</span> (leaf node)</pre>
                 </div>
             </div>
@@ -1367,34 +1347,36 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
                 <div class="dg">
                     <div class="dg-label">runtime flow</div>
                     <pre>
-<span class="hi">ACME gửi request: POST /api/v1/sales</span>   (tạo sales opportunity mới)
+<span class="hi">ACME gửi request: POST /api/v1/plugins/customer-data/customers</span>   (tạo customer mới)
 │
 │
 │  ┌─ <span class="ty">API GATEWAY</span> ──────────────────────────────────────────────────────┐
 │  │                                                                    │
-│  │  <span class="nu">1</span>  Load Balancer → chọn instance                                │
-│  │  <span class="nu">2</span>  Tenant Resolver: acme.crm.com → tenant_id = ACME              │
+│  │  <span class="nu">1</span>  CorrelationIdMiddleware: inject X-Correlation-ID              │
+│  │  <span class="nu">2</span>  Tenant Resolver: X-Tenant-Slug: acme → tenant_id = ACME       │
 │  │  <span class="nu">3</span>  Auth: validate JWT → user_id, roles                           │
 │  │  <span class="nu">4</span>  Rate Limit: check ACME quota → OK                             │
-│  │  <span class="nu">5</span>  Route Match: /api/v1/sales → plugin: <span class="gn">customer-care</span>             │
+│  │  <span class="nu">5</span>  Route Match: /api/v1/plugins/customer-data/customers           │
+│  │                → CustomerDataController                           │
 │  │                                                                    │
 │  └───────────────────────────────┬────────────────────────────────────┘
 │                                  │
 │  ┌─ <span class="ty">CONTEXT BUILDING</span> ─────────────▼────────────────────────────────────┐
 │  │                                                                    │
 │  │  <span class="nu">6</span>  Load Tenant Context (from LRU cache or DB)                     │
-│  │      → ACME has: customer-data, customer-care, analytics          │
-│  │      → Context references CustomerCareCore singleton              │
+│  │      → ACME has: customer-data ✓, customer-care ✓, analytics ✓   │
 │  │                                                                    │
-│  │  <span class="nu">7</span>  Check: user has permission "sales:create"? → <span class="gn">YES</span>              │
+│  │  <span class="nu">7</span>  Controller check:                                              │
+│  │      ctx.enabledPlugins.includes('customer-data')? → <span class="gn">YES</span>          │
 │  │                                                                    │
-│  │  <span class="nu">8</span>  Build Execution Context:                                      │
+│  │  <span class="nu">8</span>  Build ExecutionContext via ExecutionContextBuilder.build():     │
 │  │      ┌──────────────────────────────────────────────┐             │
 │  │      │  requestId, tenantId: ACME, userId            │             │
-│  │      │  db:      TenantScopedDB  (auto tenant_id)   │             │
+│  │      │  knex:    scoped by QueryInterceptor          │             │
+│  │      │           (auto tenant_id on every query)     │             │
 │  │      │  cache:   TenantScopedCache (auto prefix)    │             │
 │  │      │  logger:  ScopedLogger                       │             │
-│  │      │  eventBus, services, pluginConfig             │             │
+│  │      │  enabledPlugins, correlationId               │             │
 │  │      └──────────────────────────────────────────────┘             │
 │  │                                                                    │
 │  └───────────────────────────────┬────────────────────────────────────┘
@@ -1402,46 +1384,27 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 │  ┌─ <span class="ty">SANDBOX EXECUTION</span> ─────────────▼────────────────────────────────────┐
 │  │                                                                    │
 │  │  <span class="nu">9</span>  Sandbox wraps execution with:                                  │
-│  │      timeout: 5000ms, maxMemory: 50MB, maxQueries: 50            │
+│  │      timeout: 5000ms, maxQueries: 50                              │
 │  │                                                                    │
-│  │  <span class="nu">10</span> <span class="fn">CustomerCareCore.createSale(ctx, requestBody)</span>                │
+│  │  <span class="nu">10</span> <span class="fn">CustomerDataCore.createCustomer(ctx, requestBody)</span>             │
 │  │      │                                                             │
 │  │      ├── Validate input data                                      │
 │  │      │                                                             │
-│  │      ├── <span class="am">HOOK: before:saleCreate</span>                                   │
+│  │      ├── <span class="am">HOOK: hookRegistry.runBefore('customer.create', ctx, input)</span>  │
 │  │      │   │                                                         │
-│  │      │   │  Hook Registry checks: any plugin registered?           │
-│  │      │   │  → automation has registered a before:saleCreate hook  │
-│  │      │   │  → automation.beforeSaleCreate(ctx, data)              │
-│  │      │   │  → enriches data: adds auto-assigned sales rep         │
+│  │      │   │  Hook Registry runs registered before: handlers:       │
+│  │      │   │  → automation (priority 5)                             │
+│  │      │   │    <span class="cm">Phase 5: no-op (handler registered, logic pending)</span>   │
 │  │      │   │                                                         │
-│  │      │   └── data now has: { ...original, assignedTo: "rep-5" }   │
+│  │      ├── INSERT customers                                         │
+│  │      │   (tenant_id auto-injected by QueryInterceptor)            │
 │  │      │                                                             │
-│  │      ├── Insert to DB (tenant_id auto-injected by interceptor)    │
-│  │      │                                                             │
-│  │      ├── <span class="am">HOOK: after:saleCreate</span>                                    │
-│  │      │   └── analytics records: "sale created" metric             │
-│  │      │                                                             │
-│  │      ├── <span class="gn">SYNC EVENT: "sales.created"</span>                               │
+│  │      ├── <span class="am">HOOK: hookRegistry.runAfter('customer.create', ctx, customer)</span> │
 │  │      │   │                                                         │
-│  │      │   │  In-process Event Bus delivers to sync handlers:       │
-│  │      │   ├── analytics.onSaleCreated(event)                       │
-│  │      │   │   └── increment counter in Redis (fast, <5ms)          │
-│  │      │   └── customer-data.onSaleCreated(event)                   │
-│  │      │       └── update customer.lastActivity (fast)              │
+│  │      │   │  → customer-care (priority 10)                         │
+│  │      │   │    <span class="cm">Phase 5: no-op (handler registered, logic pending)</span>   │
 │  │      │                                                             │
-│  │      ├── <span class="cy">ASYNC MESSAGE: publish to MQ</span>                              │
-│  │      │   │                                                         │
-│  │      │   │  Message Queue receives "sales.created":               │
-│  │      │   ├── → <span class="cm">Worker: automation checks rules</span>                     │
-│  │      │   │       → if match: queue welcome email                  │
-│  │      │   ├── → <span class="cm">Worker: send notification to sales team</span>             │
-│  │      │   └── → <span class="cm">Worker: update search index</span>                        │
-│  │      │                                                             │
-│  │      │   <span class="cm">These happen AFTER response is sent to user</span>              │
-│  │      │                                                             │
-│  │      ├── Invalidate related caches                                │
-│  │      └── Return: { id: "sale-123", status: "created" }           │
+│  │      └── Return: { id: "cust-123", name: "Acme Corp", ... }      │
 │  │                                                                    │
 │  └───────────────────────────────┬────────────────────────────────────┘
 │                                  │
@@ -1451,20 +1414,20 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 │  │  <span class="nu">12</span> Release DB connection → back to pool                            │
 │  │  <span class="nu">13</span> Execution context → garbage collected                           │
 │  │  <span class="nu">14</span> Emit observability:                                             │
-│  │      ├── Metric: request_duration{plugin="care"} = 85ms          │
+│  │      ├── Metric: request_duration{plugin="customer-data"} = 42ms  │
 │  │      ├── Trace span: closed, shipped to Jaeger                    │
-│  │      └── Audit log: ACME / user-5 / sales.created / sale-123     │
+│  │      └── Audit log: ACME / user-5 / customer.created / cust-123  │
 │  │                                                                    │
 │  └────────────────────────────────────────────────────────────────────┘
 
 
 <span class="ty">Timeline:</span>
 
-  0ms        30ms          60ms      80ms  85ms         ~200ms
-  │───────────│─────────────│─────────│─────│            │
-  Gateway     Context       Core      Hooks Response     Async workers
-  + Auth      Build         Logic     +Sync             finish
-                                      Events            (email, notif)</pre>
+  0ms        20ms          40ms      50ms  55ms
+  │───────────│─────────────│─────────│─────│
+  Gateway     Context       Core      Hooks Response
+  + Auth      Build         Logic     (sync
+                                      in-process)</pre>
                 </div>
             </div>
 
@@ -1476,61 +1439,46 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
                 <div class="dg">
                     <div class="dg-label">interaction map — single request</div>
                     <pre>
-<span class="hi">POST /api/v1/sales</span>  (customer-care plugin handles this)
+<span class="hi">POST /api/v1/plugins/customer-data/customers</span>  (customer-data plugin handles this)
 
   ┌──────────────────┐
-  │  <span class="gn">customer-care</span>   │─── Route handler: createSale()
+  │  <span class="gn">customer-data</span>   │─── Route handler: createCustomer()
   │  (active plugin) │
   └──────┬───────────┘
          │
-         │ <span class="am">before:saleCreate hook</span>
+         │ <span class="am">hookRegistry.runBefore('customer.create', ctx, input)</span>
          │
   ┌──────▼───────────┐
-  │  <span class="vi">automation</span>       │─── enriches: auto-assign sales rep
-  │  (hook handler)  │
+  │  <span class="vi">automation</span>       │─── priority 5
+  │  (hook handler)  │─── <span class="cm">Phase 5: no-op</span>
   └──────┬───────────┘
-         │ returns enriched data
+         │ returns (no modification in Phase 5)
          │
   ┌──────▼───────────┐
-  │  <span class="gn">customer-care</span>   │─── inserts to DB
-  │  (continues)     │─── emits "sales.created" (sync)
+  │  <span class="gn">customer-data</span>   │─── INSERT customers
+  │  (continues)     │    (tenant_id auto-scoped by QueryInterceptor)
   └──────┬───────────┘
          │
-    ┌────┴────────────┐
-    │                 │
-    │ <span class="gn">sync event</span>      │ <span class="gn">sync event</span>
-    │                 │
-  ┌─▼──────────────┐ ┌▼─────────────────┐
-  │ <span class="am">analytics</span>      │ │ <span class="hi">customer-data</span>   │
-  │                │ │                  │
-  │ increment      │ │ update customer  │
-  │ sales counter  │ │ lastActivity     │
-  └────────────────┘ └──────────────────┘
-
+         │ <span class="am">hookRegistry.runAfter('customer.create', ctx, customer)</span>
          │
-         │ <span class="cy">async message → MQ</span>
+  ┌──────▼───────────┐
+  │  <span class="hi">customer-care</span>   │─── priority 10
+  │  (hook handler)  │─── <span class="cm">Phase 5: no-op</span>
+  └──────┬───────────┘
          │
-         ▼  (after response sent)
-  ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
-  │ <span class="vi">automation</span>     │ │ notification   │ │ search indexer │
-  │ worker         │ │ worker         │ │ worker         │
-  │                │ │                │ │                │
-  │ check rules    │ │ notify sales   │ │ update ES      │
-  │ queue email    │ │ team           │ │ index          │
-  └────────────────┘ └────────────────┘ └────────────────┘
+         ▼  201 Created
 
 
 <span class="ty">Tổng kết tương tác trong 1 request:</span>
 
   ┌────────────────────────────────────────────────────────┐
-  │  Plugin active:     customer-care (xử lý chính)       │
-  │  Hook:              automation (enrich data)           │
-  │  Sync events:       analytics + customer-data          │
-  │  Async messages:    automation + notification + search │
+  │  Plugin active:     customer-data (xử lý chính)       │
+  │  before hook:       automation (priority 5, no-op)    │
+  │  after hook:        customer-care (priority 10, no-op)│
+  │  Async messages:    none (Phase 6+)                   │
   │                                                        │
-  │  Tổng plugins involved: <span class="hi">5</span>                             │
   │  Plugins gọi trực tiếp nhau: <span class="hi">0</span>                       │
-  │  Coupling: <span class="gn">ZERO</span> — chỉ qua events, hooks, MQ           │
+  │  Coupling: <span class="gn">ZERO</span> — chỉ qua hooks                       │
   └────────────────────────────────────────────────────────┘</pre>
                 </div>
             </div>
@@ -1543,51 +1491,57 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">12</span>
-                    <h2 class="sec-t"><span data-lang="vi">Kiến trúc Plugin UI — Module Federation</span><span data-lang="en">Plugin UI Architecture — Module Federation</span></h2>
+                    <h2 class="sec-t"><span data-lang="vi">Kiến trúc Plugin UI — Phase 5</span><span data-lang="en">Plugin UI Architecture — Phase 5</span></h2>
                 </div>
 
-                <div class="nt bl" data-lang="vi"><strong>Module Federation</strong> cho phép HostShell (React SPA) lazy-load UI của từng plugin
-                    như một remote JavaScript module độc lập — không cần bundle chung, không reload trang.</div>
-                <div class="nt bl" data-lang="en"><strong>Module Federation</strong> allows the HostShell (React SPA) to lazy-load each plugin's UI as an independent remote JavaScript module — no shared bundle required, no page reload.</div>
+                <div class="nt am" data-lang="vi"><strong>Phase 5 thực tế:</strong> Web App là static Next.js, không dùng CDN remote loading. Mỗi plugin page được
+                    bundle cố định vào web app. UI chỉ bị ẩn / hiện dựa trên kết quả <code>GET /api/v1/plugins</code>. CDN dynamic loading là Phase 6+ roadmap.</div>
+                <div class="nt am" data-lang="en"><strong>Phase 5 reality:</strong> The Web App is a static Next.js build — no CDN remote loading. Each plugin page is
+                    bundled into the web app statically. UI is only hidden/shown based on <code>GET /api/v1/plugins</code> response. CDN dynamic loading is Phase 6+ roadmap.</div>
 
                 <div class="dg">
-                    <div class="dg-label">ui architecture</div>
+                    <div class="dg-label">ui architecture — phase 5</div>
                     <pre>
-<span class="hi">L1 PRESENTATION — CÁC THỰC THỂ UI</span>
+<span class="hi">L1 PRESENTATION — Web App (Next.js, :3002)</span>
 
   ┌──────────────────────────────────────────────────────────────────────┐
-  │ <span class="ty">HostShell</span>  «singleton React SPA»                                    │
+  │ <span class="ty">CrmLayout</span>  «(crm)/layout.tsx — Client Component»                    │
   │                                                                      │
-  │  bootstrap()         → gọi GET /me/context                          │
-  │                          nhận { enabledPlugins, theme, user }        │
+  │  const PLUGIN_PAGES = [                                              │
+  │    { plugin: 'customer-data', label: 'Contacts',                     │
+  │      href: '/contacts', icon: Users },                               │
+  │    { plugin: 'customer-care', label: 'Cases',                        │
+  │      href: '/cases',    icon: Headset },                             │
+  │  ];                                                                  │
   │                                                                      │
-  │  buildNav(plugins)   → render sidebar CHỈ với plugins đang enabled  │
+  │  useQuery(['enabled-plugins', tenantId],                             │
+  │    () => crmApi.getEnabledPlugins(ctx))                              │
+  │       → GET /api/v1/plugins                                          │
+  │       → { enabledPlugins: string[] }                                 │
   │                                                                      │
-  │  loadRemote(name, v) → dùng Module Federation để lazy-load          │
-  │                          remoteEntry.js của plugin                   │
+  │  visibleNav = PLUGIN_PAGES                                           │
+  │    .filter(p => enabledPlugins.includes(p.plugin))                   │
+  │       → Sidebar chỉ hiển thị plugin đang enabled                    │
+  │                                                                      │
   └──────────────────┬───────────────────────────────────────────────────┘
-                     │ render vào slot
+                     │ render page content
                      ▼
   ┌──────────────────────────────────────────────────────────────────────┐
-  │ <span class="ty">PluginArea</span>  «singleton component»                                   │
+  │ <span class="ty">PluginGate</span>  «components/plugin-gate.tsx — Client Component»         │
   │                                                                      │
-  │  renderRemote(name)  → mount PluginRemote tương ứng với URL hiện tại│
-  │  handleCrash(error)  → mỗi remote được wrap trong ErrorBoundary     │
-  │                          → crash 1 plugin không làm sập toàn bộ app │
-  └──────────────────┬───────────────────────────────────────────────────┘
-                     │ load động qua Module Federation
-                     ▼
-  ┌──────────────────────────────────────────────────────────────────────┐
-  │ <span class="ty">PluginRemote</span>  «per-plugin — fetch từ CDN/artifact registry»         │
+  │  Dùng trong mỗi plugin page:                                        │
+  │    &lt;PluginGate plugin="customer-care" pluginLabel="Cases"&gt;          │
+  │      &lt;CasesList /&gt;                                                   │
+  │    &lt;/PluginGate&gt;                                                     │
   │                                                                      │
-  │  remoteEntry.js  → entry point Module Federation của plugin          │
-  │  exposes:                                                            │
-  │    pages[]       → React page components (SalesPage, CallsPage, ...) │
-  │    components[]  → shared UI widgets (SalesBadge, ActivityFeed, ...) │
-  │    navItems[]    → khai báo menu entries (icon, label, route)        │
+  │  Logic:                                                              │
+  │    1. Query enabledPlugins (staleTime 5 min, shared cache)           │
+  │    2. enabledPlugins.includes(plugin)?                               │
+  │       YES → render children                                          │
+  │       NO  → render "Plugin not enabled" placeholder                  │
   │                                                                      │
-  │  <span class="cm">Chỉ được fetch khi HostShell.loadRemote() được gọi</span>                 │
-  │  <span class="cm">— tức là chỉ khi plugin đang enabled cho tenant đó</span>                │
+  │  Bảo vệ URL trực tiếp: user gõ /cases khi plugin tắt               │
+  │    → PluginGate render "Cases plugin not enabled" thay vì crash     │
   └──────────────────────────────────────────────────────────────────────┘</pre>
                 </div>
             </div>
@@ -1600,72 +1554,52 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
                 <div class="dg">
                     <div class="dg-label">enable → ui load flow</div>
                     <pre>
-<span class="hi">TENANT ADMIN bật plugin "customer-care" cho ACME</span>
+<span class="hi">VCC STAFF bật plugin "customer-care" cho tenant ACME</span>
+  (qua Admin Console: POST /api/v1/admin/tenants/:id/plugins/customer-care/enable)
 
 <span class="ty">BACKEND</span>
 │
-│  <span class="nu">1</span>  Validate: tier OK, deps OK, quota OK
-│  <span class="nu">2</span>  Run DB migrations (CREATE TABLE sales, call_logs, ...)
-│  <span class="nu">3</span>  Ghi DB:
-│       INSERT tenant_plugins
-│         { tenant_id: ACME, plugin_name: customer-care,
-│           <span class="gn">enabled: true</span>, version: 1.5.0, config: {...} }
-│  <span class="nu">4</span>  Invalidate cache:
+│  <span class="nu">1</span>  Validate: deps OK (customer-data đã enabled)
+│  <span class="nu">2</span>  Ghi DB:
+│       UPDATE tenant_plugins
+│         SET enabled = true
+│         WHERE tenant_id = ACME AND plugin_name = 'customer-care'
+│  <span class="nu">3</span>  Invalidate cache:
 │       DELETE LRU[ACME]
-│       Redis Pub/Sub → <span class="st">"cache:invalidate" { tenant: ACME }</span>
-│       → Tất cả server instances xóa ACME context khỏi L1 cache
+│       → Request kế tiếp sẽ reload từ DB
 │
 ▼
 <span class="ty">NEXT REQUEST từ ACME user</span>
 │
-│  <span class="nu">5</span>  Gateway: TenantResolver load context → <span class="am">CACHE MISS</span>
-│  <span class="nu">6</span>  Query DB: SELECT * FROM tenant_plugins WHERE tenant_id = ACME
-│       → Result bây giờ gồm: customer-data <span class="gn">✓</span>, customer-care <span class="gn">✓</span>, analytics <span class="gn">✓</span>
-│  <span class="nu">7</span>  Lưu context mới vào LRU cache
-│  <span class="nu">8</span>  Response /me/context trả về:
-│       { enabledPlugins: ["customer-data", "customer-care", "analytics"], ... }
+│  <span class="nu">4</span>  TenantResolver load context → <span class="am">CACHE MISS</span>
+│  <span class="nu">5</span>  Query DB: SELECT plugin_name FROM tenant_plugins
+│            WHERE tenant_id = ACME AND enabled = true
+│       → ["customer-data", "customer-care", "analytics"]
+│  <span class="nu">6</span>  Lưu context mới vào LRU cache
 │
 ▼
-<span class="ty">FRONTEND — HostShell nhận context mới</span>
+<span class="ty">FRONTEND — CrmLayout nhận enabledPlugins mới</span>
 │
-│  <span class="nu">9</span>  buildNav(enabledPlugins):
+│  <span class="nu">7</span>  TanStack Query invalidate ['enabled-plugins', tenantId]
+│       → refetch GET /api/v1/plugins
+│       → { enabledPlugins: ["customer-data", "customer-care", "analytics"] }
+│
+│  <span class="nu">8</span>  visibleNav re-computed:
 │       ┌──────────────────────────────┐
 │       │  Sidebar trước:              │
-│       │    • Dashboard               │
-│       │    • Customers               │  ← customer-data
+│       │    • Contacts                │  ← customer-data
 │       │                              │
 │       │  Sidebar SAU enable:         │
-│       │    • Dashboard               │
-│       │    • Customers               │  ← customer-data
-│       │    • <span class="gn">Sales</span>                  │  ← customer-care (MỚI)
-│       │    • <span class="gn">Call Logs</span>             │  ← customer-care (MỚI)
+│       │    • Contacts                │  ← customer-data
+│       │    • <span class="gn">Cases</span>                  │  ← customer-care (MỚI)
 │       └──────────────────────────────┘
 │
-│  <span class="nu">10</span> User click vào "Sales":
-│       Route: /sales → HostShell biết route này thuộc customer-care
+│  <span class="nu">9</span>  User click vào "Cases":
+│       Route: /cases → CasesPage render
 │
-│  <span class="nu">11</span> HostShell.<span class="fn">loadRemote</span>("customer-care", "1.5.0"):
-│       ┌────────────────────────────────────────────────────┐
-│       │  Module Federation runtime:                        │
-│       │                                                    │
-│       │  fetch https://cdn.crm.com/plugins/               │
-│       │        customer-care@1.5.0/remoteEntry.js          │
-│       │           │                                        │
-│       │           ▼                                        │
-│       │  Resolve exposed modules:                          │
-│       │    pages/SalesPage   → lazy import                 │
-│       │    pages/CallsPage   → lazy import                 │
-│       │    components/Badge  → shared widget               │
-│       │           │                                        │
-│       │           ▼                                        │
-│       │  Cache module trong Module Federation runtime      │
-│       │  (lần sau navigate không fetch lại)                │
-│       └────────────────────────────────────────────────────┘
-│
-│  <span class="nu">12</span> PluginArea.<span class="fn">renderRemote</span>("customer-care"):
-│       → Mount SalesPage vào slot
-│       → Wrap trong ErrorBoundary
-│       → <span class="gn">UI của plugin xuất hiện</span>
+│  <span class="nu">10</span> PluginGate check:
+│       enabledPlugins.includes('customer-care')? → <span class="gn">YES</span>
+│       → render &lt;CasesList /&gt;
 │
 └── <span class="gn">✓ Plugin UI hoạt động đầy đủ</span></pre>
                 </div>
@@ -1679,54 +1613,43 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
                 <div class="dg">
                     <div class="dg-label">disable → ui unload flow</div>
                     <pre>
-<span class="hi">TENANT ADMIN tắt plugin "customer-care" của ACME</span>
+<span class="hi">VCC STAFF tắt plugin "customer-data" của ACME</span>
 
 <span class="ty">BACKEND — Kiểm tra cascade trước</span>
 │
 │  <span class="nu">1</span>  Kiểm tra dependency graph:
-│       automation depends on customer-care
-│       marketing depends on automation
-│       → <span class="am">⚠ Warn: "Tắt customer-care sẽ tắt thêm: automation, marketing"</span>
+│       customer-care  depends on customer-data
+│       automation     depends on customer-data
+│       marketing      depends on customer-data
+│       → <span class="am">⚠ Warn: "Tắt customer-data sẽ tắt: care, automation, marketing"</span>
 │       → Admin xác nhận
 │
-│  <span class="nu">2</span>  Disable cascade (từ leaf → root):
-│       marketing   → enabled = <span class="rd">false</span>
-│       automation  → enabled = <span class="rd">false</span>
+│  <span class="nu">2</span>  Disable cascade (dependents first):
 │       customer-care → enabled = <span class="rd">false</span>
+│       automation    → enabled = <span class="rd">false</span>
+│       marketing     → enabled = <span class="rd">false</span>
+│       customer-data → enabled = <span class="rd">false</span>
 │
-│  <span class="nu">3</span>  (Optional) Run DOWN migrations:
-│       DROP TABLE sales        <span class="cm">← cấu hình per-tenant</span>
-│       DROP TABLE call_logs    <span class="cm">← hoặc soft-delete (keep data)</span>
-│
-│  <span class="nu">4</span>  Invalidate cache → tất cả instances clear ACME context
-│
-▼
-<span class="ty">NEXT REQUEST từ ACME user</span>
-│
-│  <span class="nu">5</span>  Context reload: enabledPlugins chỉ còn ["customer-data", "analytics"]
+│  <span class="nu">3</span>  Invalidate cache → request kế tiếp reload từ DB
 │
 ▼
-<span class="ty">FRONTEND — HostShell nhận context mới</span>
+<span class="ty">FRONTEND — enabledPlugins cập nhật</span>
 │
-│  <span class="nu">6</span>  buildNav(enabledPlugins):
+│  <span class="nu">4</span>  TanStack Query refetch → { enabledPlugins: ["analytics"] }
+│
+│  <span class="nu">5</span>  visibleNav re-computed:
 │       ┌──────────────────────────────┐
 │       │  Sidebar SAU disable:        │
-│       │    • Dashboard               │
-│       │    • Customers               │
+│       │    (trống — không có plugin) │
 │       │                              │
-│       │  <span class="rd">✗</span> Sales (ẩn — không render)  │
-│       │  <span class="rd">✗</span> Call Logs (ẩn)             │
-│       │  <span class="rd">✗</span> Automation (ẩn)            │
-│       │  <span class="rd">✗</span> Marketing (ẩn)             │
+│       │  <span class="rd">✗</span> Contacts (ẩn)            │
+│       │  <span class="rd">✗</span> Cases (ẩn)               │
 │       └──────────────────────────────┘
 │
-│  <span class="nu">7</span>  HostShell.loadRemote("customer-care") <span class="rd">KHÔNG được gọi</span>
-│       → remoteEntry.js không bị fetch
-│       → Module Federation runtime không load bundle
-│
-│  <span class="nu">8</span>  Nếu user cố truy cập URL trực tiếp: /sales
-│       → HostShell check: "customer-care" có trong enabledPlugins?
-│       → <span class="rd">Không</span> → redirect về Dashboard hoặc 404 page
+│  <span class="nu">6</span>  Nếu user cố truy cập URL trực tiếp: /cases
+│       → CasesPage render
+│       → PluginGate check: enabledPlugins.includes('customer-care')?
+│       → <span class="rd">Không</span> → render "Cases plugin not enabled" placeholder
 │
 └── <span class="rd">✗ Plugin UI hoàn toàn biến mất</span></pre>
                 </div>
@@ -1749,11 +1672,11 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
 <span class="ty">LỚP 1 — FRONTEND (UX protection)</span>
 ────────────────────────────────────────────────────────────
-  HostShell đọc enabledPlugins từ /me/context
+  CrmLayout đọc enabledPlugins từ GET /api/v1/plugins
        │
-       ├── buildNav()     → không render nav item của plugin đã tắt
-       ├── loadRemote()   → không fetch remoteEntry.js
-       └── Route guard    → redirect nếu user gõ URL trực tiếp
+       ├── visibleNav filter  → không render nav item của plugin đã tắt
+       └── PluginGate         → render placeholder nếu plugin disabled
+                                (bảo vệ URL trực tiếp)
 
   Mục đích: trải nghiệm người dùng mượt mà — không thấy broken UI
   Giới hạn: <span class="rd">không phải security</span> — dễ bypass qua devtools / curl
@@ -1761,21 +1684,16 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
 <span class="ty">LỚP 2 — API GATEWAY (security enforcement)</span>
 ────────────────────────────────────────────────────────────
-  Mọi API request đều qua PermissionChecker (L2):
+  Mọi plugin API request đều qua controller check:
 
   ┌──────────────────────────────────────────────────────┐
   │                                                      │
-  │  Check 1: Plugin enabled cho tenant này?             │
-  │    → lookup tenant_plugins WHERE enabled = true      │
+  │  ctx.enabledPlugins.includes(PLUGIN_NAME)?           │
   │    → <span class="rd">FAIL</span> → 403 Forbidden (ngay cả khi JWT hợp lệ)   │
   │                                                      │
-  │  Check 2: User role có permission?                   │
-  │    → lookup user roles                               │
-  │    → <span class="rd">FAIL</span> → 403 Forbidden                            │
-  │                                                      │
-  │  Check 3: Tenant tier bao gồm feature?               │
-  │    → lookup tier config                              │
-  │    → <span class="rd">FAIL</span> → 403 Forbidden                            │
+  │  <span class="cm">Ví dụ (CustomerDataController):</span>                      │
+  │  if (!ctx.enabledPlugins.includes('customer-data'))  │
+  │    throw new ForbiddenException(...)                 │
   │                                                      │
   └──────────────────────────────────────────────────────┘
 
@@ -1786,19 +1704,20 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 <span class="ty">KẾT QUẢ KHI PLUGIN BỊ DISABLE:</span>
 ────────────────────────────────────────────────────────────
 
-  ┌─────────────────────┬─────────────────────────────────┐
-  │ Kịch bản            │ Kết quả                         │
-  ├─────────────────────┼─────────────────────────────────┤
-  │ User dùng UI bình   │ Không thấy plugin trong sidebar  │
-  │ thường              │ HostShell không load remote      │
-  ├─────────────────────┼─────────────────────────────────┤
-  │ User gõ URL trực    │ Frontend redirect / 404          │
-  │ tiếp /sales         │ Không mount PluginRemote         │
-  ├─────────────────────┼─────────────────────────────────┤
-  │ Attacker gọi API    │ Gateway: 403 Forbidden           │
-  │ POST /api/v1/sales  │ Business logic không chạy        │
-  │ với JWT hợp lệ      │ DB không bị ghi                  │
-  └─────────────────────┴─────────────────────────────────┘</pre>
+  ┌─────────────────────────┬───────────────────────────────────┐
+  │ Kịch bản                │ Kết quả                           │
+  ├─────────────────────────┼───────────────────────────────────┤
+  │ User dùng UI bình       │ Không thấy plugin trong sidebar    │
+  │ thường                  │ (visibleNav filter loại bỏ)        │
+  ├─────────────────────────┼───────────────────────────────────┤
+  │ User gõ URL trực        │ PluginGate render placeholder      │
+  │ tiếp /cases             │ "Cases plugin not enabled"         │
+  ├─────────────────────────┼───────────────────────────────────┤
+  │ Attacker gọi API        │ Controller: 403 Forbidden          │
+  │ POST /api/v1/plugins/   │ Business logic không chạy          │
+  │ customer-care/cases     │ DB không bị ghi                    │
+  │ với JWT hợp lệ          │                                    │
+  └─────────────────────────┴───────────────────────────────────┘</pre>
                 </div>
             </div>
 
@@ -1813,39 +1732,33 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 <span class="ty">TRẠNG THÁI</span>          <span class="ty">BACKEND</span>                  <span class="ty">FRONTEND</span>
 ──────────────────────────────────────────────────────────────────────
 
-<span class="gn">ENABLED</span>             tenant_plugins:           HostShell gọi loadRemote()
-                    enabled = <span class="gn">true</span>             PluginArea mount pages
-                    Migrations đã chạy         Nav items xuất hiện
-                    API routes accessible       remoteEntry.js được cache
+<span class="gn">ENABLED</span>             tenant_plugins:           GET /api/v1/plugins →
+                    enabled = <span class="gn">true</span>             enabledPlugins includes plugin
+                    API routes accessible      visibleNav: nav item xuất hiện
+                                               PluginGate: render children
 
-<span class="rd">DISABLED</span>            tenant_plugins:           HostShell KHÔNG gọi loadRemote()
-                    enabled = <span class="rd">false</span>            PluginArea không mount gì
-                    Migrations rollback         Nav items ẩn
-                    (optional)                  API routes → 403
-                    Context cache invalidated   Module Federation runtime
-                                                không fetch bundle
+<span class="rd">DISABLED</span>            tenant_plugins:           GET /api/v1/plugins →
+                    enabled = <span class="rd">false</span>            enabledPlugins KHÔNG includes plugin
+                    Context cache invalidated  visibleNav: nav item ẩn
+                    API → 403 Forbidden        PluginGate: render placeholder
 
-<span class="am">CANARY</span>              enabled cho 5% tenants    Chỉ 5% users thấy UI mới
-                    (theo rollout config)       Còn 95% không thấy gì thay đổi
-
-<span class="cy">UPGRADE</span>             version: 1.5.0 → 2.0.0    HostShell.loadRemote("care", "2.0.0")
-                    New migrations chạy         fetch remoteEntry@2.0.0 (bundle mới)
-                    Context cache invalidated   Module Federation cache update
+<span class="am">PHASE 6+ ROADMAP</span>    CDN artifact registry     HostShell.loadRemote() từ CDN
+                    Hot deploy via MQ          Module Federation dynamic bundle
 
 
 <span class="ty">KEY INSIGHT:</span>
 
-  enabledPlugins list trong TenantContext
+  enabledPlugins từ GET /api/v1/plugins
          │
          ├── là <span class="hi">single source of truth</span>
          │
-         ├── Backend đọc → quyết định cho phép/chặn API
+         ├── Backend kiểm tra → quyết định cho phép/chặn API (403)
          │
-         └── Frontend đọc → quyết định load/ẩn UI
+         └── Frontend kiểm tra → quyết định ẩn/hiện UI (visibleNav + PluginGate)
 
   Cache invalidation là <span class="hi">trigger</span> đồng bộ hoá:
-  Thay đổi DB → Xóa cache → Request kế tiếp pick up trạng thái mới
-  → Backend và Frontend đều tự động phản ánh thay đổi</pre>
+  Thay đổi DB → Xóa LRU cache → Request kế tiếp pick up trạng thái mới
+  → TanStack Query staleTime (5 min) → Frontend tự động cập nhật</pre>
                 </div>
             </div>
 

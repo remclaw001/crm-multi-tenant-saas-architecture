@@ -9,7 +9,6 @@ backend/          NestJS API (L2–L7)
 frontend/
   web/            Customer-facing app  — Next.js 15, port 3002
   admin/          Admin console        — Next.js 15, port 3000
-  mobile/         React Native (Expo)
 docs/             HTML architectural reference docs
 ```
 
@@ -45,7 +44,7 @@ npx vitest -t "test name" src/path/to/file.ts # run a single test case by name
 # Frontend (run from the respective directory)
 npm run dev    # web → :3002, admin → :3000
 npm run build
-npm test       # vitest (web, admin); no test runner configured for mobile
+npm test       # vitest
 ```
 
 Test files must live inside `src/**/__tests__/` directories — vitest only picks up `src/**/__tests__/**/*.{test,spec}.ts`. Integration tests (`src/**/__tests__/integration/`) are excluded from the default test run and require live DB/Redis.
@@ -161,11 +160,14 @@ const result = await this.sandbox.execute(() => this.core.method(ctx), this.core
 
 | Plugin | Routes |
 |--------|--------|
+| (infra) | GET `/` — returns `{ enabledPlugins: string[] }` for current tenant |
 | customer-data | GET/POST `/customers`, GET/PUT/DELETE `/customers/:id` |
 | customer-care | GET/POST `/cases`, GET/PUT/DELETE `/cases/:id` |
 | analytics | GET `/reports/:type` (`summary` \| `trends`) |
 | automation | GET/POST `/triggers`, GET/PUT/DELETE `/triggers/:id` |
 | marketing | GET/POST `/campaigns`, GET/PUT/DELETE `/campaigns/:id` |
+
+**Smoke test endpoint:** `GET /api/v1/:plugin/ping` — verifies the full middleware chain (tenant resolved, JWT valid, `TenantContext` set). Returns tenant, user, and context info. Useful during development.
 
 ### L5 Async Workers (`src/workers/`)
 
@@ -186,9 +188,17 @@ const result = await this.sandbox.execute(() => this.core.method(ctx), this.core
 
 **Web & Admin:** Next.js 15, React 19, TanStack Query v5, Zustand, Tailwind CSS, Module Federation (`@module-federation/nextjs-mf`)
 
-**Mobile:** Expo 52, React Native 0.76, expo-router, NativeWind, TanStack Query v5, Zustand
-
 Both web and admin use Vitest + Testing Library for tests.
+
+**Frontend env var:** Both web and admin API clients read `NEXT_PUBLIC_API_URL` (default `http://localhost:8080`). Since the backend runs on port 3000 by default, set `NEXT_PUBLIC_API_URL=http://localhost:3000` in each app's `.env.local`.
+
+**Web route groups** (`frontend/web/src/app/`):
+- `(crm)/` — contacts, cases (authenticated CRM views)
+
+**Admin route groups** (`frontend/admin/src/app/`):
+- `(dashboard)/` — tenants, metrics (admin console)
+
+**API client pattern** (`src/lib/api-client.ts` in each app): every request sends `Authorization: Bearer <token>` and `X-Tenant-ID: <tenantId>` headers. Errors are typed as `ApiError` (wraps RFC 7807 body). TanStack Query retry is disabled for 4xx responses.
 
 ## Architecture Overview
 
@@ -196,7 +206,7 @@ Both web and admin use Vitest + Testing Library for tests.
 
 | Layer | Name | Key Responsibilities |
 |---|---|---|
-| L1 | Presentation | Web (Next.js), Mobile (Expo), Admin Console, Module Federation plugins |
+| L1 | Presentation | Web (Next.js), Admin Console, Module Federation plugins |
 | L2 | API Gateway | Tenant resolution, JWT auth, rate limiting, route matching |
 | L3 | Business Logic | Plugin management, stateless plugin cores, context building |
 | L4 | Data Access | Query interception, connection pool management, cache, migrations |

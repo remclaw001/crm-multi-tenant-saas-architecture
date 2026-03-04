@@ -308,7 +308,7 @@ html.lang-vi [data-lang="en"]{display:none}
 │  │  │                                                                     │ │
 │  │  │  PostgresRLSStrategy: inject AST + SET app.current_tenant (RLS)    │ │
 │  │  │  MySQLTenantStrategy: inject AST + SET @app_tenant session var     │ │
-│  │  │  SQLiteTenantStrategy: inject AST only (mobile/test)               │ │
+│  │  │  SQLiteTenantStrategy: inject AST only (test)               │ │
 │  │  │                                                                     │ │
 │  │  │  <span class="rd">Plugin KHÔNG THỂ viết query mà không có tenant_id.</span>                │ │
 │  │  │  <span class="rd">tenant_id lấy từ ExecutionContext, không phải plugin code.</span>         │ │
@@ -447,7 +447,7 @@ html.lang-vi [data-lang="en"]{display:none}
 │  │  │                                                                     │ │
 │  │  │  PostgresRLSStrategy: inject AST + SET app.current_tenant (RLS)    │ │
 │  │  │  MySQLTenantStrategy: inject AST + SET @app_tenant session var     │ │
-│  │  │  SQLiteTenantStrategy: inject AST only (mobile/test)               │ │
+│  │  │  SQLiteTenantStrategy: inject AST only (test)               │ │
 │  │  │                                                                     │ │
 │  │  │  <span class="rd">Plugin CANNOT write a query without tenant_id.</span>                    │ │
 │  │  │  <span class="rd">tenant_id is taken from ExecutionContext, not plugin code.</span>         │ │
@@ -1236,7 +1236,7 @@ html.lang-vi [data-lang="en"]{display:none}
 │  │  │                                                                     │   │
 │  │  │  <span class="or">SQLiteMigrationDialect:</span>                                           │   │
 │  │  │  │  Limited ALTER TABLE. No RLS. File-level locking.               │   │
-│  │  │  │  Chỉ dùng cho mobile offline + unit test.                       │   │
+│  │  │  │  Chỉ dùng cho unit test.                                         │   │
 │  │                                                                        │ │
 │  │  <span class="fn">MigrationLockManager</span>                                                │   │
 │  │  │  Serialize concurrent migration qua advisory lock:                  │   │
@@ -1307,7 +1307,7 @@ html.lang-vi [data-lang="en"]{display:none}
 │  │  │                                                                     │   │
 │  │  │  <span class="or">SQLiteMigrationDialect:</span>                                           │   │
 │  │  │  │  Limited ALTER TABLE. No RLS. File-level locking.               │   │
-│  │  │  │  Only used for mobile offline + unit testing.                   │   │
+│  │  │  │  Only used for unit testing.                                     │   │
 │  │                                                                        │ │
 │  │  <span class="fn">MigrationLockManager</span>                                                │   │
 │  │  │  Serializes concurrent migrations via advisory lock:               │   │

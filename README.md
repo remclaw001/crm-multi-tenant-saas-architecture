@@ -20,7 +20,7 @@ Hệ thống theo **7-layer architecture**:
 
 | Layer | Tên | Trách nhiệm chính |
 |---|---|---|
-| L1 | Presentation | Web (Next.js), Mobile (Expo), Admin Console, Module Federation |
+| L1 | Presentation | Web (Next.js), Admin Console, Module Federation |
 | L2 | API Gateway | Tenant resolution, JWT auth, rate limiting, route matching |
 | L3 | Business Logic | Plugin management, stateless plugin cores, context building |
 | L4 | Data Access | Query interception, connection pool, cache, migration |
@@ -37,7 +37,6 @@ backend/          NestJS API (L2–L7) — TypeScript, Knex, ioredis, BullMQ
 frontend/
   web/            Web app — Next.js 15, React 19, port 3002
   admin/          Admin console — Next.js 15, port 3000
-  mobile/         React Native — Expo 52
 docs/             Tài liệu kiến trúc HTML (nguồn của web docs)
 ```
 

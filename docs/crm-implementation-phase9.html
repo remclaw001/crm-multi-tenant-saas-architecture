@@ -57,7 +57,7 @@ h1{font-size:1.5rem;font-weight:700;color:#818cf8;margin-bottom:4px}
 <body>
 
 <h1>Phase 9 — Presentation Layer (L1)</h1>
-<p class="subtitle">Admin Console · Web App · Module Federation · Mobile — UI binds to stable API, không phải ngược lại</p>
+<p class="subtitle">Admin Console · Web App · Module Federation — UI binds to stable API, không phải ngược lại</p>
 
 <!-- ── PANEL 1: OVERVIEW ── -->
 <div class="panel">
@@ -66,18 +66,16 @@ h1{font-size:1.5rem;font-weight:700;color:#818cf8;margin-bottom:4px}
     <div class="item">
       <div class="item-head">🎯 Phạm vi</div>
       <div class="item-body">
-        3 apps độc lập: <code>frontend/admin/</code> (Next.js 15 + Shadcn/ui),
-        <code>frontend/web/</code> (Next.js 15 + TanStack), <code>frontend/mobile/</code>
-        (Expo 52 + React Native 0.76 + NativeWind). Module Federation liên kết admin ↔ web.
+        2 apps độc lập: <code>frontend/admin/</code> (Next.js 15 + Shadcn/ui),
+        <code>frontend/web/</code> (Next.js 15 + TanStack). Module Federation liên kết admin ↔ web.
       </div>
     </div>
     <div class="item">
       <div class="item-head">📐 Nguyên tắc thiết kế</div>
       <div class="item-body">
         UI <em>bind vào API contract</em> (không drive API). <code>X-Tenant-ID</code> header
-        bắt buộc trên mọi request của web/mobile. Admin dùng <code>Authorization: Bearer</code>
-        không cần tenant header (super-admin scope). Token lưu <code>localStorage</code> trên web,
-        <code>expo-secure-store</code> (Keychain/Keystore) trên mobile.
+        bắt buộc trên mọi request của web. Admin dùng <code>Authorization: Bearer</code>
+        không cần tenant header (super-admin scope). Token lưu <code>localStorage</code> trên web.
       </div>
     </div>
     <div class="item">
@@ -268,54 +266,6 @@ h1{font-size:1.5rem;font-weight:700;color:#818cf8;margin-bottom:4px}
   </div>
 </div>
 
-<!-- ── PANEL 5: MOBILE ── -->
-<div class="panel">
-  <div class="panel-title">Mobile — Expo 52 + React Native 0.76 + NativeWind v4</div>
-  <div class="grid2">
-    <div class="item">
-      <div class="item-head">📱 Expo Router v4 (file-based routing)</div>
-      <div class="item-body">
-        Cùng file-based routing pattern như Next.js App Router:<br>
-        <code>app/_layout.tsx</code> — root QueryClient provider<br>
-        <code>app/(tabs)/_layout.tsx</code> — bottom tab navigator<br>
-        <code>app/(tabs)/index.tsx</code> — home dashboard<br>
-        <code>app/(tabs)/contacts.tsx</code> — contacts list<br>
-        <code>app/(tabs)/deals.tsx</code> — deals với stage filter chips
-      </div>
-    </div>
-    <div class="item">
-      <div class="item-head">🎨 NativeWind v4</div>
-      <div class="item-body">
-        <code>className</code> props trên React Native components — Tailwind CSS cho native.<br>
-        Setup: <code>babel.config.js</code> + <code>metro.config.js</code> đều cần
-        NativeWind preset.<br><br>
-        <code>globals.css</code> với <code>@tailwind</code> directives là entry point
-        cho NativeWind preprocessor.
-      </div>
-    </div>
-    <div class="item">
-      <div class="item-head">🔐 Secure Token Storage</div>
-      <div class="item-body">
-        <code>expo-secure-store</code> — iOS: Keychain, Android: Keystore.<br>
-        <code>setAuth(token, user)</code> → persist vào secure store<br>
-        <code>restoreSession()</code> → đọc lại khi app launch<br>
-        <code>logout()</code> → delete từ secure store<br><br>
-        Khác web: không dùng <code>localStorage</code> (không tồn tại trong RN),
-        không dùng <code>AsyncStorage</code> (không mã hoá).
-      </div>
-    </div>
-    <div class="item">
-      <div class="item-head">📊 TanStack Query trên Native</div>
-      <div class="item-body">
-        Cùng package <code>@tanstack/react-query</code>, cùng <code>useQuery</code> /
-        <code>useMutation</code> API — zero adaptation cần thiết.<br><br>
-        <code>FlatList</code> thay vì table/div — virtualized list, scrollable,
-        native performance. <code>ActivityIndicator</code> cho loading state.
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ── PANEL 6: FILE STRUCTURE ── -->
 <div class="panel">
   <div class="panel-title">File Structure</div>
@@ -361,32 +311,16 @@ h1{font-size:1.5rem;font-weight:700;color:#818cf8;margin-bottom:4px}
 ├── <span class="dir">app/</span>
 │   ├── layout.tsx + providers.tsx
 │   └── <span class="dir">(crm)/</span>
-│       ├── layout.tsx      <span class="note">← Sidebar nav</span>
-│       ├── <span class="dir">contacts/page.tsx</span>  <span class="note">← ContactsList + filters</span>
-│       ├── <span class="dir">deals/page.tsx</span>     <span class="note">← DealsList board/list</span>
-│       └── <span class="dir">tasks/page.tsx</span>     <span class="note">← Tasks + complete mutation</span>
+│       ├── layout.tsx      <span class="note">← Sidebar nav + auth guard</span>
+│       ├── <span class="dir">contacts/page.tsx</span>  <span class="note">← ContactsList</span>
+│       └── <span class="dir">cases/page.tsx</span>     <span class="note">← CasesList + status filter</span>
 ├── <span class="dir">components/</span>
 │   ├── contacts-list.tsx   <span class="note">← MF REMOTE exposed</span>
-│   └── deals-list.tsx      <span class="note">← MF REMOTE exposed</span>
+│   ├── cases-list.tsx
+│   └── plugin-gate.tsx
 ├── <span class="dir">lib/api-client.ts</span>      <span class="note">← crmApi, X-Tenant-ID</span>
 └── <span class="dir">stores/</span>
-    ├── auth.store.ts       <span class="note">← tenantId in User</span>
-    └── contact.store.ts
-</pre>
-      </div>
-      <div class="item">
-        <div class="item-head">📁 frontend/mobile/</div>
-        <pre class="tree" style="margin-top:8px">
-<span class="dir">app/</span>
-├── _layout.tsx             <span class="note">← QueryClient root</span>
-└── <span class="dir">(tabs)/</span>
-    ├── _layout.tsx         <span class="note">← Bottom tab navigator</span>
-    ├── index.tsx           <span class="note">← Home: stat cards</span>
-    ├── contacts.tsx        <span class="note">← FlatList + search</span>
-    └── deals.tsx           <span class="note">← FlatList + stage chips</span>
-<span class="dir">src/</span>
-├── <span class="dir">lib/api-client.ts</span>
-└── <span class="dir">stores/auth.store.ts</span>   <span class="note">← expo-secure-store</span>
+    └── auth.store.ts
 </pre>
       </div>
     </div>

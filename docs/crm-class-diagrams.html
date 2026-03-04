@@ -1013,7 +1013,7 @@ classDiagram
 <tr><td>SQLiteDialect</td><td>? placeholder, last_insert_rowid(), limited JSON, FTS5</td></tr>
 <tr><td rowspan="3">ITenantStrategy</td><td>PostgresRLSStrategy</td><td>AST inject + SET app.current_tenant + RLS policies. 3 tầng bảo vệ</td></tr>
 <tr><td>MySQLTenantStrategy</td><td>AST inject + SET @app_tenant session var. 2 tầng bảo vệ (no RLS)</td></tr>
-<tr><td>SQLiteTenantStrategy</td><td>AST inject only. 1 tầng. Dùng cho mobile offline + unit test</td></tr>
+<tr><td>SQLiteTenantStrategy</td><td>AST inject only. 1 tầng. Dùng cho unit test</td></tr>
 <tr><td rowspan="3">IMigrationDialect</td><td>PostgresMigrationDialect</td><td>CREATE POLICY, transactional DDL, pg_advisory_lock</td></tr>
 <tr><td>MySQLMigrationDialect</td><td>No RLS policy, implicit DDL commit, GET_LOCK()</td></tr>
 <tr><td>SQLiteMigrationDialect</td><td>No RLS, limited ALTER TABLE, file-level locking</td></tr>
@@ -1025,7 +1025,7 @@ classDiagram
 <tr><td>SQLiteDialect</td><td>? placeholder, last_insert_rowid(), limited JSON, FTS5</td></tr>
 <tr><td rowspan="3">ITenantStrategy</td><td>PostgresRLSStrategy</td><td>AST inject + SET app.current_tenant + RLS policies. 3 protection layers</td></tr>
 <tr><td>MySQLTenantStrategy</td><td>AST inject + SET @app_tenant session var. 2 protection layers (no RLS)</td></tr>
-<tr><td>SQLiteTenantStrategy</td><td>AST inject only. 1 layer. Used for mobile offline + unit tests</td></tr>
+<tr><td>SQLiteTenantStrategy</td><td>AST inject only. 1 layer. Used for unit tests</td></tr>
 <tr><td rowspan="3">IMigrationDialect</td><td>PostgresMigrationDialect</td><td>CREATE POLICY, transactional DDL, pg_advisory_lock</td></tr>
 <tr><td>MySQLMigrationDialect</td><td>No RLS policy, implicit DDL commit, GET_LOCK()</td></tr>
 <tr><td>SQLiteMigrationDialect</td><td>No RLS, limited ALTER TABLE, file-level locking</td></tr>
@@ -1333,21 +1333,6 @@ classDiagram
         +refreshToken() TokenPair
     }
 
-    class MobileShell {
-        &lt;&lt;singleton&gt;&gt;
-        +loadFeatureModule(plugin) Module
-        +handlePush(notif) void
-    }
-    class OfflineSyncEngine {
-        &lt;&lt;singleton&gt;&gt;
-        +queueMutation(m, url, body) void
-        +syncPending() SyncResult
-    }
-    class OtaUpdateManager {
-        &lt;&lt;singleton&gt;&gt;
-        +checkForUpdate() UpdateInfo
-        +applyUpdate() void
-    }
     class TenantAdminApp {
         &lt;&lt;singleton&gt;&gt;
         +managePlugins() void
@@ -1363,8 +1348,6 @@ classDiagram
     HostShell *-- ThemeEngine
     HostShell *-- ApiClient
     HostShell o-- PluginRemote : loads dynamically
-    MobileShell *-- OfflineSyncEngine
-    MobileShell *-- OtaUpdateManager
 </pre></div>
 <div class="desc">
 
@@ -1380,9 +1363,6 @@ classDiagram
 <tr><td>PluginArea</td><td>React slot. Render active remote based on URL. ErrorBoundary per-plugin</td><td>Owned by HostShell</td></tr>
 <tr><td>ThemeEngine</td><td>Apply tenant theme (logo, colors) via CSS variables</td><td>Owned by HostShell</td></tr>
 <tr><td>ApiClient</td><td>HTTP client. Auto-attach JWT + X-Tenant-ID. Handle 401 → auto refresh</td><td>Owned by HostShell</td></tr>
-<tr><td>MobileShell</td><td>RN/Flutter shell. Navigation, push, biometric, feature module loader</td><td>Composition: OfflineSyncEngine, OtaUpdateManager</td></tr>
-<tr><td>OfflineSyncEngine</td><td>SQLite cache + pending mutation queue. Batch sync on reconnect</td><td>Owned by MobileShell</td></tr>
-<tr><td>OtaUpdateManager</td><td>CodePush/Shorebird. Download + apply OTA delta without App Store</td><td>Owned by MobileShell</td></tr>
 <tr><td>TenantAdminApp</td><td>SPA cho tenant admin: plugin enable/disable, user RBAC, plugin config, billing</td><td>Standalone (admin.{sub}.crm.com)</td></tr>
 <tr><td>SystemAdminApp</td><td>SPA cho platform ops: tenant CRUD, deploy, monitoring (VPN + MFA only)</td><td>Standalone (system.crm.internal)</td></tr>
 </table>
@@ -1393,9 +1373,6 @@ classDiagram
 <tr><td>PluginArea</td><td>React slot. Render active remote based on URL. ErrorBoundary per-plugin</td><td>Owned by HostShell</td></tr>
 <tr><td>ThemeEngine</td><td>Apply tenant theme (logo, colors) via CSS variables</td><td>Owned by HostShell</td></tr>
 <tr><td>ApiClient</td><td>HTTP client. Auto-attach JWT + X-Tenant-ID. Handle 401 → auto refresh</td><td>Owned by HostShell</td></tr>
-<tr><td>MobileShell</td><td>RN/Flutter shell. Navigation, push, biometric, feature module loader</td><td>Composition: OfflineSyncEngine, OtaUpdateManager</td></tr>
-<tr><td>OfflineSyncEngine</td><td>SQLite cache + pending mutation queue. Batch sync on reconnect</td><td>Owned by MobileShell</td></tr>
-<tr><td>OtaUpdateManager</td><td>CodePush/Shorebird. Download + apply OTA delta without App Store</td><td>Owned by MobileShell</td></tr>
 <tr><td>TenantAdminApp</td><td>SPA for tenant admin: plugin enable/disable, user RBAC, plugin config, billing</td><td>Standalone (admin.{sub}.crm.com)</td></tr>
 <tr><td>SystemAdminApp</td><td>SPA for platform ops: tenant CRUD, deploy, monitoring (VPN + MFA only)</td><td>Standalone (system.crm.internal)</td></tr>
 </table>
@@ -1724,7 +1701,7 @@ Plugin Core (L3) ──depends on──▶ Interface ◁──implements── C
 <tr><td>Swap RabbitMQ → Kafka</td><td>KafkaAdapter (implements IMessageBroker)</td><td>EventBus, BroadcastManager, WorkerPool</td></tr>
 <tr><td>Swap Elasticsearch → Typesense</td><td>TypesenseAdapter (implements ISearchEngine)</td><td>SearchService, mọi plugin dùng ctx.services.search</td></tr>
 <tr><td>Thêm plugin mới</td><td>Tạo class implements IPluginCore</td><td>SandboxEngine, EventBus, HookRegistry, PluginManager</td></tr>
-<tr><td>Mixed-DB deployment</td><td>TenantContextManager resolve dialect per-tenant</td><td>Tenant A dùng PG, Tenant B dùng MySQL, mobile dùng SQLite</td></tr>
+<tr><td>Mixed-DB deployment</td><td>TenantContextManager resolve dialect per-tenant</td><td>Tenant A dùng PG, Tenant B dùng MySQL</td></tr>
 </table>
 <table data-lang="en">
 <tr><th>When needed</th><th>Only create/change</th><th>Unchanged</th></tr>
@@ -1733,7 +1710,7 @@ Plugin Core (L3) ──depends on──▶ Interface ◁──implements── C
 <tr><td>Swap RabbitMQ → Kafka</td><td>KafkaAdapter (implements IMessageBroker)</td><td>EventBus, BroadcastManager, WorkerPool</td></tr>
 <tr><td>Swap Elasticsearch → Typesense</td><td>TypesenseAdapter (implements ISearchEngine)</td><td>SearchService, all plugins using ctx.services.search</td></tr>
 <tr><td>Add a new plugin</td><td>Create class implementing IPluginCore</td><td>SandboxEngine, EventBus, HookRegistry, PluginManager</td></tr>
-<tr><td>Mixed-DB deployment</td><td>TenantContextManager resolves dialect per-tenant</td><td>Tenant A uses PG, Tenant B uses MySQL, mobile uses SQLite</td></tr>
+<tr><td>Mixed-DB deployment</td><td>TenantContextManager resolves dialect per-tenant</td><td>Tenant A uses PG, Tenant B uses MySQL</td></tr>
 </table>
 
 <h3>19 concrete implements 13 interfaces</h3>

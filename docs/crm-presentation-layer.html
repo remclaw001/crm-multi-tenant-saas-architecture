@@ -66,15 +66,14 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="hero-tag">Layer 1 — Presentation</div>
     <h1 data-lang="vi">Mọi thứ bên trong <span>Presentation Layer</span></h1>
     <h1 data-lang="en">Everything Inside the <span>Presentation Layer</span></h1>
-    <p data-lang="vi">4 thành phần: Web App (Host Shell + Plugin Remotes), Mobile App, Admin Console, Plugin UI System.</p>
-    <p data-lang="en">4 components: Web App (Host Shell + Plugin Remotes), Mobile App, Admin Console, Plugin UI System.</p>
+    <p data-lang="vi">3 thành phần: Web App (Host Shell + Plugin Remotes), Admin Console, Plugin UI System.</p>
+    <p data-lang="en">3 components: Web App (Host Shell + Plugin Remotes), Admin Console, Plugin UI System.</p>
 </div>
 
 <div class="nw"><div class="nav">
     <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ L1</span><span data-lang="en">L1 Map</span></button>
     <button onclick="go('web')">Web App</button>
     <button onclick="go('fed')">Module Federation</button>
-    <button onclick="go('mob')">Mobile App</button>
     <button onclick="go('adm')">Admin Console</button>
     <button onclick="go('sec')">Security (L1)</button>
     <button onclick="go('flow')"><span data-lang="vi">Luồng tổng hợp</span><span data-lang="en">Complete Flow</span></button>
@@ -87,8 +86,8 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl on" id="p-map">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ L1 — 4 thành phần</span><span data-lang="en">L1 Map — 4 Components</span></h2></div>
-    <div class="nt bl" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> L1 là lớp DUY NHẤT user nhìn thấy. L1 hoàn toàn client-side (chạy trên browser/mobile device). Mọi tương tác đều gọi API tới L2 Gateway — L1 KHÔNG truy cập database, cache, hay MQ trực tiếp. Plugin UI được load ĐỘNG dựa trên tenant đã enable plugins nào.</div>
-    <div class="nt bl" data-lang="en"><strong>Core principle:</strong> L1 is the ONLY layer users see. L1 is entirely client-side (runs in browser/mobile device). Every interaction calls the API to L2 Gateway — L1 does NOT directly access database, cache, or MQ. Plugin UI is loaded DYNAMICALLY based on which plugins the tenant has enabled.</div>
+    <div class="nt bl" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> L1 là lớp DUY NHẤT user nhìn thấy. L1 hoàn toàn client-side (chạy trên browser). Mọi tương tác đều gọi API tới L2 Gateway — L1 KHÔNG truy cập database, cache, hay MQ trực tiếp. Plugin UI được load ĐỘNG dựa trên tenant đã enable plugins nào.</div>
+    <div class="nt bl" data-lang="en"><strong>Core principle:</strong> L1 is the ONLY layer users see. L1 is entirely client-side (runs in browser). Every interaction calls the API to L2 Gateway — L1 does NOT directly access database, cache, or MQ. Plugin UI is loaded DYNAMICALLY based on which plugins the tenant has enabled.</div>
     <div class="dg"><div class="dg-label">L1 overview</div><pre>
   ┌─ <span class="ty">L1 PRESENTATION</span> ────────────────────────────────────────────────────────┐
   │                                                                          │
@@ -341,10 +340,10 @@ html.lang-vi [data-lang="en"]{display:none}
 </div>
 </div>
 
-<!-- MOBILE APP -->
-<div class="pnl" id="p-mob">
+<!-- ADMIN CONSOLE (was 04, renumbered) -->
+<div class="pnl" id="p-mob" style="display:none">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t">Mobile App — Dynamic Feature Modules</h2></div>
+    <div class="sec-h"><h2 class="sec-t">Mobile App (removed)</h2></div>
     <div class="nt gn" data-lang="vi"><strong>Vai trò:</strong> Native/cross-platform app cho iOS + Android. Tương tự Web App nhưng thích nghi cho mobile: dynamic feature modules (thay cho Module Federation), OTA updates, offline-first với sync queue.</div>
     <div class="nt gn" data-lang="en"><strong>Role:</strong> Native/cross-platform app for iOS + Android. Similar to Web App but adapted for mobile: dynamic feature modules (replacing Module Federation), OTA updates, offline-first with sync queue.</div>
     <div class="dg"><div class="dg-label">mobile app</div><pre>
@@ -693,7 +692,7 @@ function go(n){
     document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});
     var p=document.getElementById('p-'+n);
     if(p)p.classList.add('on');
-    var names=['map','web','fed','mob','adm','sec','flow'];
+    var names=['map','web','fed','adm','sec','flow'];
     var i=names.indexOf(n);
     var btns=document.querySelectorAll('.nav button');
     if(i>=0&&btns[i])btns[i].classList.add('on');

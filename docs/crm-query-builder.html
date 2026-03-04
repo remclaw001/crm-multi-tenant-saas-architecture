@@ -328,7 +328,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │ DB-level isolation   │ <span class="gn">✓</span> RLS policies       │ <span class="rd">✗</span>                 │ <span class="rd">✗</span>                │
   │ Defense layers       │ 3 (AST+RLS+audit)   │ 2 (AST+audit)     │ 1 (AST only)     │
   ├──────────────────────┼─────────────────────┼───────────────────┼──────────────────┤
-  │ <span class="cm">Use case</span>             │ <span class="cm">Production primary</span>  │ <span class="cm">Enterprise custom</span> │ <span class="cm">Mobile + Test</span>    │
+  │ <span class="cm">Use case</span>             │ <span class="cm">Production primary</span>  │ <span class="cm">Enterprise custom</span> │ <span class="cm">Unit test</span>        │
   └──────────────────────┴─────────────────────┴───────────────────┴──────────────────┘
 
   <span class="am">MySQL không có RLS → chỉ 2 tầng bảo vệ.</span>
@@ -376,8 +376,8 @@ html.lang-vi [data-lang="en"]{display:none}
   │  <span class="vi">~535 LOC new code. Zero existing code modified.</span>              │
   └────────────────────────────────────────────────────────────────┘
 
-  <span class="cm">Mixed-DB deployment: tenant ACME → PG, tenant MEGACORP → MySQL,</span>
-  <span class="cm">mobile offline → SQLite. TenantContextManager resolve per-tenant.</span></pre></div>
+  <span class="cm">Mixed-DB deployment: tenant ACME → PG, tenant MEGACORP → MySQL.</span>
+  <span class="cm">TenantContextManager resolve per-tenant.</span></pre></div>
 </div>
 </div>
 

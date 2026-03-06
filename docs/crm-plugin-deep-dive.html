@@ -1494,15 +1494,42 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
                     <h2 class="sec-t"><span data-lang="vi">Kiến trúc Plugin UI — Phase 5</span><span data-lang="en">Plugin UI Architecture — Phase 5</span></h2>
                 </div>
 
-                <div class="nt am" data-lang="vi"><strong>Phase 5 thực tế:</strong> Web App là static Next.js, không dùng CDN remote loading. Mỗi plugin page được
-                    bundle cố định vào web app. UI chỉ bị ẩn / hiện dựa trên kết quả <code>GET /api/v1/plugins</code>. CDN dynamic loading là Phase 6+ roadmap.</div>
-                <div class="nt am" data-lang="en"><strong>Phase 5 reality:</strong> The Web App is a static Next.js build — no CDN remote loading. Each plugin page is
-                    bundled into the web app statically. UI is only hidden/shown based on <code>GET /api/v1/plugins</code> response. CDN dynamic loading is Phase 6+ roadmap.</div>
+                <div class="nt am" data-lang="vi"><strong>Phase 5 thực tế:</strong> Hai Next.js app riêng biệt. Admin Console (VCC staff) quản lý plugin cho từng tenant.
+                    Web App (tenant user) ẩn/hiện UI dựa trên <code>GET /api/v1/plugins</code>. Không có CDN remote loading — đó là Phase 6+ roadmap.</div>
+                <div class="nt am" data-lang="en"><strong>Phase 5 reality:</strong> Two separate Next.js apps. Admin Console (VCC staff) manages plugins per tenant.
+                    Web App (tenant users) shows/hides UI based on <code>GET /api/v1/plugins</code>. No CDN remote loading — that is Phase 6+ roadmap.</div>
 
                 <div class="dg">
                     <div class="dg-label">ui architecture — phase 5</div>
                     <pre>
-<span class="hi">L1 PRESENTATION — Web App (Next.js, :3002)</span>
+<span class="hi">ADMIN CONSOLE (Next.js, :3000) — VCC Staff only</span>
+
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │ <span class="ty">TenantPluginsPage</span>  «/dashboard/tenants/[id]/plugins»               │
+  │                                                                      │
+  │  GET /api/v1/admin/tenants/:id/plugins                              │
+  │    → Plugin[] = [                                                    │
+  │        { id, name, version, permissions[], limits, enabled },        │
+  │        ...                                                           │
+  │      ]                                                               │
+  │                                                                      │
+  │  Renders a &lt;PluginToggle&gt; card per plugin                          │
+  └──────────────────┬───────────────────────────────────────────────────┘
+                     │
+  ┌──────────────────▼───────────────────────────────────────────────────┐
+  │ <span class="ty">PluginToggle</span>  «components/plugin-toggle.tsx»                       │
+  │                                                                      │
+  │  Hiển thị: name, version, permissions[], limits (ms/MB/queries)     │
+  │  Toggle switch → useMutation:                                        │
+  │    PATCH /api/v1/admin/tenants/:id/plugins/:pluginId                │
+  │    { enabled: true | false }                                         │
+  │    → { pluginId, enabled }                                           │
+  │  onSuccess: qc.invalidateQueries(['tenants', tenantId, 'plugins'])  │
+  │    → Admin plugin list ngay lập tức refresh                         │
+  └──────────────────────────────────────────────────────────────────────┘
+
+
+<span class="hi">WEB APP (Next.js, :3002) — Tenant users</span>
 
   ┌──────────────────────────────────────────────────────────────────────┐
   │ <span class="ty">CrmLayout</span>  «(crm)/layout.tsx — Client Component»                    │
@@ -1515,8 +1542,11 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   │  ];                                                                  │
   │                                                                      │
   │  useQuery(['enabled-plugins', tenantId],                             │
-  │    () => crmApi.getEnabledPlugins(ctx))                              │
+  │    () => crmApi.getEnabledPlugins(ctx),                              │
+  │    { staleTime: 5 * 60 * 1000 })  ← 5 phút                         │
   │       → GET /api/v1/plugins                                          │
+  │         Headers: Authorization: Bearer &lt;token&gt;                      │
+  │                  X-Tenant-ID: &lt;tenantId&gt;                             │
   │       → { enabledPlugins: string[] }                                 │
   │                                                                      │
   │  visibleNav = PLUGIN_PAGES                                           │
@@ -1534,14 +1564,15 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   │      &lt;CasesList /&gt;                                                   │
   │    &lt;/PluginGate&gt;                                                     │
   │                                                                      │
-  │  Logic:                                                              │
-  │    1. Query enabledPlugins (staleTime 5 min, shared cache)           │
-  │    2. enabledPlugins.includes(plugin)?                               │
-  │       YES → render children                                          │
-  │       NO  → render "Plugin not enabled" placeholder                  │
+  │  Dùng cùng query key ['enabled-plugins', tenantId]                  │
+  │    → shared cache với CrmLayout, không fetch thêm                   │
+  │                                                                      │
+  │  enabledPlugins.includes(plugin)?                                    │
+  │    YES → render children                                             │
+  │    NO  → render "Plugin not enabled" placeholder + icon             │
   │                                                                      │
   │  Bảo vệ URL trực tiếp: user gõ /cases khi plugin tắt               │
-  │    → PluginGate render "Cases plugin not enabled" thay vì crash     │
+  │    → PluginGate render placeholder thay vì crash                    │
   └──────────────────────────────────────────────────────────────────────┘</pre>
                 </div>
             </div>
@@ -1555,36 +1586,51 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
                     <div class="dg-label">enable → ui load flow</div>
                     <pre>
 <span class="hi">VCC STAFF bật plugin "customer-care" cho tenant ACME</span>
-  (qua Admin Console: POST /api/v1/admin/tenants/:id/plugins/customer-care/enable)
 
+<span class="ty">ADMIN CONSOLE — PluginToggle click</span>
+│
+│  <span class="nu">1</span>  PATCH /api/v1/admin/tenants/ACME/plugins/customer-care
+│       Body: { "enabled": true }
+│       Header: Authorization: Bearer &lt;vcc-staff-token&gt;
+│
+▼
 <span class="ty">BACKEND</span>
 │
-│  <span class="nu">1</span>  Validate: deps OK (customer-data đã enabled)
-│  <span class="nu">2</span>  Ghi DB:
+│  <span class="nu">2</span>  Validate: deps OK (customer-data đã enabled)
+│  <span class="nu">3</span>  Ghi DB:
 │       UPDATE tenant_plugins
 │         SET enabled = true
 │         WHERE tenant_id = ACME AND plugin_name = 'customer-care'
-│  <span class="nu">3</span>  Invalidate cache:
-│       DELETE LRU[ACME]
-│       → Request kế tiếp sẽ reload từ DB
+│  <span class="nu">4</span>  Invalidate TenantContext LRU cache cho ACME
+│       → Request kế tiếp từ ACME sẽ phải reload từ DB
+│
+│  Response → { pluginId: "customer-care", enabled: true }
 │
 ▼
-<span class="ty">NEXT REQUEST từ ACME user</span>
+<span class="ty">ADMIN CONSOLE — onSuccess callback</span>
 │
-│  <span class="nu">4</span>  TenantResolver load context → <span class="am">CACHE MISS</span>
-│  <span class="nu">5</span>  Query DB: SELECT plugin_name FROM tenant_plugins
+│  <span class="nu">5</span>  qc.invalidateQueries(['tenants', 'ACME', 'plugins'])
+│       → Admin refetch GET /api/v1/admin/tenants/ACME/plugins
+│       → Plugin list trong Admin Console cập nhật ngay
+│
+▼
+<span class="ty">WEB APP — ACME user request kế tiếp (sau khi backend cache bị clear)</span>
+│
+│  <span class="nu">6</span>  TenantResolver: TenantContext → <span class="am">CACHE MISS</span>
+│  <span class="nu">7</span>  Query DB: SELECT plugin_name FROM tenant_plugins
 │            WHERE tenant_id = ACME AND enabled = true
 │       → ["customer-data", "customer-care", "analytics"]
-│  <span class="nu">6</span>  Lưu context mới vào LRU cache
+│  <span class="nu">8</span>  Store context mới vào LRU cache
 │
 ▼
-<span class="ty">FRONTEND — CrmLayout nhận enabledPlugins mới</span>
+<span class="ty">WEB APP FRONTEND — khi ['enabled-plugins'] cache hết stale (5 phút)</span>
 │
-│  <span class="nu">7</span>  TanStack Query invalidate ['enabled-plugins', tenantId]
-│       → refetch GET /api/v1/plugins
+│  <span class="nu">9</span>  TanStack Query auto-refetch GET /api/v1/plugins
 │       → { enabledPlugins: ["customer-data", "customer-care", "analytics"] }
+│       <span class="cm">(Web App không bị invalidate ngay — phụ thuộc vào staleTime 5 min</span>
+│       <span class="cm">hoặc user navigate sang trang khác / reload)</span>
 │
-│  <span class="nu">8</span>  visibleNav re-computed:
+│  <span class="nu">10</span> visibleNav re-computed:
 │       ┌──────────────────────────────┐
 │       │  Sidebar trước:              │
 │       │    • Contacts                │  ← customer-data
@@ -1594,11 +1640,8 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 │       │    • <span class="gn">Cases</span>                  │  ← customer-care (MỚI)
 │       └──────────────────────────────┘
 │
-│  <span class="nu">9</span>  User click vào "Cases":
-│       Route: /cases → CasesPage render
-│
-│  <span class="nu">10</span> PluginGate check:
-│       enabledPlugins.includes('customer-care')? → <span class="gn">YES</span>
+│  <span class="nu">11</span> User click vào "Cases" → CasesPage render
+│       PluginGate: enabledPlugins.includes('customer-care')? → <span class="gn">YES</span>
 │       → render &lt;CasesList /&gt;
 │
 └── <span class="gn">✓ Plugin UI hoạt động đầy đủ</span></pre>
@@ -1615,29 +1658,41 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
                     <pre>
 <span class="hi">VCC STAFF tắt plugin "customer-data" của ACME</span>
 
-<span class="ty">BACKEND — Kiểm tra cascade trước</span>
+<span class="ty">ADMIN CONSOLE — PluginToggle click</span>
 │
-│  <span class="nu">1</span>  Kiểm tra dependency graph:
+│  <span class="nu">1</span>  PATCH /api/v1/admin/tenants/ACME/plugins/customer-data
+│       Body: { "enabled": false }
+│
+▼
+<span class="ty">BACKEND — Kiểm tra cascade</span>
+│
+│  <span class="nu">2</span>  Kiểm tra dependency graph:
 │       customer-care  depends on customer-data
 │       automation     depends on customer-data
 │       marketing      depends on customer-data
-│       → <span class="am">⚠ Warn: "Tắt customer-data sẽ tắt: care, automation, marketing"</span>
-│       → Admin xác nhận
+│       → <span class="am">⚠ Cascade disable: care, automation, marketing bị tắt theo</span>
 │
-│  <span class="nu">2</span>  Disable cascade (dependents first):
+│  <span class="nu">3</span>  Disable cascade (dependents first):
 │       customer-care → enabled = <span class="rd">false</span>
 │       automation    → enabled = <span class="rd">false</span>
 │       marketing     → enabled = <span class="rd">false</span>
 │       customer-data → enabled = <span class="rd">false</span>
 │
-│  <span class="nu">3</span>  Invalidate cache → request kế tiếp reload từ DB
+│  <span class="nu">4</span>  Invalidate TenantContext LRU cache cho ACME
 │
 ▼
-<span class="ty">FRONTEND — enabledPlugins cập nhật</span>
+<span class="ty">ADMIN CONSOLE — onSuccess</span>
 │
-│  <span class="nu">4</span>  TanStack Query refetch → { enabledPlugins: ["analytics"] }
+│  <span class="nu">5</span>  qc.invalidateQueries(['tenants', 'ACME', 'plugins'])
+│       → Admin plugin list refresh, tất cả show enabled = false
 │
-│  <span class="nu">5</span>  visibleNav re-computed:
+▼
+<span class="ty">WEB APP FRONTEND — khi cache hết stale hoặc user navigate/reload</span>
+│
+│  <span class="nu">6</span>  TanStack Query refetch GET /api/v1/plugins
+│       → { enabledPlugins: ["analytics"] }
+│
+│  <span class="nu">7</span>  visibleNav re-computed:
 │       ┌──────────────────────────────┐
 │       │  Sidebar SAU disable:        │
 │       │    (trống — không có plugin) │
@@ -1646,7 +1701,7 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 │       │  <span class="rd">✗</span> Cases (ẩn)               │
 │       └──────────────────────────────┘
 │
-│  <span class="nu">6</span>  Nếu user cố truy cập URL trực tiếp: /cases
+│  <span class="nu">8</span>  Nếu user cố truy cập URL trực tiếp: /cases
 │       → CasesPage render
 │       → PluginGate check: enabledPlugins.includes('customer-care')?
 │       → <span class="rd">Không</span> → render "Cases plugin not enabled" placeholder

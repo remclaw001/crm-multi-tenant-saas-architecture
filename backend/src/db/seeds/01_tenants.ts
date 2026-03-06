@@ -83,7 +83,7 @@ export async function seed(knex: Knex): Promise<void> {
     ) {
       // SET LOCAL chỉ có hiệu lực trong transaction hiện tại
       // → RLS WITH CHECK pass vì tenant_id khớp với session var
-      await trx.raw(`SET LOCAL "app.tenant_id" = ?`, [tenant.id]);
+      await trx.raw(`SELECT set_config('app.tenant_id', ?, true)`, [tenant.id]);
 
       // Roles
       const [adminRole, managerRole, agentRole] = await trx('roles')
@@ -126,7 +126,7 @@ export async function seed(knex: Knex): Promise<void> {
 
       // Users (password_hash là bcrypt của "password123" — placeholder cho dev)
       const PLACEHOLDER_HASH =
-        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LeAiR6xSvRwCzWu2.';
+        '$2b$12$62NgubmgJpkVTY.H/RyuS.G85GPegNcn0KlD2q4v0isyVCiTz5poS';
 
       const [adminUser, managerUser, agentUser] = await trx('users')
         .insert([
@@ -163,9 +163,47 @@ export async function seed(knex: Knex): Promise<void> {
     await seedTenant(acme);
     await seedTenant(globex);
     await seedTenant(initech);
+
+    // ── System tenant (admin console super-admin) ─────────────
+    const [systemTenant] = await trx('tenants')
+      .insert({
+        name: 'CRM System',
+        subdomain: 'system',
+        tier: 'standard',
+        config: JSON.stringify({ plugins: [], cors_origins: [], max_users: 5 }),
+      })
+      .returning('*');
+
+    await trx.raw(`SELECT set_config('app.tenant_id', ?, true)`, [systemTenant.id]);
+
+    const ADMIN_HASH = '$2b$12$62NgubmgJpkVTY.H/RyuS.G85GPegNcn0KlD2q4v0isyVCiTz5poS'; // admin123
+
+    const [superAdminRole] = await trx('roles')
+      .insert({
+        tenant_id: systemTenant.id,
+        name: 'super_admin',
+        description: 'CRM system super administrator',
+      })
+      .returning('*');
+
+    const [adminUser] = await trx('users')
+      .insert({
+        tenant_id: systemTenant.id,
+        email: 'admin@crm.dev',
+        password_hash: ADMIN_HASH,
+        name: 'System Admin',
+      })
+      .returning('*');
+
+    await trx('user_roles').insert({
+      user_id: adminUser.id,
+      role_id: superAdminRole.id,
+      tenant_id: systemTenant.id,
+    });
   });
 
   console.log('✓  Seed complete: acme (standard), globex (standard), initech (vip)');
   console.log('   Users: admin / manager / agent @ <subdomain>.example.com');
   console.log('   Password (dev only): password123');
+  console.log('   Admin console: admin@crm.dev / admin123');
 }

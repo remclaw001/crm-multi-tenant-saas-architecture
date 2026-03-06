@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { PasswordService } from '../../../../common/security/password.service';
+import { config } from '../../../../config/env';
 
 export interface AdminLoginDto {
   email: string;
@@ -17,6 +18,9 @@ export class AdminAuthService {
   ) {}
 
   async login(dto: AdminLoginDto) {
+    if (!config.JWT_SECRET_FALLBACK) {
+      throw new UnauthorizedException('Admin login requires JWT_SECRET_FALLBACK to be set');
+    }
     const pool = this.poolRegistry.getMetadataPool();
     const client = await pool.connect();
 

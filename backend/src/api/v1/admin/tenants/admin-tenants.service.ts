@@ -117,7 +117,7 @@ export class AdminTenantsService {
         `UPDATE tenants SET ${sets.join(', ')}, updated_at = NOW()
          WHERE id = $${args.length}
          RETURNING id, name, subdomain, tier, is_active, created_at, updated_at,
-                   (SELECT COUNT(*) FROM tenant_plugins WHERE tenant_id = id AND is_enabled = true)::text AS plugin_count`,
+                   (SELECT COUNT(*) FROM tenant_plugins tp2 WHERE tp2.tenant_id = tenants.id AND tp2.is_enabled = true)::text AS plugin_count`,
         args,
       );
       if (!res.rows[0]) throw new NotFoundException(`Tenant not found: ${id}`);
@@ -166,6 +166,8 @@ export class AdminTenantsService {
   }
 
   async togglePlugin(tenantId: string, pluginId: string, enabled: boolean) {
+    const known = BUILT_IN_MANIFESTS.find((m) => m.name === pluginId);
+    if (!known) throw new NotFoundException(`Unknown plugin: ${pluginId}`);
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
       await client.query(

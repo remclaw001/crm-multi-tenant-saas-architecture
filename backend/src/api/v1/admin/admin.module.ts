@@ -12,9 +12,7 @@ import { AdminMetricsService } from './metrics/admin-metrics.service';
 @Module({
   imports: [
     JwtModule.register({
-      secret: config.JWT_SECRET_FALLBACK ?? (() => {
-        throw new Error('JWT_SECRET_FALLBACK is required. Set it in .env (min 32 chars).');
-      })(),
+      secret: config.JWT_SECRET_FALLBACK ?? 'no-secret-configured-admin-login-will-fail',
       signOptions: { expiresIn: '24h', algorithm: 'HS256' },
     }),
   ],

@@ -24,6 +24,10 @@ export class AmqpService implements OnModuleInit, OnModuleDestroy {
   private connection: amqp.ChannelModel | null = null;
   private sharedChannel: amqp.Channel | null = null;
 
+  private readyResolve!: () => void;
+  /** Resolves once the connection and shared channel are established. */
+  readonly ready: Promise<void> = new Promise((res) => { this.readyResolve = res; });
+
   async onModuleInit(): Promise<void> {
     await this.connect();
   }
@@ -47,6 +51,7 @@ export class AmqpService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn('AMQP connection closed unexpectedly')
     );
     this.sharedChannel = await this.connection.createChannel();
+    this.readyResolve();
     this.logger.log('AMQP connected');
   }
 

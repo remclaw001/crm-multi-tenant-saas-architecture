@@ -58,8 +58,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       // Audience validation (optional)
       ...(config.JWT_AUDIENCE ? { audience: config.JWT_AUDIENCE } : {}),
 
-      // Secret hoặc JWKS provider
-      secretOrKeyProvider: buildSecretOrKeyProvider(),
+      // JWKS mode: secretOrKeyProvider (callback); dev mode: secretOrKey (string)
+      ...(config.JWT_JWKS_URI
+        ? { secretOrKeyProvider: buildSecretOrKeyProvider() }
+        : { secretOrKey: config.JWT_SECRET_FALLBACK }),
     });
   }
 

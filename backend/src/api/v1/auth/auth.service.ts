@@ -31,7 +31,7 @@ export class AuthService {
       if (!tenant) throw new UnauthorizedException('Tenant not found or inactive');
 
       // 2. Activate RLS for this tenant so users/user_roles queries work
-      await client.query(`SET LOCAL "app.tenant_id" = $1`, [tenant.id]);
+      await client.query(`SELECT set_config('app.tenant_id', $1, true)`, [tenant.id]);
 
       // 3. Find user + their roles in a single query
       const userRes = await client.query<{

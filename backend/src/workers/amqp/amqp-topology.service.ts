@@ -52,6 +52,7 @@ export class AmqpTopologyService implements OnModuleInit {
   constructor(private readonly amqp: AmqpService) {}
 
   async onModuleInit(): Promise<void> {
+    await this.amqp.ready;
     await this.declareTopology();
   }
 

@@ -2,7 +2,12 @@
 import type {
   Customer,
   SupportCase,
+  AnalyticsSummary,
+  TrendPoint,
+  AutomationTrigger,
+  Campaign,
   PluginListResponse,
+  PluginItemResponse,
   LoginResponse,
   ApiErrorBody,
 } from '@/types/api.types';
@@ -21,13 +26,14 @@ export class ApiError extends Error {
 
 async function request<T>(
   path: string,
-  init: RequestInit & { token?: string; tenantId?: string } = {},
+  init: RequestInit & { token?: string; tenantId?: string; tenantSlug?: string } = {},
 ): Promise<T> {
-  const { token, tenantId, ...fetchInit } = init;
+  const { token, tenantId, tenantSlug, ...fetchInit } = init;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(tenantSlug ? { 'X-Tenant-Slug': tenantSlug } : {}),
     ...(tenantId ? { 'X-Tenant-ID': tenantId } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(fetchInit.headers as Record<string, string> | undefined),
   };
 
@@ -59,6 +65,7 @@ export const crmApi = {
     return request('/auth/login', {
       method: 'POST',
       body: JSON.stringify(body),
+      tenantSlug: body.tenantSlug,
     });
   },
 
@@ -110,6 +117,47 @@ export const crmApi = {
   ): Promise<{ plugin: string; data: SupportCase }> {
     return request(`/api/v1/plugins/customer-care/cases/${id}`, {
       method: 'PUT',
+      body: JSON.stringify(input),
+      ...ctx,
+    });
+  },
+
+  // ─── Analytics (read-only) ────────────────────────────────────────────────
+  getAnalyticsSummary(ctx: AuthCtx): Promise<{ plugin: string; reportType: string; data: AnalyticsSummary }> {
+    return request('/api/v1/plugins/analytics/reports/summary', ctx);
+  },
+
+  getAnalyticsTrends(ctx: AuthCtx): Promise<{ plugin: string; reportType: string; data: TrendPoint[] }> {
+    return request('/api/v1/plugins/analytics/reports/trends', ctx);
+  },
+
+  // ─── Automation ───────────────────────────────────────────────────────────
+  getTriggers(ctx: AuthCtx): Promise<PluginListResponse<AutomationTrigger>> {
+    return request('/api/v1/plugins/automation/triggers', ctx);
+  },
+
+  createTrigger(
+    input: { name: string; event_type: string; conditions?: Record<string, unknown>; actions?: unknown[]; is_active?: boolean },
+    ctx: AuthCtx,
+  ): Promise<PluginItemResponse<AutomationTrigger>> {
+    return request('/api/v1/plugins/automation/triggers', {
+      method: 'POST',
+      body: JSON.stringify(input),
+      ...ctx,
+    });
+  },
+
+  // ─── Marketing ────────────────────────────────────────────────────────────
+  getCampaigns(ctx: AuthCtx): Promise<PluginListResponse<Campaign>> {
+    return request('/api/v1/plugins/marketing/campaigns', ctx);
+  },
+
+  createCampaign(
+    input: { name: string; campaign_type?: 'email' | 'sms'; scheduled_at?: string },
+    ctx: AuthCtx,
+  ): Promise<PluginItemResponse<Campaign>> {
+    return request('/api/v1/plugins/marketing/campaigns', {
+      method: 'POST',
       body: JSON.stringify(input),
       ...ctx,
     });

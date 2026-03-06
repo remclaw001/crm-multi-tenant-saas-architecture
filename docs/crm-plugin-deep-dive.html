@@ -1495,9 +1495,9 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
                 </div>
 
                 <div class="nt am" data-lang="vi"><strong>Phase 5 thực tế:</strong> Hai Next.js app riêng biệt. Admin Console (VCC staff) quản lý plugin cho từng tenant.
-                    Web App (tenant user) ẩn/hiện UI dựa trên <code>GET /api/v1/plugins</code>. Không có CDN remote loading — đó là Phase 6+ roadmap.</div>
+                    Web App chỉ có UI cho <strong>2/5 plugin</strong> (customer-data + customer-care). Analytics, automation, marketing chưa có frontend.</div>
                 <div class="nt am" data-lang="en"><strong>Phase 5 reality:</strong> Two separate Next.js apps. Admin Console (VCC staff) manages plugins per tenant.
-                    Web App (tenant users) shows/hides UI based on <code>GET /api/v1/plugins</code>. No CDN remote loading — that is Phase 6+ roadmap.</div>
+                    Web App only has UI for <strong>2 of 5 plugins</strong> (customer-data + customer-care). Analytics, automation, and marketing have no frontend yet.</div>
 
                 <div class="dg">
                     <div class="dg-label">ui architecture — phase 5</div>
@@ -1513,7 +1513,7 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   │        ...                                                           │
   │      ]                                                               │
   │                                                                      │
-  │  Renders a &lt;PluginToggle&gt; card per plugin                          │
+  │  Renders một &lt;PluginToggle&gt; card cho mỗi plugin (tất cả 5 plugins) │
   └──────────────────┬───────────────────────────────────────────────────┘
                      │
   ┌──────────────────▼───────────────────────────────────────────────────┐
@@ -1531,10 +1531,21 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 
 <span class="hi">WEB APP (Next.js, :3002) — Tenant users</span>
 
+<span class="ty">Plugin UI coverage:</span>
+  ┌─────────────────────┬──────────────┬───────────────────────────────┐
+  │ Plugin              │ UI có chưa   │ Ghi chú                       │
+  ├─────────────────────┼──────────────┼───────────────────────────────┤
+  │ customer-data       │ <span class="gn">✓ có</span>         │ /contacts — ContactsList       │
+  │ customer-care       │ <span class="gn">✓ có</span>         │ /cases — CasesList + filter    │
+  │ analytics           │ <span class="rd">✗ chưa có</span>    │ Phase 6+                       │
+  │ automation          │ <span class="rd">✗ chưa có</span>    │ Phase 6+                       │
+  │ marketing           │ <span class="rd">✗ chưa có</span>    │ Phase 6+                       │
+  └─────────────────────┴──────────────┴───────────────────────────────┘
+
   ┌──────────────────────────────────────────────────────────────────────┐
   │ <span class="ty">CrmLayout</span>  «(crm)/layout.tsx — Client Component»                    │
   │                                                                      │
-  │  const PLUGIN_PAGES = [                                              │
+  │  const PLUGIN_PAGES = [                           ← chỉ 2 entry    │
   │    { plugin: 'customer-data', label: 'Contacts',                     │
   │      href: '/contacts', icon: Users },                               │
   │    { plugin: 'customer-care', label: 'Cases',                        │
@@ -1551,7 +1562,7 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   │                                                                      │
   │  visibleNav = PLUGIN_PAGES                                           │
   │    .filter(p => enabledPlugins.includes(p.plugin))                   │
-  │       → Sidebar chỉ hiển thị plugin đang enabled                    │
+  │       → Sidebar chỉ hiển thị plugin đang enabled VÀ có UI           │
   │                                                                      │
   └──────────────────┬───────────────────────────────────────────────────┘
                      │ render page content
@@ -1559,9 +1570,9 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   ┌──────────────────────────────────────────────────────────────────────┐
   │ <span class="ty">PluginGate</span>  «components/plugin-gate.tsx — Client Component»         │
   │                                                                      │
-  │  Dùng trong mỗi plugin page:                                        │
-  │    &lt;PluginGate plugin="customer-care" pluginLabel="Cases"&gt;          │
-  │      &lt;CasesList /&gt;                                                   │
+  │  Wrap mỗi plugin page:                                              │
+  │    &lt;PluginGate plugin="customer-data" pluginLabel="Customer Data"&gt;  │
+  │      &lt;ContactsList contacts={...} /&gt;                                │
   │    &lt;/PluginGate&gt;                                                     │
   │                                                                      │
   │  Dùng cùng query key ['enabled-plugins', tenantId]                  │
@@ -1569,11 +1580,29 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   │                                                                      │
   │  enabledPlugins.includes(plugin)?                                    │
   │    YES → render children                                             │
-  │    NO  → render "Plugin not enabled" placeholder + icon             │
+  │    NO  → render "Plugin not enabled" placeholder + ShieldOff icon   │
   │                                                                      │
   │  Bảo vệ URL trực tiếp: user gõ /cases khi plugin tắt               │
   │    → PluginGate render placeholder thay vì crash                    │
-  └──────────────────────────────────────────────────────────────────────┘</pre>
+  └──────────────────────────────────────────────────────────────────────┘
+
+
+<span class="hi">WEB APP — API Client (lib/api-client.ts)</span>
+
+  crmApi.login()                       POST /auth/login
+  crmApi.getEnabledPlugins()           GET  /api/v1/plugins
+
+  <span class="cm">── customer-data plugin ──────────────────────────────────────────────</span>
+  crmApi.getCustomers()                GET  /api/v1/plugins/customer-data/customers
+  crmApi.getCustomer(id)               GET  /api/v1/plugins/customer-data/customers/:id
+  crmApi.createCustomer(input)         POST /api/v1/plugins/customer-data/customers
+
+  <span class="cm">── customer-care plugin ──────────────────────────────────────────────</span>
+  crmApi.getCases()                    GET  /api/v1/plugins/customer-care/cases
+  crmApi.createCase(input)             POST /api/v1/plugins/customer-care/cases
+  crmApi.updateCase(id, input)         PUT  /api/v1/plugins/customer-care/cases/:id
+
+  <span class="rd">analytics / automation / marketing → chưa có API methods</span></pre>
                 </div>
             </div>
 

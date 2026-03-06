@@ -48,6 +48,46 @@ export interface LoginResponse {
   tenant: { id: string; subdomain: string; name: string; tier: string };
 }
 
+/** Analytics plugin */
+export interface AnalyticsSummary {
+  totalCustomers: number;
+  activeCustomers: number;
+  tenantId: string;
+  generatedAt: string;
+}
+
+export interface TrendPoint {
+  date: string;
+  count: number;
+}
+
+/** Automation plugin */
+export interface AutomationTrigger {
+  id: string;
+  tenant_id: string;
+  name: string;
+  event_type: string;
+  conditions: Record<string, unknown>;
+  actions: unknown[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Marketing plugin */
+export interface Campaign {
+  id: string;
+  tenant_id: string;
+  name: string;
+  status: 'draft' | 'active' | 'paused' | 'completed';
+  campaign_type: 'email' | 'sms';
+  target_count: number;
+  sent_count: number;
+  scheduled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ApiErrorBody {
   type: string;
   title: string;

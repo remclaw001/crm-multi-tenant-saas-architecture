@@ -88,6 +88,12 @@ export class TenantResolverMiddleware implements NestMiddleware {
     _res: Response,
     next: NextFunction
   ): Promise<void> {
+    // Preflight requests don't carry custom headers — skip tenant resolution,
+    // let TenantCorsMiddleware handle CORS headers.
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     // ── 1. Xác định tenant identifier ──────────────────────
     const tenantIdHeader = req.headers['x-tenant-id'] as string | undefined;
     const tenantSlugHeader = req.headers['x-tenant-slug'] as string | undefined;

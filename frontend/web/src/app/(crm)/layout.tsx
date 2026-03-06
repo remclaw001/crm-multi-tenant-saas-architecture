@@ -4,13 +4,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Headset, LogOut } from 'lucide-react';
+import { Users, Headset, BarChart3, Zap, Megaphone, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { crmApi } from '@/lib/api-client';
 
 const PLUGIN_PAGES = [
-  { plugin: 'customer-data', label: 'Contacts', href: '/contacts', icon: Users },
-  { plugin: 'customer-care', label: 'Cases', href: '/cases', icon: Headset },
+  { plugin: 'customer-data', label: 'Contacts',   href: '/contacts',  icon: Users     },
+  { plugin: 'customer-care', label: 'Cases',       href: '/cases',     icon: Headset   },
+  { plugin: 'analytics',     label: 'Analytics',   href: '/analytics', icon: BarChart3 },
+  { plugin: 'automation',    label: 'Automation',  href: '/automation',icon: Zap       },
+  { plugin: 'marketing',     label: 'Marketing',   href: '/marketing', icon: Megaphone },
 ];
 
 export default function CrmLayout({ children }: { children: React.ReactNode }) {

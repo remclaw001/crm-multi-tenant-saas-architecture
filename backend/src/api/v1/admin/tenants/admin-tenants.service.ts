@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
-import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { BUILT_IN_MANIFESTS } from '../../../../plugins/manifest/built-in-manifests';
 
 export interface TenantRow {
@@ -27,7 +26,6 @@ function rowToTenant(row: TenantRow) {
 export class AdminTenantsService {
   constructor(
     private readonly poolRegistry: PoolRegistry,
-    private readonly cache: CacheManager,
   ) {}
 
   async list(params: { page: number; limit: number; search?: string }) {
@@ -35,12 +33,15 @@ export class AdminTenantsService {
     const offset = (page - 1) * limit;
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
-      const searchClause = search
+      const countSearchClause = search
+        ? `AND (t.name ILIKE '%' || $1 || '%' OR t.subdomain ILIKE '%' || $1 || '%')`
+        : '';
+      const dataSearchClause = search
         ? `AND (t.name ILIKE '%' || $3 || '%' OR t.subdomain ILIKE '%' || $3 || '%')`
         : '';
       const [countRes, dataRes] = await Promise.all([
         client.query<{ count: string }>(
-          `SELECT COUNT(*) AS count FROM tenants t WHERE t.subdomain != 'system' ${searchClause}`,
+          `SELECT COUNT(*) AS count FROM tenants t WHERE t.subdomain != 'system' ${countSearchClause}`,
           search ? [search] : [],
         ),
         client.query<TenantRow>(
@@ -49,7 +50,7 @@ export class AdminTenantsService {
                   COUNT(tp.id) FILTER (WHERE tp.is_enabled) AS plugin_count
            FROM tenants t
            LEFT JOIN tenant_plugins tp ON tp.tenant_id = t.id
-           WHERE t.subdomain != 'system' ${searchClause}
+           WHERE t.subdomain != 'system' ${dataSearchClause}
            GROUP BY t.id
            ORDER BY t.created_at DESC
            LIMIT $1 OFFSET $2`,
@@ -115,11 +116,12 @@ export class AdminTenantsService {
       const res = await client.query<TenantRow>(
         `UPDATE tenants SET ${sets.join(', ')}, updated_at = NOW()
          WHERE id = $${args.length}
-         RETURNING id, name, subdomain, tier, is_active, created_at, updated_at`,
+         RETURNING id, name, subdomain, tier, is_active, created_at, updated_at,
+                   (SELECT COUNT(*) FROM tenant_plugins WHERE tenant_id = id AND is_enabled = true)::text AS plugin_count`,
         args,
       );
       if (!res.rows[0]) throw new NotFoundException(`Tenant not found: ${id}`);
-      return rowToTenant({ ...res.rows[0], plugin_count: '0' });
+      return rowToTenant(res.rows[0]);
     } finally {
       client.release();
     }
@@ -128,10 +130,11 @@ export class AdminTenantsService {
   async softDelete(id: string): Promise<void> {
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
-      await client.query(
-        `UPDATE tenants SET is_active = false, updated_at = NOW() WHERE id = $1`,
+      const res = await client.query(
+        `UPDATE tenants SET is_active = false, updated_at = NOW() WHERE id = $1 RETURNING id`,
         [id],
       );
+      if (!res.rows[0]) throw new NotFoundException(`Tenant not found: ${id}`);
     } finally {
       client.release();
     }
@@ -172,11 +175,6 @@ export class AdminTenantsService {
          DO UPDATE SET is_enabled = $3`,
         [tenantId, pluginId, enabled],
       );
-      // Best-effort cache invalidation
-      // CacheManager.del(resource, id) — split key into resource + id segments
-      try {
-        await this.cache.del('tenant-config', 'enabled-plugins');
-      } catch { /* cache invalidation is best-effort */ }
       return { pluginId, enabled };
     } finally {
       client.release();

@@ -4,7 +4,6 @@ import { NotFoundException } from '@nestjs/common';
 const mockQuery = vi.hoisted(() => vi.fn());
 const mockRelease = vi.hoisted(() => vi.fn());
 const mockAcquire = vi.hoisted(() => vi.fn());
-const mockCacheDel = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../../dal/pool/PoolRegistry', () => ({
   PoolRegistry: vi.fn().mockImplementation(() => ({
@@ -12,15 +11,8 @@ vi.mock('../../../../dal/pool/PoolRegistry', () => ({
   })),
 }));
 
-vi.mock('../../../../dal/cache/CacheManager', () => ({
-  CacheManager: vi.fn().mockImplementation(() => ({
-    del: mockCacheDel,
-  })),
-}));
-
 import { AdminTenantsService } from '../admin-tenants.service';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
-import { CacheManager } from '../../../../dal/cache/CacheManager';
 
 const ROW = {
   id: 'tid', name: 'Acme', subdomain: 'acme',
@@ -36,11 +28,7 @@ describe('AdminTenantsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAcquire.mockResolvedValue({ query: mockQuery, release: mockRelease });
-    mockCacheDel.mockResolvedValue(undefined);
-    service = new AdminTenantsService(
-      new (PoolRegistry as any)(),
-      new (CacheManager as any)(),
-    );
+    service = new AdminTenantsService(new (PoolRegistry as any)());
   });
 
   describe('list', () => {
@@ -66,11 +54,17 @@ describe('AdminTenantsService', () => {
 
   describe('softDelete', () => {
     it('sets is_active to false', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid' }] });
       await service.softDelete('tid');
       expect(mockQuery).toHaveBeenCalledWith(
         expect.stringContaining('is_active = false'),
         ['tid'],
       );
+    });
+
+    it('throws NotFoundException when tenant not found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      await expect(service.softDelete('bad-id')).rejects.toThrow(NotFoundException);
     });
   });
 });

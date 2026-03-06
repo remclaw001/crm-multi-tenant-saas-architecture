@@ -60,6 +60,7 @@ export class GatewayModule implements NestModule {
         { path: 'health', method: RequestMethod.GET },
         { path: 'ready', method: RequestMethod.GET },
         { path: 'metrics', method: RequestMethod.GET },
+        { path: 'api/v1/admin/(.*)', method: RequestMethod.ALL },
       )
       .forRoutes('*');
 

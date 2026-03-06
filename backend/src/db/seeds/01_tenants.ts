@@ -176,7 +176,7 @@ export async function seed(knex: Knex): Promise<void> {
 
     await trx.raw(`SELECT set_config('app.tenant_id', ?, true)`, [systemTenant.id]);
 
-    const ADMIN_HASH = '$2b$12$62NgubmgJpkVTY.H/RyuS.G85GPegNcn0KlD2q4v0isyVCiTz5poS'; // admin123
+    const ADMIN_HASH = '$2b$12$MBmC0s2EQXzvh8/hHuFRo..w1DvvtlZvPsAxtQhM982K4FuV.X.0y'; // admin123
 
     const [superAdminRole] = await trx('roles')
       .insert({

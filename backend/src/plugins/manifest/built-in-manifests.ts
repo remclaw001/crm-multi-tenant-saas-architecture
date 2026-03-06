@@ -66,3 +66,11 @@ export const MARKETING_MANIFEST: PluginManifest = {
   limits: DEFAULT_LIMITS,
   hooks: [],
 };
+
+export const BUILT_IN_MANIFESTS: PluginManifest[] = [
+  CUSTOMER_DATA_MANIFEST,
+  CUSTOMER_CARE_MANIFEST,
+  ANALYTICS_MANIFEST,
+  AUTOMATION_MANIFEST,
+  MARKETING_MANIFEST,
+];

@@ -31,7 +31,7 @@ export default function TenantsPage() {
           </p>
         </div>
         <button
-          onClick={() => router.push('/dashboard/tenants/new')}
+          onClick={() => router.push('/tenants/new')}
           className="flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
@@ -59,7 +59,7 @@ export default function TenantsPage() {
         <TenantTable
           data={data?.data ?? []}
           globalFilter={searchQuery}
-          onRowClick={(t) => router.push(`/dashboard/tenants/${t.id}`)}
+          onRowClick={(t) => router.push(`/tenants/${t.id}`)}
         />
       )}
     </div>

@@ -62,6 +62,15 @@ export class CacheManager implements ICacheManager {
     await this.redis.del(key);
   }
 
+  /**
+   * Xóa cache key trực tiếp với tenantId cho trước — không cần TenantContext.
+   * Dùng cho admin routes (bypass TenantResolverMiddleware).
+   */
+  async delForTenant(tenantId: string, resource: string, id: string): Promise<void> {
+    const key = `t:${tenantId}:${resource}:${id}`;
+    await this.redis.del(key);
+  }
+
   // ── Bulk invalidation ────────────────────────────────────
 
   /**

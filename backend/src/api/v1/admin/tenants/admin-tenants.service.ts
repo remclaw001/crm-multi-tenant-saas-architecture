@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
+import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { BUILT_IN_MANIFESTS } from '../../../../plugins/manifest/built-in-manifests';
 
 export interface TenantRow {
@@ -26,6 +27,7 @@ function rowToTenant(row: TenantRow) {
 export class AdminTenantsService {
   constructor(
     private readonly poolRegistry: PoolRegistry,
+    private readonly cache: CacheManager,
   ) {}
 
   async list(params: { page: number; limit: number; search?: string }) {
@@ -166,17 +168,51 @@ export class AdminTenantsService {
   }
 
   async togglePlugin(tenantId: string, pluginId: string, enabled: boolean) {
-    const known = BUILT_IN_MANIFESTS.find((m) => m.name === pluginId);
-    if (!known) throw new NotFoundException(`Unknown plugin: ${pluginId}`);
+    const manifest = BUILT_IN_MANIFESTS.find((m) => m.name === pluginId);
+    if (!manifest) throw new NotFoundException(`Unknown plugin: ${pluginId}`);
+
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
-      await client.query(
-        `INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (tenant_id, plugin_name)
-         DO UPDATE SET is_enabled = $3`,
-        [tenantId, pluginId, enabled],
+      // Load current enabled state for all plugins of this tenant
+      const { rows } = await client.query<{ plugin_name: string; is_enabled: boolean }>(
+        `SELECT plugin_name, is_enabled FROM tenant_plugins WHERE tenant_id = $1`,
+        [tenantId],
       );
+      const enabledSet = new Set(rows.filter((r) => r.is_enabled).map((r) => r.plugin_name));
+
+      if (enabled) {
+        // ENABLE: all dependencies must already be enabled
+        const missing = manifest.dependencies.filter((dep) => !enabledSet.has(dep));
+        if (missing.length > 0) {
+          throw new BadRequestException(
+            `Cannot enable "${pluginId}": required dependencies are disabled: ${missing.join(', ')}`,
+          );
+        }
+        await client.query(
+          `INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled)
+           VALUES ($1, $2, true)
+           ON CONFLICT (tenant_id, plugin_name) DO UPDATE SET is_enabled = true`,
+          [tenantId, pluginId],
+        );
+      } else {
+        // DISABLE: cascade disable all dependents (plugins that depend on this one)
+        const toCascade = BUILT_IN_MANIFESTS
+          .filter((m) => m.dependencies.includes(pluginId) && enabledSet.has(m.name))
+          .map((m) => m.name);
+
+        const toDisable = [pluginId, ...toCascade];
+        await client.query(
+          `INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled)
+           SELECT $1, unnest($2::text[]), false
+           ON CONFLICT (tenant_id, plugin_name) DO UPDATE SET is_enabled = false`,
+          [tenantId, toDisable],
+        );
+
+        await this.cache.delForTenant(tenantId, 'tenant-config', 'enabled-plugins');
+        return { pluginId, enabled, cascadeDisabled: toCascade };
+      }
+
+      await this.cache.delForTenant(tenantId, 'tenant-config', 'enabled-plugins');
       return { pluginId, enabled };
     } finally {
       client.release();

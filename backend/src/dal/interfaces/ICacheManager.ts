@@ -28,9 +28,15 @@ export interface ICacheManager {
   set<T>(resource: string, id: string, value: T, ttlSeconds?: number): Promise<void>;
 
   /**
-   * Xóa một entry khỏi cache.
+   * Xóa một entry khỏi cache (yêu cầu TenantContext active).
    */
   del(resource: string, id: string): Promise<void>;
+
+  /**
+   * Xóa cache entry với tenantId tường minh — không cần TenantContext.
+   * Dùng cho admin routes.
+   */
+  delForTenant(tenantId: string, resource: string, id: string): Promise<void>;
 
   /**
    * Xóa tất cả entry của một resource type trong tenant hiện tại.

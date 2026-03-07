@@ -47,7 +47,7 @@ export default function TenantDetailPage({
   return (
     <div>
       <Link
-        href="/dashboard/tenants"
+        href="/tenants"
         className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -98,7 +98,7 @@ export default function TenantDetailPage({
       </div>
 
       <Link
-        href={`/dashboard/tenants/${id}/plugins`}
+        href={`/tenants/${id}/plugins`}
         className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted/50"
       >
         <Plug className="h-5 w-5 text-primary" />

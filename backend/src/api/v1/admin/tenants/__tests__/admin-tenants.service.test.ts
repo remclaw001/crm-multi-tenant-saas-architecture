@@ -4,6 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 const mockQuery = vi.hoisted(() => vi.fn());
 const mockRelease = vi.hoisted(() => vi.fn());
 const mockAcquire = vi.hoisted(() => vi.fn());
+const mockDelForTenant = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
 vi.mock('../../../../dal/pool/PoolRegistry', () => ({
   PoolRegistry: vi.fn().mockImplementation(() => ({
@@ -11,8 +12,15 @@ vi.mock('../../../../dal/pool/PoolRegistry', () => ({
   })),
 }));
 
+vi.mock('../../../../dal/cache/CacheManager', () => ({
+  CacheManager: vi.fn().mockImplementation(() => ({
+    delForTenant: mockDelForTenant,
+  })),
+}));
+
 import { AdminTenantsService } from '../admin-tenants.service';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
+import { CacheManager } from '../../../../dal/cache/CacheManager';
 
 const ROW = {
   id: 'tid', name: 'Acme', subdomain: 'acme',
@@ -28,7 +36,7 @@ describe('AdminTenantsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAcquire.mockResolvedValue({ query: mockQuery, release: mockRelease });
-    service = new AdminTenantsService(new (PoolRegistry as any)());
+    service = new AdminTenantsService(new (PoolRegistry as any)(), new (CacheManager as any)());
   });
 
   describe('list', () => {

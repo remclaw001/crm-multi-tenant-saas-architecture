@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 
 const NAV_ITEMS = [
-  { label: 'Tenants', href: '/dashboard/tenants', icon: Building2 },
-  { label: 'Metrics', href: '/dashboard/metrics', icon: BarChart3 },
+  { label: 'Tenants', href: '/tenants', icon: Building2 },
+  { label: 'Metrics', href: '/metrics', icon: BarChart3 },
 ];
 
 export function Sidebar() {

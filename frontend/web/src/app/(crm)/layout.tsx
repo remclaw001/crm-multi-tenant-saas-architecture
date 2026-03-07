@@ -41,7 +41,9 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
   const { data, isLoading } = useQuery({
     queryKey: ['enabled-plugins', tenantId],
     queryFn: () => crmApi.getEnabledPlugins(ctx),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     enabled: Boolean(token && tenantId),
   });
 

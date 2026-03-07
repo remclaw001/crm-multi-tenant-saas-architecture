@@ -18,7 +18,8 @@ export function PluginGate({ plugin, pluginLabel, children }: PluginGateProps) {
   const { data, isLoading } = useQuery({
     queryKey: ['enabled-plugins', tenantId],
     queryFn: () => crmApi.getEnabledPlugins(ctx),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
     enabled: Boolean(token && tenantId),
   });
 

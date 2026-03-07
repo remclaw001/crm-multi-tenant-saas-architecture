@@ -22,7 +22,7 @@ export default function LoginPage() {
     try {
       const res = await adminApi.login({ email, password });
       setAuth(res.token, res.user);
-      router.replace('/dashboard/tenants');
+      router.replace('/tenants');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed');
     } finally {

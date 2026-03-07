@@ -1,8 +1,0 @@
-{
-  "/login/page": "app/login/page.js",
-  "/page": "app/page.js",
-  "/(crm)/contacts/page": "app/(crm)/contacts/page.js",
-  "/(crm)/automation/page": "app/(crm)/automation/page.js",
-  "/(crm)/cases/page": "app/(crm)/cases/page.js",
-  "/(crm)/analytics/page": "app/(crm)/analytics/page.js"
-}

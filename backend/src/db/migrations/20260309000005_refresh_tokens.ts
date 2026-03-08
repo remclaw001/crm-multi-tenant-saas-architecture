@@ -5,9 +5,9 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('refresh_tokens', (t) => {
     t.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
     // SHA-256 hex of the opaque token sent to the client (never store plaintext)
-    t.string('token_hash', 64).notNullable().unique();
-    t.uuid('user_id').notNullable();
-    t.uuid('tenant_id').notNullable();
+    t.string('token_hash', 255).notNullable().unique();
+    t.uuid('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE');
+    t.uuid('tenant_id').notNullable().references('id').inTable('tenants').onDelete('CASCADE');
     t.timestamp('expires_at', { useTz: true }).notNullable();
     t.timestamp('revoked_at', { useTz: true }).nullable();
     t.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());

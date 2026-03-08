@@ -9,6 +9,8 @@ import {
   HttpCode,
   ForbiddenException,
   Req,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { CurrentTenant } from '../../../gateway/decorators/current-tenant.decorator';
@@ -19,9 +21,9 @@ import { ExecutionContextBuilder } from '../../context/execution-context-builder
 import { SandboxService } from '../../sandbox/sandbox.service';
 import {
   CustomerDataCore,
-  CreateCustomerInput,
   UpdateCustomerInput,
 } from './customer-data.core';
+import { CreateCustomerDto } from './dto/create-customer.dto';
 
 const PLUGIN_NAME = 'customer-data';
 
@@ -75,8 +77,9 @@ export class CustomerDataController {
   }
 
   @Post('customers')
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   async createCustomer(
-    @Body() body: CreateCustomerInput,
+    @Body() body: CreateCustomerDto,
     @CurrentTenant() tenant: ResolvedTenant,
     @CurrentUser() user: JwtClaims,
     @Req() req: Request & { correlationId?: string },

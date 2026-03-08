@@ -77,6 +77,7 @@ export class AutomationCore implements IPluginCore, OnModuleInit {
     const [trigger] = await ctx.db
       .db('automation_triggers')
       .insert({
+        tenant_id: ctx.tenantId,
         name: input.name,
         event_type: input.event_type,
         conditions: input.conditions ?? {},

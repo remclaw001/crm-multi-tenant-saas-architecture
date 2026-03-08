@@ -59,6 +59,7 @@ export class MarketingCore implements IPluginCore, OnModuleInit {
     const [campaign] = await ctx.db
       .db('marketing_campaigns')
       .insert({
+        tenant_id: ctx.tenantId,
         name: input.name,
         campaign_type: input.campaign_type ?? 'email',
         scheduled_at: input.scheduled_at ?? null,

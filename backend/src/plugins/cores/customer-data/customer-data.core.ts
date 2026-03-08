@@ -81,6 +81,7 @@ export class CustomerDataCore implements IPluginCore, OnModuleInit {
     const [customer] = await ctx.db
       .db('customers')
       .insert({
+        tenant_id: ctx.tenantId,
         name: input.name,
         email: input.email ?? null,
         phone: input.phone ?? null,

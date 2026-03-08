@@ -81,6 +81,7 @@ export class CustomerCareCore implements IPluginCore, OnModuleInit {
     const [newCase] = await ctx.db
       .db('support_cases')
       .insert({
+        tenant_id: ctx.tenantId,
         customer_id: input.customer_id,
         title: input.title,
         description: input.description ?? null,

@@ -110,6 +110,18 @@ export const crmApi = {
     });
   },
 
+  updateCustomer(
+    id: string,
+    input: { name?: string; email?: string; phone?: string; company?: string },
+    ctx: AuthCtx,
+  ): Promise<{ plugin: string; data: Customer }> {
+    return request(`/api/v1/plugins/customer-data/customers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+      ...ctx,
+    });
+  },
+
   // ─── Cases (customer-care plugin) ─────────────────────────────────────────
   getCases(ctx: AuthCtx): Promise<PluginListResponse<SupportCase>> {
     return request('/api/v1/plugins/customer-care/cases', ctx);

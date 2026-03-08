@@ -91,7 +91,7 @@
   <button onclick="go('login')"><span data-lang="vi">Đăng nhập</span><span data-lang="en">Login</span></button>
   <button onclick="go('jwt')">JWT & Claims</button>
   <button onclick="go('verify')"><span data-lang="vi">Xác thực Request</span><span data-lang="en">Verify Request</span></button>
-  <button onclick="go('refresh')">Refresh & Revoke</button>
+  <button onclick="go('refresh')">Refresh &amp; Revoke</button>
   <button onclick="go('authz')"><span data-lang="vi">Phân quyền</span><span data-lang="en">Authorization</span></button>
   <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
 </div></div>
@@ -102,74 +102,140 @@
 <div class="pnl on" id="p-map">
 <div class="sec">
   <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ Auth — Hai luồng chính</span><span data-lang="en">Auth Map — Two Main Flows</span></h2></div>
-  <div class="nt bl" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> JWT là nguồn sự thật duy nhất về danh tính. Tenant được xác định từ subdomain (TenantResolver), sau đó được xác nhận khớp với tenantId trong JWT (AuthGuard). Hai bước này tách biệt để tránh tenant impersonation.</div>
-  <div class="nt bl" data-lang="en"><strong>Core principle:</strong> JWT is the single source of truth for identity. The tenant is resolved from the subdomain (TenantResolver), then verified to match the tenantId inside the JWT (AuthGuard). These two steps are separate to prevent tenant impersonation.</div>
-  <div class="dg"><div class="dg-label">auth architecture</div><pre>
-  <span class="ty">LUỒNG 1: ĐĂNG NHẬP — Lấy tokens</span>
+  <div class="nt bl" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> JWT là nguồn sự thật duy nhất về danh tính. Tenant được xác định từ header/body (TenantResolver), sau đó được xác nhận khớp với tenant_id trong JWT (AuthGuard). Hai bước này tách biệt để tránh tenant impersonation.</div>
+  <div class="nt bl" data-lang="en"><strong>Core principle:</strong> JWT is the single source of truth for identity. The tenant is resolved from the header/body (TenantResolver), then verified to match the tenant_id inside the JWT (AuthGuard). These two steps are separate to prevent tenant impersonation.</div>
+  <div data-lang="vi"><div class="dg"><div class="dg-label">auth architecture</div><pre>
+  <span class="ty">LUỒNG 1: ĐĂNG NHẬP — Lấy token</span>
 
   Browser/Client
-      │  POST /auth/login  { email, password, subdomain }
+      │  POST /auth/login  { tenantSlug, email, password }
       ▼
-  L2 Gateway  ─── <span class="cm">bỏ qua AuthGuard (endpoint public)</span>
+  L2 Gateway  ─── <span class="cm">bỏ qua AuthGuard (@Public endpoint)</span>
       │
       ▼
   <span class="fn">AuthService</span>  (L3 Business Logic)
-      ├── Verify credentials → Metadata DB
-      ├── Issue Access Token  (JWT RS256, TTL 15 phút)
-      ├── Issue Refresh Token (opaque token, TTL 7 ngày)
-      └── Store Refresh Token → Metadata DB
+      ├── Resolve tenant từ tenantSlug (body) → Metadata DB
+      ├── Verify password với bcrypt (cost 12)
+      ├── Load roles từ user_roles → roles[]
+      └── Issue JWT (HS256 dev / RS256 JWKS prod)
       │
       ▼
-  Response: { accessToken, refreshToken, expiresIn: 900 }
+  Response: { token, user: { id, name, email, roles }, tenant: { id, subdomain, name, tier } }
 
 
-  <span class="ty">LUỒNG 2: GỌI API — Dùng access token</span>
+  <span class="ty">LUỒNG 2: GỌI API — Dùng token</span>
 
   Browser/Client
-      │  POST /api/v1/sales
-      │  Authorization: Bearer &lt;accessToken&gt;
-      │  Host: acme.crm.com
+      │  GET /api/v1/plugins/customer-data/customers
+      │  Authorization: Bearer &lt;token&gt;
+      │  X-Tenant-ID: acme-123  (hoặc X-Tenant-Slug: acme)
       ▼
   L2 Gateway
       │
-      ├── ① TenantResolver:  acme.crm.com → tenantId="acme-123"
-      ├── ② AuthGuard:       verify JWT → extract userId, roles
-      │                       cross-check: jwt.tenantId == "acme-123"  ← bảo vệ tenant isolation
-      ├── ③ RateLimiter:     check per-tenant limit
-      ├── ④ RouteMatcher:    POST /api/v1/sales → plugin="customer-care", method="createSale"
-      └── ⑤ PermissionCheck: user có quyền sales:write trong tier premium không?
+      ├── ① TenantResolver:  X-Tenant-ID header → resolvedTenant
+      ├── ② AuthGuard:       verify JWT signature → extract claims
+      │                       cross-check: jwt.tenant_id == resolvedTenant.id  ← tenant isolation
+      ├── ③ RateLimiter:     check per-tenant limit (ThrottlerGuard)
+      └── ④ Controller:      check ctx.enabledPlugins.includes(plugin) → 403 nếu disabled
       │
       ▼
-  L3 Business Logic (plugin execution)
+  L3 Business Logic (SandboxService → plugin core)
 
 
-  <span class="ty">LUỒNG 3: TOKEN HẾT HẠN — Refresh</span>
+  <span class="ty">LUỒNG 3: ADMIN LOGIN — Super admin</span>
 
   Browser/Client
-      │  POST /auth/refresh  { refreshToken }
+      │  POST /api/v1/admin/auth/login  { email, password }
+      │  <span class="cm">Không có tenant header — admin routes bypass TenantResolverMiddleware</span>
       ▼
-  AuthService
-      ├── Verify refresh token còn hạn và chưa bị revoke
-      ├── Issue Access Token mới  (TTL 15 phút)
-      ├── Issue Refresh Token mới (TTL 7 ngày) ← rotation
-      └── Revoke refresh token cũ
+  <span class="fn">AdminAuthService</span>
+      ├── Query user trong tenant 'system' (Metadata DB)
+      ├── Verify password bcrypt + kiểm tra role 'super_admin'
+      └── Issue JWT (bắt buộc dùng JWT_SECRET_FALLBACK / HS256)
       │
       ▼
-  Response: { accessToken, refreshToken, expiresIn: 900 }
+  Response: { token, user: { id, email, role: "super_admin" } }
 
 
   <span class="ty">COMPONENTS THAM GIA:</span>
 
-  ┌─────────────────────┬──────────────────────────────────────────────────┐
-  │ Component           │ Vai trò                                          │
-  ├─────────────────────┼──────────────────────────────────────────────────┤
-  │ <span class="fn">AuthService</span>         │ Login, issue JWT, refresh, revoke (L3)           │
-  │ <span class="fn">JwtIssuer</span>           │ Sign RS256, verify signature, decode claims      │
-  │ <span class="fn">TenantResolver</span>      │ domain → tenantId via Redis (L2)                 │
-  │ <span class="fn">AuthGuard</span>           │ Verify JWT trên mỗi request (L2)                 │
-  │ <span class="rd">Redis</span>               │ Blacklist JTI (revoked tokens), domain-map       │
-  │ <span class="hi">Metadata DB</span>         │ Users, credentials, refresh tokens, roles        │
-  └─────────────────────┴──────────────────────────────────────────────────┘</pre></div>
+  ┌──────────────────────────┬───────────────────────────────────────────────┐
+  │ Component                │ Vai trò                                       │
+  ├──────────────────────────┼───────────────────────────────────────────────┤
+  │ <span class="fn">AuthService</span>              │ Tenant user login, issue JWT (L3)             │
+  │ <span class="fn">AdminAuthService</span>         │ Super admin login, issue JWT (L3)             │
+  │ <span class="fn">JwtStrategy</span> (Passport)   │ Verify signature RS256/HS256, decode claims   │
+  │ <span class="fn">TenantResolverMiddleware</span>  │ X-Tenant-ID/Slug/subdomain → resolvedTenant   │
+  │ <span class="fn">JwtAuthGuard</span>             │ Verify JWT + cross-check tenant (L2)          │
+  │ <span class="fn">PasswordService</span>          │ bcrypt cost 12: hash + verify                 │
+  │ <span class="hi">Metadata DB</span>              │ users, roles, user_roles, tenants             │
+  └──────────────────────────┴───────────────────────────────────────────────┘</pre></div></div>
+  <div data-lang="en"><div class="dg"><div class="dg-label">auth architecture</div><pre>
+  <span class="ty">FLOW 1: LOGIN — Get Token</span>
+
+  Browser/Client
+      │  POST /auth/login  { tenantSlug, email, password }
+      ▼
+  L2 Gateway  ─── <span class="cm">bypasses AuthGuard (@Public endpoint)</span>
+      │
+      ▼
+  <span class="fn">AuthService</span>  (L3 Business Logic)
+      ├── Resolve tenant from tenantSlug (body) → Metadata DB
+      ├── Verify password with bcrypt (cost 12)
+      ├── Load roles from user_roles → roles[]
+      └── Issue JWT (HS256 dev / RS256 JWKS prod)
+      │
+      ▼
+  Response: { token, user: { id, name, email, roles }, tenant: { id, subdomain, name, tier } }
+
+
+  <span class="ty">FLOW 2: API CALL — Use Token</span>
+
+  Browser/Client
+      │  GET /api/v1/plugins/customer-data/customers
+      │  Authorization: Bearer &lt;token&gt;
+      │  X-Tenant-ID: acme-123  (or X-Tenant-Slug: acme)
+      ▼
+  L2 Gateway
+      │
+      ├── ① TenantResolver:  X-Tenant-ID header → resolvedTenant
+      ├── ② AuthGuard:       verify JWT signature → extract claims
+      │                       cross-check: jwt.tenant_id == resolvedTenant.id  ← tenant isolation
+      ├── ③ RateLimiter:     check per-tenant limit (ThrottlerGuard)
+      └── ④ Controller:      check ctx.enabledPlugins.includes(plugin) → 403 if disabled
+      │
+      ▼
+  L3 Business Logic (SandboxService → plugin core)
+
+
+  <span class="ty">FLOW 3: ADMIN LOGIN — Super Admin</span>
+
+  Browser/Client
+      │  POST /api/v1/admin/auth/login  { email, password }
+      │  <span class="cm">No tenant header — admin routes bypass TenantResolverMiddleware</span>
+      ▼
+  <span class="fn">AdminAuthService</span>
+      ├── Query user in 'system' tenant (Metadata DB)
+      ├── Verify password bcrypt + check role 'super_admin'
+      └── Issue JWT (requires JWT_SECRET_FALLBACK / HS256)
+      │
+      ▼
+  Response: { token, user: { id, email, role: "super_admin" } }
+
+
+  <span class="ty">COMPONENTS:</span>
+
+  ┌──────────────────────────┬───────────────────────────────────────────────┐
+  │ Component                │ Role                                          │
+  ├──────────────────────────┼───────────────────────────────────────────────┤
+  │ <span class="fn">AuthService</span>              │ Tenant user login, issue JWT (L3)             │
+  │ <span class="fn">AdminAuthService</span>         │ Super admin login, issue JWT (L3)             │
+  │ <span class="fn">JwtStrategy</span> (Passport)   │ Verify signature RS256/HS256, decode claims   │
+  │ <span class="fn">TenantResolverMiddleware</span>  │ X-Tenant-ID/Slug/subdomain → resolvedTenant   │
+  │ <span class="fn">JwtAuthGuard</span>             │ Verify JWT + cross-check tenant (L2)          │
+  │ <span class="fn">PasswordService</span>          │ bcrypt cost 12: hash + verify                 │
+  │ <span class="hi">Metadata DB</span>              │ users, roles, user_roles, tenants             │
+  └──────────────────────────┴───────────────────────────────────────────────┘</pre></div></div>
 </div>
 </div>
 
@@ -177,106 +243,166 @@
 <div class="pnl" id="p-login">
 <div class="sec">
   <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Đăng nhập — Login Flow</span><span data-lang="en">Login — Login Flow</span></h2></div>
-  <div class="nt bl" data-lang="vi"><strong>Endpoint public:</strong> <code>POST /auth/login</code> là endpoint duy nhất không qua AuthGuard. TenantResolver vẫn chạy để xác định tenant từ subdomain trước khi tìm user trong đúng tenant scope.</div>
-  <div class="nt bl" data-lang="en"><strong>Public endpoint:</strong> <code>POST /auth/login</code> is the only endpoint that bypasses AuthGuard. TenantResolver still runs to identify the tenant from the subdomain before looking up the user in the correct tenant scope.</div>
-  <div class="dg"><div class="dg-label">login flow</div><pre>
+  <div class="nt bl" data-lang="vi"><strong>Endpoint public:</strong> <code>POST /auth/login</code> không qua AuthGuard (<code>@Public()</code>). Tenant được resolve từ <code>tenantSlug</code> trong body — AuthService tự query Metadata DB, không phụ thuộc vào TenantResolverMiddleware.</div>
+  <div class="nt bl" data-lang="en"><strong>Public endpoint:</strong> <code>POST /auth/login</code> bypasses AuthGuard (<code>@Public()</code>). The tenant is resolved from <code>tenantSlug</code> in the request body — AuthService queries the Metadata DB directly, independent of TenantResolverMiddleware.</div>
+  <div data-lang="vi"><div class="dg"><div class="dg-label">login flow</div><pre>
 <span class="ty">POST /auth/login</span>
-Host: acme.crm.com
-Body: { email: "alice@acme.com", password: "..." }
+Body: { tenantSlug: "acme", email: "alice@acme.com", password: "..." }
+<span class="cm">Không cần tenant header — tenantSlug nằm trong body</span>
 
 
-<span class="ty">BƯỚC 1: TenantResolver</span>  (~1ms)
+<span class="ty">BƯỚC 1: Resolve Tenant từ Body</span>  (~2ms)
 │
-│  Subdomain "acme" → Redis GET domain-map:acme.crm.com → "acme-123"
-│  tenant = { tenantId: "acme-123", tier: "premium", status: "active" }
-│  status != active → 403 Forbidden  (nếu suspended/offboarded)
-│  → <span class="gn">PASS</span>
-
-
-<span class="ty">BƯỚC 2: Validate Credentials</span>  (~5ms)
+│  SELECT id, subdomain, name, tier FROM tenants
+│  WHERE subdomain = 'acme' AND is_active = true
+│  → { id: "acme-123", tier: "premium", ... }
 │
-│  SELECT * FROM users
-│  WHERE email='alice@acme.com' AND tenant_id='acme-123'
-│  → { userId: "user-5", passwordHash: "$argon2id$...", status: "active" }
+│  Không tìm thấy / is_active = false → <span class="rd">401</span> Unauthorized
+
+
+<span class="ty">BƯỚC 2: Activate RLS + Load User & Roles</span>  (~3ms)
 │
-│  Argon2id.verify(inputPassword, passwordHash)
-│  → <span class="gn">match</span>
+│  SELECT set_config('app.tenant_id', 'acme-123', true)  ← bật RLS trong session
 │
-│  user.status != active → 401 Unauthorized  (nếu bị khóa)
-
-
-<span class="ty">BƯỚC 3: Load Roles & Permissions</span>  (~2ms)
+│  SELECT u.id, u.email, u.name, u.password_hash, u.is_active,
+│         COALESCE(array_agg(r.name) FILTER (WHERE r.name IS NOT NULL), '{}') AS roles
+│  FROM users u
+│  LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.tenant_id = 'acme-123'
+│  LEFT JOIN roles r ON r.id = ur.role_id AND r.tenant_id = 'acme-123'
+│  WHERE u.email = 'alice@acme.com' AND u.tenant_id = 'acme-123'
+│  GROUP BY u.id
 │
-│  SELECT r.name, p.key FROM user_roles ur
-│  JOIN roles r ON ur.role_id = r.id
-│  JOIN role_permissions rp ON r.id = rp.role_id
-│  JOIN permissions p ON rp.permission_id = p.id
-│  WHERE ur.user_id='user-5' AND ur.tenant_id='acme-123'
+│  → { id: "user-5", password_hash: "$2b$12$...", is_active: true, roles: ["admin"] }
+
+
+<span class="ty">BƯỚC 3: Verify Password (bcrypt)</span>  (~100ms, CPU-bound)
 │
-│  → roles: ["sales_manager"]
-│  → permissions: ["sales:read","sales:write","customer:read","customer:write"]
-
-
-<span class="ty">BƯỚC 4: Issue Access Token</span>  (~1ms, CPU — RSA sign)
+│  <span class="cm">Constant-time: luôn chạy bcrypt kể cả khi user không tồn tại (dùng DUMMY_HASH)</span>
+│  DUMMY_HASH = '$2b$12$invalidhashusedtoblindtimingXXX...'
+│  hashToCompare = user?.password_hash ?? DUMMY_HASH
 │
-│  jti = UUID()  ← unique token ID cho blacklist
-│  accessToken = JWT.sign({
-│    header:  { alg: "RS256", typ: "JWT" },
-│    payload: { sub:         "user-5",
-│               tenantId:    "acme-123",
-│               tier:        "premium",
-│               roles:       ["sales_manager"],
-│               permissions: ["sales:read","sales:write","customer:read","customer:write"],
-│               iat:         1708000000,
-│               exp:         1708000900,   ← iat + 900s (15 phút)
-│               jti:         "tok-abc-123" }
-│  }, privateKey)    ← RSA-2048 private key (rotated monthly)
-
-
-<span class="ty">BƯỚC 5: Issue Refresh Token</span>  (~1ms)
+│  valid = await bcrypt.compare(inputPassword, hashToCompare)
 │
-│  refreshToken = crypto.randomBytes(48).toString('hex')  ← opaque, không phải JWT
-│  refreshTokenHash = SHA256(refreshToken)
+│  if (!user || !user.is_active || !valid)
+│    → <span class="rd">401</span> { message: "Invalid credentials" }  ← thông báo chung, không tiết lộ lý do
+
+
+<span class="ty">BƯỚC 4: Issue JWT</span>  (~1ms)
 │
-│  INSERT INTO refresh_tokens:
-│  { tokenHash:  refreshTokenHash,
-│    userId:     "user-5",
-│    tenantId:   "acme-123",
-│    expiresAt:  now() + 7d,
-│    createdAt:  now(),
-│    deviceInfo: request.userAgent }
+│  token = JWT.sign({
+│    sub:       "user-5",
+│    tenant_id: "acme-123",   ← snake_case
+│    email:     "alice@acme.com",
+│    roles:     ["admin"],
+│  }, secret)
+│
+│  Dev mode:  HS256 + JWT_SECRET_FALLBACK (symmetric)
+│  Prod mode: RS256 + JWKS endpoint (Keycloak / asymmetric)
 
 
-<span class="ty">BƯỚC 6: Response</span>
+<span class="ty">BƯỚC 5: Response</span>
 │
 │  200 OK
 │  {
-│    accessToken:  "eyJ...",
-│    tokenType:    "Bearer",
-│    expiresIn:    900,
-│    refreshToken: "a3f9b2..."   ← opaque hex string
+│    token:  "eyJ...",
+│    user:   { id: "user-5", name: "Alice", email: "alice@acme.com", roles: ["admin"] },
+│    tenant: { id: "acme-123", subdomain: "acme", name: "Acme Corp", tier: "premium" }
 │  }
-│
-│  Client lưu:
-│  - accessToken  → memory (không localStorage — tránh XSS)
-│  - refreshToken → httpOnly cookie (tránh XSS)
 
 
 <span class="ty">TIMING:</span>
 
-  ┌──────────────────────────────┬────────┬─────────────────────────────────┐
-  │ Bước                         │ Time   │ Note                            │
-  ├──────────────────────────────┼────────┼─────────────────────────────────┤
-  │ TenantResolver               │ ~1ms   │ Redis GET (cache hit)           │
-  │ Validate credentials (Argon2)│ ~50ms  │ CPU-bound, intentionally slow   │
-  │ Load roles/permissions       │ ~2ms   │ Metadata DB query               │
-  │ Sign JWT (RSA-2048)          │ ~1ms   │ CPU — asymmetric crypto         │
-  │ Store refresh token          │ ~1ms   │ Metadata DB INSERT              │
-  ├──────────────────────────────┼────────┼─────────────────────────────────┤
-  │ <span class="hi">TOTAL</span>                        │ <span class="hi">~55ms</span>  │ Argon2 chiếm phần lớn (đúng)   │
-  └──────────────────────────────┴────────┴─────────────────────────────────┘
+  ┌──────────────────────────────┬─────────┬──────────────────────────────────┐
+  │ Bước                         │ Time    │ Note                             │
+  ├──────────────────────────────┼─────────┼──────────────────────────────────┤
+  │ Resolve tenant (DB)          │ ~2ms    │ Metadata pool query              │
+  │ Load user + roles (DB)       │ ~3ms    │ JOIN query trong transaction      │
+  │ Verify password (bcrypt)     │ ~100ms  │ CPU-bound, cost 12 — intentional │
+  │ Sign JWT                     │ ~0.5ms  │ HS256 dev / RS256 prod           │
+  ├──────────────────────────────┼─────────┼──────────────────────────────────┤
+  │ <span class="hi">TOTAL</span>                        │ <span class="hi">~106ms</span>  │ bcrypt chiếm phần lớn (đúng)    │
+  └──────────────────────────────┴─────────┴──────────────────────────────────┘
 
-  <span class="cm">Argon2id chậm là cố ý — brute-force protection. Login không cần <1ms.</span></pre></div>
+  <span class="cm">bcrypt cost 12 chậm là cố ý — brute-force protection. Login không cần &lt;1ms.</span></pre></div></div>
+  <div data-lang="en"><div class="dg"><div class="dg-label">login flow</div><pre>
+<span class="ty">POST /auth/login</span>
+Body: { tenantSlug: "acme", email: "alice@acme.com", password: "..." }
+<span class="cm">No tenant header needed — tenantSlug is in the body</span>
+
+
+<span class="ty">STEP 1: Resolve Tenant from Body</span>  (~2ms)
+│
+│  SELECT id, subdomain, name, tier FROM tenants
+│  WHERE subdomain = 'acme' AND is_active = true
+│  → { id: "acme-123", tier: "premium", ... }
+│
+│  Not found / is_active = false → <span class="rd">401</span> Unauthorized
+
+
+<span class="ty">STEP 2: Activate RLS + Load User & Roles</span>  (~3ms)
+│
+│  SELECT set_config('app.tenant_id', 'acme-123', true)  ← enable RLS in session
+│
+│  SELECT u.id, u.email, u.name, u.password_hash, u.is_active,
+│         COALESCE(array_agg(r.name) FILTER (WHERE r.name IS NOT NULL), '{}') AS roles
+│  FROM users u
+│  LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.tenant_id = 'acme-123'
+│  LEFT JOIN roles r ON r.id = ur.role_id AND r.tenant_id = 'acme-123'
+│  WHERE u.email = 'alice@acme.com' AND u.tenant_id = 'acme-123'
+│  GROUP BY u.id
+│
+│  → { id: "user-5", password_hash: "$2b$12$...", is_active: true, roles: ["admin"] }
+
+
+<span class="ty">STEP 3: Verify Password (bcrypt)</span>  (~100ms, CPU-bound)
+│
+│  <span class="cm">Constant-time: always runs bcrypt even if user doesn't exist (uses DUMMY_HASH)</span>
+│  DUMMY_HASH = '$2b$12$invalidhashusedtoblindtimingXXX...'
+│  hashToCompare = user?.password_hash ?? DUMMY_HASH
+│
+│  valid = await bcrypt.compare(inputPassword, hashToCompare)
+│
+│  if (!user || !user.is_active || !valid)
+│    → <span class="rd">401</span> { message: "Invalid credentials" }  ← generic message, does not reveal the reason
+
+
+<span class="ty">STEP 4: Issue JWT</span>  (~1ms)
+│
+│  token = JWT.sign({
+│    sub:       "user-5",
+│    tenant_id: "acme-123",   ← snake_case
+│    email:     "alice@acme.com",
+│    roles:     ["admin"],
+│  }, secret)
+│
+│  Dev mode:  HS256 + JWT_SECRET_FALLBACK (symmetric)
+│  Prod mode: RS256 + JWKS endpoint (Keycloak / asymmetric)
+
+
+<span class="ty">STEP 5: Response</span>
+│
+│  200 OK
+│  {
+│    token:  "eyJ...",
+│    user:   { id: "user-5", name: "Alice", email: "alice@acme.com", roles: ["admin"] },
+│    tenant: { id: "acme-123", subdomain: "acme", name: "Acme Corp", tier: "premium" }
+│  }
+
+
+<span class="ty">TIMING:</span>
+
+  ┌──────────────────────────────┬─────────┬──────────────────────────────────┐
+  │ Step                         │ Time    │ Note                             │
+  ├──────────────────────────────┼─────────┼──────────────────────────────────┤
+  │ Resolve tenant (DB)          │ ~2ms    │ Metadata pool query              │
+  │ Load user + roles (DB)       │ ~3ms    │ JOIN query in transaction         │
+  │ Verify password (bcrypt)     │ ~100ms  │ CPU-bound, cost 12 — intentional │
+  │ Sign JWT                     │ ~0.5ms  │ HS256 dev / RS256 prod           │
+  ├──────────────────────────────┼─────────┼──────────────────────────────────┤
+  │ <span class="hi">TOTAL</span>                        │ <span class="hi">~106ms</span>  │ bcrypt takes the most (intentional) │
+  └──────────────────────────────┴─────────┴──────────────────────────────────┘
+
+  <span class="cm">bcrypt cost 12 is intentionally slow — brute-force protection. Login does not need to be &lt;1ms.</span></pre></div></div>
 </div>
 </div>
 
@@ -284,80 +410,116 @@ Body: { email: "alice@acme.com", password: "..." }
 <div class="pnl" id="p-jwt">
 <div class="sec">
   <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">JWT & Claims — <span data-lang="vi">Cấu trúc Token</span><span data-lang="en">Token Structure</span></h2></div>
-  <div class="nt bl" data-lang="vi"><strong>JWT là source of truth:</strong> Mọi thông tin cần thiết cho một request đều nằm trong JWT — không cần query DB để biết userId, tenantId, roles, permissions. AuthGuard chỉ cần verify signature và check blacklist.</div>
-  <div class="nt bl" data-lang="en"><strong>JWT is the source of truth:</strong> All information needed for a request is embedded in the JWT — no DB query is required to know userId, tenantId, roles, or permissions. AuthGuard only needs to verify the signature and check the blacklist.</div>
-  <div class="dg"><div class="dg-label">jwt structure</div><pre>
-<span class="ty">ACCESS TOKEN — JWT (RS256)</span>
+  <div class="nt bl" data-lang="vi"><strong>JWT là source of truth:</strong> Mọi thông tin cần thiết cho một request đều nằm trong JWT — không cần query DB để biết userId, tenant_id, roles. AuthGuard chỉ cần verify signature và cross-check tenant.</div>
+  <div class="nt bl" data-lang="en"><strong>JWT is the source of truth:</strong> All information needed for a request is embedded in the JWT — no DB query is required to know userId, tenant_id, or roles. AuthGuard only needs to verify the signature and cross-check the tenant.</div>
+  <div data-lang="vi"><div class="dg"><div class="dg-label">jwt structure</div><pre>
+<span class="ty">JWT TOKEN — Dev: HS256 / Prod: RS256</span>
 
-  eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9
-  .eyJzdWIiOiJ1c2VyLTUiLCJ0ZW5hbnRJZCI6ImFjbWUtMTIzIi4uLn0
-  .&lt;RSA-2048 signature&gt;
+  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9   ← dev (HS256)
+  eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9   ← prod (RS256 via JWKS)
+  .eyJzdWIiOiJ1c2VyLTUiLCJ0ZW5hbnRfaWQiOiJhY21lLTEyMyIsLi4ufQ
+  .&lt;signature&gt;
 
   ┌─────────────────────────────────────────────────────────────────────┐
   │ HEADER                                                              │
-  │   alg: "RS256"   ← Asymmetric — verify bằng public key (safe)     │
+  │   alg: "HS256"  (dev)  ← JWT_SECRET_FALLBACK, symmetric           │
+  │   alg: "RS256"  (prod) ← JWKS endpoint (Keycloak), asymmetric     │
   │   typ: "JWT"                                                        │
   └─────────────────────────────────────────────────────────────────────┘
 
   ┌─────────────────────────────────────────────────────────────────────┐
-  │ PAYLOAD                                                             │
+  │ PAYLOAD (claims thực tế được issue)                                 │
   │                                                                     │
-  │   sub:         "user-5"              ← userId (standard claim)     │
-  │   tenantId:    "acme-123"            ← <span class="hi">bắt buộc</span>: tenant scope       │
-  │   tier:        "premium"             ← để Permission Check nhanh   │
-  │   roles:       ["sales_manager"]     ← RBAC roles                  │
-  │   permissions: ["sales:read",        ← expanded permissions        │
-  │                 "sales:write",           (denormalized từ roles)    │
-  │                 "customer:read",                                    │
-  │                 "customer:write"]                                   │
+  │   sub:       "user-5"          ← userId (standard claim)           │
+  │   jti:       "uuid-v4-..."     ← <span class="hi">JWT ID</span>: dùng cho blacklist revoke   │
+  │   tenant_id: "acme-123"        ← <span class="hi">bắt buộc</span>: tenant scope (snake_case) │
+  │   email:     "alice@acme.com"  ← email user                        │
+  │   roles:     ["admin"]         ← RBAC roles từ user_roles          │
   │                                                                     │
-  │   iat:  1708000000   ← issued at (Unix timestamp)                  │
-  │   exp:  1708000900   ← iat + 900s = <span class="hi">15 phút</span>                        │
-  │   jti:  "tok-abc-123"← JWT ID — dùng làm blacklist key             │
+  │   iat:  1708000000   ← issued at (Unix timestamp, auto)            │
+  │   exp:  &lt;theo JWT_EXPIRES_IN hoặc default NestJS JwtModule&gt;        │
   └─────────────────────────────────────────────────────────────────────┘
 
   ┌─────────────────────────────────────────────────────────────────────┐
-  │ SIGNATURE                                                           │
-  │   RSA-2048 sign(base64(header) + "." + base64(payload), privateKey)│
-  │   Verify: RSA verify(signature, publicKey)                         │
-  │   Public key được cache tại mỗi app instance — không cần DB call  │
+  │ JwtClaims interface (TypeScript — req.user sau khi guard chạy)     │
+  │                                                                     │
+  │   sub:       string    ← required, validate trong JwtStrategy      │
+  │   jti:       string    ← JWT ID (UUID v4), dùng để blacklist       │
+  │   tenant_id: string    ← required, cross-check với resolvedTenant  │
+  │   roles:     string[]  ← default [] nếu không có                   │
+  │   email?:    string    ← optional                                   │
+  │   iat?:      number                                                 │
+  │   exp?:      number                                                 │
   └─────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">REFRESH TOKEN — Opaque String</span>
+<span class="ty">CHẾ ĐỘ XÁC THỰC:</span>
 
-  a3f9b2c1d8e4f7a0b3c5d2e8f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2
+  ┌──────────────────┬──────────────────────────────────────────────────┐
+  │ Chế độ           │ Cấu hình                                         │
+  ├──────────────────┼──────────────────────────────────────────────────┤
+  │ Dev / Test       │ JWT_SECRET_FALLBACK (min 32 chars) → HS256       │
+  │ Production       │ JWT_JWKS_URI → RS256, cache 10 phút, rate limit  │
+  │ Issuer check     │ JWT_ISSUER (optional)                            │
+  │ Audience check   │ JWT_AUDIENCE (optional)                          │
+  └──────────────────┴──────────────────────────────────────────────────┘
 
-  ├── 48 random bytes → hex string (96 chars)
-  ├── Không phải JWT — không chứa claims
-  ├── Lưu dưới dạng SHA256 hash trong Metadata DB
-  ├── TTL: 7 ngày (604800 giây)
-  └── Xóa sau khi dùng (rotation) — mỗi refresh sinh token mới
+  <span class="cm">Admin login yêu cầu JWT_SECRET_FALLBACK bắt buộc (không dùng JWKS).</span>
+  <span class="cm">Tenant user login dùng cả hai mode tuỳ theo env đang chạy.</span></pre></div></div>
+  <div data-lang="en"><div class="dg"><div class="dg-label">jwt structure</div><pre>
+<span class="ty">JWT TOKEN — Dev: HS256 / Prod: RS256</span>
+
+  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9   ← dev (HS256)
+  eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9   ← prod (RS256 via JWKS)
+  .eyJzdWIiOiJ1c2VyLTUiLCJ0ZW5hbnRfaWQiOiJhY21lLTEyMyIsLi4ufQ
+  .&lt;signature&gt;
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ HEADER                                                              │
+  │   alg: "HS256"  (dev)  ← JWT_SECRET_FALLBACK, symmetric           │
+  │   alg: "RS256"  (prod) ← JWKS endpoint (Keycloak), asymmetric     │
+  │   typ: "JWT"                                                        │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ PAYLOAD (actual claims issued)                                      │
+  │                                                                     │
+  │   sub:       "user-5"          ← userId (standard claim)           │
+  │   jti:       "uuid-v4-..."     ← <span class="hi">JWT ID</span>: used for blacklist revoke   │
+  │   tenant_id: "acme-123"        ← <span class="hi">required</span>: tenant scope (snake_case) │
+  │   email:     "alice@acme.com"  ← user email                        │
+  │   roles:     ["admin"]         ← RBAC roles from user_roles        │
+  │                                                                     │
+  │   iat:  1708000000   ← issued at (Unix timestamp, auto)            │
+  │   exp:  &lt;per JWT_EXPIRES_IN or NestJS JwtModule default&gt;           │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ JwtClaims interface (TypeScript — req.user after guard runs)       │
+  │                                                                     │
+  │   sub:       string    ← required, validated in JwtStrategy        │
+  │   jti:       string    ← JWT ID (UUID v4), used for blacklisting   │
+  │   tenant_id: string    ← required, cross-checked against resolvedTenant │
+  │   roles:     string[]  ← defaults to [] if absent                  │
+  │   email?:    string    ← optional                                   │
+  │   iat?:      number                                                 │
+  │   exp?:      number                                                 │
+  └─────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">SO SÁNH ACCESS vs REFRESH TOKEN:</span>
+<span class="ty">AUTH MODES:</span>
 
-  ┌──────────────────────┬─────────────────────────┬──────────────────────────┐
-  │                      │ Access Token             │ Refresh Token            │
-  ├──────────────────────┼─────────────────────────┼──────────────────────────┤
-  │ Format               │ JWT (RS256)              │ Opaque hex string        │
-  │ TTL                  │ 15 phút (900s)           │ 7 ngày (604800s)         │
-  │ Lưu ở client        │ Memory (JS variable)     │ httpOnly cookie          │
-  │ Chứa claims          │ Có (userId, roles, ...)  │ Không                    │
-  │ Verify               │ Signature + exp + jti    │ DB lookup + exp check    │
-  │ Revoke               │ Redis blacklist (jti)    │ DELETE từ DB             │
-  │ Dùng để             │ Mọi API request          │ Lấy access token mới     │
-  └──────────────────────┴─────────────────────────┴──────────────────────────┘
+  ┌──────────────────┬──────────────────────────────────────────────────┐
+  │ Mode             │ Config                                           │
+  ├──────────────────┼──────────────────────────────────────────────────┤
+  │ Dev / Test       │ JWT_SECRET_FALLBACK (min 32 chars) → HS256       │
+  │ Production       │ JWT_JWKS_URI → RS256, 10 min cache, rate limit   │
+  │ Issuer check     │ JWT_ISSUER (optional)                            │
+  │ Audience check   │ JWT_AUDIENCE (optional)                          │
+  └──────────────────┴──────────────────────────────────────────────────┘
 
-
-<span class="ty">KEY ROTATION:</span>
-
-  RSA keypair được rotate định kỳ (monthly):
-  ├── Sinh keypair mới
-  ├── Public key mới được deploy lên tất cả instances (config reload)
-  ├── Tokens ký bằng key cũ vẫn còn hạn → giữ old public key thêm 15 phút
-  └── Sau 15 phút: xóa old public key → tokens cũ không verify được nữa
-  <span class="cm">(15 phút = max TTL của access token → đảm bảo không có token cũ nào còn hạn)</span></pre></div>
+  <span class="cm">Admin login requires JWT_SECRET_FALLBACK (JWKS not supported for admin).</span>
+  <span class="cm">Tenant user login uses either mode depending on the running environment.</span></pre></div></div>
 </div>
 </div>
 
@@ -365,72 +527,75 @@ Body: { email: "alice@acme.com", password: "..." }
 <div class="pnl" id="p-verify">
 <div class="sec">
   <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Xác thực Request — AuthGuard Pipeline</span><span data-lang="en">Verify Request — AuthGuard Pipeline</span></h2></div>
-  <div class="nt bl" data-lang="vi"><strong>Chạy trên mỗi request (trừ /auth/*):</strong> AuthGuard là middleware thứ 3 trong L2 Gateway, sau TenantResolver và trước RateLimiter. Nếu bất kỳ bước nào fail, request bị reject ngay, không forward xuống L3.</div>
-  <div class="nt bl" data-lang="en"><strong>Runs on every request (except /auth/*):</strong> AuthGuard is the 3rd middleware in the L2 Gateway, after TenantResolver and before RateLimiter. If any step fails, the request is rejected immediately without being forwarded to L3.</div>
-  <div class="dg"><div class="dg-label">authguard pipeline</div><pre>
+  <div class="nt bl" data-lang="vi"><strong>Chạy trên mỗi request (trừ @Public):</strong> <code>JwtAuthGuard</code> extend Passport <code>AuthGuard('jwt')</code>, chạy sau TenantResolverMiddleware. Nếu bất kỳ bước nào fail, request bị reject ngay, không forward xuống L3.</div>
+  <div class="nt bl" data-lang="en"><strong>Runs on every request (except @Public):</strong> <code>JwtAuthGuard</code> extends Passport <code>AuthGuard('jwt')</code>, runs after TenantResolverMiddleware. If any step fails, the request is rejected immediately without being forwarded to L3.</div>
+  <div data-lang="vi"><div class="dg"><div class="dg-label">authguard pipeline</div><pre>
 <span class="ty">Mỗi request có Authorization: Bearer &lt;token&gt;</span>
 
 
-<span class="ty">BƯỚC 1: Extract Token</span>  (~0ms)
+<span class="ty">BƯỚC 1: Check @Public()</span>  (~0ms)
 │
-│  header = request.headers['Authorization']
-│  if !header || !header.startsWith('Bearer ')
-│    → <span class="rd">401</span> { code: "MISSING_TOKEN", message: "Authorization header required" }
+│  JwtAuthGuard.canActivate() kiểm tra Reflector metadata:
+│  isPublic = reflector.getAllAndOverride(IS_PUBLIC_KEY, [handler, class])
 │
-│  token = header.slice(7)  ← "Bearer " = 7 chars
+│  if isPublic → <span class="gn">bypass hoàn toàn</span>, không verify JWT
+│  Áp dụng cho: POST /auth/login, POST /api/v1/admin/auth/login, GET /health, GET /metrics
 
 
-<span class="ty">BƯỚC 2: Decode &amp; Verify Signature</span>  (~0.5ms, CPU)
+<span class="ty">BƯỚC 2: Verify Signature (Passport JwtStrategy)</span>  (~0.5ms, CPU)
 │
-│  decoded = JWT.verify(token, publicKey, { algorithms: ['RS256'] })
+│  ExtractJwt.fromAuthHeaderAsBearerToken() → lấy token từ Authorization header
 │
-│  Nếu signature không hợp lệ:
-│    → <span class="rd">401</span> { code: "INVALID_TOKEN" }
+│  Dev mode:  JWT.verify(token, JWT_SECRET_FALLBACK, { algorithms: ['HS256'] })
+│  Prod mode: JWT.verify(token, publicKey,           { algorithms: ['RS256'] })
+│             publicKey từ JWKS cache (10 phút, tối đa 5 entries)
 │
-│  <span class="cm">Public key được cache in-memory tại mỗi instance.</span>
-│  <span class="cm">Không cần network call để verify signature.</span>
+│  Nếu token thiếu hoặc signature không hợp lệ:
+│    → <span class="rd">401</span> { message: "Missing or invalid authentication token" }
+│
+│  ignoreExpiration: false → Passport tự check exp, reject nếu hết hạn → <span class="rd">401</span>
 
 
-<span class="ty">BƯỚC 3: Kiểm tra Expiry</span>  (~0ms)
+<span class="ty">BƯỚC 3: Validate Claims (JwtStrategy.validate)</span>  (~0ms)
 │
-│  if decoded.exp &lt; Math.floor(Date.now() / 1000)
-│    → <span class="rd">401</span> { code: "TOKEN_EXPIRED", message: "Token đã hết hạn, vui lòng refresh" }
+│  Kiểm tra required claims:
+│  if typeof payload.sub !== 'string' || !payload.sub
+│    → <span class="rd">401</span> { message: "JWT missing required claim: sub" }
+│
+│  if typeof payload.tenant_id !== 'string' || !payload.tenant_id
+│    → <span class="rd">401</span> { message: "JWT missing required claim: tenant_id" }
+│
+│  Return: JwtClaims { sub, tenant_id, roles, email?, iat?, exp? }
+│          → trở thành req.user
 
 
 <span class="ty">BƯỚC 4: Cross-check Tenant</span>  (~0ms)
 │
-│  <span class="cm">Đây là bước bảo vệ tenant isolation quan trọng nhất:</span>
-│  resolvedTenantId = request.tenant.tenantId   ← từ TenantResolver (bước trước)
+│  <span class="cm">Đây là bước bảo vệ tenant isolation quan trọng nhất (trong handleRequest):</span>
+│  resolvedTenant = req.resolvedTenant   ← từ TenantResolverMiddleware
 │
-│  if decoded.tenantId !== resolvedTenantId
-│    → <span class="rd">403</span> { code: "TENANT_MISMATCH" }
+│  if resolvedTenant && claims.tenant_id !== resolvedTenant.id
+│    → <span class="rd">403</span> ForbiddenException:
+│         "JWT tenant mismatch: token belongs to tenant {claims.tenant_id},
+│          but request targets tenant {resolvedTenant.id}"
 │
-│  <span class="cm">Tại sao cần bước này?</span>
 │  <span class="cm">Ngăn user của tenant A dùng token hợp lệ để gọi API trên subdomain tenant B.</span>
-│  <span class="cm">Nếu không check: alice@acme.com với valid JWT có thể gọi beta.crm.com.</span>
+│  <span class="cm">Admin routes không có resolvedTenant → bước này bị skip (if resolvedTenant).</span>
 
 
-<span class="ty">BƯỚC 5: Kiểm tra Blacklist</span>  (~0.3ms, Redis)
+<span class="ty">BƯỚC 5: Kiểm tra JTI Blacklist (Redis)</span>  (~0.3ms, I/O)
 │
-│  result = Redis.EXISTS('blacklist:' + decoded.jti)
-│  if result === 1
-│    → <span class="rd">401</span> { code: "TOKEN_REVOKED", message: "Token đã bị thu hồi" }
+│  Sau khi tenant cross-check pass, kiểm tra token có bị revoke không:
+│  key = "auth:blacklist:" + claims.jti
 │
-│  <span class="cm">JTI được đưa vào blacklist khi: logout, force-logout, password change.</span>
-│  <span class="cm">Redis key có TTL = thời gian còn lại của token → tự cleanup.</span>
-
-
-<span class="ty">BƯỚC 6: Attach vào Request Context</span>  (~0ms)
+│  Redis.EXISTS(key)
+│    → exists → <span class="rd">401</span> UnauthorizedException: "Token has been revoked"
+│    → not found → <span class="gn">PASS</span>
 │
-│  request.auth = {
-│    userId:      decoded.sub,          ← "user-5"
-│    tenantId:    decoded.tenantId,     ← "acme-123"
-│    tier:        decoded.tier,         ← "premium"
-│    roles:       decoded.roles,        ← ["sales_manager"]
-│    permissions: decoded.permissions,  ← ["sales:read", "sales:write", ...]
-│    jti:         decoded.jti           ← "tok-abc-123"
-│  }
-│  → <span class="gn">PASS</span> → tiếp tục sang RateLimiter
+│  <span class="cm">Blacklist entry được tạo khi user logout (POST /auth/logout).</span>
+│  <span class="cm">TTL = remaining lifetime của JWT → entry tự xóa khi token đã hết hạn.</span>
+│
+│  → <span class="gn">PASS</span> → req.user = JwtClaims → tiếp tục vào controller
 
 
 <span class="ty">TIMING BREAKDOWN:</span>
@@ -438,149 +603,348 @@ Body: { email: "alice@acme.com", password: "..." }
   ┌──────────────────────────────┬─────────┬─────────────────────────────────┐
   │ Bước                         │ Time    │ I/O                             │
   ├──────────────────────────────┼─────────┼─────────────────────────────────┤
-  │ Extract + parse              │ ~0ms    │ None                            │
-  │ RS256 signature verify       │ ~0.5ms  │ None (in-memory public key)     │
-  │ Expiry check                 │ ~0ms    │ None                            │
+  │ @Public() metadata check     │ ~0ms    │ None                            │
+  │ Signature verify (HS256/RS256)│ ~0.5ms │ None (in-memory key/cache)     │
+  │ Claims validate              │ ~0ms    │ None                            │
   │ Tenant cross-check           │ ~0ms    │ None                            │
-  │ Redis blacklist check        │ ~0.3ms  │ 1 Redis EXISTS call             │
+  │ JTI blacklist check (Redis)  │ ~0.3ms  │ 1x Redis EXISTS                 │
   ├──────────────────────────────┼─────────┼─────────────────────────────────┤
-  │ <span class="hi">TOTAL AuthGuard</span>              │ <span class="hi">~1ms</span>    │ 1 Redis call                    │
+  │ <span class="hi">TOTAL AuthGuard</span>              │ <span class="hi">~0.8ms</span>  │ 1x Redis read                   │
   └──────────────────────────────┴─────────┴─────────────────────────────────┘
-
-  <span class="cm">Đây là phần đóng góp ~1ms trong tổng ~3.9ms của L2 Gateway.</span>
 
 
 <span class="ty">ERROR CODES:</span>
 
-  ┌──────────────────────┬───────┬──────────────────────────────────────────┐
-  │ Code                 │ HTTP  │ Ý nghĩa                                  │
-  ├──────────────────────┼───────┼──────────────────────────────────────────┤
-  │ MISSING_TOKEN        │  401  │ Không có Authorization header            │
-  │ INVALID_TOKEN        │  401  │ Signature sai hoặc format không hợp lệ  │
-  │ TOKEN_EXPIRED        │  401  │ exp đã qua — client cần refresh          │
-  │ TENANT_MISMATCH      │  403  │ jwt.tenantId ≠ subdomain tenant          │
-  │ TOKEN_REVOKED        │  401  │ JTI trong blacklist — đã logout/revoked  │
-  └──────────────────────┴───────┴──────────────────────────────────────────┘</pre></div>
+  ┌──────────────────────────────────────┬───────┬──────────────────────────────────┐
+  │ Tình huống                           │ HTTP  │ Ý nghĩa                          │
+  ├──────────────────────────────────────┼───────┼──────────────────────────────────┤
+  │ Không có / sai format Authorization  │  401  │ Missing or invalid token         │
+  │ Signature không hợp lệ              │  401  │ Invalid token                    │
+  │ Token hết hạn (exp)                  │  401  │ Expired token                    │
+  │ Thiếu claim sub hoặc tenant_id       │  401  │ Missing required claim           │
+  │ JTI có trong Redis blacklist         │  401  │ Token has been revoked           │
+  │ jwt.tenant_id ≠ resolvedTenant.id    │  403  │ JWT tenant mismatch              │
+  └──────────────────────────────────────┴───────┴──────────────────────────────────┘</pre></div></div>
+  <div data-lang="en"><div class="dg"><div class="dg-label">authguard pipeline</div><pre>
+<span class="ty">Every request with Authorization: Bearer &lt;token&gt;</span>
+
+
+<span class="ty">STEP 1: Check @Public()</span>  (~0ms)
+│
+│  JwtAuthGuard.canActivate() checks Reflector metadata:
+│  isPublic = reflector.getAllAndOverride(IS_PUBLIC_KEY, [handler, class])
+│
+│  if isPublic → <span class="gn">fully bypass</span>, no JWT verification
+│  Applies to: POST /auth/login, POST /api/v1/admin/auth/login, GET /health, GET /metrics
+
+
+<span class="ty">STEP 2: Verify Signature (Passport JwtStrategy)</span>  (~0.5ms, CPU)
+│
+│  ExtractJwt.fromAuthHeaderAsBearerToken() → extract token from Authorization header
+│
+│  Dev mode:  JWT.verify(token, JWT_SECRET_FALLBACK, { algorithms: ['HS256'] })
+│  Prod mode: JWT.verify(token, publicKey,           { algorithms: ['RS256'] })
+│             publicKey from JWKS cache (10 min, max 5 entries)
+│
+│  If token is missing or signature is invalid:
+│    → <span class="rd">401</span> { message: "Missing or invalid authentication token" }
+│
+│  ignoreExpiration: false → Passport auto-checks exp, rejects if expired → <span class="rd">401</span>
+
+
+<span class="ty">STEP 3: Validate Claims (JwtStrategy.validate)</span>  (~0ms)
+│
+│  Check required claims:
+│  if typeof payload.sub !== 'string' || !payload.sub
+│    → <span class="rd">401</span> { message: "JWT missing required claim: sub" }
+│
+│  if typeof payload.tenant_id !== 'string' || !payload.tenant_id
+│    → <span class="rd">401</span> { message: "JWT missing required claim: tenant_id" }
+│
+│  Return: JwtClaims { sub, tenant_id, roles, email?, iat?, exp? }
+│          → becomes req.user
+
+
+<span class="ty">STEP 4: Cross-check Tenant</span>  (~0ms)
+│
+│  <span class="cm">This is the most critical tenant isolation protection step (inside handleRequest):</span>
+│  resolvedTenant = req.resolvedTenant   ← from TenantResolverMiddleware
+│
+│  if resolvedTenant && claims.tenant_id !== resolvedTenant.id
+│    → <span class="rd">403</span> ForbiddenException:
+│         "JWT tenant mismatch: token belongs to tenant {claims.tenant_id},
+│          but request targets tenant {resolvedTenant.id}"
+│
+│  <span class="cm">Prevents tenant A's user from using a valid token to call the API on tenant B's subdomain.</span>
+│  <span class="cm">Admin routes have no resolvedTenant → this step is skipped (if resolvedTenant).</span>
+
+
+<span class="ty">STEP 5: JTI Blacklist Check (Redis)</span>  (~0.3ms, I/O)
+│
+│  After tenant cross-check passes, verify the token has not been revoked:
+│  key = "auth:blacklist:" + claims.jti
+│
+│  Redis.EXISTS(key)
+│    → exists → <span class="rd">401</span> UnauthorizedException: "Token has been revoked"
+│    → not found → <span class="gn">PASS</span>
+│
+│  <span class="cm">Blacklist entry is created when the user calls POST /auth/logout.</span>
+│  <span class="cm">TTL = remaining JWT lifetime → entry auto-expires when the token would have expired anyway.</span>
+│
+│  → <span class="gn">PASS</span> → req.user = JwtClaims → proceed to controller
+
+
+<span class="ty">TIMING BREAKDOWN:</span>
+
+  ┌──────────────────────────────┬─────────┬─────────────────────────────────┐
+  │ Step                         │ Time    │ I/O                             │
+  ├──────────────────────────────┼─────────┼─────────────────────────────────┤
+  │ @Public() metadata check     │ ~0ms    │ None                            │
+  │ Signature verify (HS256/RS256)│ ~0.5ms │ None (in-memory key/cache)     │
+  │ Claims validate              │ ~0ms    │ None                            │
+  │ Tenant cross-check           │ ~0ms    │ None                            │
+  │ JTI blacklist check (Redis)  │ ~0.3ms  │ 1x Redis EXISTS                 │
+  ├──────────────────────────────┼─────────┼─────────────────────────────────┤
+  │ <span class="hi">TOTAL AuthGuard</span>              │ <span class="hi">~0.8ms</span>  │ 1x Redis read                   │
+  └──────────────────────────────┴─────────┴─────────────────────────────────┘
+
+
+<span class="ty">ERROR CODES:</span>
+
+  ┌──────────────────────────────────────┬───────┬──────────────────────────────────┐
+  │ Situation                            │ HTTP  │ Meaning                          │
+  ├──────────────────────────────────────┼───────┼──────────────────────────────────┤
+  │ Missing or invalid Authorization     │  401  │ Missing or invalid token         │
+  │ Invalid signature                    │  401  │ Invalid token                    │
+  │ Token expired (exp)                  │  401  │ Expired token                    │
+  │ Missing claim sub or tenant_id       │  401  │ Missing required claim           │
+  │ JTI found in Redis blacklist         │  401  │ Token has been revoked           │
+  │ jwt.tenant_id ≠ resolvedTenant.id    │  403  │ JWT tenant mismatch              │
+  └──────────────────────────────────────┴───────┴──────────────────────────────────┘</pre></div></div>
 </div>
 </div>
 
 <!-- REFRESH & REVOKE -->
 <div class="pnl" id="p-refresh">
 <div class="sec">
-  <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Refresh & Revoke — Token Lifecycle</h2></div>
-  <div class="nt bl" data-lang="vi"><strong>Refresh token rotation:</strong> Mỗi lần refresh đều sinh ra cả access token mới lẫn refresh token mới, đồng thời vô hiệu hóa refresh token cũ. Điều này giúp phát hiện refresh token bị đánh cắp (nếu token cũ được dùng lại sau rotation → alert).</div>
-  <div class="nt bl" data-lang="en"><strong>Refresh token rotation:</strong> Every refresh issues both a new access token and a new refresh token, while simultaneously invalidating the old refresh token. This enables detection of stolen refresh tokens (if the old token is reused after rotation → alert).</div>
-  <div class="dg"><div class="dg-label">token refresh flow</div><pre>
-<span class="ty">ACCESS TOKEN HẾT HẠN — Client nhận 401 TOKEN_EXPIRED</span>
-
-<span class="ty">POST /auth/refresh</span>
-Cookie: refreshToken=a3f9b2...  (httpOnly)
-<span class="cm">Không cần Authorization header — đây là endpoint public</span>
+  <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Refresh &amp; Revoke — Token Lifecycle</h2></div>
+  <div class="nt bl" data-lang="vi"><strong>Đã được implement đầy đủ:</strong> Refresh token rotation, logout với JTI blacklist, và bảng <code>refresh_tokens</code> đều đã có trong codebase. JWT access token ngắn hạn — refresh token 7 ngày — dùng 1 lần (rotation).</div>
+  <div class="nt bl" data-lang="en"><strong>Fully implemented:</strong> Refresh token rotation, logout with JTI blacklisting, and the <code>refresh_tokens</code> table are all present in the codebase. Short-lived JWT access tokens — 7-day refresh tokens — single-use (rotation).</div>
+  <div data-lang="vi"><div class="dg"><div class="dg-label">refresh flow</div><pre>
+<span class="ty">POST /auth/refresh  — @Public, không cần tenant header</span>
+Body: { refreshToken: "&lt;96-char hex&gt;" }
 
 
-<span class="ty">BƯỚC 1: Tìm Refresh Token</span>  (~2ms)
+<span class="ty">BƯỚC 1: Hash token đầu vào</span>  (~0ms)
 │
-│  tokenHash = SHA256(requestCookie.refreshToken)
+│  tokenHash = SHA-256(refreshToken)  ← hàm crypto.createHash('sha256')
+│  <span class="cm">Chỉ lưu hash trong DB, không bao giờ lưu raw token → an toàn khi DB bị leak</span>
+
+
+<span class="ty">BƯỚC 2: Tra cứu trong DB</span>  (~2ms)
 │
-│  SELECT * FROM refresh_tokens
-│  WHERE token_hash = tokenHash AND revoked_at IS NULL
-│  → { userId: "user-5", tenantId: "acme-123", expiresAt: ... }
+│  SELECT rt.*, u.email, u.is_active, u.tenant_id, array_agg(r.name) AS roles
+│  FROM refresh_tokens rt
+│  JOIN users u ON u.id = rt.user_id
+│  LEFT JOIN user_roles ur ON ...
+│  WHERE rt.token_hash = tokenHash
 │
-│  Nếu không tìm thấy:
-│    → <span class="rd">401</span> { code: "INVALID_REFRESH_TOKEN" }
+│  Không tìm thấy → <span class="rd">401</span> Unauthorized
+│  rt.revoked_at IS NOT NULL → <span class="rd">401</span> "Refresh token has been revoked"
+│  rt.expires_at &lt; NOW() → <span class="rd">401</span> "Refresh token has expired"
+│  u.is_active = false → <span class="rd">401</span> Unauthorized
 
 
-<span class="ty">BƯỚC 2: Kiểm tra Expiry</span>  (~0ms)
+<span class="ty">BƯỚC 3: Token Rotation (atomic)</span>  (~1ms)
 │
-│  if token.expiresAt &lt; now()
-│    DELETE FROM refresh_tokens WHERE token_hash = tokenHash
-│    → <span class="rd">401</span> { code: "REFRESH_TOKEN_EXPIRED", message: "Vui lòng đăng nhập lại" }
-
-
-<span class="ty">BƯỚC 3: Load User + Roles</span>  (~2ms)
+│  1. Revoke old token:
+│     UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = tokenHash
 │
-│  SELECT u.*, r.name as role FROM users u
-│  JOIN user_roles ur ON u.id = ur.user_id
-│  JOIN roles r ON ur.role_id = r.id
-│  WHERE u.id = token.userId AND u.tenant_id = token.tenantId
+│  2. Generate new refresh token:
+│     newRawToken = crypto.randomBytes(48).toString('hex')  ← 96-char hex
+│     newHash = SHA-256(newRawToken)
+│     INSERT INTO refresh_tokens (token_hash, user_id, tenant_id, expires_at)
+│     VALUES (newHash, userId, tenantId, NOW() + 7 days)
 │
-│  if user.status != 'active'
-│    → <span class="rd">401</span> { code: "USER_INACTIVE" }
-
-
-<span class="ty">BƯỚC 4: Rotation — Revoke Old, Issue New</span>  (~2ms)
+│  3. Issue new JWT (với jti mới):
+│     token = JWT.sign({ sub, jti: uuidv4(), tenant_id, email, roles }, secret)
 │
-│  Trong một transaction:
-│  ├── UPDATE refresh_tokens SET revoked_at=now() WHERE token_hash=tokenHash
-│  ├── newRefreshToken = crypto.randomBytes(48).toString('hex')
-│  └── INSERT INTO refresh_tokens { newTokenHash, userId, tenantId, expiresAt: now()+7d }
-│
-│  newAccessToken = JWT.sign({ sub, tenantId, tier, roles, permissions,
-│                               iat: now(), exp: now()+900, jti: newJti }, privateKey)
+│  <span class="cm">Dùng 1 lần: refresh token cũ bị revoke ngay khi được dùng.</span>
+│  <span class="cm">Nếu hacker dùng trước → token hợp lệ của user sẽ không hoạt động → detect replay.</span>
 
 
-<span class="ty">BƯỚC 5: Response</span>
+<span class="ty">BƯỚC 4: Response</span>
 │
 │  200 OK
-│  Set-Cookie: refreshToken=&lt;newRefreshToken&gt;; HttpOnly; Secure; SameSite=Strict
-│  Body: { accessToken: "eyJ...", expiresIn: 900 }
+│  {
+│    token:        "eyJ...",      ← JWT access token mới (short-lived)
+│    refreshToken: "&lt;96-char hex&gt;" ← Refresh token mới (7 ngày)
+│  }
 
 
-<span class="ty">PHÁT HIỆN TOKEN BỊ ĐÁO CẮP (Refresh Token Reuse Detection):</span>
+<span class="ty">DATABASE: bảng refresh_tokens</span>
 
-  Nếu refresh token cũ được dùng lại sau khi đã rotation:
-  │  Token cũ đã bị revoked (revoked_at IS NOT NULL)
-  │  → Đây là dấu hiệu token bị đánh cắp hoặc replay attack
-  │
-  │  Action:
-  │  ├── Revoke TẤT CẢ refresh tokens của user này trong tenant đó
-  │  ├── Đưa TẤT CẢ active JTIs của user vào blacklist
-  │  ├── Gửi email cảnh báo cho user
-  │  └── Log security event (audit trail)
-  └── → <span class="rd">401</span> { code: "TOKEN_REUSE_DETECTED" }</pre></div>
+  CREATE TABLE refresh_tokens (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    token_hash  TEXT NOT NULL UNIQUE,     ← SHA-256 hash của raw token
+    user_id     UUID NOT NULL,
+    tenant_id   UUID NOT NULL,
+    expires_at  TIMESTAMPTZ NOT NULL,     ← NOW() + 7 ngày
+    revoked_at  TIMESTAMPTZ,              ← NULL = còn hiệu lực
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+  );</pre></div></div>
+  <div data-lang="en"><div class="dg"><div class="dg-label">refresh flow</div><pre>
+<span class="ty">POST /auth/refresh  — @Public, no tenant header needed</span>
+Body: { refreshToken: "&lt;96-char hex&gt;" }
 
-  <div class="dg"><div class="dg-label">revoke & logout</div><pre>
-<span class="ty">LOGOUT — Thu hồi token hiện tại</span>
 
-<span class="ty">POST /auth/logout</span>
-Authorization: Bearer &lt;accessToken&gt;
-Cookie: refreshToken=a3f9b2...
-
-│  ① Revoke access token: Redis SETEX 'blacklist:{jti}' {remainingTTL} 1
-│     remainingTTL = decoded.exp - now()
-│     <span class="cm">Key tự xóa sau remainingTTL giây → Redis không tích lũy entries cũ.</span>
+<span class="ty">STEP 1: Hash the input token</span>  (~0ms)
 │
-│  ② Revoke refresh token: UPDATE refresh_tokens SET revoked_at=now()
-│     WHERE token_hash=SHA256(cookie)
+│  tokenHash = SHA-256(refreshToken)  ← crypto.createHash('sha256')
+│  <span class="cm">Only the hash is stored in DB, never the raw token → safe if DB is leaked</span>
+
+
+<span class="ty">STEP 2: Look up in DB</span>  (~2ms)
 │
-│  ③ Response: 200 OK
-│              Set-Cookie: refreshToken=; expires=Thu, 01 Jan 1970... (xóa cookie)
-
-
-<span class="ty">FORCE LOGOUT — Admin thu hồi tất cả sessions của một user</span>
-
-<span class="ty">DELETE /system/users/{userId}/sessions</span>  (System Admin hoặc Tenant Admin)
-
-│  ① Revoke tất cả refresh tokens:
-│     UPDATE refresh_tokens SET revoked_at=now()
-│     WHERE user_id=userId AND tenant_id=tenantId AND revoked_at IS NULL
+│  SELECT rt.*, u.email, u.is_active, u.tenant_id, array_agg(r.name) AS roles
+│  FROM refresh_tokens rt
+│  JOIN users u ON u.id = rt.user_id
+│  LEFT JOIN user_roles ur ON ...
+│  WHERE rt.token_hash = tokenHash
 │
-│  ② Blacklist tất cả active JTIs:
-│     <span class="cm">Không thể enumerate JTIs từ DB (chúng nằm trong JWT payload).</span>
-│     <span class="cm">Thay vào đó: thêm user-level revocation record.</span>
-│     Redis SETEX 'user-revoked:{userId}' {maxTTL} {timestamp}
-│     AuthGuard kiểm tra thêm: nếu key tồn tại và iat &lt; timestamp → reject
-│     <span class="cm">maxTTL = 7 ngày (max access token TTL nếu user có nhiều tokens cũ)</span>
+│  Not found → <span class="rd">401</span> Unauthorized
+│  rt.revoked_at IS NOT NULL → <span class="rd">401</span> "Refresh token has been revoked"
+│  rt.expires_at &lt; NOW() → <span class="rd">401</span> "Refresh token has expired"
+│  u.is_active = false → <span class="rd">401</span> Unauthorized
+
+
+<span class="ty">STEP 3: Token Rotation (atomic)</span>  (~1ms)
 │
-│  ③ Response: 200 OK — user phải đăng nhập lại trên mọi thiết bị
+│  1. Revoke old token:
+│     UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = tokenHash
+│
+│  2. Generate new refresh token:
+│     newRawToken = crypto.randomBytes(48).toString('hex')  ← 96-char hex
+│     newHash = SHA-256(newRawToken)
+│     INSERT INTO refresh_tokens (token_hash, user_id, tenant_id, expires_at)
+│     VALUES (newHash, userId, tenantId, NOW() + 7 days)
+│
+│  3. Issue new JWT (with fresh jti):
+│     token = JWT.sign({ sub, jti: uuidv4(), tenant_id, email, roles }, secret)
+│
+│  <span class="cm">Single-use: old refresh token is immediately revoked when used.</span>
+│  <span class="cm">If attacker uses it first → the legitimate user's token stops working → replay detected.</span>
 
 
-<span class="ty">PASSWORD CHANGE — Tự động force logout</span>
+<span class="ty">STEP 4: Response</span>
+│
+│  200 OK
+│  {
+│    token:        "eyJ...",      ← new JWT access token (short-lived)
+│    refreshToken: "&lt;96-char hex&gt;" ← new refresh token (7-day expiry)
+│  }
 
-  Khi user đổi password:
-  ├── Hash password mới → lưu vào DB
-  ├── Trigger Force Logout flow ở trên (tất cả sessions bị kill)
-  └── Issue token mới cho session hiện tại (nếu user muốn ở lại)</pre></div>
+
+<span class="ty">DATABASE: refresh_tokens table</span>
+
+  CREATE TABLE refresh_tokens (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    token_hash  TEXT NOT NULL UNIQUE,     ← SHA-256 hash of raw token
+    user_id     UUID NOT NULL,
+    tenant_id   UUID NOT NULL,
+    expires_at  TIMESTAMPTZ NOT NULL,     ← NOW() + 7 days
+    revoked_at  TIMESTAMPTZ,              ← NULL = still valid
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+  );</pre></div></div>
+</div>
+<div class="sec">
+  <div class="sec-h"><span class="sec-n">04b</span><h2 class="sec-t">Logout — JTI Blacklist</h2></div>
+  <div class="nt bl" data-lang="vi"><strong>Logout ngay lập tức:</strong> <code>POST /auth/logout</code> yêu cầu JWT hợp lệ. JTI của access token được ghi vào Redis blacklist với TTL bằng thời gian còn lại của token — không cần query DB thêm. Mọi request sau đó với token đó sẽ bị từ chối tại AuthGuard.</div>
+  <div class="nt bl" data-lang="en"><strong>Immediate invalidation:</strong> <code>POST /auth/logout</code> requires a valid JWT. The access token's JTI is written to the Redis blacklist with TTL equal to the token's remaining lifetime — no extra DB query needed. All subsequent requests using that token are rejected at the AuthGuard level.</div>
+  <div data-lang="vi"><div class="dg"><div class="dg-label">logout flow</div><pre>
+<span class="ty">POST /auth/logout  — yêu cầu JWT hợp lệ + X-Tenant-ID header</span>
+Authorization: Bearer &lt;token&gt;
+X-Tenant-ID: acme-123
+
+
+<span class="ty">BƯỚC 1: AuthGuard chạy bình thường</span>
+│
+│  → Verify signature, validate claims, check blacklist, cross-check tenant
+│  → req.user = { sub, jti, tenant_id, roles, exp, ... }
+
+
+<span class="ty">BƯỚC 2: Tính TTL còn lại</span>  (~0ms)
+│
+│  now = Math.floor(Date.now() / 1000)   ← Unix timestamp seconds
+│  ttl = claims.exp - now                ← số giây còn lại trước khi JWT hết hạn
+│
+│  if ttl &lt;= 0 → token đã hết hạn, không cần blacklist
+
+
+<span class="ty">BƯỚC 3: Ghi vào Redis Blacklist</span>  (~0.3ms)
+│
+│  key = "auth:blacklist:" + claims.jti
+│  Redis.SET(key, "1", "EX", ttl)   ← TTL = remaining lifetime
+│
+│  <span class="cm">JTI là UUID v4 duy nhất → key collision không thể xảy ra.</span>
+│  <span class="cm">Entry tự xóa khi JWT hết hạn → Redis không tích lũy entries vô thời hạn.</span>
+
+
+<span class="ty">BƯỚC 4: Response</span>
+│
+│  204 No Content   ← thành công, không có body
+
+
+<span class="ty">KẾT QUẢ:</span>
+
+  Token bị logout:
+  ├── Redis: auth:blacklist:&lt;jti&gt; = "1"  TTL = còn N giây
+  └── Mọi request sau đó → AuthGuard bước 5 → 401 "Token has been revoked"
+
+  Sau khi JWT hết hạn tự nhiên:
+  └── Redis entry tự xóa → không còn gì để check</pre></div></div>
+  <div data-lang="en"><div class="dg"><div class="dg-label">logout flow</div><pre>
+<span class="ty">POST /auth/logout  — requires valid JWT + X-Tenant-ID header</span>
+Authorization: Bearer &lt;token&gt;
+X-Tenant-ID: acme-123
+
+
+<span class="ty">STEP 1: AuthGuard runs normally</span>
+│
+│  → Verify signature, validate claims, check blacklist, cross-check tenant
+│  → req.user = { sub, jti, tenant_id, roles, exp, ... }
+
+
+<span class="ty">STEP 2: Calculate remaining TTL</span>  (~0ms)
+│
+│  now = Math.floor(Date.now() / 1000)   ← Unix timestamp in seconds
+│  ttl = claims.exp - now                ← seconds remaining before JWT expires
+│
+│  if ttl &lt;= 0 → token already expired, no blacklist entry needed
+
+
+<span class="ty">STEP 3: Write to Redis Blacklist</span>  (~0.3ms)
+│
+│  key = "auth:blacklist:" + claims.jti
+│  Redis.SET(key, "1", "EX", ttl)   ← TTL = remaining lifetime
+│
+│  <span class="cm">JTI is UUID v4 — collision impossible.</span>
+│  <span class="cm">Entry self-expires when the JWT would have expired anyway → no accumulation.</span>
+
+
+<span class="ty">STEP 4: Response</span>
+│
+│  204 No Content   ← success, no body
+
+
+<span class="ty">RESULT:</span>
+
+  Token after logout:
+  ├── Redis: auth:blacklist:&lt;jti&gt; = "1"  TTL = N seconds remaining
+  └── All subsequent requests → AuthGuard step 5 → 401 "Token has been revoked"
+
+  After JWT naturally expires:
+  └── Redis entry auto-deletes → nothing left to check</pre></div></div>
 </div>
 </div>
 
@@ -588,9 +952,9 @@ Cookie: refreshToken=a3f9b2...
 <div class="pnl" id="p-authz">
 <div class="sec">
   <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">Phân quyền — RBAC & Permission Check</span><span data-lang="en">Authorization — RBAC & Permission Check</span></h2></div>
-  <div class="nt bl" data-lang="vi"><strong>3 lớp kiểm tra độc lập:</strong> (1) Plugin có được enable cho tenant không? (2) User có role/permission không? (3) Tier của tenant có hỗ trợ feature này không? Cả 3 phải PASS thì request mới được forward xuống L3.</div>
-  <div class="nt bl" data-lang="en"><strong>3 independent check layers:</strong> (1) Is the plugin enabled for the tenant? (2) Does the user have the required role/permission? (3) Does the tenant's tier support this feature? All 3 must PASS before the request is forwarded to L3.</div>
-  <div class="dg"><div class="dg-label">rbac model</div><pre>
+  <div class="nt bl" data-lang="vi"><strong>Kiểm tra phân quyền hiện tại:</strong> Controller check <code>ctx.enabledPlugins.includes(pluginName)</code> — plugin có enabled cho tenant không? Roles từ JWT (<code>req.user.roles</code>) được truyền vào ExecutionContext. Granular permission check (per-action) và tier-based feature gate chưa được implement ở L2.</div>
+  <div class="nt bl" data-lang="en"><strong>Current authorization checks:</strong> Controllers check <code>ctx.enabledPlugins.includes(pluginName)</code> — is the plugin enabled for the tenant? Roles from the JWT (<code>req.user.roles</code>) are passed into the ExecutionContext. Granular per-action permission checks and tier-based feature gates are not yet implemented at L2.</div>
+  <div data-lang="vi"><div class="dg"><div class="dg-label">rbac model</div><pre>
 <span class="ty">MÔ HÌNH RBAC — Tenant-scoped</span>
 
   ┌─────────────────────────────────────────────────────────────────────────┐
@@ -634,90 +998,178 @@ Cookie: refreshToken=a3f9b2...
   customer:write    ← sửa customer
   analytics:view    ← xem dashboard analytics
   marketing:send    ← gửi campaign
-  admin:users       ← quản lý users trong tenant</pre></div>
+  admin:users       ← quản lý users trong tenant</pre></div></div>
+  <div data-lang="en"><div class="dg"><div class="dg-label">rbac model</div><pre>
+<span class="ty">RBAC MODEL — Tenant-scoped</span>
 
-  <div class="dg"><div class="dg-label">permission check pipeline</div><pre>
-<span class="ty">PERMISSION CHECK — Sau AuthGuard, tại PermissionCheck middleware (L2)</span>
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                                                                         │
+  │  User  ──── (within tenant) ────►  Role  ────►  Permission             │
+  │                                                                         │
+  │  alice@acme.com  →  sales_manager  →  sales:read, sales:write          │
+  │                                        customer:read, customer:write    │
+  │                                                                         │
+  │  bob@acme.com    →  viewer         →  sales:read, customer:read         │
+  │                                                                         │
+  │  carol@acme.com  →  admin          →  *.* (all permissions)            │
+  │                                                                         │
+  └─────────────────────────────────────────────────────────────────────────┘
 
-  Thực hiện sau khi RouteMatcher đã xác định plugin + requiredPermission:
-  route = { plugin: "customer-care", method: "createSale",
-             requiredPermission: "sales:write" }
+  Roles are per-tenant: "sales_manager" at ACME ≠ "sales_manager" at BETA.
+  Each tenant can define roles based on which plugins are enabled.
 
 
-<span class="ty">KIỂM TRA 1: Plugin có enabled cho tenant không?</span>  (~0ms, in-memory)
+<span class="ty">DEFAULT ROLES TABLE (by tier):</span>
+
+  ┌──────────────────┬────────────────────────────────────────────────────┐
+  │ Role             │ Default Permissions                                │
+  ├──────────────────┼────────────────────────────────────────────────────┤
+  │ admin            │ *.* (all within tenant scope)                      │
+  │ sales_manager    │ sales:*, customer:*, analytics:read                │
+  │ sales_rep        │ sales:read, sales:write, customer:read             │
+  │ viewer           │ *.read (all plugins, read-only)                    │
+  │ support          │ customer:read, customer:write, sales:read          │
+  └──────────────────┴────────────────────────────────────────────────────┘
+
+
+<span class="ty">PERMISSION NAMING CONVENTION:</span>
+
+  {plugin}:{action}
+
+  sales:read        ← read sale records
+  sales:write       ← create/update sale
+  sales:delete      ← delete sale
+  customer:read     ← read customer
+  customer:write    ← update customer
+  analytics:view    ← view analytics dashboard
+  marketing:send    ← send campaign
+  admin:users       ← manage users within tenant</pre></div></div>
+
+  <div data-lang="vi"><div class="dg"><div class="dg-label">permission check pipeline</div><pre>
+<span class="ty">PERMISSION CHECK — Sau AuthGuard, trong Controller (L3)</span>
+
+  Kiểm tra duy nhất đang được implement — plugin enablement:
+  ctx = await contextBuilder.build(tenant, user, correlationId)
+
+
+<span class="ty">KIỂM TRA: Plugin có enabled cho tenant không?</span>  (~0ms, từ cache)
 │
-│  tenantContext = TenantContextManager.get("acme-123")  ← từ LRU cache
-│  if !tenantContext.enabledPlugins.includes("customer-care")
-│    → <span class="rd">404</span> { code: "PLUGIN_NOT_FOUND" }
-│  → <span class="gn">PASS</span>
+│  ctx.enabledPlugins = ["customer-data", "analytics", ...]  ← từ tenant_plugins DB (cache 5 phút)
+│  if !ctx.enabledPlugins.includes("customer-care")
+│    → <span class="rd">403</span> ForbiddenException: "Plugin customer-care is not enabled for this tenant"
+│  → <span class="gn">PASS</span> → sandbox.execute(() =&gt; core.method(ctx), timeoutMs)
 
 
-<span class="ty">KIỂM TRA 2: User có permission không?</span>  (~0ms, in-memory)
-│
-│  userPermissions = request.auth.permissions  ← từ JWT payload
-│  if !userPermissions.includes("sales:write")
-│    → <span class="rd">403</span> { code: "PERMISSION_DENIED",
-│              message: "Bạn không có quyền sales:write" }
-│  → <span class="gn">PASS</span>
+<span class="ty">CHƯA IMPLEMENT (thiết kế tương lai):</span>
+
+  KIỂM TRA: User có permission không?  ← roles trong JWT nhưng chưa check per-action
+  KIỂM TRA: Tier có hỗ trợ feature không?  ← chưa có tier-based feature gate
 
 
-<span class="ty">KIỂM TRA 3: Tier có hỗ trợ feature không?</span>  (~0ms, in-memory)
-│
-│  tierFeatures = TierConfig.get("premium")  ← static config
-│  if !tierFeatures.includes("sales:write")
-│    → <span class="rd">403</span> { code: "FEATURE_NOT_IN_TIER",
-│              message: "Feature này không có trong gói Premium" }
-│  → <span class="gn">PASS</span>
-
-
-<span class="ty">→ TẤT CẢ PASS → Forward xuống L3 với full context</span>
-
-  request.context = {
-    tenantId:    "acme-123",
-    tier:        "premium",
-    userId:      "user-5",
-    roles:       ["sales_manager"],
-    permissions: ["sales:read","sales:write","customer:read","customer:write"],
-    plugin:      "customer-care",
-    method:      "createSale"
-  }</pre></div>
-
-  <div class="dg"><div class="dg-label">permissions in sandbox</div><pre>
-<span class="ty">TRONG SANDBOX — Plugin Code Kiểm tra Permission</span>
-
-  Plugin code chạy trong SandboxEngine (L3) nhận ExecutionContext:
-
-  // CustomerCareCore.createSale(ctx, input)
-  //
-  // ctx.user.can(permission) → boolean
-  // ctx.user.roles          → string[]
-  // ctx.user.id             → string
-
-  if (!ctx.user.can('sales:write')) {
-    throw new PermissionError('sales:write required');
-  }
-
-  <span class="cm">Tại sao cần check lại trong plugin nếu L2 đã check?</span>
-  <span class="cm">Vì một plugin có thể gọi sub-operations yêu cầu permissions khác nhau.</span>
-  <span class="cm">Ví dụ: createSale cũng ghi audit → cần audit:write.</span>
-  <span class="cm">L2 chỉ check permission của action chính. Plugin tự check sub-actions.</span>
-
-
-<span class="ty">PERMISSION TRONG EXECUTION CONTEXT:</span>
+<span class="ty">→ PASS → Forward xuống SandboxService → plugin core</span>
 
   ExecutionContext {
-    tenantId:  "acme-123",
-    db:        TenantScopedDB,       ← auto-scoped, không cần filter thủ công
-    cache:     TenantScopedCache,
-    logger:    ScopedLogger,
-    eventBus:  TenantScopedEventBus,
+    tenantId:      "acme-123",
+    enabledPlugins: ["customer-data", "analytics"],
+    user: { id: "user-5", roles: ["admin"] },   ← từ JWT claims
+    correlationId: "req-abc-123"
+  }</pre></div></div>
+  <div data-lang="en"><div class="dg"><div class="dg-label">permission check pipeline</div><pre>
+<span class="ty">PERMISSION CHECK — After AuthGuard, inside Controller (L3)</span>
+
+  The only check currently implemented — plugin enablement:
+  ctx = await contextBuilder.build(tenant, user, correlationId)
+
+
+<span class="ty">CHECK: Is the plugin enabled for the tenant?</span>  (~0ms, from cache)
+│
+│  ctx.enabledPlugins = ["customer-data", "analytics", ...]  ← from tenant_plugins DB (5 min cache)
+│  if !ctx.enabledPlugins.includes("customer-care")
+│    → <span class="rd">403</span> ForbiddenException: "Plugin customer-care is not enabled for this tenant"
+│  → <span class="gn">PASS</span> → sandbox.execute(() =&gt; core.method(ctx), timeoutMs)
+
+
+<span class="ty">NOT YET IMPLEMENTED (planned future design):</span>
+
+  CHECK: Does the user have permission?  ← roles in JWT but no per-action check yet
+  CHECK: Does the tier support this feature?  ← no tier-based feature gate yet
+
+
+<span class="ty">→ PASS → Forward to SandboxService → plugin core</span>
+
+  ExecutionContext {
+    tenantId:      "acme-123",
+    enabledPlugins: ["customer-data", "analytics"],
+    user: { id: "user-5", roles: ["admin"] },   ← from JWT claims
+    correlationId: "req-abc-123"
+  }</pre></div></div>
+
+  <div data-lang="vi"><div class="dg"><div class="dg-label">permissions in sandbox</div><pre>
+<span class="ty">TRONG SANDBOX — Plugin Code nhận ExecutionContext</span>
+
+  Plugin core (L3) nhận ctx từ SandboxService và có thể tự kiểm tra roles:
+
+  // Ví dụ: CustomerDataCore.createCustomer(ctx, input)
+  //
+  // ctx.user.roles     → string[]  (từ JWT)
+  // ctx.user.id        → string
+  // ctx.enabledPlugins → string[]
+
+  if (!ctx.user.roles.includes('admin') && !ctx.user.roles.includes('manager')) {
+    throw new PermissionDeniedError('Requires admin or manager role');
+  }
+
+  <span class="cm">ExecutionContext được build từ JwtClaims + tenant info bởi ExecutionContextBuilder.</span>
+  <span class="cm">Plugin cores có thể check roles nhưng hiện tại hầu hết không enforce per-action.</span>
+
+
+<span class="ty">EXECUTION CONTEXT HIỆN TẠI:</span>
+
+  ExecutionContext {
+    tenantId:       "acme-123",
+    enabledPlugins: ["customer-data", "analytics"],
+    correlationId:  "req-abc-123",
     user: {
-      id:          "user-5",
-      roles:       ["sales_manager"],
-      permissions: ["sales:read","sales:write","customer:read","customer:write"],
-      can: (perm) => this.permissions.includes(perm)
-    }
-  }</pre></div>
+      id:    "user-5",
+      roles: ["admin"],   ← từ JWT, không có permissions array
+    },
+    knex:       KnexInstance,    ← auto-scoped qua QueryInterceptor
+    cache:      CacheManager,
+    poolRegistry: PoolRegistry
+  }</pre></div></div>
+  <div data-lang="en"><div class="dg"><div class="dg-label">permissions in sandbox</div><pre>
+<span class="ty">IN SANDBOX — Plugin Code Receives ExecutionContext</span>
+
+  Plugin core (L3) receives ctx from SandboxService and can check roles:
+
+  // Example: CustomerDataCore.createCustomer(ctx, input)
+  //
+  // ctx.user.roles     → string[]  (from JWT)
+  // ctx.user.id        → string
+  // ctx.enabledPlugins → string[]
+
+  if (!ctx.user.roles.includes('admin') && !ctx.user.roles.includes('manager')) {
+    throw new PermissionDeniedError('Requires admin or manager role');
+  }
+
+  <span class="cm">ExecutionContext is built from JwtClaims + tenant info by ExecutionContextBuilder.</span>
+  <span class="cm">Plugin cores can check roles but most currently do not enforce per-action permissions.</span>
+
+
+<span class="ty">CURRENT EXECUTION CONTEXT:</span>
+
+  ExecutionContext {
+    tenantId:       "acme-123",
+    enabledPlugins: ["customer-data", "analytics"],
+    correlationId:  "req-abc-123",
+    user: {
+      id:    "user-5",
+      roles: ["admin"],   ← from JWT, no permissions array
+    },
+    knex:       KnexInstance,    ← auto-scoped via QueryInterceptor
+    cache:      CacheManager,
+    poolRegistry: PoolRegistry
+  }</pre></div></div>
 </div>
 </div>
 

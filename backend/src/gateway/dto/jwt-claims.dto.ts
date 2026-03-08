@@ -23,4 +23,7 @@ export interface JwtClaims {
 
   /** Expires at (epoch seconds) */
   readonly exp: number;
+
+  /** JWT ID — used to blacklist access tokens on logout */
+  readonly jti?: string;
 }

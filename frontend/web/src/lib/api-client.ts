@@ -9,6 +9,7 @@ import type {
   PluginListResponse,
   PluginItemResponse,
   LoginResponse,
+  RefreshResponse,
   ApiErrorBody,
 } from '@/types/api.types';
 
@@ -66,6 +67,21 @@ export const crmApi = {
       method: 'POST',
       body: JSON.stringify(body),
       tenantSlug: body.tenantSlug,
+    });
+  },
+
+  refresh(refreshToken: string): Promise<RefreshResponse> {
+    return request('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    });
+  },
+
+  logout(token: string, tenantId: string): Promise<void> {
+    return request('/auth/logout', {
+      method: 'POST',
+      token,
+      tenantId,
     });
   },
 

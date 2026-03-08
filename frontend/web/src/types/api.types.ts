@@ -44,8 +44,14 @@ export interface PluginItemResponse<T> {
 
 export interface LoginResponse {
   token: string;
+  refreshToken: string;
   user: { id: string; name: string; email: string; roles: string[] };
   tenant: { id: string; subdomain: string; name: string; tier: string };
+}
+
+export interface RefreshResponse {
+  token: string;
+  refreshToken: string;
 }
 
 /** Analytics plugin */

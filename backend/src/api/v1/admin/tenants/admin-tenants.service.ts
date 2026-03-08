@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { BUILT_IN_MANIFESTS } from '../../../../plugins/manifest/built-in-manifests';
@@ -91,6 +91,11 @@ export class AdminTenantsService {
   }
 
   async create(input: { name: string; subdomain: string; plan: string }) {
+    const VALID_PLANS = ['standard', 'vip', 'enterprise'];
+    if (!VALID_PLANS.includes(input.plan)) {
+      throw new BadRequestException(`Invalid plan "${input.plan}". Must be one of: ${VALID_PLANS.join(', ')}`);
+    }
+
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
       const res = await client.query<TenantRow>(
@@ -100,6 +105,11 @@ export class AdminTenantsService {
         [input.name, input.subdomain, input.plan],
       );
       return rowToTenant({ ...res.rows[0], plugin_count: '0' });
+    } catch (err: unknown) {
+      if ((err as { code?: string }).code === '23505') {
+        throw new ConflictException(`Subdomain "${input.subdomain}" is already taken`);
+      }
+      throw err;
     } finally {
       client.release();
     }

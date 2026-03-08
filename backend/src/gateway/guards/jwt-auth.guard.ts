@@ -18,18 +18,23 @@ import {
   ExecutionContext,
   UnauthorizedException,
   ForbiddenException,
+  Inject,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import type { Observable } from 'rxjs';
+import type { Redis } from 'ioredis';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import type { JwtClaims } from '../dto/jwt-claims.dto';
 import type { ResolvedTenant } from '../dto/resolved-tenant.dto';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(private readonly reflector: Reflector) {
+  constructor(
+    private readonly reflector: Reflector,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+  ) {
     super();
   }
 
@@ -49,12 +54,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  handleRequest<T = JwtClaims>(
+  async handleRequest<T = JwtClaims>(
     err: Error | null,
     user: T | false,
     info: { message?: string } | undefined,
     context: ExecutionContext
-  ): T {
+  ): Promise<T> {
     // ── 401: Không có hoặc invalid JWT ────────────────────
     if (err || !user) {
       const message =
@@ -79,6 +84,16 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         `JWT tenant mismatch: token belongs to tenant ${claims.tenant_id}, ` +
         `but request targets tenant ${resolvedTenant.id}`
       );
+    }
+
+    // ── JTI blacklist check ───────────────────────────────
+    // Revoked tokens are stored in Redis under auth:blacklist:<jti>
+    // Tokens without jti (legacy) are allowed through for backward compatibility
+    if (claims.jti) {
+      const revoked = await this.redis.get(`auth:blacklist:${claims.jti}`);
+      if (revoked) {
+        throw new UnauthorizedException('Token has been revoked');
+      }
     }
 
     return user;

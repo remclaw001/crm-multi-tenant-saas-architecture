@@ -54,12 +54,15 @@ function makeExecutionContext(req: Record<string, unknown>): ExecutionContext {
 describe('JwtAuthGuard', () => {
   let reflector: Reflector;
   let guard: JwtAuthGuard;
+  const mockRedis = { get: vi.fn().mockResolvedValue(null) };
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    mockRedis.get.mockResolvedValue(null);
     reflector = {
       getAllAndOverride: vi.fn().mockReturnValue(false),
     } as unknown as Reflector;
-    guard = new JwtAuthGuard(reflector);
+    guard = new JwtAuthGuard(reflector, mockRedis as any);
   });
 
   // ── @Public() bypass ──────────────────────────────────────
@@ -85,78 +88,78 @@ describe('JwtAuthGuard', () => {
 
   // ── handleRequest: 401 cases ──────────────────────────────
 
-  it('throws 401 when user is false (Passport auth failed)', () => {
+  it('throws 401 when user is false (Passport auth failed)', async () => {
     const ctx = makeExecutionContext({ resolvedTenant: makeResolvedTenant() });
 
-    expect(() =>
+    await expect(
       guard.handleRequest(null, false, undefined, ctx)
-    ).toThrow(UnauthorizedException);
+    ).rejects.toThrow(UnauthorizedException);
   });
 
-  it('throws 401 when err is present', () => {
+  it('throws 401 when err is present', async () => {
     const ctx = makeExecutionContext({ resolvedTenant: makeResolvedTenant() });
     const error = new Error('Token expired');
 
-    expect(() =>
+    await expect(
       guard.handleRequest(error, false, undefined, ctx)
-    ).toThrow(UnauthorizedException);
+    ).rejects.toThrow(UnauthorizedException);
   });
 
-  it('throws 401 with info.message when available', () => {
+  it('throws 401 with info.message when available', async () => {
     const ctx = makeExecutionContext({});
 
-    expect(() =>
+    await expect(
       guard.handleRequest(null, false, { message: 'jwt expired' }, ctx)
-    ).toThrowError('jwt expired');
+    ).rejects.toThrowError('jwt expired');
   });
 
   // ── handleRequest: 403 tenant mismatch ───────────────────
 
-  it('throws 403 when JWT tenant_id does not match resolved tenant', () => {
+  it('throws 403 when JWT tenant_id does not match resolved tenant', async () => {
     const req = {
       resolvedTenant: makeResolvedTenant({ id: OTHER_TENANT_ID }),
     };
     const ctx = makeExecutionContext(req);
     const user = makeJwtClaims({ tenant_id: TENANT_ID });
 
-    expect(() =>
+    await expect(
       guard.handleRequest(null, user as unknown as JwtClaims, undefined, ctx)
-    ).toThrow(ForbiddenException);
+    ).rejects.toThrow(ForbiddenException);
   });
 
-  it('throws 403 with descriptive message on mismatch', () => {
+  it('throws 403 with descriptive message on mismatch', async () => {
     const req = {
       resolvedTenant: makeResolvedTenant({ id: OTHER_TENANT_ID }),
     };
     const ctx = makeExecutionContext(req);
     const user = makeJwtClaims({ tenant_id: TENANT_ID });
 
-    expect(() =>
+    await expect(
       guard.handleRequest(null, user as unknown as JwtClaims, undefined, ctx)
-    ).toThrowError(/JWT tenant mismatch/);
+    ).rejects.toThrowError(/JWT tenant mismatch/);
   });
 
   // ── handleRequest: happy path ─────────────────────────────
 
-  it('returns user when JWT tenant matches resolved tenant', () => {
+  it('returns user when JWT tenant matches resolved tenant', async () => {
     const req = {
       resolvedTenant: makeResolvedTenant({ id: TENANT_ID }),
     };
     const ctx = makeExecutionContext(req);
     const user = makeJwtClaims({ tenant_id: TENANT_ID });
 
-    const result = guard.handleRequest(null, user as unknown as JwtClaims, undefined, ctx);
+    const result = await guard.handleRequest(null, user as unknown as JwtClaims, undefined, ctx);
 
     expect(result).toEqual(user);
   });
 
-  it('returns user when no resolvedTenant on request (e.g. health routes)', () => {
+  it('returns user when no resolvedTenant on request (e.g. health routes)', async () => {
     // Health routes bị exclude khỏi TenantResolverMiddleware
     // nên req.resolvedTenant sẽ undefined — guard không nên 403
     const ctx = makeExecutionContext({ resolvedTenant: undefined });
     const user = makeJwtClaims();
 
-    const result = guard.handleRequest(null, user as unknown as JwtClaims, undefined, ctx);
+    const result = await guard.handleRequest(null, user as unknown as JwtClaims, undefined, ctx);
 
     expect(result).toEqual(user);
   });

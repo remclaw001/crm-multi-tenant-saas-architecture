@@ -122,6 +122,13 @@ export const crmApi = {
     });
   },
 
+  deleteCustomer(id: string, ctx: AuthCtx): Promise<void> {
+    return request(`/api/v1/plugins/customer-data/customers/${id}`, {
+      method: 'DELETE',
+      ...ctx,
+    });
+  },
+
   // ─── Cases (customer-care plugin) ─────────────────────────────────────────
   getCases(ctx: AuthCtx): Promise<PluginListResponse<SupportCase>> {
     return request('/api/v1/plugins/customer-care/cases', ctx);

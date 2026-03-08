@@ -34,7 +34,12 @@ import { createKnex } from './interceptor/QueryInterceptor';
       provide: 'KNEX_INSTANCE',
       useFactory: () => createKnex(config.DATABASE_URL, config.DATABASE_POOL_MAX),
     },
+    // Raw Redis client for auth (blacklist, refresh tokens) — no TenantContext needed
+    {
+      provide: 'REDIS_CLIENT',
+      useFactory: () => new Redis(config.REDIS_URL),
+    },
   ],
-  exports: [PoolRegistry, CacheManager, 'KNEX_INSTANCE'],
+  exports: [PoolRegistry, CacheManager, 'KNEX_INSTANCE', 'REDIS_CLIENT'],
 })
 export class DalModule {}

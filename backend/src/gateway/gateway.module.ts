@@ -61,6 +61,8 @@ export class GatewayModule implements NestModule {
         { path: 'ready', method: RequestMethod.GET },
         { path: 'metrics', method: RequestMethod.GET },
         { path: 'api/v1/admin/(.*)', method: RequestMethod.ALL },
+        // Refresh uses opaque token — no tenant context needed
+        { path: 'auth/refresh', method: RequestMethod.POST },
       )
       .forRoutes('*');
 

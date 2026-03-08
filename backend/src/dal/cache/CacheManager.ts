@@ -24,6 +24,11 @@ const DEFAULT_TTL_SECONDS = 300; // 5 phút
 export class CacheManager implements ICacheManager {
   constructor(private readonly redis: Redis) {}
 
+  /** Expose raw Redis client for services that need direct access without TenantContext. */
+  get client(): Redis {
+    return this.redis;
+  }
+
   // ── Key building ─────────────────────────────────────────
 
   /**

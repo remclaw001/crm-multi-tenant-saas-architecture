@@ -89,6 +89,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       tenant_id,
       roles: Array.isArray(payload['roles']) ? (payload['roles'] as string[]) : [],
       email: typeof payload['email'] === 'string' ? payload['email'] : undefined,
+      jti: typeof payload['jti'] === 'string' ? payload['jti'] : undefined,
       iat: payload['iat'] as number,
       exp: payload['exp'] as number,
     };

@@ -8,6 +8,7 @@ import { crmApi } from '@/lib/api-client';
 import { ContactsList } from '@/components/contacts-list';
 import { AddContactModal } from '@/components/add-contact-modal';
 import { EditContactModal } from '@/components/edit-contact-modal';
+import { DeleteContactModal } from '@/components/delete-contact-modal';
 import { PluginGate } from '@/components/plugin-gate';
 import type { Customer } from '@/types/api.types';
 
@@ -16,6 +17,7 @@ export default function ContactsPage() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Customer | null>(null);
+  const [deletingContact, setDeletingContact] = useState<Customer | null>(null);
 
   const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
 
@@ -57,7 +59,11 @@ export default function ContactsPage() {
             Failed to load contacts.
           </div>
         ) : (
-          <ContactsList contacts={data?.data ?? []} onEdit={setEditingContact} />
+          <ContactsList
+            contacts={data?.data ?? []}
+            onEdit={setEditingContact}
+            onDelete={setDeletingContact}
+          />
         )}
 
         <AddContactModal
@@ -70,6 +76,14 @@ export default function ContactsPage() {
           <EditContactModal
             contact={editingContact}
             onClose={() => setEditingContact(null)}
+            onSuccess={handleSuccess}
+          />
+        )}
+
+        {deletingContact && (
+          <DeleteContactModal
+            contact={deletingContact}
+            onClose={() => setDeletingContact(null)}
             onSuccess={handleSuccess}
           />
         )}

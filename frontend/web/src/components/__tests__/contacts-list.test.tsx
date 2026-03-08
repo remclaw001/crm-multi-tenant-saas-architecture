@@ -18,8 +18,15 @@ const contact: Customer = {
 describe('ContactsList', () => {
   it('calls onEdit with the correct contact when pencil button is clicked', () => {
     const onEdit = vi.fn();
-    render(<ContactsList contacts={[contact]} onEdit={onEdit} />);
+    render(<ContactsList contacts={[contact]} onEdit={onEdit} onDelete={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /edit/i }));
     expect(onEdit).toHaveBeenCalledWith(contact);
+  });
+
+  it('calls onDelete with the correct contact when trash button is clicked', () => {
+    const onDelete = vi.fn();
+    render(<ContactsList contacts={[contact]} onEdit={vi.fn()} onDelete={onDelete} />);
+    fireEvent.click(screen.getByRole('button', { name: /delete/i }));
+    expect(onDelete).toHaveBeenCalledWith(contact);
   });
 });

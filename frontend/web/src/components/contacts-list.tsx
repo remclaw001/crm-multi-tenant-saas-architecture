@@ -12,10 +12,13 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import { useState, useMemo } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2 } from 'lucide-react';
 import type { Customer } from '@/types/api.types';
 
-function buildColumns(onEdit: (c: Customer) => void): ColumnDef<Customer>[] {
+function buildColumns(
+  onEdit: (c: Customer) => void,
+  onDelete: (c: Customer) => void,
+): ColumnDef<Customer>[] {
   return [
     {
       accessorKey: 'name',
@@ -70,13 +73,22 @@ function buildColumns(onEdit: (c: Customer) => void): ColumnDef<Customer>[] {
       id: 'actions',
       header: '',
       cell: ({ row }) => (
-        <button
-          onClick={() => onEdit(row.original)}
-          aria-label="Edit"
-          className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onEdit(row.original)}
+            aria-label="Edit"
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => onDelete(row.original)}
+            aria-label="Delete"
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       ),
     },
   ];
@@ -85,13 +97,15 @@ function buildColumns(onEdit: (c: Customer) => void): ColumnDef<Customer>[] {
 export function ContactsList({
   contacts,
   onEdit,
+  onDelete,
 }: {
   contacts: Customer[];
   onEdit: (contact: Customer) => void;
+  onDelete: (contact: Customer) => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const columns = useMemo(() => buildColumns(onEdit), [onEdit]);
+  const columns = useMemo(() => buildColumns(onEdit, onDelete), [onEdit, onDelete]);
 
   const table = useReactTable({
     data: contacts,

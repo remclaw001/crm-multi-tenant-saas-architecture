@@ -54,7 +54,7 @@ export default function ContactsPage() {
             Failed to load contacts.
           </div>
         ) : (
-          <ContactsList contacts={data?.data ?? []} />
+          <ContactsList contacts={data?.data ?? []} onEdit={() => {}} />
         )}
 
         <AddContactModal

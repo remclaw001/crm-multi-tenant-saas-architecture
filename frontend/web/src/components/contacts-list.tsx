@@ -11,64 +11,87 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
-import { useState } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Pencil } from 'lucide-react';
 import type { Customer } from '@/types/api.types';
 
-const columns: ColumnDef<Customer>[] = [
-  {
-    accessorKey: 'name',
-    header: ({ column }) => (
-      <button onClick={() => column.toggleSorting()} className="flex items-center gap-1 font-medium">
-        Name
-        {column.getIsSorted() === 'asc' ? (
-          <ArrowUp className="h-3 w-3" />
-        ) : column.getIsSorted() === 'desc' ? (
-          <ArrowDown className="h-3 w-3" />
-        ) : (
-          <ArrowUpDown className="h-3 w-3 opacity-40" />
-        )}
-      </button>
-    ),
-    cell: ({ row }) => (
-      <div>
-        <p className="font-medium">{row.original.name}</p>
-        {row.original.email && (
-          <p className="text-xs text-muted-foreground">{row.original.email}</p>
-        )}
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'company',
-    header: 'Company',
-    cell: ({ getValue }) => getValue<string | null>() ?? '—',
-  },
-  {
-    accessorKey: 'phone',
-    header: 'Phone',
-    cell: ({ getValue }) => getValue<string | null>() ?? '—',
-  },
-  {
-    accessorKey: 'is_active',
-    header: 'Status',
-    cell: ({ getValue }) => {
-      const active = getValue<boolean>();
-      return (
-        <span
-          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-            active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
-          }`}
-        >
-          {active ? 'Active' : 'Inactive'}
-        </span>
-      );
+function buildColumns(onEdit: (c: Customer) => void): ColumnDef<Customer>[] {
+  return [
+    {
+      accessorKey: 'name',
+      header: ({ column }) => (
+        <button onClick={() => column.toggleSorting()} className="flex items-center gap-1 font-medium">
+          Name
+          {column.getIsSorted() === 'asc' ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : column.getIsSorted() === 'desc' ? (
+            <ArrowDown className="h-3 w-3" />
+          ) : (
+            <ArrowUpDown className="h-3 w-3 opacity-40" />
+          )}
+        </button>
+      ),
+      cell: ({ row }) => (
+        <div>
+          <p className="font-medium">{row.original.name}</p>
+          {row.original.email && (
+            <p className="text-xs text-muted-foreground">{row.original.email}</p>
+          )}
+        </div>
+      ),
     },
-  },
-];
+    {
+      accessorKey: 'company',
+      header: 'Company',
+      cell: ({ getValue }) => getValue<string | null>() ?? '—',
+    },
+    {
+      accessorKey: 'phone',
+      header: 'Phone',
+      cell: ({ getValue }) => getValue<string | null>() ?? '—',
+    },
+    {
+      accessorKey: 'is_active',
+      header: 'Status',
+      cell: ({ getValue }) => {
+        const active = getValue<boolean>();
+        return (
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+              active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {active ? 'Active' : 'Inactive'}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <button
+          onClick={() => onEdit(row.original)}
+          aria-label="Edit"
+          className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      ),
+    },
+  ];
+}
 
-export function ContactsList({ contacts }: { contacts: Customer[] }) {
+export function ContactsList({
+  contacts,
+  onEdit,
+}: {
+  contacts: Customer[];
+  onEdit: (contact: Customer) => void;
+}) {
   const [sorting, setSorting] = useState<SortingState>([]);
+
+  const columns = useMemo(() => buildColumns(onEdit), [onEdit]);
 
   const table = useReactTable({
     data: contacts,
@@ -112,7 +135,7 @@ export function ContactsList({ contacts }: { contacts: Customer[] }) {
             ))}
             {contacts.length === 0 && (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                   No contacts found.
                 </td>
               </tr>

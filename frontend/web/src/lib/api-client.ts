@@ -112,7 +112,7 @@ export const crmApi = {
 
   updateCustomer(
     id: string,
-    input: { name?: string; email?: string; phone?: string; company?: string },
+    input: { name?: string; email?: string | null; phone?: string | null; company?: string | null },
     ctx: AuthCtx,
   ): Promise<{ plugin: string; data: Customer }> {
     return request(`/api/v1/plugins/customer-data/customers/${id}`, {

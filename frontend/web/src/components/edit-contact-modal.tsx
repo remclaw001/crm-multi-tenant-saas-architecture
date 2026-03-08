@@ -57,7 +57,7 @@ export function EditContactModal({ contact, onClose, onSuccess }: Props) {
   }, [contact.id]);
 
   const mutation = useMutation({
-    mutationFn: ({ id, input }: { id: string; input: { name?: string; email?: string; phone?: string; company?: string } }) =>
+    mutationFn: ({ id, input }: { id: string; input: { name: string; email: string | null; phone: string | null; company: string | null } }) =>
       crmApi.updateCustomer(id, input, { token: token ?? '', tenantId: tenantId ?? '' }),
   });
 
@@ -81,12 +81,12 @@ export function EditContactModal({ contact, onClose, onSuccess }: Props) {
     }
 
     try {
-      const input: { name: string; email?: string; phone?: string; company?: string } = {
+      const input: { name: string; email: string | null; phone: string | null; company: string | null } = {
         name: form.name.trim(),
+        email: form.email || null,
+        phone: form.phone || null,
+        company: form.company || null,
       };
-      if (form.email) input.email = form.email;
-      if (form.phone) input.phone = form.phone;
-      if (form.company) input.company = form.company;
 
       await mutation.mutateAsync({ id: contact.id, input });
       onSuccess();

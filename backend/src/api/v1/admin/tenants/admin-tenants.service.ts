@@ -98,14 +98,28 @@ export class AdminTenantsService {
 
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
+      await client.query('BEGIN');
+
       const res = await client.query<TenantRow>(
         `INSERT INTO tenants (name, subdomain, tier, config)
          VALUES ($1, $2, $3, '{}')
          RETURNING id, name, subdomain, tier, is_active, created_at, updated_at`,
         [input.name, input.subdomain, input.plan],
       );
-      return rowToTenant({ ...res.rows[0], plugin_count: '0' });
+      const tenant = res.rows[0];
+
+      // Enable customer-data plugin by default for every new tenant
+      await client.query(
+        `INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled)
+         VALUES ($1, 'customer-data', true)
+         ON CONFLICT (tenant_id, plugin_name) DO NOTHING`,
+        [tenant.id],
+      );
+
+      await client.query('COMMIT');
+      return rowToTenant({ ...tenant, plugin_count: '1' });
     } catch (err: unknown) {
+      await client.query('ROLLBACK');
       if ((err as { code?: string }).code === '23505') {
         throw new ConflictException(`Subdomain "${input.subdomain}" is already taken`);
       }

@@ -5,24 +5,45 @@ const mockQuery = vi.hoisted(() => vi.fn());
 const mockRelease = vi.hoisted(() => vi.fn());
 const mockAcquire = vi.hoisted(() => vi.fn());
 const mockDelForTenant = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const mockFlushTenant = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const mockInvalidateTenantLookup = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const mockSetTenantLookup = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockPublishNotification = vi.hoisted(() => vi.fn());
+const mockPublishAudit = vi.hoisted(() => vi.fn());
+const mockDeregisterVipPool = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const mockQuotaRegister = vi.hoisted(() => vi.fn());
+const mockQuotaDeregister = vi.hoisted(() => vi.fn());
+const mockQuotaUpdateCap = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../../dal/pool/PoolRegistry', () => ({
   PoolRegistry: vi.fn().mockImplementation(() => ({
     acquireMetadataConnection: mockAcquire,
+    deregisterVipPool: mockDeregisterVipPool,
   })),
 }));
 
 vi.mock('../../../../dal/cache/CacheManager', () => ({
   CacheManager: vi.fn().mockImplementation(() => ({
     delForTenant: mockDelForTenant,
+    flushTenant: mockFlushTenant,
+    invalidateTenantLookup: mockInvalidateTenantLookup,
+    setTenantLookup: mockSetTenantLookup,
   })),
 }));
 
 vi.mock('../../../../workers/amqp/amqp-publisher.service', () => ({
   AmqpPublisher: vi.fn().mockImplementation(() => ({
     publishNotification: mockPublishNotification,
+    publishAudit: mockPublishAudit,
   })),
+}));
+
+vi.mock('../../../../../dal/pool/TenantQuotaEnforcer', () => ({
+  TenantQuotaEnforcer: {
+    register: mockQuotaRegister,
+    deregister: mockQuotaDeregister,
+    updateCap: mockQuotaUpdateCap,
+  },
 }));
 
 import { AdminTenantsService } from '../admin-tenants.service';
@@ -137,8 +158,8 @@ describe('AdminTenantsService', () => {
     it('transitions status: offboarding → plugins disabled → offboarded, subdomain=null', async () => {
       // BEGIN
       mockQuery.mockResolvedValueOnce({ rows: [] });
-      // UPDATE tenants SET status='offboarding' RETURNING id, subdomain
-      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid', subdomain: 'acme' }] });
+      // UPDATE tenants SET status='offboarding' RETURNING id, subdomain, tier
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid', subdomain: 'acme', tier: 'basic' }] });
       // UPDATE tenant_plugins SET is_enabled = false
       mockQuery.mockResolvedValueOnce({ rows: [] });
       // UPDATE tenants SET status='offboarded', subdomain=NULL
@@ -172,8 +193,13 @@ describe('AdminTenantsService', () => {
       expect(offboardedCall).toBeDefined();
       expect(offboardedCall![0]).toContain('subdomain = NULL');
 
-      // Verify cache invalidation (Step 4)
-      expect(mockDelForTenant).toHaveBeenCalledWith('tid', 'tenant-config', 'enabled-plugins');
+      // Verify post-transaction side effects
+      expect(mockQuotaDeregister).toHaveBeenCalledWith('tid');
+      expect(mockFlushTenant).toHaveBeenCalledWith('tid');
+      expect(mockInvalidateTenantLookup).toHaveBeenCalledWith('tid', 'acme');
+      expect(mockPublishAudit).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'tenant.offboarded', tenantId: 'tid' }),
+      );
     });
 
     it('throws NotFoundException when tenant not found and rolls back', async () => {
@@ -194,8 +220,10 @@ describe('AdminTenantsService', () => {
       );
       expect(rollbackCalls.length).toBeGreaterThanOrEqual(1);
 
-      // Cache should NOT be cleared
-      expect(mockDelForTenant).not.toHaveBeenCalled();
+      // Side effects should NOT have fired
+      expect(mockQuotaDeregister).not.toHaveBeenCalled();
+      expect(mockFlushTenant).not.toHaveBeenCalled();
+      expect(mockPublishAudit).not.toHaveBeenCalled();
     });
 
     it('rolls back on DB error after BEGIN', async () => {
@@ -214,8 +242,60 @@ describe('AdminTenantsService', () => {
       );
       expect(rollbackCall).toBeDefined();
 
-      // Cache should NOT be cleared
-      expect(mockDelForTenant).not.toHaveBeenCalled();
+      // Side effects should NOT have fired
+      expect(mockQuotaDeregister).not.toHaveBeenCalled();
+      expect(mockFlushTenant).not.toHaveBeenCalled();
+      expect(mockPublishAudit).not.toHaveBeenCalled();
+    });
+
+    it('full pipeline: deregisters quota, flushes cache, and publishes audit', async () => {
+      // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // UPDATE tenants SET status='offboarding' RETURNING id, subdomain, tier
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid', subdomain: 'acme', tier: 'premium' }] });
+      // UPDATE tenant_plugins
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // UPDATE tenants SET status='offboarded'
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // COMMIT
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await service.offboard('tid');
+
+      // 1. Quota slot released
+      expect(mockQuotaDeregister).toHaveBeenCalledWith('tid');
+
+      // 2. Full Redis flush
+      expect(mockFlushTenant).toHaveBeenCalledWith('tid');
+      expect(mockInvalidateTenantLookup).toHaveBeenCalledWith('tid', 'acme');
+
+      // 3. Audit event published
+      expect(mockPublishAudit).toHaveBeenCalledOnce();
+      const auditCall = mockPublishAudit.mock.calls[0][0];
+      expect(auditCall.action).toBe('tenant.offboarded');
+      expect(auditCall.tenantId).toBe('tid');
+      expect(auditCall.resource).toBe('tenant');
+      expect(auditCall.metadata).toMatchObject({ subdomain: 'acme', tier: 'premium' });
+
+      // 4. VIP pool NOT deregistered (tier is premium, not vip)
+      expect(mockDeregisterVipPool).not.toHaveBeenCalled();
+    });
+
+    it('deregisters VIP pool when tier is vip', async () => {
+      // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // UPDATE tenants RETURNING id, subdomain, tier = 'vip'
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid', subdomain: 'big-corp', tier: 'vip' }] });
+      // UPDATE tenant_plugins
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // UPDATE tenants SET status='offboarded'
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // COMMIT
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await service.offboard('tid');
+
+      expect(mockDeregisterVipPool).toHaveBeenCalledWith('tid');
     });
   });
 

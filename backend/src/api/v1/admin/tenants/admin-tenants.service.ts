@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { CacheManager } from '../../../../dal/cache/CacheManager';
+import { TenantQuotaEnforcer } from '../../../../dal/pool/TenantQuotaEnforcer';
 import { BUILT_IN_MANIFESTS } from '../../../../plugins/manifest/built-in-manifests';
 import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
 
@@ -138,6 +139,21 @@ export class AdminTenantsService {
 
       await client.query('COMMIT');
 
+      // Register per-tenant connection cap
+      TenantQuotaEnforcer.register(tenant.id, input.plan);
+
+      // Warm tenant-lookup cache immediately after create
+      await this.cache.setTenantLookup({
+        id: tenant.id,
+        name: tenant.name ?? input.name,
+        subdomain: tenant.subdomain ?? input.subdomain,
+        tier: (input.plan as any),
+        status: 'active' as any,
+        dbUrl: null,
+        isActive: true,
+        allowedOrigins: [],
+      });
+
       const result = rowToTenant({
         ...tenant,
         status: 'active',
@@ -252,6 +268,19 @@ export class AdminTenantsService {
       if (input.plan && input.plan !== currentTier) {
         await this.cache.delForTenant(id, 'tenant-config', 'enabled-plugins');
         await this.cache.delForTenant(id, 'tenant-config', 'tenant-config');
+
+        // Invalidate tenant-lookup cache so TenantResolverMiddleware re-reads updated tier
+        const subdomain = res.rows[0]?.subdomain ?? null;
+        await this.cache.invalidateTenantLookup(id, subdomain);
+
+        // Update in-memory quota cap
+        TenantQuotaEnforcer.updateCap(id, input.plan);
+
+        const isVipUpgrade = input.plan === 'vip' && currentTier !== 'vip';
+        const isVipDowngrade = input.plan !== 'vip' && currentTier === 'vip';
+        // TODO Task 13: enqueue vip-migration or vip-decommission job
+        void isVipUpgrade;
+        void isVipDowngrade;
       }
 
       return rowToTenant(res.rows[0]);
@@ -265,43 +294,67 @@ export class AdminTenantsService {
 
   async offboard(id: string): Promise<void> {
     const client = await this.poolRegistry.acquireMetadataConnection();
+    let subdomain: string | null = null;
     try {
       await client.query('BEGIN');
 
-      // Step 1: Set status to offboarding (lock the tenant)
-      const res = await client.query<{ id: string; subdomain: string }>(
+      // Step 1: lock → offboarding
+      const lockRes = await client.query<{ id: string; subdomain: string | null; tier: string }>(
         `UPDATE tenants
          SET status = 'offboarding', is_active = false, updated_at = NOW()
          WHERE id = $1
-         RETURNING id, subdomain`,
+         RETURNING id, subdomain, tier`,
         [id],
       );
-      if (!res.rows[0]) {
+      if (!lockRes.rows[0]) {
         await client.query('ROLLBACK');
         throw new NotFoundException(`Tenant not found: ${id}`);
       }
+      subdomain = lockRes.rows[0].subdomain;
+      const tier = lockRes.rows[0].tier;
 
-      // Step 2: Disable all tenant plugins
+      // Step 2: disable all plugins
       await client.query(
         `UPDATE tenant_plugins SET is_enabled = false WHERE tenant_id = $1`,
         [id],
       );
 
-      // Step 3: Set status to offboarded and release subdomain
-      // subdomain=NULL releases it for reuse (UNIQUE constraint allows multiple NULLs in pg)
+      // Step 3: offboarded + release subdomain + timestamp
       await client.query(
         `UPDATE tenants
-         SET status = 'offboarded', subdomain = NULL, updated_at = NOW()
+         SET status = 'offboarded', subdomain = NULL,
+             offboarded_at = NOW(), updated_at = NOW()
          WHERE id = $1`,
         [id],
       );
 
       await client.query('COMMIT');
 
-      // Step 4: Clear Redis cache (outside transaction)
-      await this.cache.delForTenant(id, 'tenant-config', 'enabled-plugins');
-      // TODO: Add CacheManager.flushTenant(id) for full Redis SCAN+DEL t:{id}:* — production TODO
-      // TODO: Publish offboard event for async S3 data export — external billing trigger needed
+      // ── Post-transaction side effects ─────────────────────────
+      // 4. Release per-tenant quota slot
+      TenantQuotaEnforcer.deregister(id);
+
+      // 5. Full Redis flush
+      await this.cache.flushTenant(id);
+      await this.cache.invalidateTenantLookup(id, subdomain);
+
+      // 6. Publish audit trail
+      await this.amqp.publishAudit({
+        tenantId: id,
+        userId: 'system',
+        action: 'tenant.offboarded',
+        resource: 'tenant',
+        resourceId: id,
+        metadata: { subdomain, tier },
+      });
+
+      // 7. TODO Task 15: enqueue data-export job
+      // await this.dataExportQueue.add('export', { tenantId: id, tier });
+
+      // 8. If VIP: deregister dedicated pool
+      if (tier === 'vip') {
+        await this.poolRegistry.deregisterVipPool(id);
+      }
 
     } catch (err) {
       await client.query('ROLLBACK').catch(() => undefined);

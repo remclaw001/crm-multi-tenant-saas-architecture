@@ -88,6 +88,23 @@ export class PoolRegistry {
     }
   }
 
+  /** Return the VIP pool for a tenant, or null if not registered. */
+  getVipPool(tenantId: string): Pool | null {
+    return this.vipPools.get(tenantId) ?? null;
+  }
+
+  /**
+   * Drain and destroy the dedicated pool for a VIP tenant.
+   * Called after VIP downgrade or offboard.
+   * Safe to call if pool doesn't exist.
+   */
+  async deregisterVipPool(tenantId: string): Promise<void> {
+    const pool = this.vipPools.get(tenantId);
+    if (!pool) return;
+    this.vipPools.delete(tenantId);
+    await pool.end(); // waits for all idle connections to close
+  }
+
   /**
    * Trả về pool phù hợp theo tier của tenant.
    * VIP/Enterprise dùng dedicated pool nếu đã được đăng ký,

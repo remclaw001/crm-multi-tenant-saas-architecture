@@ -9,7 +9,8 @@ const mockFlushTenant = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockInvalidateTenantLookup = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockSetTenantLookup = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockPublishNotification = vi.hoisted(() => vi.fn());
-const mockPublishAudit = vi.hoisted(() => vi.fn());
+const mockPublishAudit        = vi.hoisted(() => vi.fn());
+const mockRedisPublish        = vi.hoisted(() => vi.fn().mockResolvedValue(1));
 const mockDeregisterVipPool = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockQuotaRegister = vi.hoisted(() => vi.fn());
 const mockQuotaDeregister = vi.hoisted(() => vi.fn());
@@ -51,9 +52,10 @@ import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
 
-const mockVipMigrationQueue = { add: vi.fn().mockResolvedValue(undefined) } as any;
+const mockVipMigrationQueue    = { add: vi.fn().mockResolvedValue(undefined) } as any;
 const mockVipDecommissionQueue = { add: vi.fn().mockResolvedValue(undefined) } as any;
-const mockDataExportQueue = { add: vi.fn().mockResolvedValue(undefined) } as any;
+const mockDataExportQueue      = { add: vi.fn().mockResolvedValue(undefined) } as any;
+const mockRedis                = { publish: mockRedisPublish } as any;
 
 const ROW = {
   id: 'tid', name: 'Acme', subdomain: 'acme',
@@ -73,6 +75,7 @@ describe('AdminTenantsService', () => {
       new (PoolRegistry as any)(),
       new (CacheManager as any)(),
       new (AmqpPublisher as any)(),
+      mockRedis,
       mockVipMigrationQueue,
       mockVipDecommissionQueue,
       mockDataExportQueue,
@@ -391,6 +394,19 @@ describe('AdminTenantsService', () => {
 
       // Cache should be invalidated
       expect(mockDelForTenant).toHaveBeenCalledWith('tid', 'tenant-config', 'enabled-plugins');
+
+      // Redis broadcast to other instances
+      expect(mockRedisPublish).toHaveBeenCalledWith(
+        'crm:config:reload',
+        JSON.stringify({ tenantId: 'tid', newTier: 'premium' }),
+      );
+      expect(mockRedisPublish).toHaveBeenCalledWith(
+        'crm:cache:invalidate',
+        JSON.stringify({ tenantId: 'tid', scope: 'tenant-context' }),
+      );
+
+      // Quota cap updated on this instance
+      expect(mockQuotaUpdateCap).toHaveBeenCalledWith('tid', 'premium');
     });
 
     it('enterprise→basic: disables marketing', async () => {
@@ -474,6 +490,84 @@ describe('AdminTenantsService', () => {
       await expect(service.update('tid', { plan: 'invalid-plan' })).rejects.toThrow(BadRequestException);
       // No DB calls should have been made
       expect(mockQuery).not.toHaveBeenCalled();
+    });
+
+    it('VIP upgrade: sets status=migrating in the UPDATE SQL', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'premium' }] }); // SELECT tier
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'vip', status: 'migrating', is_active: false, subdomain: 'acme', plugin_count: '5' }] }); // UPDATE
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // INSERT plugins (toEnable: automation)
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+      await service.update('tid', { plan: 'vip' });
+
+      const updateCall = mockQuery.mock.calls.find(
+        (args) => typeof args[0] === 'string' && args[0].includes('UPDATE tenants SET'),
+      );
+      expect(updateCall![0]).toContain("status = $");
+      expect(updateCall![0]).toContain("is_active = $");
+      // The args must include 'migrating' and false
+      expect(updateCall![1]).toContain('migrating');
+      expect(updateCall![1]).toContain(false);
+    });
+
+    it('VIP upgrade: does NOT call TenantQuotaEnforcer.updateCap', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'enterprise' }] }); // SELECT tier
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'vip', status: 'migrating', is_active: false, subdomain: 'acme', plugin_count: '5' }] }); // UPDATE
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // INSERT plugins (automation)
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+      await service.update('tid', { plan: 'vip' });
+
+      // VipMigrationProcessor handles deregistration after migration completes
+      expect(mockQuotaUpdateCap).not.toHaveBeenCalled();
+    });
+
+    it('VIP upgrade: enqueues vip-migration job', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'premium' }] }); // SELECT tier
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'vip', status: 'migrating', subdomain: 'acme', is_active: false, plugin_count: '5' }] }); // UPDATE
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // INSERT plugins
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+      await service.update('tid', { plan: 'vip' });
+
+      expect(mockVipMigrationQueue.add).toHaveBeenCalledWith(
+        'migrate',
+        expect.objectContaining({ tenantId: 'tid', currentTier: 'premium' }),
+      );
+      expect(mockVipDecommissionQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('VIP upgrade: broadcasts config reload to other instances', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'basic' }] }); // SELECT tier
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'vip', status: 'migrating', subdomain: 'acme', is_active: false, plugin_count: '5' }] }); // UPDATE
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // INSERT plugins
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+      await service.update('tid', { plan: 'vip' });
+
+      expect(mockRedisPublish).toHaveBeenCalledWith(
+        'crm:config:reload',
+        JSON.stringify({ tenantId: 'tid', newTier: 'vip' }),
+      );
+      expect(mockRedisPublish).toHaveBeenCalledWith(
+        'crm:cache:invalidate',
+        JSON.stringify({ tenantId: 'tid', scope: 'tenant-context' }),
+      );
+    });
+
+    it('no-tier-change update: does NOT publish to Redis', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'basic' }] }); // SELECT tier
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, name: 'New Name' }] }); // UPDATE
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+      await service.update('tid', { name: 'New Name' });
+
+      expect(mockRedisPublish).not.toHaveBeenCalled();
     });
 
     it('writes status column and keeps is_active in sync', async () => {

@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Inject } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
+import type { Redis } from 'ioredis';
 import type { Queue } from 'bullmq';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { CacheManager } from '../../../../dal/cache/CacheManager';
@@ -7,6 +8,7 @@ import { TenantQuotaEnforcer } from '../../../../dal/pool/TenantQuotaEnforcer';
 import { BUILT_IN_MANIFESTS } from '../../../../plugins/manifest/built-in-manifests';
 import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
 import { QUEUE_VIP_MIGRATION, QUEUE_VIP_DECOMMISSION, QUEUE_DATA_EXPORT } from '../../../../workers/bullmq/queue.constants';
+import { CONFIG_RELOAD_CHANNEL, CACHE_INVALIDATE_CHANNEL } from '../../../../dal/pubsub/tenant-config-reload.service';
 import type { VipMigrationJobData } from '../../../../workers/bullmq/processors/vip-migration.processor';
 import type { VipDecommissionJobData } from '../../../../workers/bullmq/processors/vip-decommission.processor';
 import type { DataExportJobData } from '../../../../workers/bullmq/processors/data-export.processor';
@@ -46,6 +48,7 @@ export class AdminTenantsService {
     private readonly poolRegistry: PoolRegistry,
     private readonly cache: CacheManager,
     private readonly amqp: AmqpPublisher,
+    @Inject('REDIS_CLIENT')              private readonly redis: Redis,
     @InjectQueue(QUEUE_VIP_MIGRATION)    private readonly vipMigrationQueue: Queue,
     @InjectQueue(QUEUE_VIP_DECOMMISSION) private readonly vipDecommissionQueue: Queue,
     @InjectQueue(QUEUE_DATA_EXPORT)      private readonly dataExportQueue: Queue,
@@ -228,7 +231,9 @@ export class AdminTenantsService {
     try {
       await client.query('BEGIN');
 
-      // Fetch current tier BEFORE updating so we can compute the plugin delta
+      // Fetch current tier BEFORE updating so we can:
+      //   1. compute the plugin delta
+      //   2. detect VIP upgrade/downgrade for status gate
       const currentRes = await client.query<{ tier: string }>(
         'SELECT tier FROM tenants WHERE id = $1',
         [id],
@@ -236,21 +241,33 @@ export class AdminTenantsService {
       if (!currentRes.rows[0]) throw new NotFoundException(`Tenant not found: ${id}`);
       const currentTier = currentRes.rows[0].tier;
 
+      // Detect VIP transitions early — needed to build the correct SET clause
+      const isVipUpgrade   = !!input.plan && input.plan === 'vip' && currentTier !== 'vip';
+      const isVipDowngrade = !!input.plan && input.plan !== 'vip' && currentTier === 'vip';
+
       const sets: string[] = [];
       const args: unknown[] = [];
-      if (input.name)   { args.push(input.name);  sets.push(`name = $${args.length}`); }
-      if (input.plan)   { args.push(input.plan);  sets.push(`tier = $${args.length}`); }
-      if (input.status) {
+      if (input.name) { args.push(input.name); sets.push(`name = $${args.length}`); }
+      if (input.plan) { args.push(input.plan); sets.push(`tier = $${args.length}`); }
+
+      if (isVipUpgrade) {
+        // Immediately gate the tenant as read-only while migration runs (spec §02).
+        // VipMigrationProcessor sets status back to 'active' on success or rolls back on failure.
+        args.push('migrating'); sets.push(`status = $${args.length}`);
+        args.push(false);       sets.push(`is_active = $${args.length}`);
+      } else if (input.status) {
         args.push(input.status);
         sets.push(`status = $${args.length}`);
-        // Keep is_active in sync
+        // Keep is_active in sync with status
         args.push(input.status === 'active');
         sets.push(`is_active = $${args.length}`);
       }
+
       if (!sets.length) {
         await client.query('ROLLBACK');
         return this.findOne(id);
       }
+
       args.push(id);
       const res = await client.query<TenantRow>(
         `UPDATE tenants SET ${sets.join(', ')}, updated_at = NOW()
@@ -287,20 +304,31 @@ export class AdminTenantsService {
 
       await client.query('COMMIT');
 
-      // Invalidate cache after successful commit (outside the DB transaction)
+      // ── Post-commit side effects (tier change only) ────────
       if (input.plan && input.plan !== currentTier) {
+        const subdomain = res.rows[0]?.subdomain ?? null;
+
+        // Invalidate this instance's Redis cache keys
         await this.cache.delForTenant(id, 'tenant-config', 'enabled-plugins');
         await this.cache.delForTenant(id, 'tenant-config', 'tenant-config');
-
-        // Invalidate tenant-lookup cache so TenantResolverMiddleware re-reads updated tier
-        const subdomain = res.rows[0]?.subdomain ?? null;
         await this.cache.invalidateTenantLookup(id, subdomain);
 
-        // Update in-memory quota cap
-        TenantQuotaEnforcer.updateCap(id, input.plan);
+        // Update this instance's in-memory quota cap.
+        // VIP upgrades are exempt — VipMigrationProcessor deregisters after migration completes.
+        if (!isVipUpgrade) {
+          TenantQuotaEnforcer.updateCap(id, input.plan);
+        }
 
-        const isVipUpgrade = input.plan === 'vip' && currentTier !== 'vip';
-        const isVipDowngrade = input.plan !== 'vip' && currentTier === 'vip';
+        // Broadcast to ALL other app instances so they also update their in-memory state
+        // (TenantQuotaEnforcer cap + any other per-instance caches).
+        await this.redis.publish(
+          CONFIG_RELOAD_CHANNEL,
+          JSON.stringify({ tenantId: id, newTier: input.plan }),
+        );
+        await this.redis.publish(
+          CACHE_INVALIDATE_CHANNEL,
+          JSON.stringify({ tenantId: id, scope: 'tenant-context' }),
+        );
 
         if (isVipUpgrade) {
           await this.vipMigrationQueue.add('migrate', {

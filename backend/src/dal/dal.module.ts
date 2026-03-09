@@ -18,6 +18,7 @@ import { config } from '../config/env';
 import { PoolRegistry } from './pool/PoolRegistry';
 import { CacheManager } from './cache/CacheManager';
 import { createKnex } from './interceptor/QueryInterceptor';
+import { TenantConfigReloadService } from './pubsub/tenant-config-reload.service';
 
 @Global()
 @Module({
@@ -43,7 +44,10 @@ import { createKnex } from './interceptor/QueryInterceptor';
       useFactory: (cm: CacheManager) => cm.client,
       inject: [CacheManager],
     },
+    // Subscribes to tier-change broadcasts so every instance keeps
+    // TenantQuotaEnforcer and in-process caches in sync.
+    TenantConfigReloadService,
   ],
-  exports: [PoolRegistry, CacheManager, 'KNEX_INSTANCE', 'REDIS_CLIENT'],
+  exports: [PoolRegistry, CacheManager, 'KNEX_INSTANCE', 'REDIS_CLIENT', TenantConfigReloadService],
 })
 export class DalModule {}

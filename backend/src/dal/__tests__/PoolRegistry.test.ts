@@ -47,14 +47,14 @@ describe('PoolRegistry', () => {
 
   describe('getPool — tier routing', () => {
     it('standard tenant → shared pool', () => {
-      const pool = registry.getPool('standard', VALID_UUID);
+      const pool = registry.getPool('basic', VALID_UUID);
       // SharedPool là pool đầu tiên được tạo trong constructor
       expect(Pool).toHaveBeenCalledTimes(2); // shared + metadata
       expect(pool).toBeDefined();
     });
 
     it('vip tenant không có dedicated pool → shared pool', () => {
-      const sharedPool = registry.getPool('standard', VALID_UUID);
+      const sharedPool = registry.getPool('basic', VALID_UUID);
       const vipPool = registry.getPool('vip', VALID_UUID); // chưa đăng ký
       // Fallback về shared
       expect(vipPool).toBe(sharedPool);
@@ -67,7 +67,7 @@ describe('PoolRegistry', () => {
       expect(Pool).toHaveBeenCalledTimes(3);
       expect(pool).toBeDefined();
       // Pool vip phải khác pool shared
-      const sharedPool = registry.getPool('standard');
+      const sharedPool = registry.getPool('basic');
       expect(pool).not.toBe(sharedPool);
     });
   });
@@ -90,7 +90,7 @@ describe('PoolRegistry', () => {
   describe('getMetadataPool', () => {
     it('trả về metadata pool (khác shared pool)', () => {
       const meta = registry.getMetadataPool();
-      const shared = registry.getPool('standard');
+      const shared = registry.getPool('basic');
       expect(meta).not.toBe(shared);
       expect(meta).toBeDefined();
     });

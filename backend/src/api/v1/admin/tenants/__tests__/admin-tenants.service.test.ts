@@ -24,7 +24,7 @@ import { CacheManager } from '../../../../dal/cache/CacheManager';
 
 const ROW = {
   id: 'tid', name: 'Acme', subdomain: 'acme',
-  tier: 'standard', is_active: true,
+  tier: 'basic', is_active: true,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   plugin_count: '2',
@@ -47,7 +47,7 @@ describe('AdminTenantsService', () => {
 
       const result = await service.list({ page: 1, limit: 20 });
       expect(result.total).toBe(1);
-      expect(result.data[0].plan).toBe('standard');
+      expect(result.data[0].plan).toBe('basic');
       expect(result.data[0].status).toBe('active');
       expect(result.data[0].pluginCount).toBe(2);
     });

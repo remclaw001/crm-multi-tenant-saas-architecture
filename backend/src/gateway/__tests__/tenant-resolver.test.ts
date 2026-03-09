@@ -44,14 +44,16 @@ const activeTenantRow = {
   id: '11111111-1111-1111-1111-111111111111',
   name: 'Acme Corp',
   subdomain: 'acme',
-  tier: 'standard',
+  tier: 'basic',
+  status: 'active',
   db_url: null,
   is_active: true,
+  config: {},
 };
 
 const inactiveTenantRow = { ...activeTenantRow, is_active: false };
 
-function makeReq(overrides: Partial<Request> = {}): Request & { resolvedTenant?: unknown; correlationId?: string } {
+function makeReq(overrides: Partial<Request> = {}): Request & { resolvedTenant?: import('../dto/resolved-tenant.dto').ResolvedTenant; correlationId?: string } {
   return {
     headers: {},
     ...overrides,
@@ -91,7 +93,7 @@ describe('TenantResolverMiddleware', () => {
     expect(req.resolvedTenant).toMatchObject({
       id: activeTenantRow.id,
       subdomain: 'acme',
-      tier: 'standard',
+      tier: 'basic',
     });
     expect(next).toHaveBeenCalled();
   });

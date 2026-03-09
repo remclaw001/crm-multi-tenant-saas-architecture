@@ -33,9 +33,11 @@ function makeResolvedTenant(overrides: Partial<ResolvedTenant> = {}): ResolvedTe
     id: TENANT_ID,
     subdomain: 'acme',
     name: 'Acme Corp',
-    tier: 'standard',
+    tier: 'basic',
+    status: 'active',
     dbUrl: null,
     isActive: true,
+    allowedOrigins: [],
     ...overrides,
   };
 }

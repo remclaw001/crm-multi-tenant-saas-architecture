@@ -23,7 +23,7 @@ function makeDb(overrides: Record<string, unknown> = {}) {
 function makeCtx(dbOverrides = {}): IExecutionContext {
   const db = makeDb(dbOverrides);
   return {
-    tenantId: 'tenant-123', tenantTier: 'standard', tenantConfig: {},
+    tenantId: 'tenant-123', tenantTier: 'basic', tenantConfig: {},
     enabledPlugins: ['customer-data'], userId: 'user-abc', userRoles: [],
     requestId: 'req-xyz', db: db as any, cache: {} as any,
   };

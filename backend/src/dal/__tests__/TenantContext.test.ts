@@ -20,14 +20,14 @@ describe('TenantContext', () => {
     });
 
     it('cung cấp tenantId đúng bên trong run()', () => {
-      TenantContext.run({ tenantId: 'abc-123', tenantTier: 'standard' }, () => {
+      TenantContext.run({ tenantId: 'abc-123', tenantTier: 'basic' }, () => {
         expect(TenantContext.getTenantId()).toBe('abc-123');
-        expect(TenantContext.getTier()).toBe('standard');
+        expect(TenantContext.getTier()).toBe('basic');
       });
     });
 
     it('context không rò rỉ ra ngoài sau khi run() kết thúc', () => {
-      TenantContext.run({ tenantId: 'temp', tenantTier: 'standard' }, () => undefined);
+      TenantContext.run({ tenantId: 'temp', tenantTier: 'basic' }, () => undefined);
       expect(TenantContext.getTenantId()).toBeUndefined();
     });
   });
@@ -50,7 +50,7 @@ describe('TenantContext', () => {
     it('isolated đúng khi chạy song song', async () => {
       // Hai context chạy concurrent — phải không thấy được nhau
       const [a, b] = await Promise.all([
-        TenantContext.run({ tenantId: 'tenant-a', tenantTier: 'standard' }, () =>
+        TenantContext.run({ tenantId: 'tenant-a', tenantTier: 'basic' }, () =>
           new Promise<string>((resolve) =>
             // Delay dài hơn — đảm bảo thứ tự xen kẽ
             setTimeout(() => resolve(TenantContext.getTenantId()!), 20)
@@ -68,7 +68,7 @@ describe('TenantContext', () => {
     });
 
     it('nested run() creates isolated child context', () => {
-      TenantContext.run({ tenantId: 'outer', tenantTier: 'standard' }, () => {
+      TenantContext.run({ tenantId: 'outer', tenantTier: 'basic' }, () => {
         expect(TenantContext.getTenantId()).toBe('outer');
 
         TenantContext.run({ tenantId: 'inner', tenantTier: 'vip' }, () => {
@@ -83,13 +83,13 @@ describe('TenantContext', () => {
 
   describe('query counter', () => {
     it('khởi tạo ở 0 khi bắt đầu run()', () => {
-      TenantContext.run({ tenantId: 'x', tenantTier: 'standard' }, () => {
+      TenantContext.run({ tenantId: 'x', tenantTier: 'basic' }, () => {
         expect(TenantContext.getQueryCount()).toBe(0);
       });
     });
 
     it('increment hoạt động đúng', () => {
-      TenantContext.run({ tenantId: 'x', tenantTier: 'standard' }, () => {
+      TenantContext.run({ tenantId: 'x', tenantTier: 'basic' }, () => {
         TenantContext.incrementQueryCount();
         TenantContext.incrementQueryCount();
         TenantContext.incrementQueryCount();
@@ -99,14 +99,14 @@ describe('TenantContext', () => {
 
     it('counter isolated giữa các context song song', async () => {
       await Promise.all([
-        TenantContext.run({ tenantId: 'a', tenantTier: 'standard' }, async () => {
+        TenantContext.run({ tenantId: 'a', tenantTier: 'basic' }, async () => {
           TenantContext.incrementQueryCount();
           TenantContext.incrementQueryCount();
           await new Promise((r) => setTimeout(r, 10));
           // Context a không bị ảnh hưởng bởi context b
           expect(TenantContext.getQueryCount()).toBe(2);
         }),
-        TenantContext.run({ tenantId: 'b', tenantTier: 'standard' }, async () => {
+        TenantContext.run({ tenantId: 'b', tenantTier: 'basic' }, async () => {
           TenantContext.incrementQueryCount();
           await new Promise((r) => setTimeout(r, 5));
           expect(TenantContext.getQueryCount()).toBe(1);

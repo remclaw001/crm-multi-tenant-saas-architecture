@@ -30,7 +30,7 @@ import { Pool } from 'pg';
 import { config } from '../../config/env';
 import { TenantContext } from '../../dal/context/TenantContext';
 import type { ResolvedTenant } from '../dto/resolved-tenant.dto';
-import type { TenantTier } from '../../dal/context/TenantContext';
+import type { TenantTier, TenantStatus } from '../../dal/context/TenantContext';
 
 // ── DB row shape từ tenants table ─────────────────────────────
 interface TenantRow {
@@ -38,6 +38,7 @@ interface TenantRow {
   name: string;
   subdomain: string;
   tier: TenantTier;
+  status: TenantStatus;
   db_url: string | null;
   is_active: boolean;
   config: Record<string, unknown>;
@@ -140,8 +141,8 @@ export class TenantResolverMiddleware implements NestMiddleware {
 
     const { rows } = await pool.query<TenantRow>(
       isUuid
-        ? 'SELECT id, name, subdomain, tier, db_url, is_active, config FROM tenants WHERE id = $1 LIMIT 1'
-        : 'SELECT id, name, subdomain, tier, db_url, is_active, config FROM tenants WHERE subdomain = $1 LIMIT 1',
+        ? 'SELECT id, name, subdomain, tier, status, db_url, is_active, config FROM tenants WHERE id = $1 LIMIT 1'
+        : 'SELECT id, name, subdomain, tier, status, db_url, is_active, config FROM tenants WHERE subdomain = $1 LIMIT 1',
       [identifier]
     );
 
@@ -159,6 +160,7 @@ export class TenantResolverMiddleware implements NestMiddleware {
       name: row.name,
       subdomain: row.subdomain,
       tier: row.tier,
+      status: row.status,
       dbUrl: row.db_url,
       isActive: row.is_active,
       allowedOrigins,

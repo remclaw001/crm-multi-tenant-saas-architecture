@@ -16,7 +16,7 @@ function makeCtx(builderOverrides: Record<string, unknown> = {}): IExecutionCont
   rawBuilder.raw = vi.fn().mockReturnValue('RAW_SQL');
   return {
     tenantId: 'tenant-123',
-    tenantTier: 'standard',
+    tenantTier: 'basic',
     tenantConfig: {},
     enabledPlugins: ['analytics'],
     userId: 'user-abc',

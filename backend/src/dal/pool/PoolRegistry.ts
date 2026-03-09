@@ -1,6 +1,6 @@
 import { Pool, PoolClient } from 'pg';
 import { config } from '../../config/env';
-import { TenantContext } from '../context/TenantContext';
+import { TenantContext, TenantTier } from '../context/TenantContext';
 
 // ============================================================
 // PoolRegistry — quản lý Connection Pool theo tier
@@ -94,10 +94,10 @@ export class PoolRegistry {
    * ngược lại fallback về shared pool.
    */
   getPool(
-    tier: 'standard' | 'vip' | 'enterprise',
+    tier: TenantTier,
     tenantId?: string
   ): Pool {
-    if (tier !== 'standard' && tenantId && this.vipPools.has(tenantId)) {
+    if (tier !== 'basic' && tier !== 'premium' && tenantId && this.vipPools.has(tenantId)) {
       return this.vipPools.get(tenantId)!;
     }
     return this.sharedPool;
@@ -120,7 +120,7 @@ export class PoolRegistry {
    * Nếu không truyền tenantId, tự động lấy từ TenantContext.
    */
   async acquireConnection(
-    tier: 'standard' | 'vip' | 'enterprise',
+    tier: TenantTier,
     tenantId?: string
   ): Promise<PoolClient> {
     const effectiveTenantId = tenantId ?? TenantContext.getTenantId();

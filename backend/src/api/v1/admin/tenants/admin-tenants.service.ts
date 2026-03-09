@@ -15,7 +15,7 @@ function rowToTenant(row: TenantRow) {
     id: row.id,
     name: row.name,
     subdomain: row.subdomain,
-    plan: row.tier as 'standard' | 'vip' | 'enterprise',
+    plan: row.tier as 'basic' | 'premium' | 'enterprise' | 'vip',
     status: row.is_active ? 'active' as const : 'suspended' as const,
     pluginCount: Number(row.plugin_count),
     createdAt: row.created_at,
@@ -91,7 +91,7 @@ export class AdminTenantsService {
   }
 
   async create(input: { name: string; subdomain: string; plan: string }) {
-    const VALID_PLANS = ['standard', 'vip', 'enterprise'];
+    const VALID_PLANS = ['basic', 'premium', 'enterprise', 'vip'];
     if (!VALID_PLANS.includes(input.plan)) {
       throw new BadRequestException(`Invalid plan "${input.plan}". Must be one of: ${VALID_PLANS.join(', ')}`);
     }

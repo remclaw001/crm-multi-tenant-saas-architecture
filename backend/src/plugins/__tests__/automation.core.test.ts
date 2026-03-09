@@ -23,7 +23,7 @@ function makeCtx(builderOverrides = {}): IExecutionContext {
   dbFn.raw = vi.fn().mockReturnValue('NOW()');
   return {
     tenantId: 'tenant-123',
-    tenantTier: 'standard',
+    tenantTier: 'basic',
     tenantConfig: {},
     enabledPlugins: ['automation'],
     userId: 'user-abc',

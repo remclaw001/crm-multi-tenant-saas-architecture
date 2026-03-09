@@ -49,7 +49,7 @@ describe('QueryInterceptor', () => {
       applyQueryInterceptor(knex);
 
       await TenantContext.run(
-        { tenantId: VALID_UUID, tenantTier: 'standard' },
+        { tenantId: VALID_UUID, tenantTier: 'basic' },
         async () => {
           await knex.client.acquireConnection();
         }
@@ -76,7 +76,7 @@ describe('QueryInterceptor', () => {
 
       await expect(
         TenantContext.run(
-          { tenantId: 'not-a-uuid', tenantTier: 'standard' },
+          { tenantId: 'not-a-uuid', tenantTier: 'basic' },
           () => knex.client.acquireConnection()
         )
       ).rejects.toThrow('invalid tenant_id format');
@@ -87,7 +87,7 @@ describe('QueryInterceptor', () => {
       applyQueryInterceptor(knex);
 
       await TenantContext.run(
-        { tenantId: VALID_UUID, tenantTier: 'standard' },
+        { tenantId: VALID_UUID, tenantTier: 'basic' },
         async () => {
           await knex.client.acquireConnection();
         }
@@ -105,7 +105,7 @@ describe('QueryInterceptor', () => {
 
       // Acquire rồi release
       const conn = await TenantContext.run(
-        { tenantId: VALID_UUID, tenantTier: 'standard' },
+        { tenantId: VALID_UUID, tenantTier: 'basic' },
         async () => knex.client.acquireConnection()
       );
 
@@ -135,7 +135,7 @@ describe('QueryInterceptor', () => {
       applyQueryInterceptor(knex);
 
       await TenantContext.run(
-        { tenantId: VALID_UUID, tenantTier: 'standard' },
+        { tenantId: VALID_UUID, tenantTier: 'basic' },
         async () => {
           expect(TenantContext.getQueryCount()).toBe(0);
           await knex.client.acquireConnection();

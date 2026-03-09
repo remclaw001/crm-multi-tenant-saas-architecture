@@ -14,13 +14,13 @@ import { QueryCounter, QueryLimitExceededError, QUERY_LIMIT } from '../middlewar
 
 describe('QueryCounter', () => {
   it('bắt đầu từ 0 trong context mới', () => {
-    TenantContext.run({ tenantId: 'x', tenantTier: 'standard' }, () => {
+    TenantContext.run({ tenantId: 'x', tenantTier: 'basic' }, () => {
       expect(QueryCounter.get()).toBe(0);
     });
   });
 
   it('increment tăng đúng số lần', () => {
-    TenantContext.run({ tenantId: 'x', tenantTier: 'standard' }, () => {
+    TenantContext.run({ tenantId: 'x', tenantTier: 'basic' }, () => {
       QueryCounter.increment();
       QueryCounter.increment();
       QueryCounter.increment();
@@ -29,7 +29,7 @@ describe('QueryCounter', () => {
   });
 
   it('increment trả về giá trị sau khi tăng', () => {
-    TenantContext.run({ tenantId: 'x', tenantTier: 'standard' }, () => {
+    TenantContext.run({ tenantId: 'x', tenantTier: 'basic' }, () => {
       expect(QueryCounter.increment()).toBe(1);
       expect(QueryCounter.increment()).toBe(2);
     });
@@ -37,7 +37,7 @@ describe('QueryCounter', () => {
 
   describe('throwOnLimit', () => {
     it('không throw khi ≤ QUERY_LIMIT', () => {
-      TenantContext.run({ tenantId: 'x', tenantTier: 'standard' }, () => {
+      TenantContext.run({ tenantId: 'x', tenantTier: 'basic' }, () => {
         for (let i = 0; i < QUERY_LIMIT; i++) {
           expect(() => QueryCounter.increment(true)).not.toThrow();
         }
@@ -46,7 +46,7 @@ describe('QueryCounter', () => {
     });
 
     it('throw QueryLimitExceededError khi vượt quá QUERY_LIMIT với throwOnLimit=true', () => {
-      TenantContext.run({ tenantId: 'x', tenantTier: 'standard' }, () => {
+      TenantContext.run({ tenantId: 'x', tenantTier: 'basic' }, () => {
         // Điền đủ 50 query
         for (let i = 0; i < QUERY_LIMIT; i++) {
           QueryCounter.increment(false);
@@ -57,7 +57,7 @@ describe('QueryCounter', () => {
     });
 
     it('QueryLimitExceededError chứa thông tin đúng', () => {
-      TenantContext.run({ tenantId: 'x', tenantTier: 'standard' }, () => {
+      TenantContext.run({ tenantId: 'x', tenantTier: 'basic' }, () => {
         for (let i = 0; i < QUERY_LIMIT; i++) {
           QueryCounter.increment(false);
         }
@@ -75,7 +75,7 @@ describe('QueryCounter', () => {
     });
 
     it('không throw khi throwOnLimit=false dù vượt limit', () => {
-      TenantContext.run({ tenantId: 'x', tenantTier: 'standard' }, () => {
+      TenantContext.run({ tenantId: 'x', tenantTier: 'basic' }, () => {
         for (let i = 0; i <= QUERY_LIMIT + 10; i++) {
           expect(() => QueryCounter.increment(false)).not.toThrow();
         }
@@ -86,7 +86,7 @@ describe('QueryCounter', () => {
 
   describe('isExceeded', () => {
     it('false khi chưa đạt limit', () => {
-      TenantContext.run({ tenantId: 'x', tenantTier: 'standard' }, () => {
+      TenantContext.run({ tenantId: 'x', tenantTier: 'basic' }, () => {
         for (let i = 0; i < QUERY_LIMIT; i++) {
           QueryCounter.increment();
         }
@@ -95,7 +95,7 @@ describe('QueryCounter', () => {
     });
 
     it('true khi vượt limit', () => {
-      TenantContext.run({ tenantId: 'x', tenantTier: 'standard' }, () => {
+      TenantContext.run({ tenantId: 'x', tenantTier: 'basic' }, () => {
         for (let i = 0; i <= QUERY_LIMIT; i++) {
           QueryCounter.increment(false);
         }

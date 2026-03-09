@@ -10,13 +10,22 @@ import { AsyncLocalStorage } from 'async_hooks';
 // context này — kể cả Promise chain, setTimeout, event handler.
 //
 // Usage:
-//   await TenantContext.run({ tenantId: '...', tenantTier: 'standard' }, async () => {
+//   await TenantContext.run({ tenantId: '...', tenantTier: 'basic' }, async () => {
 //     const id = TenantContext.requireTenantId(); // 'abc-123'
 //     await db.query('SELECT * FROM users'); // RLS đã biết tenant_id
 //   });
 // ============================================================
 
-export type TenantTier = 'standard' | 'vip' | 'enterprise';
+export type TenantTier = 'basic' | 'premium' | 'enterprise' | 'vip';
+
+export type TenantStatus =
+  | 'provisioning'
+  | 'active'
+  | 'migrating'
+  | 'grace_period'
+  | 'suspended'
+  | 'offboarding'
+  | 'offboarded';
 
 export interface TenantStore {
   readonly tenantId: string;

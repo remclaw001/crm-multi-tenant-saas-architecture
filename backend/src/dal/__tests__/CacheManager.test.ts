@@ -39,7 +39,7 @@ beforeEach(async () => {
 describe('CacheManager', () => {
   describe('buildKey', () => {
     it('tạo key đúng pattern t:<tenantId>:<resource>:<id>', () => {
-      TenantContext.run({ tenantId: TENANT_A, tenantTier: 'standard' }, () => {
+      TenantContext.run({ tenantId: TENANT_A, tenantTier: 'basic' }, () => {
         expect(cache.buildKey('customer', 'cust-001')).toBe(
           `t:${TENANT_A}:customer:cust-001`
         );
@@ -58,7 +58,7 @@ describe('CacheManager', () => {
       const payload = { name: 'Acme Corp', score: 42 };
 
       await TenantContext.run(
-        { tenantId: TENANT_A, tenantTier: 'standard' },
+        { tenantId: TENANT_A, tenantTier: 'basic' },
         async () => {
           await cache.set('customer', '1', payload);
           const result = await cache.get<typeof payload>('customer', '1');
@@ -77,7 +77,7 @@ describe('CacheManager', () => {
       };
 
       await TenantContext.run(
-        { tenantId: TENANT_A, tenantTier: 'standard' },
+        { tenantId: TENANT_A, tenantTier: 'basic' },
         async () => {
           await cache.set('config', 'main', data);
           const result = await cache.get<typeof data>('config', 'main');
@@ -88,7 +88,7 @@ describe('CacheManager', () => {
 
     it('trả về null khi cache miss', async () => {
       await TenantContext.run(
-        { tenantId: TENANT_A, tenantTier: 'standard' },
+        { tenantId: TENANT_A, tenantTier: 'basic' },
         async () => {
           const result = await cache.get('customer', 'nonexistent-id');
           expect(result).toBeNull();
@@ -100,7 +100,7 @@ describe('CacheManager', () => {
   describe('del', () => {
     it('xóa entry chính xác', async () => {
       await TenantContext.run(
-        { tenantId: TENANT_A, tenantTier: 'standard' },
+        { tenantId: TENANT_A, tenantTier: 'basic' },
         async () => {
           await cache.set('customer', '2', { x: 1 });
           await cache.del('customer', '2');
@@ -111,7 +111,7 @@ describe('CacheManager', () => {
 
     it('không ảnh hưởng đến entry khác', async () => {
       await TenantContext.run(
-        { tenantId: TENANT_A, tenantTier: 'standard' },
+        { tenantId: TENANT_A, tenantTier: 'basic' },
         async () => {
           await cache.set('customer', 'keep', { keep: true });
           await cache.set('customer', 'delete', { delete: true });
@@ -128,7 +128,7 @@ describe('CacheManager', () => {
     it('Tenant A không đọc được cache của Tenant B', async () => {
       // Tenant A set một value
       await TenantContext.run(
-        { tenantId: TENANT_A, tenantTier: 'standard' },
+        { tenantId: TENANT_A, tenantTier: 'basic' },
         async () => {
           await cache.set('customer', 'shared-id', { from: 'tenant-a' });
         }
@@ -136,7 +136,7 @@ describe('CacheManager', () => {
 
       // Tenant B query cùng resource + id → null (khác key prefix)
       await TenantContext.run(
-        { tenantId: TENANT_B, tenantTier: 'standard' },
+        { tenantId: TENANT_B, tenantTier: 'basic' },
         async () => {
           const result = await cache.get('customer', 'shared-id');
           expect(result).toBeNull();
@@ -147,7 +147,7 @@ describe('CacheManager', () => {
     it('cache của các tenant không giao nhau sau invalidateResource', async () => {
       // Set data cho cả hai tenant
       await TenantContext.run(
-        { tenantId: TENANT_A, tenantTier: 'standard' },
+        { tenantId: TENANT_A, tenantTier: 'basic' },
         async () => {
           await cache.set('deal', '1', { amount: 1000 });
           await cache.set('deal', '2', { amount: 2000 });
@@ -155,7 +155,7 @@ describe('CacheManager', () => {
       );
 
       await TenantContext.run(
-        { tenantId: TENANT_B, tenantTier: 'standard' },
+        { tenantId: TENANT_B, tenantTier: 'basic' },
         async () => {
           await cache.set('deal', '1', { amount: 9999 });
         }
@@ -163,7 +163,7 @@ describe('CacheManager', () => {
 
       // Invalidate resource của Tenant A
       await TenantContext.run(
-        { tenantId: TENANT_A, tenantTier: 'standard' },
+        { tenantId: TENANT_A, tenantTier: 'basic' },
         async () => {
           await cache.invalidateResource('deal');
           // Tenant A data đã xóa
@@ -174,7 +174,7 @@ describe('CacheManager', () => {
 
       // Tenant B data vẫn còn
       await TenantContext.run(
-        { tenantId: TENANT_B, tenantTier: 'standard' },
+        { tenantId: TENANT_B, tenantTier: 'basic' },
         async () => {
           expect(await cache.get('deal', '1')).toEqual({ amount: 9999 });
         }

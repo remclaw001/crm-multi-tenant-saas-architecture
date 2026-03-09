@@ -131,22 +131,6 @@ describe('AdminTenantsService', () => {
     });
   });
 
-  describe('softDelete', () => {
-    it('sets is_active to false', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid' }] });
-      await service.softDelete('tid');
-      expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('is_active = false'),
-        ['tid'],
-      );
-    });
-
-    it('throws NotFoundException when tenant not found', async () => {
-      mockQuery.mockResolvedValueOnce({ rows: [] });
-      await expect(service.softDelete('bad-id')).rejects.toThrow(NotFoundException);
-    });
-  });
-
   describe('offboard', () => {
     it('transitions status: offboarding → plugins disabled → offboarded, subdomain=null', async () => {
       // BEGIN

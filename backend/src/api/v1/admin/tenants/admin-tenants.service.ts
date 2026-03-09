@@ -241,19 +241,6 @@ export class AdminTenantsService {
     }
   }
 
-  async softDelete(id: string): Promise<void> {
-    const client = await this.poolRegistry.acquireMetadataConnection();
-    try {
-      const res = await client.query(
-        `UPDATE tenants SET is_active = false, updated_at = NOW() WHERE id = $1 RETURNING id`,
-        [id],
-      );
-      if (!res.rows[0]) throw new NotFoundException(`Tenant not found: ${id}`);
-    } finally {
-      client.release();
-    }
-  }
-
   async offboard(id: string): Promise<void> {
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {

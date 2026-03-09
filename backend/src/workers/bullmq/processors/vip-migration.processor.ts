@@ -1,10 +1,15 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Job, Queue } from 'bullmq';
 import Knex from 'knex';
-import { QUEUE_VIP_MIGRATION } from '../queue.constants';
+import { QUEUE_VIP_MIGRATION, QUEUE_VIP_SHARED_CLEANUP } from '../queue.constants';
 import { PoolRegistry } from '../../../dal/pool/PoolRegistry';
 import { TenantQuotaEnforcer } from '../../../dal/pool/TenantQuotaEnforcer';
+import type { VipSharedCleanupJobData } from './vip-shared-cleanup.processor';
+
+/** 24-hour safety window before shared-DB rows are permanently removed. */
+const CLEANUP_DELAY_MS = 24 * 60 * 60 * 1_000;
 
 const VIP_DB_PREFIX = 'crm_vip_';
 const BATCH_SIZE = 500;
@@ -26,7 +31,11 @@ export interface VipMigrationJobData {
 export class VipMigrationProcessor extends WorkerHost {
   private readonly logger = new Logger(VipMigrationProcessor.name);
 
-  constructor(private readonly poolRegistry: PoolRegistry) {
+  constructor(
+    private readonly poolRegistry: PoolRegistry,
+    @InjectQueue(QUEUE_VIP_SHARED_CLEANUP)
+    private readonly cleanupQueue: Queue,
+  ) {
     super();
   }
 
@@ -42,6 +51,16 @@ export class VipMigrationProcessor extends WorkerHost {
 
     const metaClient = await this.poolRegistry.acquireMetadataConnection();
     try {
+      // Step 0: Re-gate the tenant as migrating.
+      // admin-tenants.service.update() already sets status='migrating' before enqueueing,
+      // but on BullMQ retries the rollback handler resets it to 'active'.
+      // This idempotent UPDATE ensures the gateway always blocks writes during migration.
+      await metaClient.query(
+        `UPDATE tenants SET status = 'migrating', updated_at = NOW()
+         WHERE id = $1 AND status != 'migrating'`,
+        [tenantId],
+      );
+
       // Step 1: CREATE DATABASE
       await metaClient.query(`CREATE DATABASE "${dbName}"`);
       dbCreated = true;
@@ -94,6 +113,15 @@ export class VipMigrationProcessor extends WorkerHost {
 
       // Step 7: VIP tenants are exempt from per-tenant connection caps
       TenantQuotaEnforcer.deregister(tenantId);
+
+      // Step 8: Schedule shared-DB row deletion 24h from now.
+      // The window lets the ops team verify the dedicated DB is healthy
+      // before shared rows are permanently removed (spec §02 Step 5).
+      await this.cleanupQueue.add(
+        'cleanup-shared-db',
+        { tenantId, slug } satisfies VipSharedCleanupJobData,
+        { delay: CLEANUP_DELAY_MS },
+      );
 
       this.logger.log(`[VipMigration] Completed for tenant ${tenantId}`);
     } catch (err) {

@@ -1,6 +1,9 @@
 import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
+  // Make subdomain nullable — required for offboard flow (subdomain released on offboard)
+  await knex.raw(`ALTER TABLE tenants ALTER COLUMN subdomain DROP NOT NULL`);
+
   // 1. Add status column (text, not null, default 'active')
   await knex.schema.alterTable('tenants', (table) => {
     table.string('status', 50).notNullable().defaultTo('active');
@@ -25,9 +28,23 @@ export async function up(knex: Knex): Promise<void> {
 
   // 5. Rename 'standard' tier data to 'basic'
   await knex('tenants').where('tier', 'standard').update({ tier: 'basic' });
+
+  // After data rename, tighten constraint to remove deprecated 'standard'
+  await knex.raw(`ALTER TABLE tenants DROP CONSTRAINT IF EXISTS tenants_tier_check`);
+  await knex.raw(`
+    ALTER TABLE tenants ADD CONSTRAINT tenants_tier_check
+    CHECK (tier IN ('basic','premium','enterprise','vip'))
+  `);
 }
 
 export async function down(knex: Knex): Promise<void> {
+  // Revert tier constraint to include 'standard' before restoring data
+  await knex.raw(`ALTER TABLE tenants DROP CONSTRAINT IF EXISTS tenants_tier_check`);
+  await knex.raw(`
+    ALTER TABLE tenants ADD CONSTRAINT tenants_tier_check
+    CHECK (tier IN ('basic','standard','premium','enterprise','vip'))
+  `);
+
   // Revert tier names
   await knex('tenants').where('tier', 'basic').update({ tier: 'standard' });
   await knex.raw(`ALTER TABLE tenants DROP CONSTRAINT IF EXISTS tenants_tier_check`);
@@ -40,4 +57,7 @@ export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('tenants', (table) => {
     table.dropColumn('status');
   });
+
+  // Restore subdomain NOT NULL
+  await knex.raw(`ALTER TABLE tenants ALTER COLUMN subdomain SET NOT NULL`);
 }

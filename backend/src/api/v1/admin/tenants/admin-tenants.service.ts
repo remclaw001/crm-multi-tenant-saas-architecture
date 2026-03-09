@@ -12,9 +12,11 @@ const TIER_DEFAULT_PLUGINS: Record<string, string[]> = {
   vip:        ['customer-data', 'customer-care', 'analytics', 'marketing', 'automation'],
 };
 
+export type TenantStatus = 'provisioning' | 'active' | 'migrating' | 'grace_period' | 'suspended' | 'offboarding' | 'offboarded';
+
 export interface TenantRow {
-  id: string; name: string; subdomain: string;
-  tier: string; is_active: boolean;
+  id: string; name: string; subdomain: string | null;
+  tier: string; is_active: boolean; status?: string;
   created_at: string; updated_at: string;
   plugin_count: string;
 }
@@ -25,7 +27,7 @@ function rowToTenant(row: TenantRow) {
     name: row.name,
     subdomain: row.subdomain,
     plan: row.tier as 'basic' | 'premium' | 'enterprise' | 'vip',
-    status: row.is_active ? 'active' as const : 'suspended' as const,
+    status: row.status as TenantStatus ?? (row.is_active ? 'active' : 'suspended'),
     pluginCount: Number(row.plugin_count),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -57,7 +59,7 @@ export class AdminTenantsService {
           search ? [search] : [],
         ),
         client.query<TenantRow>(
-          `SELECT t.id, t.name, t.subdomain, t.tier, t.is_active,
+          `SELECT t.id, t.name, t.subdomain, t.tier, t.is_active, t.status,
                   t.created_at, t.updated_at,
                   COUNT(tp.id) FILTER (WHERE tp.is_enabled) AS plugin_count
            FROM tenants t
@@ -84,7 +86,7 @@ export class AdminTenantsService {
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
       const res = await client.query<TenantRow>(
-        `SELECT t.id, t.name, t.subdomain, t.tier, t.is_active,
+        `SELECT t.id, t.name, t.subdomain, t.tier, t.is_active, t.status,
                 t.created_at, t.updated_at,
                 COUNT(tp.id) FILTER (WHERE tp.is_enabled) AS plugin_count
          FROM tenants t
@@ -113,7 +115,7 @@ export class AdminTenantsService {
       const res = await client.query<TenantRow>(
         `INSERT INTO tenants (name, subdomain, tier, config)
          VALUES ($1, $2, $3, '{}')
-         RETURNING id, name, subdomain, tier, is_active, created_at, updated_at`,
+         RETURNING id, name, subdomain, tier, is_active, status, created_at, updated_at`,
         [input.name, input.subdomain, input.plan],
       );
       const tenant = res.rows[0];
@@ -168,7 +170,12 @@ export class AdminTenantsService {
     }
   }
 
-  async update(id: string, input: { name?: string; status?: string; plan?: string }) {
+  async update(id: string, input: { name?: string; status?: TenantStatus; plan?: string }) {
+    const VALID_PLANS = ['basic', 'standard', 'premium', 'enterprise', 'vip'];
+    if (input.plan && !VALID_PLANS.includes(input.plan)) {
+      throw new BadRequestException(`Invalid plan: ${input.plan}`);
+    }
+
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
       await client.query('BEGIN');
@@ -183,9 +190,15 @@ export class AdminTenantsService {
 
       const sets: string[] = [];
       const args: unknown[] = [];
-      if (input.name)   { args.push(input.name);                sets.push(`name = $${args.length}`); }
-      if (input.plan)   { args.push(input.plan);                sets.push(`tier = $${args.length}`); }
-      if (input.status) { args.push(input.status === 'active'); sets.push(`is_active = $${args.length}`); }
+      if (input.name)   { args.push(input.name);  sets.push(`name = $${args.length}`); }
+      if (input.plan)   { args.push(input.plan);  sets.push(`tier = $${args.length}`); }
+      if (input.status) {
+        args.push(input.status);
+        sets.push(`status = $${args.length}`);
+        // Keep is_active in sync
+        args.push(input.status === 'active');
+        sets.push(`is_active = $${args.length}`);
+      }
       if (!sets.length) {
         await client.query('ROLLBACK');
         return this.findOne(id);
@@ -194,7 +207,7 @@ export class AdminTenantsService {
       const res = await client.query<TenantRow>(
         `UPDATE tenants SET ${sets.join(', ')}, updated_at = NOW()
          WHERE id = $${args.length}
-         RETURNING id, name, subdomain, tier, is_active, created_at, updated_at,
+         RETURNING id, name, subdomain, tier, is_active, status, created_at, updated_at,
                    (SELECT COUNT(*) FROM tenant_plugins tp2 WHERE tp2.tenant_id = tenants.id AND tp2.is_enabled = true)::text AS plugin_count`,
         args,
       );

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 const mockQuery = vi.hoisted(() => vi.fn());
 const mockRelease = vi.hoisted(() => vi.fn());
@@ -32,7 +32,7 @@ import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
 
 const ROW = {
   id: 'tid', name: 'Acme', subdomain: 'acme',
-  tier: 'basic', is_active: true,
+  tier: 'basic', is_active: true, status: 'active',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   plugin_count: '2',
@@ -321,6 +321,36 @@ describe('AdminTenantsService', () => {
       );
       expect(pluginInsert).toBeUndefined();
       expect(mockDelForTenant).not.toHaveBeenCalled();
+    });
+
+    it('throws BadRequestException for invalid plan', async () => {
+      await expect(service.update('tid', { plan: 'invalid-plan' })).rejects.toThrow(BadRequestException);
+      // No DB calls should have been made
+      expect(mockQuery).not.toHaveBeenCalled();
+    });
+
+    it('writes status column and keeps is_active in sync', async () => {
+      // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // SELECT tier
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'basic' }] });
+      // UPDATE tenants RETURNING ...
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, status: 'suspended', is_active: false }] });
+      // COMMIT
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      const result = await service.update('tid', { status: 'suspended' });
+
+      // Verify UPDATE SQL contains both status and is_active columns
+      const updateCall = mockQuery.mock.calls.find(
+        (args) => typeof args[0] === 'string' && args[0].includes('UPDATE tenants SET'),
+      );
+      expect(updateCall).toBeDefined();
+      expect(updateCall![0]).toContain('status =');
+      expect(updateCall![0]).toContain('is_active =');
+
+      // Verify the result uses DB status column
+      expect(result.status).toBe('suspended');
     });
   });
 });

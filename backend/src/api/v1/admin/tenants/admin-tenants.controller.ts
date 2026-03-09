@@ -3,7 +3,7 @@ import {
   HttpCode, UseGuards,
 } from '@nestjs/common';
 import { SuperAdminGuard } from '../guards/super-admin.guard';
-import { AdminTenantsService } from './admin-tenants.service';
+import { AdminTenantsService, TenantStatus } from './admin-tenants.service';
 
 @Controller('api/v1/admin/tenants')
 @UseGuards(SuperAdminGuard)
@@ -32,7 +32,7 @@ export class AdminTenantsController {
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() body: { name?: string; status?: string; plan?: string },
+    @Body() body: { name?: string; status?: TenantStatus; plan?: string },
   ) {
     return this.tenantsService.update(id, body);
   }

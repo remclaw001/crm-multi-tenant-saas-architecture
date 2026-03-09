@@ -35,16 +35,18 @@ describe('CronService', () => {
     mockSchedule.mockReturnValue({ stop: mockTaskStop });
     emailQueue   = makeQueue(3, 1);
     webhookQueue = makeQueue(5, 0);
-    service = new CronService(emailQueue as any, webhookQueue as any);
+    service = new CronService(emailQueue as any, webhookQueue as any, {
+      acquireMetadataConnection: vi.fn(),
+    } as any);
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('schedules 2 cron jobs on bootstrap', () => {
+  it('schedules 3 cron jobs on bootstrap', () => {
     service.onApplicationBootstrap();
-    expect(mockSchedule).toHaveBeenCalledTimes(2);
+    expect(mockSchedule).toHaveBeenCalledTimes(3);
   });
 
   it('schedules cleanup-sessions at 02:00 daily', () => {
@@ -62,6 +64,6 @@ describe('CronService', () => {
   it('stops all tasks on shutdown', () => {
     service.onApplicationBootstrap();
     service.onApplicationShutdown();
-    expect(mockTaskStop).toHaveBeenCalledTimes(2);
+    expect(mockTaskStop).toHaveBeenCalledTimes(3);
   });
 });

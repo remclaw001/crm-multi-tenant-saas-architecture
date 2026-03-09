@@ -8,6 +8,9 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   DATABASE_POOL_MAX: z.coerce.number().int().positive().default(200),
 
+  // Database — app pool (Knex runtime queries, non-superuser so RLS applies)
+  DATABASE_APP_URL: z.string().min(1).optional(),
+
   // Database — metadata pool (migrations, tenant lookup)
   DATABASE_METADATA_URL: z.string().min(1).optional(),
   DATABASE_METADATA_POOL_MAX: z.coerce.number().int().positive().default(20),

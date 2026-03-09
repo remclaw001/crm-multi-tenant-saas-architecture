@@ -39,8 +39,8 @@ export class AdminTenantsController {
 
   @Delete(':id')
   @HttpCode(204)
-  async softDelete(@Param('id') id: string) {
-    await this.tenantsService.softDelete(id);
+  async offboard(@Param('id') id: string): Promise<void> {
+    await this.tenantsService.offboard(id);
   }
 
   @Get(':id/plugins')

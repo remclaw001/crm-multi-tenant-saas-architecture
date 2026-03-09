@@ -254,6 +254,54 @@ export class AdminTenantsService {
     }
   }
 
+  async offboard(id: string): Promise<void> {
+    const client = await this.poolRegistry.acquireMetadataConnection();
+    try {
+      await client.query('BEGIN');
+
+      // Step 1: Set status to offboarding (lock the tenant)
+      const res = await client.query<{ id: string; subdomain: string }>(
+        `UPDATE tenants
+         SET status = 'offboarding', is_active = false, updated_at = NOW()
+         WHERE id = $1
+         RETURNING id, subdomain`,
+        [id],
+      );
+      if (!res.rows[0]) {
+        await client.query('ROLLBACK');
+        throw new NotFoundException(`Tenant not found: ${id}`);
+      }
+
+      // Step 2: Disable all tenant plugins
+      await client.query(
+        `UPDATE tenant_plugins SET is_enabled = false WHERE tenant_id = $1`,
+        [id],
+      );
+
+      // Step 3: Set status to offboarded and release subdomain
+      // subdomain=NULL releases it for reuse (UNIQUE constraint allows multiple NULLs in pg)
+      await client.query(
+        `UPDATE tenants
+         SET status = 'offboarded', subdomain = NULL, updated_at = NOW()
+         WHERE id = $1`,
+        [id],
+      );
+
+      await client.query('COMMIT');
+
+      // Step 4: Clear Redis cache (outside transaction)
+      await this.cache.delForTenant(id, 'tenant-config', 'enabled-plugins');
+      // TODO: Add CacheManager.flushTenant(id) for full Redis SCAN+DEL t:{id}:* — production TODO
+      // TODO: Publish offboard event for async S3 data export — external billing trigger needed
+
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
   async getPlugins(tenantId: string) {
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {

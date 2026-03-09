@@ -147,6 +147,92 @@ describe('AdminTenantsService', () => {
     });
   });
 
+  describe('offboard', () => {
+    it('transitions status: offboarding → plugins disabled → offboarded, subdomain=null', async () => {
+      // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // UPDATE tenants SET status='offboarding' RETURNING id, subdomain
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid', subdomain: 'acme' }] });
+      // UPDATE tenant_plugins SET is_enabled = false
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // UPDATE tenants SET status='offboarded', subdomain=NULL
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // COMMIT
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await service.offboard('tid');
+
+      // Verify offboarding status update (Step 1)
+      const offboardingCall = mockQuery.mock.calls.find(
+        (args) => typeof args[0] === 'string' && args[0].includes("status = 'offboarding'"),
+      );
+      expect(offboardingCall).toBeDefined();
+      expect(offboardingCall![1]).toEqual(['tid']);
+
+      // Verify plugins disabled (Step 2)
+      const pluginsDisableCall = mockQuery.mock.calls.find(
+        (args) =>
+          typeof args[0] === 'string' &&
+          args[0].includes('UPDATE tenant_plugins') &&
+          args[0].includes('is_enabled = false'),
+      );
+      expect(pluginsDisableCall).toBeDefined();
+      expect(pluginsDisableCall![1]).toEqual(['tid']);
+
+      // Verify offboarded status + subdomain=NULL (Step 3)
+      const offboardedCall = mockQuery.mock.calls.find(
+        (args) => typeof args[0] === 'string' && args[0].includes("status = 'offboarded'"),
+      );
+      expect(offboardedCall).toBeDefined();
+      expect(offboardedCall![0]).toContain('subdomain = NULL');
+
+      // Verify cache invalidation (Step 4)
+      expect(mockDelForTenant).toHaveBeenCalledWith('tid', 'tenant-config', 'enabled-plugins');
+    });
+
+    it('throws NotFoundException when tenant not found and rolls back', async () => {
+      // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // UPDATE tenants SET status='offboarding' — tenant not found
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // ROLLBACK (called inside the if block, explicitly)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // ROLLBACK (called again in the catch block)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await expect(service.offboard('bad-id')).rejects.toThrow(NotFoundException);
+
+      // Verify ROLLBACK was issued
+      const rollbackCalls = mockQuery.mock.calls.filter(
+        (args) => args[0] === 'ROLLBACK',
+      );
+      expect(rollbackCalls.length).toBeGreaterThanOrEqual(1);
+
+      // Cache should NOT be cleared
+      expect(mockDelForTenant).not.toHaveBeenCalled();
+    });
+
+    it('rolls back on DB error after BEGIN', async () => {
+      // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // UPDATE tenants SET status='offboarding' — DB error
+      mockQuery.mockRejectedValueOnce(new Error('DB connection lost'));
+      // ROLLBACK (called in catch)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await expect(service.offboard('tid')).rejects.toThrow('DB connection lost');
+
+      // Verify ROLLBACK was issued from the catch block
+      const rollbackCall = mockQuery.mock.calls.find(
+        (args) => args[0] === 'ROLLBACK',
+      );
+      expect(rollbackCall).toBeDefined();
+
+      // Cache should NOT be cleared
+      expect(mockDelForTenant).not.toHaveBeenCalled();
+    });
+  });
+
   describe('update — tier change plugin delta', () => {
     it('basic→premium: enables analytics and customer-care', async () => {
       // BEGIN

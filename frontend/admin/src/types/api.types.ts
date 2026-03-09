@@ -62,3 +62,26 @@ export interface UpdateTenantInput {
   status?: Tenant['status'];
   plan?: Tenant['plan'];
 }
+
+export interface TenantUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'manager' | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface CreateUserInput {
+  name: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'manager';
+}
+
+export interface UpdateUserInput {
+  name?: string;
+  email?: string;
+  role?: 'admin' | 'manager';
+  password?: string;
+}

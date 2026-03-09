@@ -7,6 +7,9 @@ import type {
   UpdateTenantInput,
   AdminLoginResponse,
   ApiErrorBody,
+  TenantUser,
+  CreateUserInput,
+  UpdateUserInput,
 } from '@/types/api.types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
@@ -94,6 +97,42 @@ export const adminApi = {
 
   deleteTenant(id: string, token: string): Promise<void> {
     return request(`/api/v1/admin/tenants/${id}`, { method: 'DELETE', token });
+  },
+
+  // ─── Tenant Users ─────────────────────────────────────────────────────────────
+  getUsers(tenantId: string, token: string): Promise<TenantUser[]> {
+    return request(`/api/v1/admin/tenants/${tenantId}/users`, { token });
+  },
+
+  createUser(tenantId: string, input: CreateUserInput, token: string): Promise<TenantUser> {
+    return request(`/api/v1/admin/tenants/${tenantId}/users`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+      token,
+    });
+  },
+
+  updateUser(tenantId: string, userId: string, input: UpdateUserInput, token: string): Promise<TenantUser> {
+    return request(`/api/v1/admin/tenants/${tenantId}/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+      token,
+    });
+  },
+
+  setUserActive(tenantId: string, userId: string, isActive: boolean, token: string): Promise<TenantUser> {
+    return request(`/api/v1/admin/tenants/${tenantId}/users/${userId}/disable`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: isActive }),
+      token,
+    });
+  },
+
+  deleteUser(tenantId: string, userId: string, token: string): Promise<void> {
+    return request(`/api/v1/admin/tenants/${tenantId}/users/${userId}`, {
+      method: 'DELETE',
+      token,
+    });
   },
 
   // ─── Plugins ─────────────────────────────────────────────────────────────────

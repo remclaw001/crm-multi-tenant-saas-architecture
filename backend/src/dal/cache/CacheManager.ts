@@ -94,6 +94,53 @@ export class CacheManager implements ICacheManager {
     }
   }
 
+  // ── Tenant lifecycle helpers ─────────────────────────────
+
+  /**
+   * Full cache wipe for a tenant being offboarded.
+   * Uses SCAN (non-blocking) to delete:
+   *   t:<tenantId>:*   — all application cache keys
+   *   rl:<tenantId>:*  — rate-limit buckets
+   * Also deletes the tenant-lookup key by ID.
+   */
+  async flushTenant(tenantId: string): Promise<void> {
+    const patterns = [`t:${tenantId}:*`, `rl:${tenantId}:*`];
+    for (const pattern of patterns) {
+      const keys = await this.scanKeys(pattern);
+      if (keys.length > 0) await this.redis.del(...keys);
+    }
+    await this.redis.del(`tenant-lookup:${tenantId}`);
+  }
+
+  /**
+   * Cache-aside store for TenantResolverMiddleware.
+   * Writes by BOTH id and subdomain slug so either can be used for lookup.
+   * TTL: 5 minutes.
+   */
+  async setTenantLookup(tenant: {
+    id: string;
+    subdomain: string | null;
+    [key: string]: unknown;
+  }): Promise<void> {
+    const packed = Buffer.from(encode(tenant));
+    await this.redis.set(`tenant-lookup:${tenant.id}`, packed, 'EX', 300);
+    if (tenant.subdomain) {
+      await this.redis.set(`tenant-lookup:${tenant.subdomain}`, packed, 'EX', 300);
+    }
+  }
+
+  async getTenantLookup(identifier: string): Promise<unknown | null> {
+    const raw = await this.redis.getBuffer(`tenant-lookup:${identifier}`);
+    if (!raw) return null;
+    return decode(raw);
+  }
+
+  async invalidateTenantLookup(tenantId: string, subdomain: string | null): Promise<void> {
+    const keys = [`tenant-lookup:${tenantId}`];
+    if (subdomain) keys.push(`tenant-lookup:${subdomain}`);
+    await this.redis.del(...keys);
+  }
+
   // ── Internal helpers ─────────────────────────────────────
 
   /**

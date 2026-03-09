@@ -50,4 +50,31 @@ export interface ICacheManager {
    * Pattern: t:<tenantId>:<resource>:<id>
    */
   buildKey(resource: string, id: string): string;
+
+  /**
+   * Full cache wipe for a tenant being offboarded.
+   * Deletes all t:<tenantId>:* and rl:<tenantId>:* keys, plus the tenant-lookup key.
+   */
+  flushTenant(tenantId: string): Promise<void>;
+
+  /**
+   * Retrieve a cached tenant lookup by id or subdomain slug.
+   * Returns null on miss.
+   */
+  getTenantLookup(identifier: string): Promise<unknown | null>;
+
+  /**
+   * Cache-aside store for TenantResolverMiddleware.
+   * Writes by both id and subdomain slug (TTL: 5 minutes).
+   */
+  setTenantLookup(tenant: {
+    id: string;
+    subdomain: string | null;
+    [key: string]: unknown;
+  }): Promise<void>;
+
+  /**
+   * Invalidate tenant-lookup cache entries when tenant metadata changes.
+   */
+  invalidateTenantLookup(tenantId: string, subdomain: string | null): Promise<void>;
 }

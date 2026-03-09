@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CacheManager } from '../cache/CacheManager';
 import { TenantContext } from '../context/TenantContext';
 
@@ -180,5 +180,112 @@ describe('CacheManager', () => {
         }
       );
     });
+  });
+});
+
+describe('CacheManager.flushTenant', () => {
+  it('deletes all keys matching t:<tenantId>:* and rl:<tenantId>:*', async () => {
+    const mockScan = vi.fn()
+      .mockResolvedValueOnce(['2', ['t:abc:customer:1', 't:abc:customer:2']])
+      .mockResolvedValueOnce(['0', []])
+      .mockResolvedValueOnce(['0', ['rl:abc:12345']])
+      .mockResolvedValueOnce(['0', []]);
+    const mockDel = vi.fn().mockResolvedValue(2);
+    const mockRedis = { scan: mockScan, del: mockDel, getBuffer: vi.fn(), set: vi.fn() } as any;
+    const localCache = new CacheManager(mockRedis);
+
+    await localCache.flushTenant('abc');
+
+    expect(mockDel).toHaveBeenCalledWith('t:abc:customer:1', 't:abc:customer:2');
+    expect(mockDel).toHaveBeenCalledWith('rl:abc:12345');
+  });
+
+  it('also deletes the tenant-lookup key by id', async () => {
+    const mockScan = vi.fn().mockResolvedValue(['0', []]);
+    const mockDel = vi.fn().mockResolvedValue(1);
+    const mockRedis = { scan: mockScan, del: mockDel, getBuffer: vi.fn(), set: vi.fn() } as any;
+    const localCache = new CacheManager(mockRedis);
+
+    await localCache.flushTenant('tenant-xyz');
+
+    expect(mockDel).toHaveBeenCalledWith('tenant-lookup:tenant-xyz');
+  });
+});
+
+describe('CacheManager tenant-lookup cache', () => {
+  it('setTenantLookup writes two keys (by id and by subdomain)', async () => {
+    const mockSet = vi.fn().mockResolvedValue('OK');
+    const mockRedis = { set: mockSet, getBuffer: vi.fn(), scan: vi.fn(), del: vi.fn() } as any;
+    const localCache = new CacheManager(mockRedis);
+
+    await localCache.setTenantLookup({
+      id: 'uuid-1',
+      subdomain: 'acme',
+      name: 'ACME',
+      tier: 'basic',
+      status: 'active',
+      isActive: true,
+      dbUrl: null,
+      allowedOrigins: [],
+    });
+
+    expect(mockSet).toHaveBeenCalledWith('tenant-lookup:uuid-1', expect.any(Buffer), 'EX', 300);
+    expect(mockSet).toHaveBeenCalledWith('tenant-lookup:acme', expect.any(Buffer), 'EX', 300);
+  });
+
+  it('setTenantLookup skips subdomain key when subdomain is null', async () => {
+    const mockSet = vi.fn().mockResolvedValue('OK');
+    const mockRedis = { set: mockSet, getBuffer: vi.fn(), scan: vi.fn(), del: vi.fn() } as any;
+    const localCache = new CacheManager(mockRedis);
+
+    await localCache.setTenantLookup({ id: 'uuid-2', subdomain: null });
+
+    expect(mockSet).toHaveBeenCalledTimes(1);
+    expect(mockSet).toHaveBeenCalledWith('tenant-lookup:uuid-2', expect.any(Buffer), 'EX', 300);
+  });
+
+  it('getTenantLookup returns null on miss', async () => {
+    const mockRedis = { getBuffer: vi.fn().mockResolvedValue(null), set: vi.fn(), scan: vi.fn(), del: vi.fn() } as any;
+    const localCache = new CacheManager(mockRedis);
+
+    const result = await localCache.getTenantLookup('unknown');
+    expect(result).toBeNull();
+  });
+
+  it('getTenantLookup deserializes MessagePack data on hit', async () => {
+    // Use real ioredis-mock for a round-trip test
+    const mod = await import('ioredis-mock');
+    const IORedisMock = mod.default;
+    const localRedis = new IORedisMock();
+    const localCache = new CacheManager(localRedis as any);
+
+    const tenant = { id: 'uuid-3', subdomain: 'testco', name: 'Test Co', tier: 'basic' };
+    await localCache.setTenantLookup(tenant);
+
+    const byId = await localCache.getTenantLookup('uuid-3');
+    expect(byId).toEqual(tenant);
+
+    const bySlug = await localCache.getTenantLookup('testco');
+    expect(bySlug).toEqual(tenant);
+  });
+
+  it('invalidateTenantLookup deletes both id and subdomain keys', async () => {
+    const mockDel = vi.fn().mockResolvedValue(2);
+    const mockRedis = { del: mockDel, getBuffer: vi.fn(), set: vi.fn(), scan: vi.fn() } as any;
+    const localCache = new CacheManager(mockRedis);
+
+    await localCache.invalidateTenantLookup('uuid-4', 'myslug');
+
+    expect(mockDel).toHaveBeenCalledWith('tenant-lookup:uuid-4', 'tenant-lookup:myslug');
+  });
+
+  it('invalidateTenantLookup deletes only id key when subdomain is null', async () => {
+    const mockDel = vi.fn().mockResolvedValue(1);
+    const mockRedis = { del: mockDel, getBuffer: vi.fn(), set: vi.fn(), scan: vi.fn() } as any;
+    const localCache = new CacheManager(mockRedis);
+
+    await localCache.invalidateTenantLookup('uuid-5', null);
+
+    expect(mockDel).toHaveBeenCalledWith('tenant-lookup:uuid-5');
   });
 });

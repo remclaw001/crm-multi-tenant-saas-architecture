@@ -78,11 +78,15 @@ describe('AdminTenantsService', () => {
 
   describe('update — tier change plugin delta', () => {
     it('basic→premium: enables analytics and customer-care', async () => {
+      // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [] });
       // 1st query: SELECT tier (current = basic)
       mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'basic' }] });
       // 2nd query: UPDATE tenants RETURNING ...
       mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'premium', plugin_count: '3' }] });
       // 3rd query: INSERT tenant_plugins (toEnable)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // COMMIT
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
       await service.update('tid', { plan: 'premium' });
@@ -102,11 +106,15 @@ describe('AdminTenantsService', () => {
     });
 
     it('enterprise→basic: disables marketing', async () => {
+      // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [] });
       // 1st query: SELECT tier (current = enterprise)
       mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'enterprise' }] });
       // 2nd query: UPDATE tenants RETURNING ...
       mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'basic', plugin_count: '1' }] });
       // 3rd query: UPDATE tenant_plugins (toDisable)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // COMMIT
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
       await service.update('tid', { plan: 'basic' });
@@ -127,10 +135,14 @@ describe('AdminTenantsService', () => {
     });
 
     it('same tier update: no plugin changes', async () => {
+      // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [] });
       // 1st query: SELECT tier (current = basic)
       mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'basic' }] });
       // 2nd query: UPDATE tenants RETURNING ... (updating name only)
       mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, name: 'New Name' }] });
+      // COMMIT
+      mockQuery.mockResolvedValueOnce({ rows: [] });
 
       await service.update('tid', { name: 'New Name' });
 
@@ -151,10 +163,14 @@ describe('AdminTenantsService', () => {
     });
 
     it('updating plan to same tier: no plugin changes', async () => {
+      // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [] });
       // 1st query: SELECT tier (current = basic)
       mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'basic' }] });
       // 2nd query: UPDATE tenants RETURNING ...
       mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'basic' }] });
+      // COMMIT
+      mockQuery.mockResolvedValueOnce({ rows: [] });
 
       await service.update('tid', { plan: 'basic' });
 

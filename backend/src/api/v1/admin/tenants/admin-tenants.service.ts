@@ -143,6 +143,8 @@ export class AdminTenantsService {
   async update(id: string, input: { name?: string; status?: string; plan?: string }) {
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
+      await client.query('BEGIN');
+
       // Fetch current tier BEFORE updating so we can compute the plugin delta
       const currentRes = await client.query<{ tier: string }>(
         'SELECT tier FROM tenants WHERE id = $1',
@@ -156,7 +158,10 @@ export class AdminTenantsService {
       if (input.name)   { args.push(input.name);                sets.push(`name = $${args.length}`); }
       if (input.plan)   { args.push(input.plan);                sets.push(`tier = $${args.length}`); }
       if (input.status) { args.push(input.status === 'active'); sets.push(`is_active = $${args.length}`); }
-      if (!sets.length) return this.findOne(id);
+      if (!sets.length) {
+        await client.query('ROLLBACK');
+        return this.findOne(id);
+      }
       args.push(id);
       const res = await client.query<TenantRow>(
         `UPDATE tenants SET ${sets.join(', ')}, updated_at = NOW()
@@ -189,13 +194,20 @@ export class AdminTenantsService {
             [id, toDisable],
           );
         }
+      }
 
-        // Invalidate cache for changed tenant (same pattern as togglePlugin)
+      await client.query('COMMIT');
+
+      // Invalidate cache after successful commit (outside the DB transaction)
+      if (input.plan && input.plan !== currentTier) {
         await this.cache.delForTenant(id, 'tenant-config', 'enabled-plugins');
         await this.cache.delForTenant(id, 'tenant-config', 'tenant-config');
       }
 
       return rowToTenant(res.rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
     } finally {
       client.release();
     }

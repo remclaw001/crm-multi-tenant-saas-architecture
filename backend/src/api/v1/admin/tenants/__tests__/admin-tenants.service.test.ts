@@ -5,6 +5,7 @@ const mockQuery = vi.hoisted(() => vi.fn());
 const mockRelease = vi.hoisted(() => vi.fn());
 const mockAcquire = vi.hoisted(() => vi.fn());
 const mockDelForTenant = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const mockPublishNotification = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../../dal/pool/PoolRegistry', () => ({
   PoolRegistry: vi.fn().mockImplementation(() => ({
@@ -18,9 +19,16 @@ vi.mock('../../../../dal/cache/CacheManager', () => ({
   })),
 }));
 
+vi.mock('../../../../workers/amqp/amqp-publisher.service', () => ({
+  AmqpPublisher: vi.fn().mockImplementation(() => ({
+    publishNotification: mockPublishNotification,
+  })),
+}));
+
 import { AdminTenantsService } from '../admin-tenants.service';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { CacheManager } from '../../../../dal/cache/CacheManager';
+import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
 
 const ROW = {
   id: 'tid', name: 'Acme', subdomain: 'acme',
@@ -36,7 +44,70 @@ describe('AdminTenantsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAcquire.mockResolvedValue({ query: mockQuery, release: mockRelease });
-    service = new AdminTenantsService(new (PoolRegistry as any)(), new (CacheManager as any)());
+    service = new AdminTenantsService(
+      new (PoolRegistry as any)(),
+      new (CacheManager as any)(),
+      new (AmqpPublisher as any)(),
+    );
+  });
+
+  describe('create — AMQP welcome event', () => {
+    const setupCreateMocks = () => {
+      // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // INSERT INTO tenants RETURNING ...
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          id: 'tid', name: 'Acme', subdomain: 'acme',
+          tier: 'basic', is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }],
+      });
+      // INSERT INTO tenant_plugins (customer-data)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      // COMMIT
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+    };
+
+    it('publishes welcome notification when adminEmail is provided', async () => {
+      setupCreateMocks();
+
+      await service.create({ name: 'Acme', subdomain: 'acme', plan: 'basic', adminEmail: 'admin@acme.com' });
+
+      // Allow the fire-and-forget microtask to execute
+      await Promise.resolve();
+
+      expect(mockPublishNotification).toHaveBeenCalledOnce();
+      const call = mockPublishNotification.mock.calls[0][0];
+      expect(call.tenantId).toBe('tid');
+      expect(call.channel).toBe('email');
+      expect(call.to).toBe('admin@acme.com');
+      expect(call.metadata?.type).toBe('tenant.provisioned');
+      expect(call.metadata?.tier).toBe('basic');
+    });
+
+    it('does not publish when adminEmail is omitted', async () => {
+      setupCreateMocks();
+
+      await service.create({ name: 'Acme', subdomain: 'acme', plan: 'basic' });
+      await Promise.resolve();
+
+      expect(mockPublishNotification).not.toHaveBeenCalled();
+    });
+
+    it('AMQP failure does not block create response', async () => {
+      setupCreateMocks();
+      mockPublishNotification.mockImplementation(() => { throw new Error('AMQP down'); });
+
+      // Should not throw even if AMQP fails
+      const result = await service.create({
+        name: 'Acme', subdomain: 'acme', plan: 'basic', adminEmail: 'admin@acme.com',
+      });
+      await Promise.resolve();
+
+      expect(result.id).toBe('tid');
+    });
   });
 
   describe('list', () => {

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ConflictException }
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { BUILT_IN_MANIFESTS } from '../../../../plugins/manifest/built-in-manifests';
+import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
 
 const TIER_DEFAULT_PLUGINS: Record<string, string[]> = {
   basic:      ['customer-data'],
@@ -36,6 +37,7 @@ export class AdminTenantsService {
   constructor(
     private readonly poolRegistry: PoolRegistry,
     private readonly cache: CacheManager,
+    private readonly amqp: AmqpPublisher,
   ) {}
 
   async list(params: { page: number; limit: number; search?: string }) {
@@ -98,7 +100,7 @@ export class AdminTenantsService {
     }
   }
 
-  async create(input: { name: string; subdomain: string; plan: string }) {
+  async create(input: { name: string; subdomain: string; plan: string; adminEmail?: string }) {
     const VALID_PLANS = ['basic', 'standard', 'premium', 'enterprise', 'vip'];
     if (!VALID_PLANS.includes(input.plan)) {
       throw new BadRequestException(`Invalid plan "${input.plan}". Must be one of: ${VALID_PLANS.join(', ')}`);
@@ -128,7 +130,33 @@ export class AdminTenantsService {
       }
 
       await client.query('COMMIT');
-      return rowToTenant({ ...tenant, plugin_count: String(defaultPlugins.length) });
+
+      const result = rowToTenant({ ...tenant, plugin_count: String(defaultPlugins.length) });
+
+      // Fire-and-forget welcome email event (don't block response)
+      if (input.adminEmail) {
+        Promise.resolve().then(() =>
+          this.amqp.publishNotification({
+            tenantId: tenant.id,
+            userId: 'system',
+            channel: 'email',
+            to: input.adminEmail!,
+            subject: `Welcome to the platform — ${tenant.name}`,
+            body: `Your tenant "${tenant.name}" (subdomain: ${tenant.subdomain}) has been provisioned on the ${input.plan} plan.`,
+            metadata: {
+              type: 'tenant.provisioned',
+              tenantId: tenant.id,
+              tier: input.plan,
+              subdomain: tenant.subdomain,
+              name: tenant.name,
+            },
+          })
+        ).catch((err) => {
+          console.error('[AdminTenantsService] Failed to publish welcome email event', err);
+        });
+      }
+
+      return result;
     } catch (err: unknown) {
       await client.query('ROLLBACK');
       if ((err as { code?: string }).code === '23505') {

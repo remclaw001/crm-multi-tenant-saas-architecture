@@ -20,7 +20,32 @@ const TIER_DEFAULT_PLUGINS: Record<string, string[]> = {
   vip:        ['customer-data', 'customer-care', 'analytics', 'marketing', 'automation'],
 };
 
+/** Numeric rank — higher number = higher tier. */
+const TIER_ORDER: Record<string, number> = {
+  basic: 0, premium: 1, enterprise: 2, vip: 3,
+};
+
+/** Readable connection cap per tier (mirrors TenantQuotaEnforcer constants). */
+const TIER_CONN_CAPS: Record<string, string> = {
+  basic: '10', premium: '20', enterprise: '30', vip: 'unlimited',
+};
+
+/** Readable API rate limit per tier (spec §05). */
+const TIER_RATE_LIMITS: Record<string, string> = {
+  basic: '100 rpm', premium: '500 rpm', enterprise: '2000 rpm', vip: 'unlimited',
+};
+
 export type TenantStatus = 'provisioning' | 'active' | 'migrating' | 'grace_period' | 'suspended' | 'offboarding' | 'offboarded';
+
+/** Shape returned by previewDowngrade(). */
+export interface DowngradePreview {
+  currentPlan:        string;
+  newPlan:            string;
+  pluginsToDisable:   string[];
+  dataNote:           string;
+  connectionCapChange: string;
+  rateLimit:          string;
+}
 
 export interface TenantRow {
   id: string; name: string; subdomain: string | null;
@@ -508,5 +533,78 @@ export class AdminTenantsService {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Returns a read-only impact summary for a proposed shared-tier downgrade.
+   * No side effects — call this before confirmDowngrade() to show the admin
+   * what will change before they commit.
+   *
+   * Throws BadRequestException if newPlan is not a valid downgrade
+   * (same tier, upgrade, or VIP — VIP uses the vip-decommission flow).
+   */
+  async previewDowngrade(id: string, newPlan: string): Promise<DowngradePreview> {
+    if (newPlan === 'vip' || !(newPlan in TIER_ORDER)) {
+      throw new BadRequestException(`Invalid downgrade target: "${newPlan}"`);
+    }
+
+    const tenant = await this.findOne(id);
+    const currentPlan = tenant.plan;
+
+    if (currentPlan === 'vip') {
+      throw new BadRequestException(
+        'VIP downgrades require the VIP decommission flow (PATCH with plan change)',
+      );
+    }
+
+    if ((TIER_ORDER[newPlan] ?? -1) >= (TIER_ORDER[currentPlan] ?? 0)) {
+      throw new BadRequestException(
+        `"${newPlan}" is not a downgrade from "${currentPlan}"`,
+      );
+    }
+
+    const pluginsToDisable = (TIER_DEFAULT_PLUGINS[currentPlan] ?? [])
+      .filter(p => !(TIER_DEFAULT_PLUGINS[newPlan] ?? []).includes(p));
+
+    return {
+      currentPlan,
+      newPlan,
+      pluginsToDisable,
+      dataNote: pluginsToDisable.length > 0
+        ? 'Plugin data remains in the database but will not be accessible until the plan is upgraded again.'
+        : 'No plugin changes required.',
+      connectionCapChange: `${TIER_CONN_CAPS[currentPlan]} → ${TIER_CONN_CAPS[newPlan]} connections`,
+      rateLimit: `${TIER_RATE_LIMITS[currentPlan]} → ${TIER_RATE_LIMITS[newPlan]}`,
+    };
+  }
+
+  /**
+   * Applies a shared-tier downgrade after the admin has reviewed the preview.
+   * Delegates to update() which handles plugin delta, cache invalidation,
+   * quota cap update, and Redis pub/sub broadcast.
+   *
+   * Throws BadRequestException for same-tier, upgrade, or VIP attempts.
+   */
+  async confirmDowngrade(id: string, newPlan: string): Promise<ReturnType<typeof rowToTenant>> {
+    if (newPlan === 'vip' || !(newPlan in TIER_ORDER)) {
+      throw new BadRequestException(`Invalid downgrade target: "${newPlan}"`);
+    }
+
+    const tenant = await this.findOne(id);
+    const currentPlan = tenant.plan;
+
+    if (currentPlan === 'vip') {
+      throw new BadRequestException(
+        'VIP downgrades require the VIP decommission flow (PATCH with plan change)',
+      );
+    }
+
+    if ((TIER_ORDER[newPlan] ?? -1) >= (TIER_ORDER[currentPlan] ?? 0)) {
+      throw new BadRequestException(
+        `"${newPlan}" is not a downgrade from "${currentPlan}"`,
+      );
+    }
+
+    return this.update(id, { plan: newPlan });
   }
 }

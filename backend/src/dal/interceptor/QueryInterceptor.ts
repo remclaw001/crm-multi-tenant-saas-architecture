@@ -61,7 +61,7 @@ export function applyQueryInterceptor(knex: KnexType): void {
 
       // Lazy-register on first seen (handles tenants active before quota enforcer started)
       const tier = TenantContext.getTier?.();
-      if (tier && !TenantQuotaEnforcer['slots'].has(tenantId)) {
+      if (tier && !TenantQuotaEnforcer.isRegistered(tenantId)) {
         TenantQuotaEnforcer.register(tenantId, tier);
       }
       await TenantQuotaEnforcer.acquire(tenantId);

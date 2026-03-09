@@ -83,6 +83,10 @@ export class TenantQuotaEnforcer {
     this.slots.delete(tenantId);
   }
 
+  static isRegistered(tenantId: string): boolean {
+    return this.slots.has(tenantId);
+  }
+
   /** For tests only — clears all state. */
   static reset(): void {
     this.slots.clear();

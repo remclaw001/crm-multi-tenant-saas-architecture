@@ -75,4 +75,95 @@ describe('AdminTenantsService', () => {
       await expect(service.softDelete('bad-id')).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('update — tier change plugin delta', () => {
+    it('basic→premium: enables analytics and customer-care', async () => {
+      // 1st query: SELECT tier (current = basic)
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'basic' }] });
+      // 2nd query: UPDATE tenants RETURNING ...
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'premium', plugin_count: '3' }] });
+      // 3rd query: INSERT tenant_plugins (toEnable)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await service.update('tid', { plan: 'premium' });
+
+      // Verify the INSERT to enable plugins was called
+      const insertCall = mockQuery.mock.calls.find(
+        (args) => typeof args[0] === 'string' && args[0].includes('INSERT INTO tenant_plugins'),
+      );
+      expect(insertCall).toBeDefined();
+      const enabledPlugins: string[] = insertCall![1][1];
+      expect(enabledPlugins).toContain('customer-care');
+      expect(enabledPlugins).toContain('analytics');
+      expect(enabledPlugins).not.toContain('customer-data'); // already in basic
+
+      // Cache should be invalidated
+      expect(mockDelForTenant).toHaveBeenCalledWith('tid', 'tenant-config', 'enabled-plugins');
+    });
+
+    it('enterprise→basic: disables marketing', async () => {
+      // 1st query: SELECT tier (current = enterprise)
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'enterprise' }] });
+      // 2nd query: UPDATE tenants RETURNING ...
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'basic', plugin_count: '1' }] });
+      // 3rd query: UPDATE tenant_plugins (toDisable)
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await service.update('tid', { plan: 'basic' });
+
+      // Verify the UPDATE to disable plugins was called
+      const disableCall = mockQuery.mock.calls.find(
+        (args) => typeof args[0] === 'string' && args[0].includes('is_enabled = false'),
+      );
+      expect(disableCall).toBeDefined();
+      const disabledPlugins: string[] = disableCall![1][1];
+      expect(disabledPlugins).toContain('marketing');
+      expect(disabledPlugins).toContain('customer-care');
+      expect(disabledPlugins).toContain('analytics');
+      expect(disabledPlugins).not.toContain('customer-data'); // in both basic and enterprise
+
+      // Cache should be invalidated
+      expect(mockDelForTenant).toHaveBeenCalledWith('tid', 'tenant-config', 'enabled-plugins');
+    });
+
+    it('same tier update: no plugin changes', async () => {
+      // 1st query: SELECT tier (current = basic)
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'basic' }] });
+      // 2nd query: UPDATE tenants RETURNING ... (updating name only)
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, name: 'New Name' }] });
+
+      await service.update('tid', { name: 'New Name' });
+
+      // No INSERT or UPDATE to tenant_plugins should have been called
+      const pluginInsert = mockQuery.mock.calls.find(
+        (args) => typeof args[0] === 'string' && args[0].includes('INSERT INTO tenant_plugins'),
+      );
+      const pluginUpdate = mockQuery.mock.calls.find(
+        (args) =>
+          typeof args[0] === 'string' &&
+          args[0].includes('UPDATE tenant_plugins'),
+      );
+      expect(pluginInsert).toBeUndefined();
+      expect(pluginUpdate).toBeUndefined();
+
+      // Cache should NOT be invalidated
+      expect(mockDelForTenant).not.toHaveBeenCalled();
+    });
+
+    it('updating plan to same tier: no plugin changes', async () => {
+      // 1st query: SELECT tier (current = basic)
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'basic' }] });
+      // 2nd query: UPDATE tenants RETURNING ...
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'basic' }] });
+
+      await service.update('tid', { plan: 'basic' });
+
+      // No INSERT or UPDATE to tenant_plugins
+      const pluginInsert = mockQuery.mock.calls.find(
+        (args) => typeof args[0] === 'string' && args[0].includes('INSERT INTO tenant_plugins'),
+      );
+      expect(pluginInsert).toBeUndefined();
+      expect(mockDelForTenant).not.toHaveBeenCalled();
+    });
+  });
 });

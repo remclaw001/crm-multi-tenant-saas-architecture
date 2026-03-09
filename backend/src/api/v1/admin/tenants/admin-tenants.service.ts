@@ -143,6 +143,14 @@ export class AdminTenantsService {
   async update(id: string, input: { name?: string; status?: string; plan?: string }) {
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
+      // Fetch current tier BEFORE updating so we can compute the plugin delta
+      const currentRes = await client.query<{ tier: string }>(
+        'SELECT tier FROM tenants WHERE id = $1',
+        [id],
+      );
+      if (!currentRes.rows[0]) throw new NotFoundException(`Tenant not found: ${id}`);
+      const currentTier = currentRes.rows[0].tier;
+
       const sets: string[] = [];
       const args: unknown[] = [];
       if (input.name)   { args.push(input.name);                sets.push(`name = $${args.length}`); }
@@ -158,6 +166,35 @@ export class AdminTenantsService {
         args,
       );
       if (!res.rows[0]) throw new NotFoundException(`Tenant not found: ${id}`);
+
+      // Handle plugin delta when tier changes
+      if (input.plan && input.plan !== currentTier) {
+        const newPlugins = TIER_DEFAULT_PLUGINS[input.plan] ?? [];
+        const oldPlugins = TIER_DEFAULT_PLUGINS[currentTier] ?? [];
+        const toEnable = newPlugins.filter(p => !oldPlugins.includes(p));
+        const toDisable = oldPlugins.filter(p => !newPlugins.includes(p));
+
+        if (toEnable.length > 0) {
+          await client.query(
+            `INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled)
+             SELECT $1, unnest($2::text[]), true
+             ON CONFLICT (tenant_id, plugin_name) DO UPDATE SET is_enabled = true`,
+            [id, toEnable],
+          );
+        }
+        if (toDisable.length > 0) {
+          await client.query(
+            `UPDATE tenant_plugins SET is_enabled = false
+             WHERE tenant_id = $1 AND plugin_name = ANY($2::text[])`,
+            [id, toDisable],
+          );
+        }
+
+        // Invalidate cache for changed tenant (same pattern as togglePlugin)
+        await this.cache.delForTenant(id, 'tenant-config', 'enabled-plugins');
+        await this.cache.delForTenant(id, 'tenant-config', 'tenant-config');
+      }
+
       return rowToTenant(res.rows[0]);
     } finally {
       client.release();

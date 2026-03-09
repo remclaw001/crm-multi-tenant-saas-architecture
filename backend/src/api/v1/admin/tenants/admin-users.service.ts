@@ -66,13 +66,13 @@ export class AdminUsersService {
     return this.withTenant(tenantId, async (client) => {
       await this.seedRoles(client, tenantId);
       const res = await client.query<TenantUserRow>(
-        `SELECT u.id, u.name, u.email, u.is_active, u.created_at,
+        `SELECT DISTINCT ON (u.id) u.id, u.name, u.email, u.is_active, u.created_at,
                 r.name AS role
          FROM users u
          LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.tenant_id = u.tenant_id
          LEFT JOIN roles r ON r.id = ur.role_id
          WHERE u.tenant_id = $1
-         ORDER BY u.created_at DESC`,
+         ORDER BY u.id, u.created_at DESC`,
         [tenantId],
       );
       return res.rows.map(rowToUser);
@@ -122,6 +122,7 @@ export class AdminUsersService {
   async updateUser(tenantId: string, userId: string, input: {
     name?: string; email?: string; role?: RoleName; password?: string;
   }) {
+    this.assertUuid(userId, 'userId');
     if (input.role && !VALID_ROLES.includes(input.role)) {
       throw new BadRequestException(`Invalid role "${input.role}"`);
     }
@@ -185,6 +186,7 @@ export class AdminUsersService {
   }
 
   async setActive(tenantId: string, userId: string, isActive: boolean) {
+    this.assertUuid(userId, 'userId');
     return this.withTenant(tenantId, async (client) => {
       const res = await client.query(
         `UPDATE users SET is_active = $3, updated_at = NOW()
@@ -204,6 +206,7 @@ export class AdminUsersService {
   }
 
   async deleteUser(tenantId: string, userId: string): Promise<void> {
+    this.assertUuid(userId, 'userId');
     await this.withTenant(tenantId, async (client) => {
       const res = await client.query(
         `DELETE FROM users WHERE tenant_id = $1 AND id = $2 RETURNING id`,

@@ -1,12 +1,14 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, Building2, Plug } from 'lucide-react';
+import { ArrowLeft, Building2, Pencil, Plug } from 'lucide-react';
 import { adminApi } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth.store';
 import { formatDate, cn } from '@/lib/utils';
+import { EditTenantModal } from '@/components/edit-tenant-modal';
+import { TenantUsersSection } from '@/components/tenant-users-section';
 
 const PLAN_BADGE: Record<string, string> = {
   standard: 'bg-blue-100 text-blue-700',
@@ -27,6 +29,7 @@ export default function TenantDetailPage({
 }) {
   const { id } = use(params);
   const token = useAuthStore((s) => s.token ?? '');
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: tenant, isLoading } = useQuery({
     queryKey: ['tenants', id],
@@ -54,14 +57,23 @@ export default function TenantDetailPage({
         Back to tenants
       </Link>
 
-      <div className="mb-6 flex items-start gap-4">
-        <div className="rounded-xl bg-primary/10 p-3">
-          <Building2 className="h-6 w-6 text-primary" />
+      <div className="mb-6 flex items-start justify-between">
+        <div className="flex items-start gap-4">
+          <div className="rounded-xl bg-primary/10 p-3">
+            <Building2 className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">{tenant.name}</h1>
+            <p className="text-sm text-muted-foreground">{tenant.subdomain}.app.com</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">{tenant.name}</h1>
-          <p className="text-sm text-muted-foreground">{tenant.subdomain}.app.com</p>
-        </div>
+        <button
+          onClick={() => setEditOpen(true)}
+          className="flex items-center gap-1.5 rounded-md border border-border bg-card px-3.5 py-2 text-sm font-medium hover:bg-accent"
+        >
+          <Pencil className="h-4 w-4" />
+          Edit
+        </button>
       </div>
 
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -107,6 +119,12 @@ export default function TenantDetailPage({
           <p className="text-sm text-muted-foreground">Enable or disable plugins for this tenant</p>
         </div>
       </Link>
+
+      <TenantUsersSection tenantId={id} />
+
+      {editOpen && (
+        <EditTenantModal tenant={tenant} onClose={() => setEditOpen(false)} />
+      )}
     </div>
   );
 }

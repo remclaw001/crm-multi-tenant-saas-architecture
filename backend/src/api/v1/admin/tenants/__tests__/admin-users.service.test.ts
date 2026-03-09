@@ -23,8 +23,9 @@ import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { PasswordService } from '../../../../common/security/password.service';
 
 const TENANT_ID = '11111111-1111-1111-1111-111111111111';
+const USER_ID = '22222222-2222-2222-2222-222222222222';
 const USER_ROW = {
-  id: 'user-uuid', name: 'Alice', email: 'alice@example.com',
+  id: USER_ID, name: 'Alice', email: 'alice@example.com',
   is_active: true, created_at: new Date().toISOString(), role: 'admin',
 };
 
@@ -54,7 +55,7 @@ describe('AdminUsersService', () => {
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
         .mockResolvedValueOnce({ rows: [] }) // SET LOCAL
         .mockResolvedValueOnce({ rows: [] }) // seedRoles INSERT
-        .mockResolvedValueOnce({ rows: [USER_ROW] }) // SELECT users
+        .mockResolvedValueOnce({ rows: [{ ...USER_ROW, id: USER_ID }] }) // SELECT users
         .mockResolvedValueOnce({ rows: [] }); // COMMIT
 
       const result = await service.listUsers(TENANT_ID);
@@ -69,7 +70,7 @@ describe('AdminUsersService', () => {
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
         .mockResolvedValueOnce({ rows: [] }) // SET LOCAL
         .mockResolvedValueOnce({ rows: [] }) // seedRoles
-        .mockResolvedValueOnce({ rows: [{ id: 'user-uuid', name: 'Alice', email: 'alice@example.com', is_active: true, created_at: new Date().toISOString() }] }) // INSERT user
+        .mockResolvedValueOnce({ rows: [{ id: USER_ID, name: 'Alice', email: 'alice@example.com', is_active: true, created_at: new Date().toISOString() }] }) // INSERT user
         .mockResolvedValueOnce({ rows: [{ id: 'role-uuid' }] }) // SELECT role
         .mockResolvedValueOnce({ rows: [] }) // INSERT user_role
         .mockResolvedValueOnce({ rows: [] }); // COMMIT
@@ -100,36 +101,31 @@ describe('AdminUsersService', () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
         .mockResolvedValueOnce({ rows: [] }) // SET LOCAL
-        .mockResolvedValueOnce({ rows: [{ id: 'user-uuid', name: 'Bob', email: 'alice@example.com', is_active: true, created_at: new Date().toISOString() }] }) // UPDATE
+        .mockResolvedValueOnce({ rows: [{ id: USER_ID, name: 'Bob', email: 'alice@example.com', is_active: true, created_at: new Date().toISOString() }] }) // UPDATE
         .mockResolvedValueOnce({ rows: [{ role: 'admin' }] }) // fetch role
         .mockResolvedValueOnce({ rows: [] }); // COMMIT
 
-      const result = await service.updateUser(TENANT_ID, 'user-uuid', { name: 'Bob' });
-      expect(result.id).toBe('user-uuid');
+      const result = await service.updateUser(TENANT_ID, USER_ID, { name: 'Bob' });
+      expect(result.id).toBe(USER_ID);
     });
 
-    it('throws NotFoundException when user not found', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [] }) // BEGIN
-        .mockResolvedValueOnce({ rows: [] }) // SET LOCAL
-        .mockResolvedValueOnce({ rows: [] }) // UPDATE returns nothing
-        .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
-
+    it('throws BadRequestException for invalid userId', async () => {
       await expect(
         service.updateUser(TENANT_ID, 'bad-id', { name: 'X' }),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(BadRequestException);
+      expect(mockAcquire).not.toHaveBeenCalled();
     });
 
     it('handles no-field update (select-only path)', async () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
         .mockResolvedValueOnce({ rows: [] }) // SET LOCAL
-        .mockResolvedValueOnce({ rows: [{ id: 'user-uuid', name: 'Alice', email: 'alice@example.com', is_active: true, created_at: new Date().toISOString() }] }) // SELECT
+        .mockResolvedValueOnce({ rows: [{ id: USER_ID, name: 'Alice', email: 'alice@example.com', is_active: true, created_at: new Date().toISOString() }] }) // SELECT
         .mockResolvedValueOnce({ rows: [{ role: 'admin' }] }) // fetch role
         .mockResolvedValueOnce({ rows: [] }); // COMMIT
 
-      const result = await service.updateUser(TENANT_ID, 'user-uuid', {});
-      expect(result.id).toBe('user-uuid');
+      const result = await service.updateUser(TENANT_ID, USER_ID, {});
+      expect(result.id).toBe(USER_ID);
     });
   });
 
@@ -138,11 +134,11 @@ describe('AdminUsersService', () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
         .mockResolvedValueOnce({ rows: [] }) // SET LOCAL
-        .mockResolvedValueOnce({ rows: [{ id: 'user-uuid', name: 'Alice', email: 'alice@example.com', is_active: false, created_at: new Date().toISOString() }] }) // UPDATE
+        .mockResolvedValueOnce({ rows: [{ id: USER_ID, name: 'Alice', email: 'alice@example.com', is_active: false, created_at: new Date().toISOString() }] }) // UPDATE
         .mockResolvedValueOnce({ rows: [{ role: 'admin' }] }) // fetch role
         .mockResolvedValueOnce({ rows: [] }); // COMMIT
 
-      const result = await service.setActive(TENANT_ID, 'user-uuid', false);
+      const result = await service.setActive(TENANT_ID, USER_ID, false);
       expect(result.is_active).toBe(false);
     });
   });
@@ -152,24 +148,19 @@ describe('AdminUsersService', () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
         .mockResolvedValueOnce({ rows: [] }) // SET LOCAL
-        .mockResolvedValueOnce({ rows: [{ id: 'user-uuid' }] }) // DELETE
+        .mockResolvedValueOnce({ rows: [{ id: USER_ID }] }) // DELETE
         .mockResolvedValueOnce({ rows: [] }); // COMMIT
 
-      await service.deleteUser(TENANT_ID, 'user-uuid');
+      await service.deleteUser(TENANT_ID, USER_ID);
       expect(mockQuery).toHaveBeenCalledWith(
         expect.stringContaining('DELETE FROM users'),
         expect.any(Array),
       );
     });
 
-    it('throws NotFoundException when user not found', async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [] }) // BEGIN
-        .mockResolvedValueOnce({ rows: [] }) // SET LOCAL
-        .mockResolvedValueOnce({ rows: [] }) // DELETE returns nothing
-        .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
-
-      await expect(service.deleteUser(TENANT_ID, 'bad-id')).rejects.toThrow(NotFoundException);
+    it('throws BadRequestException for invalid userId', async () => {
+      await expect(service.deleteUser(TENANT_ID, 'bad-id')).rejects.toThrow(BadRequestException);
+      expect(mockAcquire).not.toHaveBeenCalled();
     });
   });
 });

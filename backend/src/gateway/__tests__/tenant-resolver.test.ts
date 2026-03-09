@@ -70,15 +70,25 @@ function makeRes(): Response & { status: ReturnType<typeof vi.fn>; json: ReturnT
   return res;
 }
 
+// ── Mock CacheManager ─────────────────────────────────────────
+const mockCacheManager = {
+  getTenantLookup: vi.fn().mockResolvedValue(null), // always cache miss
+  setTenantLookup: vi.fn().mockResolvedValue(undefined),
+};
+
 // ── Tests ─────────────────────────────────────────────────────
 describe('TenantResolverMiddleware', () => {
   let middleware: InstanceType<typeof TenantResolverMiddleware>;
   let next: NextFunction;
 
   beforeEach(() => {
-    middleware = new TenantResolverMiddleware();
+    middleware = new TenantResolverMiddleware(mockCacheManager as any);
     next = vi.fn();
     getMockQuery().mockReset();
+    mockCacheManager.getTenantLookup.mockReset();
+    mockCacheManager.getTenantLookup.mockResolvedValue(null);
+    mockCacheManager.setTenantLookup.mockReset();
+    mockCacheManager.setTenantLookup.mockResolvedValue(undefined);
   });
 
   afterEach(() => {

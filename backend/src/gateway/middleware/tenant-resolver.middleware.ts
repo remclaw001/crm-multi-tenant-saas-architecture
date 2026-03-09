@@ -35,6 +35,7 @@ import { config } from '../../config/env';
 import { TenantContext } from '../../dal/context/TenantContext';
 import type { ResolvedTenant } from '../dto/resolved-tenant.dto';
 import type { TenantTier, TenantStatus } from '../../dal/context/TenantContext';
+import { CacheManager } from '../../dal/cache/CacheManager';
 
 // ── DB row shape từ tenants table ─────────────────────────────
 interface TenantRow {
@@ -88,6 +89,8 @@ function extractSubdomain(host: string): string | null {
 
 @Injectable()
 export class TenantResolverMiddleware implements NestMiddleware {
+  constructor(private readonly cache: CacheManager) {}
+
   async use(
     req: Request & { resolvedTenant?: ResolvedTenant },
     res: Response,
@@ -176,6 +179,11 @@ export class TenantResolverMiddleware implements NestMiddleware {
   }
 
   private async lookupTenant(identifier: string): Promise<ResolvedTenant | null> {
+    // 1. Cache-aside: check Redis first
+    const cached = await this.cache.getTenantLookup(identifier);
+    if (cached) return cached as ResolvedTenant;
+
+    // 2. Cache miss: query PostgreSQL metadata pool
     const pool = getMetadataPool();
 
     // Xác định lookup strategy: UUID hoặc subdomain slug
@@ -198,7 +206,7 @@ export class TenantResolverMiddleware implements NestMiddleware {
       ? (configJson['allowedOrigins'] as string[])
       : [];
 
-    return {
+    const resolved: ResolvedTenant = {
       id: row.id,
       name: row.name,
       subdomain: row.subdomain,
@@ -208,5 +216,10 @@ export class TenantResolverMiddleware implements NestMiddleware {
       isActive: row.is_active,
       allowedOrigins,
     };
+
+    // 3. Write to cache (both by id and by subdomain)
+    await this.cache.setTenantLookup(resolved);
+
+    return resolved;
   }
 }

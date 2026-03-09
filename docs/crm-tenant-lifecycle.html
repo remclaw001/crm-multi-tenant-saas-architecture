@@ -104,7 +104,7 @@
   <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ vòng đời Tenant</span><span data-lang="en">Tenant Lifecycle Map</span></h2></div>
   <div class="nt bl" data-lang="vi"><strong>Tenant lifecycle:</strong> Một tenant đi qua nhiều trạng thái trong suốt vòng đời. Mỗi chuyển trạng thái đều có flow cụ thể ảnh hưởng đến Metadata DB, connection pool, plugin registry, Redis cache, và billing.</div>
   <div class="nt bl" data-lang="en"><strong>Tenant lifecycle:</strong> A tenant passes through multiple states throughout its lifetime. Each state transition has a specific flow that affects the Metadata DB, connection pool, plugin registry, Redis cache, and billing.</div>
-  <div class="dg"><div class="dg-label">lifecycle overview</div><pre>
+  <div class="dg" data-lang="vi"><div class="dg-label">lifecycle overview</div><pre>
   <span class="ty">TRẠNG THÁI TENANT:</span>
 
   ┌───────────────────────────────────────────────────────────────────────────┐
@@ -157,6 +157,60 @@
   │ Offboard tự nguyện   │ Tenant Admin     │ Export, cleanup, release         │
   │ Offboard tự động     │ Billing system   │ Sau grace + suspend period       │
   └──────────────────────┴──────────────────┴──────────────────────────────────┘</pre></div>
+
+  <div class="dg" data-lang="en"><div class="dg-label">lifecycle overview</div><pre>
+  <span class="ty">TENANT STATES:</span>
+
+  ┌───────────────────────────────────────────────────────────────────────────┐
+  │                                                                           │
+  │   Admin creates          Payment               Grace                     │
+  │       │                 successful             expired                   │
+  │       ▼                      ▲                        ▼                   │
+  │  <span class="am">PROVISIONING</span>  ──────►  <span class="gn">ACTIVE</span>  ──────►  <span class="am">GRACE PERIOD</span>  ──────►  <span class="rd">SUSPENDED</span>  │
+  │                              │                                    │       │
+  │                              │ tier change                        │ 30d   │
+  │                              ▼                                    ▼       │
+  │                         <span class="am">TIER CHANGED</span>                     <span class="rd">OFFBOARDED</span>    │
+  │                              │                                           │
+  │                              ▼                                           │
+  │                     <span class="vi">VIP: MIGRATING</span>  ──────►  <span class="gn">ACTIVE</span>                      │
+  │                     <span class="cm">(when upgrading to VIP tier — requires new Dedicated DB)</span> │
+  │                                                                           │
+  └───────────────────────────────────────────────────────────────────────────┘
+
+
+  <span class="ty">STATE → MEANING:</span>
+
+  ┌──────────────────────┬──────────────────────────────────────────────────────┐
+  │ <span class="am">PROVISIONING</span>         │ Creating records, enabling plugins, running migrations.│
+  │                      │ ~30s. Gateway rejects all requests.                  │
+  ├──────────────────────┼──────────────────────────────────────────────────────┤
+  │ <span class="gn">ACTIVE</span>               │ Normal operation. Full access per tier.               │
+  ├──────────────────────┼──────────────────────────────────────────────────────┤
+  │ <span class="vi">MIGRATING</span>            │ Migrating to VIP Dedicated DB (~5–30 min).            │
+  │                      │ Read-only. Write ops rejected.                       │
+  ├──────────────────────┼──────────────────────────────────────────────────────┤
+  │ <span class="am">GRACE PERIOD</span>         │ Invoice overdue. Full access retained. 7-day warning. │
+  ├──────────────────────┼──────────────────────────────────────────────────────┤
+  │ <span class="rd">SUSPENDED</span>            │ Read-only. Cannot create/edit/delete data. 30 days.   │
+  ├──────────────────────┼──────────────────────────────────────────────────────┤
+  │ <span class="rd">OFFBOARDED</span>           │ Exported, cleanup in progress. No access.             │
+  └──────────────────────┴──────────────────────────────────────────────────────┘
+
+
+  <span class="ty">MAIN OPERATIONS:</span>
+
+  ┌──────────────────────┬──────────────────┬──────────────────────────────────┐
+  │ Operation            │ Triggered by     │ System impact                    │
+  ├──────────────────────┼──────────────────┼──────────────────────────────────┤
+  │ Create tenant        │ System Admin     │ DB records, pool slot, plugins   │
+  │ Upgrade tier         │ Tenant Admin     │ Pool cap, plugins, quotas        │
+  │ Upgrade to VIP       │ Tenant Admin     │ Migrate to Dedicated DB          │
+  │ Downgrade tier       │ Tenant Admin     │ Reduce pool cap, disable plugins │
+  │ Downgrade from VIP   │ Tenant Admin     │ Migrate back to Shared DB        │
+  │ Voluntary offboard   │ Tenant Admin     │ Export, cleanup, release         │
+  │ Automated offboard   │ Billing system   │ After grace + suspend period     │
+  └──────────────────────┴──────────────────┴──────────────────────────────────┘</pre></div>
 </div>
 </div>
 
@@ -166,7 +220,7 @@
   <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Tạo Tenant — Provisioning Flow</span><span data-lang="en">Create Tenant — Provisioning Flow</span></h2></div>
   <div class="nt bl" data-lang="vi"><strong>Mục tiêu:</strong> Trong ~30ms sync, một tenant mới phải có record trong Metadata DB, domain routing trong Redis, connection pool slot, và tất cả default plugins sẵn sàng với schema + seed data.</div>
   <div class="nt bl" data-lang="en"><strong>Goal:</strong> Within ~30ms sync, a new tenant must have a record in the Metadata DB, domain routing in Redis, a connection pool slot, and all default plugins ready with schema + seed data.</div>
-  <div class="dg"><div class="dg-label">provisioning flow</div><pre>
+  <div class="dg" data-lang="vi"><div class="dg-label">provisioning flow</div><pre>
 <span class="ty">POST /system/tenants</span>  (System Admin)
 Body: { name, domain, tier, adminEmail }
 
@@ -260,6 +314,101 @@ Body: { name, domain, tier, adminEmail }
   ├────────────────────────────────┼────────┼───────────────────────────────┤
   │ <span class="hi">TOTAL sync</span>                     │ <span class="hi">~14ms</span>  │ Tenant sẵn sàng nhận request  │
   └────────────────────────────────┴────────┴───────────────────────────────┘</pre></div>
+
+  <div class="dg" data-lang="en"><div class="dg-label">provisioning flow</div><pre>
+<span class="ty">POST /system/tenants</span>  (System Admin)
+Body: { name, domain, tier, adminEmail }
+
+
+<span class="ty">STEP 1: Validate</span>
+│
+│  SELECT FROM tenants WHERE domain = ?  → must return 0 rows
+│  Validate tier value: ['basic','premium','enterprise','vip']
+│  → <span class="gn">PASS</span>
+
+
+<span class="ty">STEP 2: Create Tenant Record in Metadata DB</span>  (~1ms)
+│
+│  INSERT INTO tenants:
+│  { tenantId:  "acme-123",          ← UUID generated
+│    name:      "ACME Corp",
+│    domain:    "acme.crm.com",
+│    tier:      "premium",
+│    status:    "<span class="am">provisioning</span>",
+│    createdAt: now(),
+│    settings:  { ...tier_defaults } }
+│
+│  INSERT INTO tenant_admins:
+│  { tenantId: "acme-123", userId: adminUserId, role: "admin" }
+
+
+<span class="ty">STEP 3: Write Redis domain-map</span>  (~0.5ms)
+│
+│  SET domain-map:acme.crm.com → "acme-123"
+│  <span class="cm">TenantResolver (L2) uses this key to resolve tenantId from Host header</span>
+
+
+<span class="ty">STEP 4: Allocate Connection Pool Slot</span>  (~1ms)
+│
+│  If tier ≠ vip:
+│    TenantQuotaEnforcer.register("acme-123", cap=20)  ← premium
+│  If tier = vip:
+│    Skip this step — VIP Dedicated DB will be provisioned separately
+
+
+<span class="ty">STEP 5: Enable Default Plugins by Tier</span>
+
+  ┌────────────────┬──────────────────────────────────────────────────────┐
+  │ Tier           │ Default plugins enabled on creation                  │
+  ├────────────────┼──────────────────────────────────────────────────────┤
+  │ <span class="am">Basic</span>          │ customer-data                                        │
+  │ <span class="gn">Premium</span>        │ customer-data, customer-care, analytics              │
+  │ <span class="cy">Enterprise</span>     │ customer-data, customer-care, analytics, marketing   │
+  │ <span class="vi">VIP</span>            │ customer-data, customer-care, analytics, marketing,  │
+  │                │ automation  (+ custom plugins per contract)           │
+  └────────────────┴──────────────────────────────────────────────────────┘
+
+  For each plugin to enable:
+  │
+  ├── <span class="fn">SchemaMigrationRunner</span>.ensureSchema(pluginId, db)
+  │       Runs DDL if table doesn't exist (idempotent — safe to re-run)
+  │       CREATE TABLE IF NOT EXISTS customers (...)
+  │       CREATE INDEX IF NOT EXISTS idx_customers_tenant_id ...
+  │       CREATE POLICY IF NOT EXISTS tenant_isolation ON customers ...
+  │
+  └── <span class="fn">TenantMigrationRunner</span>.seedTenant(pluginId, tenantId, tier, db)
+          INSERT plugin_installations: { tenantId, pluginId, status:'active' }
+          INSERT plugin_configs:       { tenantId, pluginId, config:{...defaults} }
+
+
+<span class="ty">STEP 6: Activate</span>  (~0.5ms)
+│
+│  UPDATE tenants SET status = '<span class="gn">active</span>' WHERE tenantId = 'acme-123'
+│  TenantContext LRU: warm cache (optional, lazy load also works)
+
+
+<span class="ty">STEP 7: Send Welcome Email</span>  (async, does not block response)
+│
+│  PUBLISH crm.system exchange
+│  routing_key: tenant.provisioned
+│  body: { tenantId, adminEmail, tier, loginUrl }
+
+
+<span class="ty">SUMMARY:</span>
+
+  ┌────────────────────────────────┬────────┬───────────────────────────────┐
+  │ Step                           │ Time   │ Target                        │
+  ├────────────────────────────────┼────────┼───────────────────────────────┤
+  │ Validate + Tenant record       │ ~2ms   │ Metadata DB                   │
+  │ Redis domain-map               │ ~0.5ms │ Redis                         │
+  │ Pool slot registration         │ ~1ms   │ In-memory + Metadata DB       │
+  │ Plugin schema (DDL, idempotent)│ ~5ms   │ Shared Data DB                │
+  │ Plugin seed (DML per plugin)   │ ~3ms   │ Shared Data DB                │
+  │ Activate                       │ ~0.5ms │ Metadata DB                   │
+  │ Welcome email (async)          │ ~2ms   │ RabbitMQ → Worker             │
+  ├────────────────────────────────┼────────┼───────────────────────────────┤
+  │ <span class="hi">TOTAL sync</span>                     │ <span class="hi">~14ms</span>  │ Tenant ready to accept requests│
+  └────────────────────────────────┴────────┴───────────────────────────────┘</pre></div>
 </div>
 </div>
 
@@ -269,7 +418,7 @@ Body: { name, domain, tier, adminEmail }
   <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span data-lang="vi">Nâng Tier — Upgrade Flow</span><span data-lang="en">Upgrade Tier — Upgrade Flow</span></h2></div>
   <div class="nt bl" data-lang="vi"><strong>Hai trường hợp:</strong> Nâng Basic/Premium/Enterprise lên nhau là thao tác đơn giản, không downtime. Nâng lên VIP phức tạp hơn nhiều vì phải provision Dedicated DB mới và migrate toàn bộ dữ liệu.</div>
   <div class="nt bl" data-lang="en"><strong>Two cases:</strong> Upgrading between Basic/Premium/Enterprise is a simple operation with no downtime. Upgrading to VIP is far more complex as it requires provisioning a new Dedicated DB and migrating all data.</div>
-  <div class="dg"><div class="dg-label">upgrade — shared tiers</div><pre>
+  <div class="dg" data-lang="vi"><div class="dg-label">upgrade — shared tiers</div><pre>
 <span class="ty">TRƯỜNG HỢP 1: Basic / Premium / Enterprise → cao hơn (không phải VIP)</span>
 <span class="cm">Ví dụ: acme-123 từ Premium → Enterprise. Không downtime.</span>
 
@@ -308,7 +457,46 @@ Body: { name, domain, tier, adminEmail }
 
   Kết quả: Tenant nhận features mới ngay lập tức. Không có downtime.</pre></div>
 
-  <div class="dg"><div class="dg-label">upgrade — to VIP</div><pre>
+  <div class="dg" data-lang="en"><div class="dg-label">upgrade — shared tiers</div><pre>
+<span class="ty">CASE 1: Basic / Premium / Enterprise → higher (not VIP)</span>
+<span class="cm">Example: acme-123 from Premium → Enterprise. No downtime.</span>
+
+
+<span class="ty">STEP 1: Update Metadata DB</span>
+│  UPDATE tenants SET tier='enterprise', updatedAt=now()
+│  WHERE tenantId='acme-123'
+
+
+<span class="ty">STEP 2: Increase Connection Pool Cap</span>
+│  TenantQuotaEnforcer.updateCap("acme-123", newCap=30)
+│  <span class="cm">premium (20) → enterprise (30). Applied immediately to new connections.</span>
+
+
+<span class="ty">STEP 3: Config Hot-reload</span>
+│  ConfigResolver.invalidate("acme-123")
+│  Redis PUBLISH config:reload { tenantId: "acme-123" }
+│  → All app instances receive new config:
+│    Rate limit:      500 → 2000 rps
+│    Storage quota:   50GB → 200GB
+│    Sandbox timeout: 5s → 5s  (unchanged between shared tiers)
+
+
+<span class="ty">STEP 4: Enable New Plugins (if any)</span>
+│  delta = enterprise_plugins - premium_plugins = { marketing }
+│  For each plugin in delta:
+│  ├── SchemaMigrationRunner.ensureSchema('marketing', db)
+│  └── TenantMigrationRunner.seedTenant('marketing', 'acme-123', 'enterprise', db)
+
+
+<span class="ty">STEP 5: Invalidate TenantContext Cache</span>
+│  Redis PUBLISH cache:invalidate { tenantId: "acme-123", scope: "tenant-context" }
+│  → All instances drop the LRU entry for acme-123
+│  → Next request reloads TenantContext with the new tier
+
+
+  Result: Tenant receives new features immediately. No downtime.</pre></div>
+
+  <div class="dg" data-lang="vi"><div class="dg-label">upgrade — to VIP</div><pre>
 <span class="ty">TRƯỜNG HỢP 2: Bất kỳ tier → VIP</span>
 <span class="cm">Cần Dedicated DB mới. Tenant ở read-only mode trong quá trình migration.</span>
 
@@ -354,6 +542,53 @@ Body: { name, domain, tier, adminEmail }
 │  DELETE FROM sales WHERE tenant_id='acme-123'
 │  ... (tất cả plugin tables)
 │  <span class="cm">Giữ 24h để có rollback window nếu cần.</span></pre></div>
+
+  <div class="dg" data-lang="en"><div class="dg-label">upgrade — to VIP</div><pre>
+<span class="ty">CASE 2: Any tier → VIP</span>
+<span class="cm">Requires new Dedicated DB. Tenant stays in read-only mode during migration.</span>
+
+
+<span class="ty">STEP 1: Begin Migration</span>
+│  UPDATE tenants SET status='<span class="vi">migrating</span>', tier='vip'
+│  Gateway checks status 'migrating':
+│    GET requests  → <span class="gn">PASS</span>
+│    Write requests → <span class="rd">503</span> "Upgrading, please try again in a few minutes"
+
+
+<span class="ty">STEP 2: Provision Dedicated DB Instance</span>
+│  Create new PostgreSQL instance (8–32 vCPU, 32–128GB RAM per VIP contract)
+│  Run full schema migration (all enabled plugins):
+│    SchemaMigrationRunner with PostgresMigrationDialect
+│    → Create tables, indices, RLS policies on new DB
+
+
+<span class="ty">STEP 3: Migrate Data</span>
+│
+│  Copy all data for acme-123 from Shared DB → Dedicated DB:
+│
+│  Shared DB (has tenant_id column):          Dedicated DB (no tenant_id):
+│  ┌──────────────────────────────────┐       ┌────────────────────────────────┐
+│  │ customers WHERE tenant_id=acme  │  ──►  │ customers (all rows = acme)   │
+│  │ sales WHERE tenant_id=acme      │       │ sales                          │
+│  │ ...                              │       │ ...                            │
+│  └──────────────────────────────────┘       └────────────────────────────────┘
+│
+│  <span class="cm">Migration time: ~5–30 min depending on data volume.</span>
+│  <span class="cm">Uses streaming COPY or pg_dump per-tenant + pg_restore.</span>
+
+
+<span class="ty">STEP 4: Verify + Switch</span>
+│  Row count check: Shared DB == Dedicated DB for each table
+│  Checksum verify on primary keys (sample or full)
+│  PoolRouter.registerVipPool("acme-123", dedicatedConnString)
+│  UPDATE tenants SET status='<span class="gn">active</span>'
+
+
+<span class="ty">STEP 5: Cleanup Shared DB</span>  (async, 24h after verify OK)
+│  DELETE FROM customers WHERE tenant_id='acme-123'
+│  DELETE FROM sales WHERE tenant_id='acme-123'
+│  ... (all plugin tables)
+│  <span class="cm">Kept 24h for rollback window if needed.</span></pre></div>
 </div>
 </div>
 
@@ -363,7 +598,7 @@ Body: { name, domain, tier, adminEmail }
   <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Hạ Tier — Downgrade Flow</span><span data-lang="en">Downgrade Tier — Downgrade Flow</span></h2></div>
   <div class="nt am" data-lang="vi"><strong>Cần cảnh báo trước:</strong> Hạ tier có thể disable một số plugins và tenant sẽ không truy cập được data của plugins đó (data vẫn còn trong DB, không bị xóa). Hệ thống phải hiện impact rõ ràng và yêu cầu confirm trước khi thực hiện.</div>
   <div class="nt am" data-lang="en"><strong>Advance warning required:</strong> Downgrading a tier may disable some plugins and the tenant will lose access to that plugin data (data remains in DB, not deleted). The system must clearly show the impact and require confirmation before proceeding.</div>
-  <div class="dg"><div class="dg-label">downgrade — shared tiers</div><pre>
+  <div class="dg" data-lang="vi"><div class="dg-label">downgrade — shared tiers</div><pre>
 <span class="ty">TRƯỜNG HỢP 1: Enterprise / Premium → thấp hơn (không phải VIP)</span>
 <span class="cm">Ví dụ: acme-123 từ Enterprise → Premium.</span>
 
@@ -409,7 +644,53 @@ Body: { name, domain, tier, adminEmail }
 <span class="ty">BƯỚC 5: Invalidate Cache</span>
 │  Redis PUBLISH cache:invalidate { tenantId: "acme-123", scope: "tenant-context" }</pre></div>
 
-  <div class="dg"><div class="dg-label">downgrade — from VIP</div><pre>
+  <div class="dg" data-lang="en"><div class="dg-label">downgrade — shared tiers</div><pre>
+<span class="ty">CASE 1: Enterprise / Premium → lower (not VIP)</span>
+<span class="cm">Example: acme-123 from Enterprise → Premium.</span>
+
+
+<span class="ty">STEP 1: Calculate Impact and Require Confirmation</span>
+│  delta_disable = enterprise_plugins - premium_plugins = { marketing }
+│  Return to Tenant Admin:
+│  {
+│    pluginsToDisable: ["marketing"],
+│    dataNote: "Marketing data remains in DB but will be inaccessible.",
+│    connectionCapChange: "30 → 20 connections",
+│    rateLimit: "2000 → 500 rpm",
+│    storageQuota: "200GB → 50GB (you are using 80GB — cleanup required within 30 days)"
+│  }
+│  Tenant must call: POST /tenant/downgrade/confirm  to confirm
+
+
+<span class="ty">STEP 2: Disable Excess Plugins</span>
+│  For each plugin in delta_disable (marketing):
+│  │
+│  ├── PluginRegistry.removeRoutes('marketing', 'acme-123')
+│  ├── EventBus.removeHandlers('marketing', 'acme-123')
+│  ├── HookRegistry.removeHooks('marketing', 'acme-123')
+│  │
+│  └── TenantMigrationRunner.disableTenant('marketing', 'acme-123', db)
+│          UPDATE plugin_installations SET status='disabled'
+│          <span class="cm">Schema (DDL) NOT deleted. Data remains. Only status changed.</span>
+
+
+<span class="ty">STEP 3: Update Tier + Reduce Pool Cap</span>
+│  UPDATE tenants SET tier='premium'
+│  TenantQuotaEnforcer.updateCap("acme-123", newCap=20)
+│  <span class="cm">Active connections (up to 30) continue until released.</span>
+│  <span class="cm">After release, the new cap (20) applies.</span>
+
+
+<span class="ty">STEP 4: Enforce New Quota</span>
+│  If currently using 80GB > 50GB (premium quota):
+│  → Send notification: "Please reduce data within 30 days. New uploads will be blocked thereafter."
+│  → No immediate hard-block — 30-day grace period
+
+
+<span class="ty">STEP 5: Invalidate Cache</span>
+│  Redis PUBLISH cache:invalidate { tenantId: "acme-123", scope: "tenant-context" }</pre></div>
+
+  <div class="dg" data-lang="vi"><div class="dg-label">downgrade — from VIP</div><pre>
 <span class="ty">TRƯỜNG HỢP 2: VIP → Enterprise</span>
 <span class="cm">Cần migrate ngược: Dedicated DB → Shared DB.</span>
 
@@ -442,6 +723,40 @@ Body: { name, domain, tier, adminEmail }
 │  Backup cuối → s3://crm-backups/acme-123/vip-final-{timestamp}/
 │  Terminate DB instance
 │  <span class="cm">7 ngày buffer để rollback nếu phát hiện vấn đề.</span></pre></div>
+
+  <div class="dg" data-lang="en"><div class="dg-label">downgrade — from VIP</div><pre>
+<span class="ty">CASE 2: VIP → Enterprise</span>
+<span class="cm">Requires reverse migration: Dedicated DB → Shared DB.</span>
+
+
+<span class="ty">STEPS 1–2:</span>  Same as above (impact check + disable delta plugins if any)
+
+<span class="ty">STEP 3: Begin Migration</span>
+│  UPDATE tenants SET status='<span class="vi">migrating</span>'
+│  Tenant stays in read-only mode during migration
+
+
+<span class="ty">STEP 4: Migrate Data to Shared DB</span>
+│
+│  Dedicated DB (no tenant_id):               Shared DB (adds tenant_id):
+│  ┌──────────────────────────────────┐       ┌────────────────────────────────┐
+│  │ customers (all rows = acme)      │  ──►  │ customers WHERE tenant_id=acme │
+│  │ sales                            │       │ sales WHERE tenant_id=acme     │
+│  └──────────────────────────────────┘       └────────────────────────────────┘
+│
+│  Verify count + checksum after copy completes
+
+
+<span class="ty">STEP 5: Switch Pool Routing</span>
+│  PoolRouter.deregisterVipPool("acme-123")
+│  TenantQuotaEnforcer.register("acme-123", cap=30)  ← enterprise cap
+│  UPDATE tenants SET tier='enterprise', status='<span class="gn">active</span>'
+
+
+<span class="ty">STEP 6: Decommission Dedicated DB</span>  (7 days after verify OK)
+│  Final backup → s3://crm-backups/acme-123/vip-final-{timestamp}/
+│  Terminate DB instance
+│  <span class="cm">7-day buffer for rollback if issues detected.</span></pre></div>
 </div>
 </div>
 
@@ -451,7 +766,7 @@ Body: { name, domain, tier, adminEmail }
   <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t"><span data-lang="vi">Offboard — Xóa Tenant</span><span data-lang="en">Offboard — Remove Tenant</span></h2></div>
   <div class="nt rd" data-lang="vi"><strong>Không thể hoàn tác sau retention period:</strong> Offboard có 2 nguồn trigger — Tenant Admin tự nguyện, hoặc Billing system tự động sau khi hết suspension period. Cả hai đi qua cùng flow nhưng với origin khác nhau trong audit log.</div>
   <div class="nt rd" data-lang="en"><strong>Irreversible after retention period:</strong> Offboard has 2 trigger sources — voluntary by Tenant Admin, or automatically by the Billing system after the suspension period expires. Both go through the same flow but with different origins in the audit log.</div>
-  <div class="dg"><div class="dg-label">offboard flow</div><pre>
+  <div class="dg" data-lang="vi"><div class="dg-label">offboard flow</div><pre>
 <span class="ty">TRIGGER:</span>
   A) Tự nguyện:  POST /tenant/offboard  (Tenant Admin)
   B) Tự động:    Billing system trigger sau suspension_period = 30 ngày
@@ -535,6 +850,91 @@ Body: { name, domain, tier, adminEmail }
   Day 0–90: Tenant Admin có thể download export (pre-signed S3 URL)
   Day 90  : Hard delete tất cả data
   Forever : Audit log được giữ</pre></div>
+
+  <div class="dg" data-lang="en"><div class="dg-label">offboard flow</div><pre>
+<span class="ty">TRIGGER:</span>
+  A) Voluntary:  POST /tenant/offboard  (Tenant Admin)
+  B) Automated:  Billing system trigger after suspension_period = 30 days
+
+
+<span class="ty">STEP 1: Lock Tenant</span>  (immediate)
+│  UPDATE tenants SET status='<span class="rd">offboarding</span>'
+│  Redis SET tenant-status:acme-123 → "offboarding"
+│  Gateway: all requests → 401 "Account is being closed"
+
+
+<span class="ty">STEP 2: Export Data → S3</span>  (async worker, ~5–60 min)
+│
+│  Worker: data-export
+│  ├── Dump all tables for acme-123:
+│  │     SELECT * FROM customers WHERE tenant_id='acme-123' → JSON
+│  │     SELECT * FROM sales WHERE tenant_id='acme-123'     → JSON
+│  │     ... (all plugin tables)
+│  ├── PUT s3://crm-exports/acme-123/{timestamp}/customers.json
+│  ├── PUT s3://crm-exports/acme-123/{timestamp}/sales.json
+│  ├── PUT s3://crm-exports/acme-123/{timestamp}/export_manifest.json
+│  │     { tables, rowCounts, exportedAt, tenantId, tier }
+│  └── PUT s3://crm-exports/acme-123/{timestamp}/attachments.zip
+│
+│  Send email to Tenant Admin: pre-signed download URL (expires 90 days)
+
+
+<span class="ty">STEP 3: Disable All Plugins</span>
+│  For each enabled plugin of acme-123:
+│  ├── Unregister routes, events, hooks (in-memory, immediate)
+│  └── UPDATE plugin_installations SET status='disabled'
+
+
+<span class="ty">STEP 4: Delete Redis Entries</span>
+│  DEL  domain-map:acme.crm.com
+│  DEL  tenant-status:acme-123
+│  DEL  domain-map:custom.acme.com        ← if custom domain exists
+│  DEL  rl:acme-123                        ← rate limit bucket
+│  SCAN + DEL t:acme-123:*                ← all cache entries
+│  <span class="cm">Auth blacklist entries auto-expire per JWT TTL (max 7 days)</span>
+
+
+<span class="ty">STEP 5: Release Connection Pool</span>
+│  TenantQuotaEnforcer.deregister("acme-123")
+│  Wait for active connections to drain (timeout 30s)
+│  Force close if any remain
+
+
+<span class="ty">STEP 6: Soft Delete</span>
+│  UPDATE tenants SET
+│    status      = '<span class="rd">offboarded</span>',
+│    offboardedAt = now(),
+│    domain      = null    ← release domain for reuse
+│  WHERE tenantId='acme-123'
+│  <span class="cm">Record NOT deleted from DB. Kept for audit + compliance.</span>
+
+
+<span class="ty">STEP 7: Write Audit Trail</span>
+│  INSERT INTO audit_log:
+│  { action: 'tenant.offboarded', tenantId: 'acme-123',
+│    triggeredBy, reason, exportPath, timestamp }
+│  <span class="cm">Audit log is immutable — never deleted by any retention policy.</span>
+
+
+<span class="ty">STEP 8: Hard Delete</span>  (scheduled job, 90 days after offboard)
+│
+│  Scheduler (cron) runs:
+│  ├── Shared Data DB:  DELETE FROM * WHERE tenant_id='acme-123'
+│  ├── Metadata DB:     DELETE FROM tenants WHERE tenantId='acme-123'
+│  │                    DELETE FROM tenant_admins WHERE tenantId='acme-123'
+│  │                    <span class="cm">KEEP audit_log entries — never deleted</span>
+│  ├── S3:              DELETE s3://tenants/acme-123/*  (files + attachments)
+│  │                    <span class="cm">Export files at s3://crm-exports/ retained per separate policy</span>
+│  └── VIP:             Decommission Dedicated DB if not done earlier
+
+
+<span class="ty">TIMELINE:</span>
+
+  Day 0   : Offboard triggered → tenant locked, export started
+  Day 0   : Export complete → email with download link sent to admin
+  Day 0–90: Tenant Admin can download export (pre-signed S3 URL)
+  Day 90  : Hard delete all data
+  Forever : Audit log retained</pre></div>
 </div>
 </div>
 
@@ -544,7 +944,7 @@ Body: { name, domain, tier, adminEmail }
   <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t">Billing & Quota Enforcement</h2></div>
   <div class="nt bl" data-lang="vi"><strong>Nguyên tắc:</strong> Không hard-block ngay khi vượt giới hạn mà dùng grace period để tránh mất data không cần thiết. Chỉ suspend sau khi đã cảnh báo đủ số lần và hết thời gian grace.</div>
   <div class="nt bl" data-lang="en"><strong>Principle:</strong> Do not hard-block immediately when limits are exceeded; use a grace period to avoid unnecessary data loss. Only suspend after sufficient warnings have been issued and the grace period has expired.</div>
-  <div class="dg"><div class="dg-label">subscription lifecycle</div><pre>
+  <div class="dg" data-lang="vi"><div class="dg-label">subscription lifecycle</div><pre>
 <span class="ty">SUBSCRIPTION LIFECYCLE:</span>
 
   <span class="gn">ACTIVE</span>
@@ -587,7 +987,50 @@ Body: { name, domain, tier, adminEmail }
   │ offboarded      │ 404 Tenant not found                                   │
   └─────────────────┴────────────────────────────────────────────────────────┘</pre></div>
 
-  <div class="dg"><div class="dg-label">quota limits</div><pre>
+  <div class="dg" data-lang="en"><div class="dg-label">subscription lifecycle</div><pre>
+<span class="ty">SUBSCRIPTION LIFECYCLE:</span>
+
+  <span class="gn">ACTIVE</span>
+  │  Normal operation. Full access per tier.
+  │
+  │  Day N: Invoice due, payment failed
+  ▼
+  <span class="am">GRACE PERIOD</span>  (7 days)
+  │  Full access retained.
+  │  Warning emails on days 1, 3, 7.
+  │  Warning banner in Admin Console.
+  │  X-Billing-Warning header on all API responses.
+  │
+  │  Payment successful → returns to <span class="gn">ACTIVE</span> immediately
+  │  Day 7: Still unpaid
+  ▼
+  <span class="rd">SUSPENDED</span>  (30 days)
+  │  Read-only mode.
+  │  GET requests: <span class="gn">PASS</span>
+  │  POST / PUT / DELETE: <span class="rd">402 Payment Required</span>
+  │  EventBus filters out suspended tenants (no events received).
+  │  Weekly reminder emails.
+  │
+  │  Payment successful → returns to <span class="gn">ACTIVE</span> immediately
+  │  Day 30: Still unpaid
+  ▼
+  <span class="rd">OFFBOARDED</span>  (automated offboard flow)
+
+
+<span class="ty">GATEWAY ENFORCEMENT (AuthGuard checks tenant.status):</span>
+
+  ┌─────────────────┬────────────────────────────────────────────────────────┐
+  │ Status          │ Behavior                                               │
+  ├─────────────────┼────────────────────────────────────────────────────────┤
+  │ provisioning    │ 503 Service Unavailable "Initializing"                 │
+  │ migrating       │ 503 "System upgrading, please try again later"         │
+  │ grace_period    │ PASS + header X-Billing-Warning: "..."                 │
+  │ suspended       │ GET → PASS;  POST/PUT/DELETE → 402 Payment Required   │
+  │ offboarding     │ 401 "Account is being closed"                          │
+  │ offboarded      │ 404 Tenant not found                                   │
+  └─────────────────┴────────────────────────────────────────────────────────┘</pre></div>
+
+  <div class="dg" data-lang="vi"><div class="dg-label">quota limits</div><pre>
 <span class="ty">STORAGE QUOTA (per tenant):</span>
 
   ┌──────────────┬───────────┬──────────────────────────────────────────────┐
@@ -653,6 +1096,73 @@ Body: { name, domain, tier, adminEmail }
   └──────────────────────┴──────────┴──────────────────────────────────────┘
 
   Enforced bởi SandboxEngine (L3 Business Logic).</pre></div>
+
+  <div class="dg" data-lang="en"><div class="dg-label">quota limits</div><pre>
+<span class="ty">STORAGE QUOTA (per tenant):</span>
+
+  ┌──────────────┬───────────┬──────────────────────────────────────────────┐
+  │ Tier         │ Quota     │ Enforcement                                  │
+  ├──────────────┼───────────┼──────────────────────────────────────────────┤
+  │ <span class="am">Basic</span>        │ 5 GB      │ Block upload immediately when quota exceeded │
+  │ <span class="gn">Premium</span>      │ 50 GB     │ Warn at 80%, block at 100%                  │
+  │ <span class="cy">Enterprise</span>   │ 200 GB    │ Warn at 80%, block at 100%                  │
+  │ <span class="vi">VIP</span>          │ Unlimited │ Billing per GB — no blocking                │
+  └──────────────┴───────────┴──────────────────────────────────────────────┘
+
+  Checked at StorageService.upload():
+    current = SELECT SUM(size) FROM files WHERE tenant_id = ?
+    if current + newFileSize > quota → 413 Payload Too Large
+
+
+<span class="ty">API RATE LIMIT (per minute, sliding window — Redis):</span>
+
+  ┌──────────────┬──────────┬──────────────────────────────────────────────┐
+  │ Tier         │ Limit    │ When exceeded                                │
+  ├──────────────┼──────────┼──────────────────────────────────────────────┤
+  │ <span class="am">Basic</span>        │ 100 rpm  │ 429 Too Many Requests                       │
+  │ <span class="gn">Premium</span>      │ 500 rpm  │ 429 Too Many Requests                       │
+  │ <span class="cy">Enterprise</span>   │ 2000 rpm │ 429 Too Many Requests                       │
+  │ <span class="vi">VIP</span>          │ ∞        │ No limit (soft monitor only)                │
+  └──────────────┴──────────┴──────────────────────────────────────────────┘
+
+  Enforced by RateLimiter middleware (L2 Gateway), ZADD/ZCARD on Redis.
+
+
+<span class="ty">SANDBOX QUERY LIMIT (per request — all tiers):</span>
+
+  Max 50 queries per request.
+  Warning at query 40: log WARN "High query count [{plugin}:{tenantId}]"
+  Block at query 50:   throw ResourceLimitError, do not execute query 51+
+
+  Enforced by QueryCounter in CrmQueryBuilder pipeline (L4 Data Access).
+
+
+<span class="ty">CONNECTION POOL CAP (concurrent DB connections per tenant):</span>
+
+  ┌──────────────┬──────────┬──────────────────────────────────────────────┐
+  │ Tier         │ Cap      │ When cap exceeded                            │
+  ├──────────────┼──────────┼──────────────────────────────────────────────┤
+  │ <span class="am">Basic</span>        │ 10       │ Queue, timeout 5s → 503 Service Unavailable  │
+  │ <span class="gn">Premium</span>      │ 20       │ Queue, timeout 5s → 503                      │
+  │ <span class="cy">Enterprise</span>   │ 30       │ Queue, timeout 5s → 503                      │
+  │ <span class="vi">VIP</span>          │ Dedicated│ Dedicated DB — not sharing pool with anyone  │
+  └──────────────┴──────────┴──────────────────────────────────────────────┘
+
+  Enforced by TenantQuotaEnforcer in Pool Manager (L4 Data Access).
+
+
+<span class="ty">SANDBOX EXECUTION LIMITS (per plugin call):</span>
+
+  ┌──────────────────────┬──────────┬──────────────────────────────────────┐
+  │ Limit                │ Value    │ When exceeded                        │
+  ├──────────────────────┼──────────┼──────────────────────────────────────┤
+  │ Timeout              │ 5s       │ TimeoutError → 504 Gateway Timeout   │
+  │ Timeout (VIP)        │ 10s      │ TimeoutError → 504                   │
+  │ Memory per sandbox   │ 50 MB    │ MemoryError → 500                    │
+  │ Queries per request  │ 50       │ ResourceLimitError → 500             │
+  └──────────────────────┴──────────┴──────────────────────────────────────┘
+
+  Enforced by SandboxEngine (L3 Business Logic).</pre></div>
 </div>
 </div>
 

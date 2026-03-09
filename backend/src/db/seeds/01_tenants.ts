@@ -3,8 +3,8 @@ import type { Knex } from 'knex';
 // ============================================================
 // Seed 01 — 3 tenants để test isolation
 //
-// acme       → standard tier (shared pool, shared DB)
-// globex     → standard tier
+// acme       → basic tier (shared pool, shared DB)
+// globex     → basic tier
 // initech    → VIP tier    (dedicated pool 30 conns, shared DB)
 //
 // Cách test RLS sau khi seed:
@@ -26,7 +26,7 @@ export async function seed(knex: Knex): Promise<void> {
         {
           name: 'Acme Corporation',
           subdomain: 'acme',
-          tier: 'standard',
+          tier: 'basic',
           config: JSON.stringify({
             plugins: ['customer-data', 'customer-care'],
             cors_origins: ['http://acme.localhost:3001'],
@@ -36,7 +36,7 @@ export async function seed(knex: Knex): Promise<void> {
         {
           name: 'Globex Inc',
           subdomain: 'globex',
-          tier: 'standard',
+          tier: 'basic',
           config: JSON.stringify({
             plugins: ['customer-data', 'analytics'],
             cors_origins: ['http://globex.localhost:3001'],
@@ -169,7 +169,7 @@ export async function seed(knex: Knex): Promise<void> {
       .insert({
         name: 'CRM System',
         subdomain: 'system',
-        tier: 'standard',
+        tier: 'basic',
         config: JSON.stringify({ plugins: [], cors_origins: [], max_users: 5 }),
       })
       .returning('*');
@@ -202,7 +202,7 @@ export async function seed(knex: Knex): Promise<void> {
     });
   });
 
-  console.log('✓  Seed complete: acme (standard), globex (standard), initech (vip)');
+  console.log('✓  Seed complete: acme (basic), globex (basic), initech (vip)');
   console.log('   Users: admin / manager / agent @ <subdomain>.example.com');
   console.log('   Password (dev only): password123');
   console.log('   Admin console: admin@crm.dev / admin123');

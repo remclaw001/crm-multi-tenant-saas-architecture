@@ -28,7 +28,7 @@
 //     → Counter: sandbox limit breaches per type (timeout|memory|query_limit)
 //
 // Label cardinality strategy:
-//   tenant_tier (3 values: standard|vip|enterprise) thay cho tenant_id
+//   tenant_tier (4 values: basic|premium|enterprise|vip) thay cho tenant_id
 //   → giữ cardinality thấp trên high-traffic metrics
 //   route = normalized path (e.g. /api/v1/:plugin/ping) thay URL thực
 // ============================================================

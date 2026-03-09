@@ -6,7 +6,6 @@ import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
 
 const TIER_DEFAULT_PLUGINS: Record<string, string[]> = {
   basic:      ['customer-data'],
-  standard:   ['customer-data'],
   premium:    ['customer-data', 'customer-care', 'analytics'],
   enterprise: ['customer-data', 'customer-care', 'analytics', 'marketing'],
   vip:        ['customer-data', 'customer-care', 'analytics', 'marketing', 'automation'],
@@ -103,7 +102,7 @@ export class AdminTenantsService {
   }
 
   async create(input: { name: string; subdomain: string; plan: string; adminEmail?: string }) {
-    const VALID_PLANS = ['basic', 'standard', 'premium', 'enterprise', 'vip'];
+    const VALID_PLANS = ['basic', 'premium', 'enterprise', 'vip'];
     if (!VALID_PLANS.includes(input.plan)) {
       throw new BadRequestException(`Invalid plan "${input.plan}". Must be one of: ${VALID_PLANS.join(', ')}`);
     }
@@ -171,7 +170,7 @@ export class AdminTenantsService {
   }
 
   async update(id: string, input: { name?: string; status?: TenantStatus; plan?: string }) {
-    const VALID_PLANS = ['basic', 'standard', 'premium', 'enterprise', 'vip'];
+    const VALID_PLANS = ['basic', 'premium', 'enterprise', 'vip'];
     if (input.plan && !VALID_PLANS.includes(input.plan)) {
       throw new BadRequestException(`Invalid plan: ${input.plan}`);
     }

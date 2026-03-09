@@ -66,6 +66,8 @@ describe('AdminTenantsService', () => {
       });
       // INSERT INTO tenant_plugins (customer-data)
       mockQuery.mockResolvedValueOnce({ rows: [] });
+      // UPDATE tenants SET status='active'
+      mockQuery.mockResolvedValueOnce({ rows: [] });
       // COMMIT
       mockQuery.mockResolvedValueOnce({ rows: [] });
     };

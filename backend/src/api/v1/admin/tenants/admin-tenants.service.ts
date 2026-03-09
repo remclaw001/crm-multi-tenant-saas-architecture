@@ -112,8 +112,8 @@ export class AdminTenantsService {
       await client.query('BEGIN');
 
       const res = await client.query<TenantRow>(
-        `INSERT INTO tenants (name, subdomain, tier, config)
-         VALUES ($1, $2, $3, '{}')
+        `INSERT INTO tenants (name, subdomain, tier, status, config)
+         VALUES ($1, $2, $3, 'provisioning', '{}')
          RETURNING id, name, subdomain, tier, is_active, status, created_at, updated_at`,
         [input.name, input.subdomain, input.plan],
       );
@@ -130,9 +130,19 @@ export class AdminTenantsService {
         );
       }
 
+      // Activate tenant after plugins are ready
+      await client.query(
+        `UPDATE tenants SET status = 'active', updated_at = NOW() WHERE id = $1`,
+        [tenant.id],
+      );
+
       await client.query('COMMIT');
 
-      const result = rowToTenant({ ...tenant, plugin_count: String(defaultPlugins.length) });
+      const result = rowToTenant({
+        ...tenant,
+        status: 'active',
+        plugin_count: String(defaultPlugins.length),
+      });
 
       // Fire-and-forget welcome email event (don't block response)
       if (input.adminEmail) {

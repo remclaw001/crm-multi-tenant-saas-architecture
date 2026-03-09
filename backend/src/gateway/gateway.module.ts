@@ -22,6 +22,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { CorrelationIdMiddleware } from './middleware/correlation-id.middleware';
 import { TenantResolverMiddleware } from './middleware/tenant-resolver.middleware';
 import { TenantCorsMiddleware } from './middleware/tenant-cors.middleware';
+import { TenantRateLimitMiddleware } from './middleware/tenant-rate-limit.middleware';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
@@ -73,5 +74,12 @@ export class GatewayModule implements NestModule {
     consumer
       .apply(TenantCorsMiddleware)
       .forRoutes('*');
+
+    // ── Registration 3: Per-tier rate limiting ───────────────
+    // Chạy sau TenantResolver → req.resolvedTenant.tier đã có.
+    // VIP tenants bị bypass; các tier khác dùng Redis INCR/EXPIRE.
+    consumer
+      .apply(TenantRateLimitMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }

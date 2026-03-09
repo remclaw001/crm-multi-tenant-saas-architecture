@@ -86,6 +86,13 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().email().default('noreply@crm.dev'),
+
+  // ── S3 / MinIO (Tenant Data Export) ───────────────────────
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_ACCESS_KEY: z.string().optional(),
+  S3_SECRET_KEY: z.string().optional(),
+  S3_BUCKET_EXPORTS: z.string().default('crm-exports'),
+  S3_REGION: z.string().default('us-east-1'),
 });
 
 const envWithJwtCheck = envSchema.refine(

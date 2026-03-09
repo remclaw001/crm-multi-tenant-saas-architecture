@@ -325,6 +325,16 @@ describe('TenantResolverMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it.each(['PUT', 'PATCH', 'DELETE'])('throws 402 for %s requests to suspended tenant', async (method) => {
+    const row = { ...activeTenantRow, status: 'suspended' };
+    getMockQuery().mockResolvedValueOnce({ rows: [row] });
+
+    const req = makeReq({ method, headers: { 'x-tenant-slug': 'acme' } });
+
+    await expect(middleware.use(req, makeRes(), next)).rejects.toThrow(HttpException);
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it('allows GET for suspended tenant', async () => {
     const row = { ...activeTenantRow, status: 'suspended' };
     getMockQuery().mockResolvedValueOnce({ rows: [row] });

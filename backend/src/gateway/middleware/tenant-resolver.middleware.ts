@@ -27,6 +27,7 @@ import {
   UnauthorizedException,
   HttpException,
   HttpStatus,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
 import { Pool } from 'pg';
@@ -120,6 +121,10 @@ export class TenantResolverMiddleware implements NestMiddleware {
 
     const { status } = tenant;
 
+    if (!status) {
+      throw new InternalServerErrorException('Tenant configuration error: missing status');
+    }
+
     // provisioning/migrating → 503 Service Unavailable
     if (status === 'provisioning' || status === 'migrating') {
       const msg = status === 'provisioning'
@@ -142,6 +147,7 @@ export class TenantResolverMiddleware implements NestMiddleware {
     // grace_period → add warning header, continue normally
     if (status === 'grace_period') {
       res.setHeader('X-Billing-Warning', 'Payment overdue — account will be suspended soon');
+      // Intentional fall-through: grace_period requests continue normally after header is set
     }
 
     // suspended → allow GET/OPTIONS/HEAD, block writes with 402

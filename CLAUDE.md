@@ -95,13 +95,16 @@ Copy `.env.example` to `.env` in `backend/`. Variables are validated at startup 
 | `20260228000003_audit_logs` | audit_logs (no RLS) |
 | `20260303000004_plugin_tables` | customers, support_cases, automation_triggers, marketing_campaigns (all RLS + FORCE ROW LEVEL SECURITY) |
 | `20260309000005_refresh_tokens` | refresh_tokens — stores SHA-256 hash of opaque token (no RLS; FK → users + tenants) |
+| `20260309000006_tenant_status_and_tier` | Adds `status` column to tenants; makes `subdomain` nullable (released on offboard); drops deprecated `standard` tier |
+| `20260309000007_tenant_lifecycle` | Adds `offboarded_at TIMESTAMPTZ` to tenants; adds `vip_db_registry` table |
+| `20260309000008_tenant_admins` | Adds `tenant_admins` table (tenant_id, email, role) — stores admin contact recorded during provisioning |
 
 ## Backend Architecture
 
 **Framework:** NestJS 10 + TypeScript 5 + Knex (SQL) + ioredis + amqplib + BullMQ
 
 **Module load order** (defined in `src/app.module.ts`, order is mandatory):
-1. `DalModule` — `@Global()`: exports `PoolRegistry`, `CacheManager`, `KNEX_INSTANCE`
+1. `DalModule` — `@Global()`: exports `PoolRegistry`, `CacheManager`, `KNEX_INSTANCE`, `REDIS_CLIENT`
 2. `ObservabilityModule` — Pino logger + OpenTelemetry + Prometheus
 3. `SecurityModule` — `@Global()`: `EncryptionService` (AES-256-GCM), `PasswordService` (bcrypt)
 4. `WorkersModule` — RabbitMQ (amqplib), BullMQ queues, node-cron
@@ -136,6 +139,7 @@ Middleware pipeline (applied in order):
 - `CacheManager` — ioredis wrapper; all keys follow `t:<tenant-id>:<resource-type>:<id>`
 - `QueryInterceptor` — wraps Knex; automatically scopes every query to the current tenant. **Business logic must never manually add `WHERE tenant_id = ?`.**
 - `TenantContext` — AsyncLocalStorage-backed context; carries tenant ID, tier, and per-request query count. Use `TenantContext.requireTenantId()` in business logic (throws if called outside a request context); `getTenantId()` returns `undefined` when called outside.
+- `REDIS_CLIENT` — raw ioredis instance injected as `@Inject('REDIS_CLIENT')`; use this (not `CacheManager`) in auth flows that run outside `TenantContext` (e.g. `JwtAuthGuard`, `AuthService`).
 
 ### L3 Plugin System (`src/plugins/`)
 
@@ -169,6 +173,22 @@ const result = await this.sandbox.execute(() => this.core.method(ctx), this.core
 | marketing | GET/POST `/campaigns`, GET/PUT/DELETE `/campaigns/:id` |
 
 **Smoke test endpoint:** `GET /api/v1/:plugin/ping` — verifies the full middleware chain (tenant resolved, JWT valid, `TenantContext` set). Returns tenant, user, and context info. Useful during development.
+
+**Auth endpoints (all under `/auth/`):**
+
+| Endpoint | Auth | Description |
+|----------|------|-------------|
+| `POST /auth/login` | `@Public()` | Returns `{ token, refreshToken, user, tenant }`. Issues JWT with `jti` claim. |
+| `POST /auth/refresh` | `@Public()` | Body: `{ refreshToken: string (96 hex chars) }`. Rotates refresh token. |
+| `POST /auth/logout` | JWT required | Blacklists the `jti` in Redis with TTL = remaining token lifetime. Returns 204. |
+
+**Tenant lifecycle** — `tenants.status` column, controlled by `AdminTenantsService`:
+- States: `provisioning` → `active` → `migrating` / `grace_period` / `suspended` / `offboarding` → `offboarded`
+- On create: status starts as `provisioning`, transitions to `active` after setup completes
+- On offboard: status → `offboarding` (locks tenant), then `offboarded` + `subdomain` set to `NULL`
+- Valid tiers: `basic`, `premium`, `enterprise`, `vip` (`standard` was removed)
+
+**JTI blacklist:** `JwtAuthGuard.handleRequest` is `async`. It checks `auth:blacklist:<jti>` in Redis for every authenticated request. Tokens without a `jti` claim still pass (backwards-compatible). Blacklist key TTL = remaining lifetime of the JWT.
 
 ### L5 Async Workers (`src/workers/`)
 

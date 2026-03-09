@@ -140,6 +140,14 @@ export class AdminTenantsService {
         );
       }
 
+      // Record admin contact for billing notifications and offboard emails
+      if (input.adminEmail) {
+        await client.query(
+          `INSERT INTO tenant_admins (tenant_id, email, role) VALUES ($1, $2, 'admin')`,
+          [tenant.id, input.adminEmail],
+        );
+      }
+
       // Activate tenant after plugins are ready
       await client.query(
         `UPDATE tenants SET status = 'active', updated_at = NOW() WHERE id = $1`,
@@ -148,8 +156,12 @@ export class AdminTenantsService {
 
       await client.query('COMMIT');
 
-      // Register per-tenant connection cap
-      TenantQuotaEnforcer.register(tenant.id, input.plan);
+      // Register per-tenant connection cap.
+      // VIP tenants are exempt: they get a dedicated DB with their own pool;
+      // the VipMigrationProcessor will deregister any cap once migration completes.
+      if (input.plan !== 'vip') {
+        TenantQuotaEnforcer.register(tenant.id, input.plan);
+      }
 
       // Warm tenant-lookup cache immediately after create
       await this.cache.setTenantLookup({
@@ -171,6 +183,7 @@ export class AdminTenantsService {
 
       // Fire-and-forget welcome email event (don't block response)
       if (input.adminEmail) {
+        const loginUrl = `https://${tenant.subdomain}.crm.app/login`;
         Promise.resolve().then(() =>
           this.amqp.publishNotification({
             tenantId: tenant.id,
@@ -178,13 +191,14 @@ export class AdminTenantsService {
             channel: 'email',
             to: input.adminEmail!,
             subject: `Welcome to the platform — ${tenant.name}`,
-            body: `Your tenant "${tenant.name}" (subdomain: ${tenant.subdomain}) has been provisioned on the ${input.plan} plan.`,
+            body: `Your tenant "${tenant.name}" has been provisioned on the ${input.plan} plan.\n\nLogin: ${loginUrl}`,
             metadata: {
               type: 'tenant.provisioned',
               tenantId: tenant.id,
               tier: input.plan,
               subdomain: tenant.subdomain,
               name: tenant.name,
+              loginUrl,
             },
           })
         ).catch((err) => {

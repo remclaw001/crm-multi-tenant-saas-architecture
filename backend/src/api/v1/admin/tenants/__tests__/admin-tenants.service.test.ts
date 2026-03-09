@@ -79,21 +79,32 @@ describe('AdminTenantsService', () => {
     );
   });
 
-  describe('create — AMQP welcome event', () => {
-    const setupCreateMocks = () => {
+  describe('create — provisioning flow', () => {
+    const TENANT_ROW = {
+      id: 'tid', name: 'Acme', subdomain: 'acme',
+      tier: 'basic', is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    /**
+     * Queue up DB responses for a successful create() call.
+     * withAdminEmail=true adds the tenant_admins INSERT mock.
+     */
+    const setupCreateMocks = (withAdminEmail = true, plan = 'basic') => {
       // BEGIN
       mockQuery.mockResolvedValueOnce({ rows: [] });
       // INSERT INTO tenants RETURNING ...
-      mockQuery.mockResolvedValueOnce({
-        rows: [{
-          id: 'tid', name: 'Acme', subdomain: 'acme',
-          tier: 'basic', is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }],
-      });
-      // INSERT INTO tenant_plugins (customer-data)
-      mockQuery.mockResolvedValueOnce({ rows: [] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...TENANT_ROW, tier: plan }] });
+      // INSERT INTO tenant_plugins — one call per default plugin
+      const pluginCount = { basic: 1, premium: 3, enterprise: 4, vip: 5 }[plan] ?? 1;
+      for (let i = 0; i < pluginCount; i++) {
+        mockQuery.mockResolvedValueOnce({ rows: [] });
+      }
+      // INSERT INTO tenant_admins (only when adminEmail provided)
+      if (withAdminEmail) {
+        mockQuery.mockResolvedValueOnce({ rows: [] });
+      }
       // UPDATE tenants SET status='active'
       mockQuery.mockResolvedValueOnce({ rows: [] });
       // COMMIT
@@ -101,11 +112,9 @@ describe('AdminTenantsService', () => {
     };
 
     it('publishes welcome notification when adminEmail is provided', async () => {
-      setupCreateMocks();
+      setupCreateMocks(true);
 
       await service.create({ name: 'Acme', subdomain: 'acme', plan: 'basic', adminEmail: 'admin@acme.com' });
-
-      // Allow the fire-and-forget microtask to execute
       await Promise.resolve();
 
       expect(mockPublishNotification).toHaveBeenCalledOnce();
@@ -117,8 +126,19 @@ describe('AdminTenantsService', () => {
       expect(call.metadata?.tier).toBe('basic');
     });
 
+    it('welcome email includes loginUrl in metadata', async () => {
+      setupCreateMocks(true);
+
+      await service.create({ name: 'Acme', subdomain: 'acme', plan: 'basic', adminEmail: 'admin@acme.com' });
+      await Promise.resolve();
+
+      const call = mockPublishNotification.mock.calls[0][0];
+      expect(call.metadata?.loginUrl).toBe('https://acme.crm.app/login');
+      expect(call.body).toContain('https://acme.crm.app/login');
+    });
+
     it('does not publish when adminEmail is omitted', async () => {
-      setupCreateMocks();
+      setupCreateMocks(false);
 
       await service.create({ name: 'Acme', subdomain: 'acme', plan: 'basic' });
       await Promise.resolve();
@@ -127,16 +147,54 @@ describe('AdminTenantsService', () => {
     });
 
     it('AMQP failure does not block create response', async () => {
-      setupCreateMocks();
+      setupCreateMocks(true);
       mockPublishNotification.mockImplementation(() => { throw new Error('AMQP down'); });
 
-      // Should not throw even if AMQP fails
       const result = await service.create({
         name: 'Acme', subdomain: 'acme', plan: 'basic', adminEmail: 'admin@acme.com',
       });
       await Promise.resolve();
 
       expect(result.id).toBe('tid');
+    });
+
+    it('inserts tenant_admins record when adminEmail is provided', async () => {
+      setupCreateMocks(true);
+
+      await service.create({ name: 'Acme', subdomain: 'acme', plan: 'basic', adminEmail: 'admin@acme.com' });
+
+      const adminInsert = mockQuery.mock.calls.find(
+        (args) => typeof args[0] === 'string' && args[0].includes('INSERT INTO tenant_admins'),
+      );
+      expect(adminInsert).toBeDefined();
+      expect(adminInsert![1]).toEqual(['tid', 'admin@acme.com']);
+    });
+
+    it('skips tenant_admins insert when adminEmail is omitted', async () => {
+      setupCreateMocks(false);
+
+      await service.create({ name: 'Acme', subdomain: 'acme', plan: 'basic' });
+
+      const adminInsert = mockQuery.mock.calls.find(
+        (args) => typeof args[0] === 'string' && args[0].includes('INSERT INTO tenant_admins'),
+      );
+      expect(adminInsert).toBeUndefined();
+    });
+
+    it('registers quota cap for non-VIP tiers', async () => {
+      setupCreateMocks(false, 'premium');
+
+      await service.create({ name: 'Acme', subdomain: 'acme', plan: 'premium' });
+
+      expect(mockQuotaRegister).toHaveBeenCalledWith('tid', 'premium');
+    });
+
+    it('does NOT register quota cap for VIP tier (dedicated DB, own pool)', async () => {
+      setupCreateMocks(false, 'vip');
+
+      await service.create({ name: 'Acme', subdomain: 'acme', plan: 'vip' });
+
+      expect(mockQuotaRegister).not.toHaveBeenCalled();
     });
   });
 

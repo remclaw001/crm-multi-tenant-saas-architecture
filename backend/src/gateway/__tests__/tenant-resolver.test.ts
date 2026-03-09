@@ -9,13 +9,16 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  UnauthorizedException,
+  HttpException,
 } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
 import { TenantContext } from '../../dal/context/TenantContext';
 
 // ── Mock pg.Pool ─────────────────────────────────────────────
+const mockQuery = vi.hoisted(() => vi.fn());
+
 vi.mock('pg', () => {
-  const mockQuery = vi.fn();
   const MockPool = vi.fn().mockImplementation(() => ({
     query: mockQuery,
     on: vi.fn(),
@@ -23,7 +26,6 @@ vi.mock('pg', () => {
     idleCount: 0,
     waitingCount: 0,
   }));
-  (MockPool as any)._mockQuery = mockQuery;
   return { Pool: MockPool };
 });
 
@@ -34,9 +36,7 @@ const { TenantResolverMiddleware } = await import(
 
 // Helper để lấy mock query fn
 function getMockQuery() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Pool } = require('pg');
-  return Pool._mockQuery as ReturnType<typeof vi.fn>;
+  return mockQuery;
 }
 
 // ── Test fixtures ────────────────────────────────────────────
@@ -60,8 +60,14 @@ function makeReq(overrides: Partial<Request> = {}): Request & { resolvedTenant?:
   } as any;
 }
 
-function makeRes(): Response {
-  return {} as Response;
+function makeRes(): Response & { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn>; setHeader: ReturnType<typeof vi.fn> } {
+  const res = {
+    setHeader: vi.fn(),
+    json: vi.fn(),
+    status: vi.fn(),
+  } as any;
+  res.status.mockReturnValue(res); // allow chaining: res.status(503).json(...)
+  return res;
 }
 
 // ── Tests ─────────────────────────────────────────────────────
@@ -245,5 +251,88 @@ describe('TenantResolverMiddleware', () => {
     await middleware.use(req, makeRes(), next);
 
     expect(req.resolvedTenant).toMatchObject({ subdomain: 'acme' });
+  });
+
+  // ── Status-based enforcement ───────────────────────────────
+
+  it('returns 503 for provisioning tenant', async () => {
+    const row = { ...activeTenantRow, status: 'provisioning' };
+    getMockQuery().mockResolvedValueOnce({ rows: [row] });
+
+    const req = makeReq({ headers: { 'x-tenant-slug': 'acme' } });
+    const res = makeRes();
+
+    await middleware.use(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 503 }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns 503 for migrating tenant', async () => {
+    const row = { ...activeTenantRow, status: 'migrating' };
+    getMockQuery().mockResolvedValueOnce({ rows: [row] });
+
+    const req = makeReq({ headers: { 'x-tenant-slug': 'acme' } });
+    const res = makeRes();
+
+    await middleware.use(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('throws 401 for offboarding tenant', async () => {
+    const row = { ...activeTenantRow, status: 'offboarding' };
+    getMockQuery().mockResolvedValueOnce({ rows: [row] });
+
+    const req = makeReq({ headers: { 'x-tenant-slug': 'acme' } });
+
+    await expect(middleware.use(req, makeRes(), next)).rejects.toThrow(UnauthorizedException);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('throws 404 for offboarded tenant', async () => {
+    const row = { ...activeTenantRow, status: 'offboarded' };
+    getMockQuery().mockResolvedValueOnce({ rows: [row] });
+
+    const req = makeReq({ headers: { 'x-tenant-slug': 'acme' } });
+
+    await expect(middleware.use(req, makeRes(), next)).rejects.toThrow(NotFoundException);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('sets X-Billing-Warning header for grace_period tenant', async () => {
+    const row = { ...activeTenantRow, status: 'grace_period' };
+    getMockQuery().mockResolvedValueOnce({ rows: [row] });
+
+    const req = makeReq({ headers: { 'x-tenant-slug': 'acme' } });
+    const res = makeRes();
+
+    await middleware.use(req, res, next);
+
+    expect(res.setHeader).toHaveBeenCalledWith('X-Billing-Warning', expect.any(String));
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('throws 402 for write requests to suspended tenant', async () => {
+    const row = { ...activeTenantRow, status: 'suspended' };
+    getMockQuery().mockResolvedValueOnce({ rows: [row] });
+
+    const req = makeReq({ method: 'POST', headers: { 'x-tenant-slug': 'acme' } });
+
+    await expect(middleware.use(req, makeRes(), next)).rejects.toThrow(HttpException);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('allows GET for suspended tenant', async () => {
+    const row = { ...activeTenantRow, status: 'suspended' };
+    getMockQuery().mockResolvedValueOnce({ rows: [row] });
+
+    const req = makeReq({ method: 'GET', headers: { 'x-tenant-slug': 'acme' } });
+
+    await middleware.use(req, makeRes(), next);
+
+    expect(next).toHaveBeenCalled();
   });
 });

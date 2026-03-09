@@ -24,6 +24,9 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  UnauthorizedException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
 import { Pool } from 'pg';
@@ -86,7 +89,7 @@ function extractSubdomain(host: string): string | null {
 export class TenantResolverMiddleware implements NestMiddleware {
   async use(
     req: Request & { resolvedTenant?: ResolvedTenant },
-    _res: Response,
+    res: Response,
     next: NextFunction
   ): Promise<void> {
     // Preflight requests don't carry custom headers — skip tenant resolution,
@@ -115,7 +118,41 @@ export class TenantResolverMiddleware implements NestMiddleware {
       throw new NotFoundException(`Tenant not found: ${tenantIdentifier}`);
     }
 
-    if (!tenant.isActive) {
+    const { status } = tenant;
+
+    // provisioning/migrating → 503 Service Unavailable
+    if (status === 'provisioning' || status === 'migrating') {
+      const msg = status === 'provisioning'
+        ? 'Tenant is being provisioned, please try again later'
+        : 'System migration in progress, please try again later';
+      res.status(503).json({ statusCode: 503, message: msg });
+      return;
+    }
+
+    // offboarding → 401
+    if (status === 'offboarding') {
+      throw new UnauthorizedException('Account is being closed');
+    }
+
+    // offboarded → 404 (like tenant doesn't exist)
+    if (status === 'offboarded') {
+      throw new NotFoundException(`Tenant not found: ${tenant.subdomain}`);
+    }
+
+    // grace_period → add warning header, continue normally
+    if (status === 'grace_period') {
+      res.setHeader('X-Billing-Warning', 'Payment overdue — account will be suspended soon');
+    }
+
+    // suspended → allow GET/OPTIONS/HEAD, block writes with 402
+    if (status === 'suspended') {
+      if (req.method !== 'GET' && req.method !== 'OPTIONS' && req.method !== 'HEAD') {
+        throw new HttpException('Account suspended. Please make payment to continue.', HttpStatus.PAYMENT_REQUIRED);
+      }
+    }
+
+    // backward compat: is_active=false but status still shows active
+    if (!tenant.isActive && status === 'active') {
       throw new ForbiddenException(`Tenant is inactive: ${tenant.subdomain}`);
     }
 

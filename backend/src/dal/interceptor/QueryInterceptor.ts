@@ -2,6 +2,7 @@ import Knex from 'knex';
 import type { Knex as KnexType } from 'knex';
 import { TenantContext } from '../context/TenantContext';
 import { QueryCounter } from '../middleware/QueryCounter';
+import { TenantQuotaEnforcer } from '../pool/TenantQuotaEnforcer';
 
 // ============================================================
 // QueryInterceptor — Knex-level tenant scope enforcement
@@ -57,6 +58,13 @@ export function applyQueryInterceptor(knex: KnexType): void {
       assertValidUuid(tenantId);
       // SET (session-level) — tồn tại suốt thời gian dùng connection
       await connection.query(`SET "app.tenant_id" = '${tenantId}'`);
+
+      // Lazy-register on first seen (handles tenants active before quota enforcer started)
+      const tier = TenantContext.getTier?.();
+      if (tier && !TenantQuotaEnforcer['slots'].has(tenantId)) {
+        TenantQuotaEnforcer.register(tenantId, tier);
+      }
+      await TenantQuotaEnforcer.acquire(tenantId);
     }
 
     // Đếm query và enforce 50-query hard limit (Phase 6 Sandbox).
@@ -70,6 +78,9 @@ export function applyQueryInterceptor(knex: KnexType): void {
 
   // ── releaseConnection ─────────────────────────────────
   client.releaseConnection = async function (this: unknown, connection: unknown) {
+    const tenantId = TenantContext.getTenantId();
+    if (tenantId) TenantQuotaEnforcer.release(tenantId);
+
     try {
       // Defense-in-depth: reset trước khi trả về pool
       // (PoolRegistry.acquireConnection cũng làm điều này)

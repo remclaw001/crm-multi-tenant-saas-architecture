@@ -86,7 +86,7 @@ Copy `.env.example` to `.env` in `backend/`. Variables are validated at startup 
 
 ## Database Migrations
 
-4 migrations in `backend/src/db/migrations/` (run in order):
+5 migrations in `backend/src/db/migrations/` (run in order):
 
 | Migration | Tables Added |
 |-----------|-------------|
@@ -94,6 +94,7 @@ Copy `.env.example` to `.env` in `backend/`. Variables are validated at startup 
 | `20260226000002_tenant_plugins` | tenant_plugins (no RLS) |
 | `20260228000003_audit_logs` | audit_logs (no RLS) |
 | `20260303000004_plugin_tables` | customers, support_cases, automation_triggers, marketing_campaigns (all RLS + FORCE ROW LEVEL SECURITY) |
+| `20260309000005_refresh_tokens` | refresh_tokens — stores SHA-256 hash of opaque token (no RLS; FK → users + tenants) |
 
 ## Backend Architecture
 
@@ -193,12 +194,16 @@ Both web and admin use Vitest + Testing Library for tests.
 **Frontend env var:** Both web and admin API clients read `NEXT_PUBLIC_API_URL` (default `http://localhost:8080`). Since the backend runs on port 3000 by default, set `NEXT_PUBLIC_API_URL=http://localhost:3000` in each app's `.env.local`.
 
 **Web route groups** (`frontend/web/src/app/`):
-- `(crm)/` — contacts, cases (authenticated CRM views)
+- `(crm)/` — contacts, cases, analytics, automation, marketing (authenticated CRM views)
 
 **Admin route groups** (`frontend/admin/src/app/`):
-- `(dashboard)/` — tenants, metrics (admin console)
+- `(dashboard)/` — tenants, tenants/[id] (detail), tenants/[id]/plugins (plugin toggle), metrics (admin console)
+
+**Auth state** (`src/stores/auth.store.ts`): Zustand `useAuthStore` persisted to `localStorage` under key `crm-web-auth`. Holds `token`, `tenantId`, `tenantName`, `userName`, `userEmail`. Call `setAuth(...)` on login, `logout()` to clear.
 
 **API client pattern** (`src/lib/api-client.ts` in each app): every request sends `Authorization: Bearer <token>` and `X-Tenant-ID: <tenantId>` headers. Errors are typed as `ApiError` (wraps RFC 7807 body). TanStack Query retry is disabled for 4xx responses.
+
+**`PluginGate` component** (`src/components/plugin-gate.tsx`, web only): wraps any feature area that requires a plugin. Calls `GET /api/v1/plugins/` to fetch `enabledPlugins` and renders a "not enabled" message if the plugin is absent. Use this instead of inline plugin checks in page components.
 
 ## Architecture Overview
 

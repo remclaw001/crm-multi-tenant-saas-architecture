@@ -8,12 +8,14 @@ import { adminApi } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth.store';
 import { useTenantStore } from '@/stores/tenant.store';
 import { TenantTable } from '@/components/tenant-table';
+import { AddTenantModal } from '@/components/add-tenant-modal';
 
 export default function TenantsPage() {
   const token = useAuthStore((s) => s.token ?? '');
   const { searchQuery, setSearchQuery } = useTenantStore();
   const router = useRouter();
   const [page] = useState(1);
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['tenants', { page, search: searchQuery }],
@@ -31,7 +33,7 @@ export default function TenantsPage() {
           </p>
         </div>
         <button
-          onClick={() => router.push('/tenants/new')}
+          onClick={() => setAddModalOpen(true)}
           className="flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
@@ -62,6 +64,8 @@ export default function TenantsPage() {
           onRowClick={(t) => router.push(`/tenants/${t.id}`)}
         />
       )}
+
+      <AddTenantModal open={addModalOpen} onClose={() => setAddModalOpen(false)} />
     </div>
   );
 }

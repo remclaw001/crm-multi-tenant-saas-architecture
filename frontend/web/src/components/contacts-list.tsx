@@ -73,7 +73,10 @@ function buildColumns(
       id: 'actions',
       header: '',
       cell: ({ row }) => (
-        <div className="flex items-center gap-1">
+        <div
+          className="flex items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={() => onEdit(row.original)}
             aria-label="Edit"
@@ -138,7 +141,8 @@ export function ContactsList({
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b border-border transition-colors last:border-0 hover:bg-muted/50"
+                onClick={() => onEdit(row.original)}
+                className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50"
               >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3">

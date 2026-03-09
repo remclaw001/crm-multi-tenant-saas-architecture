@@ -6,7 +6,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('vip_db_registry', (t) => {
     t.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
     t.uuid('tenant_id').notNullable().references('id').inTable('tenants');
-    t.string('db_name').notNullable();
+    t.text('db_name').notNullable();
     t.text('db_url').notNullable();
     t.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now());
     t.timestamp('migrated_at', { useTz: true }).nullable();

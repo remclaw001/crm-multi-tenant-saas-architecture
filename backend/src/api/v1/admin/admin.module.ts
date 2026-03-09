@@ -8,6 +8,8 @@ import { AdminTenantsController } from './tenants/admin-tenants.controller';
 import { AdminTenantsService } from './tenants/admin-tenants.service';
 import { AdminMetricsController } from './metrics/admin-metrics.controller';
 import { AdminMetricsService } from './metrics/admin-metrics.service';
+import { AdminUsersController } from './tenants/admin-users.controller';
+import { AdminUsersService } from './tenants/admin-users.service';
 
 @Module({
   imports: [
@@ -20,12 +22,14 @@ import { AdminMetricsService } from './metrics/admin-metrics.service';
     AdminAuthController,
     AdminTenantsController,
     AdminMetricsController,
+    AdminUsersController,
   ],
   providers: [
     SuperAdminGuard,
     AdminAuthService,
     AdminTenantsService,
     AdminMetricsService,
+    AdminUsersService,
   ],
 })
 export class AdminModule {}

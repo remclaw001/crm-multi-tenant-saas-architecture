@@ -3,6 +3,14 @@ import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { BUILT_IN_MANIFESTS } from '../../../../plugins/manifest/built-in-manifests';
 
+const TIER_DEFAULT_PLUGINS: Record<string, string[]> = {
+  basic:      ['customer-data'],
+  standard:   ['customer-data'],
+  premium:    ['customer-data', 'customer-care', 'analytics'],
+  enterprise: ['customer-data', 'customer-care', 'analytics', 'marketing'],
+  vip:        ['customer-data', 'customer-care', 'analytics', 'marketing', 'automation'],
+};
+
 export interface TenantRow {
   id: string; name: string; subdomain: string;
   tier: string; is_active: boolean;
@@ -91,7 +99,7 @@ export class AdminTenantsService {
   }
 
   async create(input: { name: string; subdomain: string; plan: string }) {
-    const VALID_PLANS = ['basic', 'premium', 'enterprise', 'vip'];
+    const VALID_PLANS = ['basic', 'standard', 'premium', 'enterprise', 'vip'];
     if (!VALID_PLANS.includes(input.plan)) {
       throw new BadRequestException(`Invalid plan "${input.plan}". Must be one of: ${VALID_PLANS.join(', ')}`);
     }
@@ -108,16 +116,19 @@ export class AdminTenantsService {
       );
       const tenant = res.rows[0];
 
-      // Enable customer-data plugin by default for every new tenant
-      await client.query(
-        `INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled)
-         VALUES ($1, 'customer-data', true)
-         ON CONFLICT (tenant_id, plugin_name) DO NOTHING`,
-        [tenant.id],
-      );
+      // Enable tier-appropriate plugins for every new tenant
+      const defaultPlugins = TIER_DEFAULT_PLUGINS[input.plan] ?? ['customer-data'];
+      for (const pluginName of defaultPlugins) {
+        await client.query(
+          `INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled)
+           VALUES ($1, $2, true)
+           ON CONFLICT (tenant_id, plugin_name) DO NOTHING`,
+          [tenant.id, pluginName],
+        );
+      }
 
       await client.query('COMMIT');
-      return rowToTenant({ ...tenant, plugin_count: '1' });
+      return rowToTenant({ ...tenant, plugin_count: String(defaultPlugins.length) });
     } catch (err: unknown) {
       await client.query('ROLLBACK');
       if ((err as { code?: string }).code === '23505') {

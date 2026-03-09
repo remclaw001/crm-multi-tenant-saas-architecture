@@ -51,6 +51,10 @@ import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
 
+const mockVipMigrationQueue = { add: vi.fn().mockResolvedValue(undefined) } as any;
+const mockVipDecommissionQueue = { add: vi.fn().mockResolvedValue(undefined) } as any;
+const mockDataExportQueue = { add: vi.fn().mockResolvedValue(undefined) } as any;
+
 const ROW = {
   id: 'tid', name: 'Acme', subdomain: 'acme',
   tier: 'basic', is_active: true, status: 'active',
@@ -69,6 +73,9 @@ describe('AdminTenantsService', () => {
       new (PoolRegistry as any)(),
       new (CacheManager as any)(),
       new (AmqpPublisher as any)(),
+      mockVipMigrationQueue,
+      mockVipDecommissionQueue,
+      mockDataExportQueue,
     );
   });
 

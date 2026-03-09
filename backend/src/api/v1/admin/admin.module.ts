@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { BullModule } from '@nestjs/bullmq';
 import { config } from '../../../config/env';
+import { QUEUE_VIP_MIGRATION, QUEUE_VIP_DECOMMISSION, QUEUE_DATA_EXPORT } from '../../../workers/bullmq/queue.constants';
 import { SuperAdminGuard } from './guards/super-admin.guard';
 import { AdminAuthController } from './admin-auth/admin-auth.controller';
 import { AdminAuthService } from './admin-auth/admin-auth.service';
@@ -17,6 +19,11 @@ import { AdminUsersService } from './tenants/admin-users.service';
       secret: config.JWT_SECRET_FALLBACK ?? 'no-secret-configured-admin-login-will-fail',
       signOptions: { expiresIn: '24h', algorithm: 'HS256' },
     }),
+    BullModule.registerQueue(
+      { name: QUEUE_VIP_MIGRATION },
+      { name: QUEUE_VIP_DECOMMISSION },
+      { name: QUEUE_DATA_EXPORT },
+    ),
   ],
   controllers: [
     AdminAuthController,

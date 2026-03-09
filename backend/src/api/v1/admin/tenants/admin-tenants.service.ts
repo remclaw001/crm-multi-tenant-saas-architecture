@@ -1,9 +1,15 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import type { Queue } from 'bullmq';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { TenantQuotaEnforcer } from '../../../../dal/pool/TenantQuotaEnforcer';
 import { BUILT_IN_MANIFESTS } from '../../../../plugins/manifest/built-in-manifests';
 import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
+import { QUEUE_VIP_MIGRATION, QUEUE_VIP_DECOMMISSION, QUEUE_DATA_EXPORT } from '../../../../workers/bullmq/queue.constants';
+import type { VipMigrationJobData } from '../../../../workers/bullmq/processors/vip-migration.processor';
+import type { VipDecommissionJobData } from '../../../../workers/bullmq/processors/vip-decommission.processor';
+import type { DataExportJobData } from '../../../../workers/bullmq/processors/data-export.processor';
 
 const TIER_DEFAULT_PLUGINS: Record<string, string[]> = {
   basic:      ['customer-data'],
@@ -40,6 +46,9 @@ export class AdminTenantsService {
     private readonly poolRegistry: PoolRegistry,
     private readonly cache: CacheManager,
     private readonly amqp: AmqpPublisher,
+    @InjectQueue(QUEUE_VIP_MIGRATION)    private readonly vipMigrationQueue: Queue,
+    @InjectQueue(QUEUE_VIP_DECOMMISSION) private readonly vipDecommissionQueue: Queue,
+    @InjectQueue(QUEUE_DATA_EXPORT)      private readonly dataExportQueue: Queue,
   ) {}
 
   async list(params: { page: number; limit: number; search?: string }) {
@@ -278,9 +287,22 @@ export class AdminTenantsService {
 
         const isVipUpgrade = input.plan === 'vip' && currentTier !== 'vip';
         const isVipDowngrade = input.plan !== 'vip' && currentTier === 'vip';
-        // TODO Task 13: enqueue vip-migration or vip-decommission job
-        void isVipUpgrade;
-        void isVipDowngrade;
+
+        if (isVipUpgrade) {
+          await this.vipMigrationQueue.add('migrate', {
+            tenantId: id,
+            slug: subdomain ?? id,
+            currentTier,
+          } satisfies VipMigrationJobData);
+        }
+
+        if (isVipDowngrade) {
+          await this.vipDecommissionQueue.add('decommission', {
+            tenantId: id,
+            slug: subdomain ?? id,
+            newTier: input.plan,
+          } satisfies VipDecommissionJobData);
+        }
       }
 
       return rowToTenant(res.rows[0]);
@@ -299,11 +321,11 @@ export class AdminTenantsService {
       await client.query('BEGIN');
 
       // Step 1: lock → offboarding
-      const lockRes = await client.query<{ id: string; subdomain: string | null; tier: string }>(
+      const lockRes = await client.query<{ id: string; name: string; subdomain: string | null; tier: string }>(
         `UPDATE tenants
          SET status = 'offboarding', is_active = false, updated_at = NOW()
          WHERE id = $1
-         RETURNING id, subdomain, tier`,
+         RETURNING id, name, subdomain, tier`,
         [id],
       );
       if (!lockRes.rows[0]) {
@@ -312,6 +334,7 @@ export class AdminTenantsService {
       }
       subdomain = lockRes.rows[0].subdomain;
       const tier = lockRes.rows[0].tier;
+      const tenantName = lockRes.rows[0].name;
 
       // Step 2: disable all plugins
       await client.query(
@@ -348,8 +371,12 @@ export class AdminTenantsService {
         metadata: { subdomain, tier },
       });
 
-      // 7. TODO Task 15: enqueue data-export job
-      // await this.dataExportQueue.add('export', { tenantId: id, tier });
+      // 7. Enqueue S3 data export job
+      await this.dataExportQueue.add('export', {
+        tenantId: id,
+        tenantName,
+        tier,
+      } satisfies DataExportJobData);
 
       // 8. If VIP: deregister dedicated pool
       if (tier === 'vip') {

@@ -91,35 +91,22 @@ html.lang-vi [data-lang="en"]{display:none}
     <div class="dg"><div class="dg-label">L1 overview</div><pre>
   ┌─ <span class="ty">L1 PRESENTATION</span> ────────────────────────────────────────────────────────┐
   │                                                                          │
-  │  <span class="hi">❶ WEB APP</span> (Next.js 15 — Module Federation <span class="gn">REMOTE</span>)                       │
+  │  <span class="hi">❶ WEB APP</span> (Next.js 15, port 3002)                                      │
   │  ┌─────────────────────────────────────────────────────────────────┐    │
   │  │  Login:  tenantSlug + email + password → POST /auth/login      │    │
   │  │  Layout: auth guard (Zustand hydration) + plugin-driven nav    │    │
   │  │  Pages:  /contacts (customer-data), /cases (customer-care)     │    │
   │  │  Gate:   &lt;PluginGate&gt; kiểm tra plugin enabled trước render    │    │
   │  │  Auth:   Zustand persist → localStorage 'crm-web-auth'        │    │
-  │  │  MF:     exposes ./ContactsList (contacts-list.tsx)            │    │
   │  └─────────────────────────────────────────────────────────────────┘    │
   │                                                                          │
-  │  <span class="hi">❷ ADMIN CONSOLE</span> (Next.js 15 — Module Federation <span class="am">HOST</span>)                 │
+  │  <span class="hi">❷ ADMIN CONSOLE</span> (Next.js 15, port 3000)                               │
   │  ┌─────────────────────────────────────────────────────────────────┐    │
   │  │  Auth:    email + password → POST /api/v1/admin/auth/login     │    │
   │  │           localStorage 'crm-admin-auth' (super_admin / admin)  │    │
   │  │  Tenants: CRUD + tier/status management                        │    │
   │  │  Plugins: enable/disable per tenant (PluginToggle component)   │    │
   │  │  Metrics: system-wide summary dashboard                        │    │
-  │  │  MF:      HOST — loads customerPlugin + analyticsPlugin        │    │
-  │  │           exports ./DesignTokens cho plugin UIs                │    │
-  │  └─────────────────────────────────────────────────────────────────┘    │
-  │                                                                          │
-  │  <span class="hi">❸ PLUGIN UI SHELL</span> (@module-federation/nextjs-mf)                       │
-  │  ┌─────────────────────────────────────────────────────────────────┐    │
-  │  │  Admin = HOST → loads remotes qua env var URL                  │    │
-  │  │    customerPlugin  @ CUSTOMER_PLUGIN_URL  (dev: :3010)         │    │
-  │  │    analyticsPlugin @ ANALYTICS_PLUGIN_URL (dev: :3011)         │    │
-  │  │  Web = REMOTE → exposes ./ContactsList                         │    │
-  │  │  Shared: react + react-dom (singleton, không duplicate)        │    │
-  │  │  Design tokens: admin/DesignTokens → plugin UIs import         │    │
   │  └─────────────────────────────────────────────────────────────────┘    │
   │                                                                          │
   └──────────────────────────────────┬───────────────────────────────────────┘
@@ -139,8 +126,8 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-web">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Web App — Host Shell + Plugin Remotes</h2></div>
-    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Next.js 15 app chính mà tenant users truy cập. Gồm login page, CRM layout với auth guard + plugin-driven sidebar, và các pages cho từng plugin. Sidebar và nội dung thay đổi theo plugin nào đang bật cho tenant — dựa trên <code>GET /api/v1/plugins</code>. Module Federation: Web = REMOTE, expose <code>./ContactsList</code>.</div>
-    <div class="nt bl" data-lang="en"><strong>Role:</strong> The primary Next.js 15 app that tenant users access. Consists of a login page, CRM layout with auth guard + plugin-driven sidebar, and pages for each plugin. Sidebar and content change based on which plugins are enabled for the tenant — driven by <code>GET /api/v1/plugins</code>. Module Federation: Web = REMOTE, exposes <code>./ContactsList</code>.</div>
+    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Next.js 15 app chính mà tenant users truy cập. Gồm login page, CRM layout với auth guard + plugin-driven sidebar, và các pages cho từng plugin. Sidebar và nội dung thay đổi theo plugin nào đang bật cho tenant — dựa trên <code>GET /api/v1/plugins</code>. Component <code>contacts-list.tsx</code> được thiết kế để expose qua Module Federation nhưng MF hiện bị disabled do không tương thích với Next.js 15.</div>
+    <div class="nt bl" data-lang="en"><strong>Role:</strong> The primary Next.js 15 app that tenant users access. Consists of a login page, CRM layout with auth guard + plugin-driven sidebar, and pages for each plugin. Sidebar and content change based on which plugins are enabled for the tenant — driven by <code>GET /api/v1/plugins</code>. <code>contacts-list.tsx</code> is designed for Module Federation exposure but MF is currently disabled due to Next.js 15 incompatibility.</div>
     <div class="dg"><div class="dg-label">web app architecture</div><pre>
 <span class="ty">CRM APP (Next.js 15, port 3002 — <span data-lang="vi">triển khai thực tế</span><span data-lang="en">actual implementation</span>):</span>
 
@@ -181,27 +168,21 @@ html.lang-vi [data-lang="en"]{display:none}
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">MODULE FEDERATION — Web = REMOTE:</span>
+<span class="ty">MODULE FEDERATION — <span class="rd"><span data-lang="vi">DISABLED (Next.js 15 không tương thích)</span><span data-lang="en">DISABLED (Next.js 15 incompatibility)</span></span>:</span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │                                                                        │
-  │  <span data-lang="vi">Web App expose component qua Module Federation:</span><span data-lang="en">Web App exposes component via Module Federation:</span>                    │
+  │  <span class="fn">next.config.ts</span> (web) — <span class="rd"><span data-lang="vi">hiện tại trống:</span><span data-lang="en">currently empty:</span></span>                          │
+  │  <span class="cm">// @module-federation/nextjs-mf is not compatible with Next.js 15.</span>    │
+  │  <span class="cm">// Plugin is disabled until a compatible version is available.</span>        │
+  │  const nextConfig: NextConfig = {};                                    │
   │                                                                        │
-  │  <span class="fn">next.config.ts</span> (web):                                               │
-  │  new NextFederationPlugin({                                            │
-  │    name: <span class="st">'web'</span>,                                                        │
-  │    filename: <span class="st">'static/chunks/remoteEntry.js'</span>,                          │
-  │    exposes: {                                                          │
-  │      <span class="st">'./ContactsList'</span>: <span class="st">'./src/components/contacts-list.tsx'</span>,        │
-  │    },                                                                  │
-  │    shared: { react: { singleton: true }, 'react-dom': { ... } }      │
-  │  })                                                                    │
-  │                                                                        │
-  │  → Admin Console (HOST) có thể lazy-load ContactsList widget          │
-  │    tại runtime mà không cần rebuild Web App                           │
+  │  <span data-lang="vi">Package đã cài:</span><span data-lang="en">Package installed:</span>  @module-federation/nextjs-mf ^8.7.0         │
+  │  <span data-lang="vi">Config thiết kế:</span><span data-lang="en">Designed config:</span> expose <span class="st">'./ContactsList'</span> từ contacts-list.tsx  │
+  │  <span data-lang="vi">File sẵn sàng:</span><span data-lang="en">File ready:</span>      contacts-list.tsx (<span data-lang="vi">có comment MF</span><span data-lang="en">has MF comment</span>)         │
   │                                                                        │
   │  <span class="am"><span data-lang="vi">Plugin UI apps riêng (customer-plugin, analytics-plugin) chưa có.</span><span data-lang="en">Standalone plugin UI apps (customer-plugin, analytics-plugin) not yet built.</span></span>   │
-  │  <span class="cm"><span data-lang="vi">Roadmap: mỗi plugin sẽ có app riêng với remoteEntry.js.</span><span data-lang="en">Roadmap: each plugin will have its own app with remoteEntry.js.</span></span>         │
+  │  <span class="cm"><span data-lang="vi">Roadmap: enable lại khi có phiên bản tương thích Next.js 15.</span><span data-lang="en">Roadmap: re-enable when a Next.js 15 compatible version is available.</span></span>     │
   │                                                                        │
   └────────────────────────────────────────────────────────────────────────┘
 
@@ -236,11 +217,34 @@ html.lang-vi [data-lang="en"]{display:none}
 <!-- MODULE FEDERATION -->
 <div class="pnl" id="p-fed">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Module Federation — Plugin UI System</h2></div>
-    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Admin Console = HOST (load remotes, export design tokens). Web App = REMOTE (expose ContactsList). URL của plugin remote lấy từ env var — không hardcode. Plugin UI apps riêng chưa được build, env var URL đã chuẩn bị sẵn để tích hợp sau.</div>
-    <div class="nt am" data-lang="en"><strong>Role:</strong> Admin Console = HOST (loads remotes, exports design tokens). Web App = REMOTE (exposes ContactsList). Plugin remote URLs come from env vars — not hardcoded. Standalone plugin UI apps are not yet built; env var URLs are prepared for future integration.</div>
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Module Federation — Plugin UI System <span class="rd">(Roadmap)</span></h2></div>
+    <div class="nt rd" data-lang="vi"><strong>Trạng thái hiện tại:</strong> Module Federation bị <strong>disabled</strong> do <code>@module-federation/nextjs-mf</code> không tương thích với Next.js 15. Package đã cài (v8.7.0) nhưng cả hai <code>next.config.ts</code> đều trống. Plugin gating hiện hoạt động qua <code>GET /api/v1/plugins</code> + <code>&lt;PluginGate&gt;</code> + dynamic sidebar — không cần MF.</div>
+    <div class="nt rd" data-lang="en"><strong>Current status:</strong> Module Federation is <strong>disabled</strong> — <code>@module-federation/nextjs-mf</code> is not compatible with Next.js 15. Package is installed (v8.7.0) but both <code>next.config.ts</code> files are empty. Plugin gating currently works via <code>GET /api/v1/plugins</code> + <code>&lt;PluginGate&gt;</code> + dynamic sidebar — no MF required.</div>
     <div class="dg"><div class="dg-label">module federation</div><pre>
-<span class="ty"><span data-lang="vi">THỰC TẾ HIỆN TẠI:</span><span data-lang="en">CURRENT IMPLEMENTATION:</span></span>
+<span class="ty"><span data-lang="vi">THỰC TẾ HIỆN TẠI — Plugin gating KHÔNG qua MF:</span><span data-lang="en">CURRENT IMPLEMENTATION — Plugin gating WITHOUT MF:</span></span>
+
+  <span class="gn">Web App (:3002) — plugin-driven sidebar + PluginGate</span>
+  ┌────────────────────────────────────────────────────────────────────┐
+  │ (crm)/layout.tsx                                                   │
+  │   GET /api/v1/plugins → { enabledPlugins: string[] }              │
+  │   PLUGIN_PAGES.filter(p => enabledPlugins.includes(p.plugin))     │
+  │   → sidebar chỉ hiện pages của plugin đã bật                      │
+  │                                                                    │
+  │ &lt;PluginGate plugin="customer-care"&gt;                                │
+  │   useQuery GET /api/v1/plugins (staleTime: 0)                     │
+  │   enabled → render children                                        │
+  │   disabled → ShieldOff icon + "liên hệ admin"                     │
+  └────────────────────────────────────────────────────────────────────┘
+
+  <span class="am">Admin Console (:3000) — next.config.ts trống:</span>
+  ┌────────────────────────────────────────────────────────────────────┐
+  │ <span class="cm">// Module Federation (admin = HOST) is Phase 6+ roadmap.</span>           │
+  │ <span class="cm">// @module-federation/nextjs-mf is not compatible with Next.js 15.</span>│
+  │ const nextConfig: NextConfig = {};                                 │
+  └────────────────────────────────────────────────────────────────────┘
+
+
+<span class="ty"><span data-lang="vi">THIẾT KẾ ROADMAP (khi MF được enable):</span><span data-lang="en">ROADMAP DESIGN (when MF is re-enabled):</span></span>
 
   <span class="am">Admin Console</span> = <span class="hi">HOST</span>                    <span class="gn">Web App</span> = <span class="hi">REMOTE</span>
   ┌───────────────────────────────┐       ┌───────────────────────────┐
@@ -250,69 +254,33 @@ html.lang-vi [data-lang="en"]{display:none}
   │   name: 'admin',              │       │   name: 'web',            │
   │   remotes: {                  │       │   exposes: {              │
   │     customerPlugin:           │       │     './ContactsList':     │
-  │       CUSTOMER_PLUGIN_URL     │◄──────│       './src/components/  │
-  │       ?? 'localhost:3010',    │       │        contacts-list.tsx' │
-  │     analyticsPlugin:          │       │   },                      │
-  │       ANALYTICS_PLUGIN_URL    │       │   shared: {               │
-  │       ?? 'localhost:3011',    │       │     react:    {singleton} │
-  │   },                          │       │     react-dom: {singleton}│
-  │   exposes: {                  │       │   }                       │
-  │     './DesignTokens':         │       │ })                        │
-  │       './src/lib/design-      │       └───────────────────────────┘
-  │        tokens.ts',            │
+  │       CUSTOMER_PLUGIN_URL     │◄──────│       contacts-list.tsx   │
+  │       ?? 'localhost:3010',    │       │   },                      │
+  │     analyticsPlugin:          │       │   shared: {               │
+  │       ANALYTICS_PLUGIN_URL    │       │     react:    {singleton} │
+  │       ?? 'localhost:3011',    │       │     react-dom: {singleton}│
+  │   },                          │       │   }                       │
+  │   exposes: {                  │       │ })                        │
+  │     './DesignTokens':         │       └───────────────────────────┘
+  │       design-tokens.ts        │
   │   },                          │
-  │   shared: {                   │
-  │     react:    { singleton }   │
-  │     react-dom:{ singleton }   │
-  │   }                           │
   │ })                            │
   └───────────────────────────────┘
 
-
-<span class="ty"><span data-lang="vi">SHARED DEPENDENCIES (thực tế):</span><span data-lang="en">SHARED DEPENDENCIES (actual):</span></span>
-
-  <span data-lang="vi">Chỉ 2 package được share:</span><span data-lang="en">Only 2 packages are shared:</span>
-  ├── react      { singleton: true, requiredVersion: false }
-  └── react-dom  { singleton: true, requiredVersion: false }
-
-  <span class="cm"><span data-lang="vi">Không có react-router, @crm/ui-kit, @crm/api-client — chưa implement.</span><span data-lang="en">No react-router, @crm/ui-kit, @crm/api-client — not yet implemented.</span></span>
+  <span class="cm"><span data-lang="vi">Files đã sẵn sàng để enable MF:</span><span data-lang="en">Files ready for when MF is enabled:</span></span>
+  ├── frontend/web/src/components/contacts-list.tsx     <span class="cm">← ready to expose</span>
+  └── frontend/admin/src/lib/design-tokens.ts           <span class="cm">← ready to expose</span>
 
 
-<span class="ty"><span data-lang="vi">PLUGIN REMOTE URLs:</span><span data-lang="en">PLUGIN REMOTE URLs:</span></span>
-
-  <span data-lang="vi">Admin HOST load remotes qua env var (không CDN dynamic, không versioned URL):</span><span data-lang="en">Admin HOST loads remotes via env var (no CDN dynamic loading, no versioned URL):</span>
+<span class="ty"><span data-lang="vi">PLUGIN REMOTE URLs (thiết kế):</span><span data-lang="en">PLUGIN REMOTE URLS (designed):</span></span>
 
   CUSTOMER_PLUGIN_URL  → <span class="st">'http://localhost:3010'</span> (dev default)
   ANALYTICS_PLUGIN_URL → <span class="st">'http://localhost:3011'</span> (dev default)
 
   <span class="fn">remoteEntry.js</span> path: <span class="st">/_next/static/chunks/remoteEntry.js</span>
 
-  <span class="am"><span data-lang="vi">Hiện tại: chưa có app nào chạy tại :3010 hay :3011.</span><span data-lang="en">Currently: no app is running at :3010 or :3011.</span></span>
-  <span class="am"><span data-lang="vi">Roadmap: build customer-plugin app và analytics-plugin app riêng biệt.</span><span data-lang="en">Roadmap: build standalone customer-plugin and analytics-plugin apps.</span></span>
-
-
-<span class="ty"><span data-lang="vi">DESIGN TOKENS (Admin → Plugin UIs):</span><span data-lang="en">DESIGN TOKENS (Admin → Plugin UIs):</span></span>
-
-  <span data-lang="vi">Admin export design tokens để plugin UIs giữ visual consistency:</span><span data-lang="en">Admin exports design tokens so plugin UIs stay visually consistent:</span>
-
-  <span class="cm">// admin/src/lib/design-tokens.ts — exposed as './DesignTokens'</span>
-  <span class="cm">// Plugin UI apps import: import tokens from 'admin/DesignTokens'</span>
-  <span class="cm">// → shared colors, spacing, typography — no re-bundling needed</span>
-
-
-<span class="ty"><span data-lang="vi">SƠ ĐỒ FLOW (hiện tại):</span><span data-lang="en">FLOW DIAGRAM (current):</span></span>
-
-  Admin Console (HOST, :3000)
-       │
-       ├── lazy-load customerPlugin remote  → :3010 (roadmap)
-       ├── lazy-load analyticsPlugin remote → :3011 (roadmap)
-       └── export ./DesignTokens → plugin UIs consume
-
-  Web App (REMOTE, :3002)
-       └── expose ./ContactsList → Admin HOST can lazy-load widget
-
-  <span class="gn"><span data-lang="vi">Thực tế hiện tại Web = REMOTE nhưng Admin chưa dùng ContactsList.</span><span data-lang="en">Currently Web = REMOTE but Admin does not yet consume ContactsList.</span></span>
-  <span class="gn"><span data-lang="vi">Kiến trúc MF đã sẵn sàng để mở rộng không cần rebuild host.</span><span data-lang="en">MF architecture is ready to expand without rebuilding the host.</span></span></pre></div>
+  <span class="rd"><span data-lang="vi">Hiện tại: chưa có app nào chạy tại :3010 hay :3011.</span><span data-lang="en">Currently: no app is running at :3010 or :3011.</span></span>
+  <span class="cm"><span data-lang="vi">Roadmap: build customer-plugin app và analytics-plugin app riêng biệt.</span><span data-lang="en">Roadmap: build standalone customer-plugin and analytics-plugin apps.</span></span></pre></div>
 </div>
 </div>
 
@@ -399,8 +367,8 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-adm">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Admin Console — VCC Platform Management</h2></div>
-    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Một Next.js 15 app duy nhất dành riêng cho đội VCC (không phải tenant users). Auth riêng biệt: email + password → POST /api/v1/admin/auth/login, trả về role super_admin hoặc admin. JWT lưu trong localStorage 'crm-admin-auth' (Zustand persist). Module Federation HOST.</div>
-    <div class="nt am" data-lang="en"><strong>Role:</strong> A single Next.js 15 app exclusively for the VCC team (not tenant users). Separate auth: email + password → POST /api/v1/admin/auth/login, returns role super_admin or admin. JWT stored in localStorage 'crm-admin-auth' (Zustand persist). Module Federation HOST.</div>
+    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Một Next.js 15 app duy nhất dành riêng cho đội VCC (không phải tenant users). Auth riêng biệt: email + password → POST /api/v1/admin/auth/login, trả về role super_admin hoặc admin. JWT lưu trong localStorage 'crm-admin-auth' (Zustand persist). Thiết kế là Module Federation HOST nhưng MF hiện bị disabled.</div>
+    <div class="nt am" data-lang="en"><strong>Role:</strong> A single Next.js 15 app exclusively for the VCC team (not tenant users). Separate auth: email + password → POST /api/v1/admin/auth/login, returns role super_admin or admin. JWT stored in localStorage 'crm-admin-auth' (Zustand persist). Designed as Module Federation HOST but MF is currently disabled.</div>
     <div class="dg"><div class="dg-label">admin console</div><pre>
 <span class="ty">ADMIN CONSOLE</span> (Next.js 15, port 3000)
 
@@ -443,21 +411,23 @@ html.lang-vi [data-lang="en"]{display:none}
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">MODULE FEDERATION — Admin = HOST:</span>
+<span class="ty">MODULE FEDERATION — <span class="rd"><span data-lang="vi">DISABLED (roadmap):</span><span data-lang="en">DISABLED (roadmap):</span></span></span>
 
-  Admin Console loads plugin UIs at runtime (URLs from env vars):
-  ├── customerPlugin  @ CUSTOMER_PLUGIN_URL ?? <span class="st">'http://localhost:3010'</span>
-  ├── analyticsPlugin @ ANALYTICS_PLUGIN_URL ?? <span class="st">'http://localhost:3011'</span>
-  └── exports ./DesignTokens → plugin UIs stay visually consistent
+  <span class="rd"><span data-lang="vi">next.config.ts trống — MF không tương thích Next.js 15.</span><span data-lang="en">next.config.ts is empty — MF incompatible with Next.js 15.</span></span>
+  <span data-lang="vi">Thiết kế (khi enable):</span><span data-lang="en">Design (when enabled):</span>
+  ├── load customerPlugin  @ CUSTOMER_PLUGIN_URL ?? <span class="st">'http://localhost:3010'</span>
+  ├── load analyticsPlugin @ ANALYTICS_PLUGIN_URL ?? <span class="st">'http://localhost:3011'</span>
+  └── export ./DesignTokens → plugin UIs stay visually consistent
 
-  <span class="am"><span data-lang="vi">Hiện tại: plugin remote apps (:3010, :3011) chưa được build.</span><span data-lang="en">Currently: plugin remote apps (:3010, :3011) are not yet built.</span></span>
+  <span class="rd"><span data-lang="vi">Hiện tại: plugin remote apps (:3010, :3011) chưa được build.</span><span data-lang="en">Currently: plugin remote apps (:3010, :3011) are not yet built.</span></span>
+  <span class="rd"><span data-lang="vi">design-tokens.ts có nhưng chưa được expose.</span><span data-lang="en">design-tokens.ts exists but is not exposed.</span></span>
 
 
 <span class="ty"><span data-lang="vi">SỰ KHÁC BIỆT VỚI WEB APP:</span><span data-lang="en">DIFFERENCES FROM WEB APP:</span></span>
   ├── Auth: <span data-lang="vi">không có tenantSlug field</span><span data-lang="en">no tenantSlug field</span>, role = super_admin | admin
   ├── API: <span data-lang="vi">KHÔNG gửi X-Tenant-ID header</span><span data-lang="en">does NOT send X-Tenant-ID header</span> (<span data-lang="vi">cross-tenant operations</span><span data-lang="en">cross-tenant operations</span>)
   ├── Store: localStorage key = <span class="st">'crm-admin-auth'</span> (≠ <span class="st">'crm-web-auth'</span>)
-  ├── MF:   HOST (loads remotes) ≠ Web (REMOTE, exposes remoteEntry)
+  ├── MF:   <span data-lang="vi">thiết kế HOST (disabled)</span><span data-lang="en">designed as HOST (disabled)</span> ≠ Web (<span data-lang="vi">thiết kế REMOTE, disabled</span><span data-lang="en">designed REMOTE, disabled</span>)
   └── Port: 3000 ≠ Web App 3002</pre></div>
 </div>
 </div>
@@ -538,7 +508,8 @@ html.lang-vi [data-lang="en"]{display:none}
   ├── Permissions-Policy: camera=(), microphone=(), geolocation=()
   │   (disable browser APIs không cần → giảm attack surface)
   └── Subresource Integrity (SRI): plugin remoteEntry.js có integrity hash
-      → CDN bị compromise → hash mismatch → browser refuse to load</pre></div>
+      → CDN bị compromise → hash mismatch → browser refuse to load
+      <span class="cm">(<span data-lang="vi">Roadmap: áp dụng khi MF được enable</span><span data-lang="en">Roadmap: applies when MF is re-enabled</span>)</span></pre></div>
 </div>
 </div>
 

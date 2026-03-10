@@ -2,7 +2,7 @@
 // HookRegistryService — before/after/filter hook execution
 //
 // Hooks are registered by plugin cores at OnModuleInit time.
-// Each hook is keyed as "<type>:<event>" (e.g. "before:contact.create").
+// Each hook is keyed as "<type>:<event>" (e.g. "before:customer.create").
 // Multiple handlers on the same key are sorted by priority ascending
 // (lower number = higher priority = runs first).
 //

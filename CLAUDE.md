@@ -122,7 +122,7 @@ Copy `.env.example` to `.env` in `backend/`. Variables are validated at startup 
 
 Middleware pipeline (applied in order):
 - `CorrelationIdMiddleware` — injects `X-Correlation-ID`
-- `TenantResolverMiddleware` — resolves tenant from subdomain/header, stores in `TenantContext`
+- `TenantResolverMiddleware` — resolves tenant from subdomain/header, stores in `TenantContext`; uses Redis cache-aside to avoid a DB lookup on every request
 - `TenantCorsMiddleware` — per-tenant CORS (do **not** call `app.enableCors()`)
 - `JwtAuthGuard` — validates JWT via JWKS or fallback secret
 
@@ -138,6 +138,8 @@ Middleware pipeline (applied in order):
 - `PoolRegistry` — manages shared (200), metadata (20), and VIP (30 each) connection pools
 - `CacheManager` — ioredis wrapper; all keys follow `t:<tenant-id>:<resource-type>:<id>`
 - `QueryInterceptor` — wraps Knex; automatically scopes every query to the current tenant. **Business logic must never manually add `WHERE tenant_id = ?`.**
+- `TenantQuotaEnforcer` — in-memory per-tier connection cap enforced inside `QueryInterceptor`; caps are updated live via Redis pub/sub without a restart. `TenantQuotaEnforcer.updateCap(tenantId, newTier)` is called by `TenantConfigReloadService`.
+- `TenantConfigReloadService` (`src/dal/pubsub/`) — subscribes to two Redis channels on a **dedicated** ioredis connection (separate from `REDIS_CLIENT` because subscriber mode is exclusive): `crm:config:reload` (tier changes → updates `TenantQuotaEnforcer`) and `crm:cache:invalidate` (cache purge broadcasts). Published by `AdminTenantsService` on tier update.
 - `TenantContext` — AsyncLocalStorage-backed context; carries tenant ID, tier, and per-request query count. Use `TenantContext.requireTenantId()` in business logic (throws if called outside a request context); `getTenantId()` returns `undefined` when called outside.
 - `REDIS_CLIENT` — raw ioredis instance injected as `@Inject('REDIS_CLIENT')`; use this (not `CacheManager`) in auth flows that run outside `TenantContext` (e.g. `JwtAuthGuard`, `AuthService`).
 
@@ -187,6 +189,10 @@ const result = await this.sandbox.execute(() => this.core.method(ctx), this.core
 - On create: status starts as `provisioning`, transitions to `active` after setup completes
 - On offboard: status → `offboarding` (locks tenant), then `offboarded` + `subdomain` set to `NULL`
 - Valid tiers: `basic`, `premium`, `enterprise`, `vip` (`standard` was removed)
+- **VIP upgrade:** status → `migrating`; enqueues `QUEUE_VIP_MIGRATION` job to provision dedicated DB. On success, status → `active`.
+- **VIP downgrade (decommission):** enqueues `QUEUE_VIP_DECOMMISSION` + deferred `QUEUE_VIP_SHARED_CLEANUP` (24-hour delay) to migrate data back to shared DB.
+- **Shared-tier downgrade (two-step):** `GET /api/v1/admin/tenants/:id/downgrade-preview` returns impact summary; `POST /api/v1/admin/tenants/:id/downgrade/confirm` applies it. Cannot use this flow for VIP targets or upgrades.
+- **Admin tenant endpoints** (all under `/api/v1/admin/tenants/`): `GET /`, `GET /:id`, `POST /`, `PATCH /:id`, `DELETE /:id`, `GET /:id/downgrade-preview`, `POST /:id/downgrade/confirm`, `GET /:id/plugins`, `PATCH /:tenantId/plugins/:pluginId`
 
 **JTI blacklist:** `JwtAuthGuard.handleRequest` is `async`. It checks `auth:blacklist:<jti>` in Redis for every authenticated request. Tokens without a `jti` claim still pass (backwards-compatible). Blacklist key TTL = remaining lifetime of the JWT.
 
@@ -194,7 +200,7 @@ const result = await this.sandbox.execute(() => this.core.method(ctx), this.core
 
 - `AmqpModule` — `@Global()` RabbitMQ publisher/consumer (amqplib); 4 exchanges with DLX: audit, notifications, search.index, webhooks
 - `AmqpPublisher` — `publishAudit/Notification/SearchIndex/Webhook` with persistent delivery
-- BullMQ queues: `QUEUE_EMAIL` (5 retries, exponential backoff) + `QUEUE_WEBHOOK` (7 retries, HMAC-SHA256 delivery)
+- BullMQ queues (constants in `src/workers/bullmq/queue.constants.ts`): `QUEUE_EMAIL` (5 retries, exponential backoff), `QUEUE_WEBHOOK` (7 retries, HMAC-SHA256 delivery), `QUEUE_VIP_MIGRATION`, `QUEUE_VIP_DECOMMISSION`, `QUEUE_DATA_EXPORT`, `QUEUE_VIP_SHARED_CLEANUP`
 - Bull Board UI at `/admin/queues` (dev only)
 - Cron jobs via node-cron: session cleanup (2 AM daily), queue depth check (every 5 min)
 
@@ -259,11 +265,13 @@ HTML docs in `docs/` can be opened directly in a browser. Key files:
 | `crm-request-flow.html` | Full request sequence |
 | `crm-execution-context.html` | How `ExecutionContext` is built |
 | `crm-data-access-layer.html` | Query interception, DIP abstractions |
-| `crm-plugin-deep-dive.html` | Plugin manifest, lifecycle, sandbox |
+| `crm-plugin-anatomy.html` | Plugin manifest, lifecycle, sandbox |
 | `crm-database-topology.html` | 3-tier DB, RLS, connection pooling |
 | `crm-observability-layer.html` | Logging, tracing, metrics patterns |
 | `crm-auth-flow.html` | JWT, JWKS, tenant cross-validation |
 | `crm-gateway-layer.html` | Middleware pipeline detail |
 | `crm-crosscutting-layer.html` | Security module, error hierarchy |
 | `crm-infrastructure-layer.html` | RabbitMQ, BullMQ, cron topology |
+| `crm-tenant-lifecycle.html` | Tenant state machine, VIP migration/decommission flows |
+| `crm-shared-db-migration.html` | Shared-DB migration patterns |
 | `crm-build-roadmap.html` | Phase-by-phase implementation plan |

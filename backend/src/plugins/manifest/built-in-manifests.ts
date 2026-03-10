@@ -31,7 +31,7 @@ export const CUSTOMER_CARE_MANIFEST: PluginManifest = {
   permissions: ['customers:read', 'deals:read', 'deals:write'],
   limits: DEFAULT_LIMITS,
   hooks: [
-    { event: 'contact.create', type: 'after', priority: 10 },
+    { event: 'customer.create', type: 'after', priority: 10 },
   ],
 };
 
@@ -53,7 +53,7 @@ export const AUTOMATION_MANIFEST: PluginManifest = {
   permissions: ['customers:read', 'customers:write', 'deals:read'],
   limits: DEFAULT_LIMITS,
   hooks: [
-    { event: 'contact.create', type: 'before', priority: 5 },
+    { event: 'customer.create', type: 'before', priority: 5 },
   ],
 };
 

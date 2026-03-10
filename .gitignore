@@ -5,3 +5,4 @@ frontend/**/.next/
 frontend/**/.env.local
 frontend/**/next-env.d.ts
 .worktrees/
+node_modules/

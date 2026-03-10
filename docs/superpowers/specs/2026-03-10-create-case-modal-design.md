@@ -26,7 +26,7 @@ Add a "New Case" button to the Cases page that opens a modal dialog for creating
 - Props: `open: boolean`, `onClose: () => void`
 - Fetches customers via `useQuery(['customers', tenantId], () => crmApi.getCustomers(ctx))` — only when `open === true` (`enabled: open`).
 - Submits via `useMutation` calling `crmApi.createCase(input, ctx)`.
-- On success: call `qc.invalidateQueries(['cases', tenantId])` then `onClose()`.
+- On success: call `onSuccess()` then `onClose()` (caller owns cache invalidation — same pattern as `AddContactModal`).
 - On error: display inline error message inside the modal (below the form, above the footer buttons).
 - Resets form state when closed.
 

@@ -1,0 +1,257 @@
+# ============================================================
+# CRM Full-Stack — Docker Compose
+#
+# Khởi động toàn bộ stack (infra + backend + frontend):
+#   docker compose up -d
+#
+# Kèm observability stack:
+#   docker compose --profile observability up -d
+#
+# Chạy migrations sau lần đầu khởi động:
+#   docker compose exec backend npm run db:migrate
+#   docker compose exec backend npm run db:seed
+#
+# Ports:
+#   backend  → http://localhost:3001
+#   admin    → http://localhost:3000
+#   web      → http://localhost:3002
+#   postgres → localhost:54322  (host access)
+#   redis    → localhost:63799  (host access)
+#   rabbitmq → http://localhost:15672  (management UI, crm/crm)
+#   minio    → http://localhost:9001   (console UI, crm/crm_secret_dev)
+# ============================================================
+
+services:
+
+  # ── Infrastructure ────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: crm_postgres
+    environment:
+      POSTGRES_DB: crm_dev
+      POSTGRES_USER: crm
+      POSTGRES_PASSWORD: crm
+    ports:
+      - "54322:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/postgres-init.sql:/docker-entrypoint-initdb.d/00_init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crm -d crm_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: crm_redis
+    ports:
+      - "63799:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: crm_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: crm
+      RABBITMQ_DEFAULT_PASS: crm
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: crm_minio
+    environment:
+      MINIO_ROOT_USER: crm
+      MINIO_ROOT_PASSWORD: crm_secret_dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: crm_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 crm crm_secret_dev &&
+        mc mb --ignore-existing local/crm-exports &&
+        echo 'MinIO bucket crm-exports ready'
+      "
+    restart: "no"
+
+  # ── Backend ───────────────────────────────────────────────
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: crm_backend
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+
+      # Database — internal Docker network hostnames
+      DATABASE_URL: postgresql://crm:crm@postgres:5432/crm_dev
+      DATABASE_METADATA_URL: postgresql://crm:crm@postgres:5432/crm_dev
+      DATABASE_POOL_MAX: 200
+
+      # Cache & broker
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://crm:crm@rabbitmq:5672
+
+      # Auth — change in production
+      JWT_SECRET_FALLBACK: change-me-minimum-32-chars-dev-secret-key
+
+      # S3 / MinIO
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: crm
+      S3_SECRET_KEY: crm_secret_dev
+      S3_BUCKET_EXPORTS: crm-exports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # ── Frontend: Admin Console ───────────────────────────────
+
+  admin:
+    build:
+      context: ./frontend/admin
+      dockerfile: Dockerfile
+      args:
+        # NEXT_PUBLIC_* bake vào bundle lúc build — phải là URL trình duyệt có thể reach
+        NEXT_PUBLIC_API_URL: http://localhost:3001
+    container_name: crm_admin
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  # ── Frontend: Web App ─────────────────────────────────────
+
+  web:
+    build:
+      context: ./frontend/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3001
+    container_name: crm_web
+    ports:
+      - "3002:3002"
+    depends_on:
+      - backend
+
+  # ── Observability (optional profile) ─────────────────────
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    container_name: crm_jaeger
+    profiles: [observability]
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:14269/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: crm_prometheus
+    profiles: [observability]
+    volumes:
+      - ./backend/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: crm_grafana
+    profiles: [observability]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./backend/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./backend/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3003:3000"    # 3003 để tránh conflict với admin:3000
+    depends_on:
+      - prometheus
+      - loki
+
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: crm_loki
+    profiles: [observability]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./backend/monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:3.3.2
+    container_name: crm_promtail
+    profiles: [observability]
+    volumes:
+      - ./backend/monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:

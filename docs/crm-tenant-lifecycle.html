@@ -244,7 +244,7 @@ Body: { name, domain, tier, adminEmail }
 │    settings:  { ...tier_defaults } }
 │
 │  INSERT INTO tenant_admins:
-│  { tenantId: "acme-123", userId: adminUserId, role: "admin" }
+│  { tenantId: "acme-123", email: "admin@acme.com", role: "admin" }
 
 
 <span class="ty">BƯỚC 3: Ghi Redis domain-map</span>  (~0.5ms)
@@ -275,15 +275,12 @@ Body: { name, domain, tier, adminEmail }
 
   Với mỗi plugin cần enable:
   │
-  ├── <span class="fn">SchemaMigrationRunner</span>.ensureSchema(pluginId, db)
-  │       Chạy DDL nếu bảng chưa tồn tại (idempotent — safe to re-run)
-  │       CREATE TABLE IF NOT EXISTS customers (...)
-  │       CREATE INDEX IF NOT EXISTS idx_customers_tenant_id ...
-  │       CREATE POLICY IF NOT EXISTS tenant_isolation ON customers ...
+  INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled, enabled_at)
+  VALUES ('acme-123', pluginName, true, NOW())
+  ON CONFLICT (tenant_id, plugin_name) DO UPDATE SET is_enabled = true, enabled_at = NOW()
   │
-  └── <span class="fn">TenantMigrationRunner</span>.seedTenant(pluginId, tenantId, tier, db)
-          INSERT plugin_installations: { tenantId, pluginId, status:'active' }
-          INSERT plugin_configs:       { tenantId, pluginId, config:{...defaults} }
+  <span class="cm">Plugin tables đã có sẵn trong shared DB (migration 20260303000004 — CREATE TABLE IF NOT EXISTS + RLS).</span>
+  <span class="cm">AdminTenantsService ghi trực tiếp vào tenant_plugins, không có SchemaMigrationRunner hay plugin_configs.</span>
 
 
 <span class="ty">BƯỚC 6: Kích hoạt</span>  (~0.5ms)
@@ -339,7 +336,7 @@ Body: { name, domain, tier, adminEmail }
 │    settings:  { ...tier_defaults } }
 │
 │  INSERT INTO tenant_admins:
-│  { tenantId: "acme-123", userId: adminUserId, role: "admin" }
+│  { tenantId: "acme-123", email: "admin@acme.com", role: "admin" }
 
 
 <span class="ty">STEP 3: Write Redis domain-map</span>  (~0.5ms)
@@ -370,15 +367,12 @@ Body: { name, domain, tier, adminEmail }
 
   For each plugin to enable:
   │
-  ├── <span class="fn">SchemaMigrationRunner</span>.ensureSchema(pluginId, db)
-  │       Runs DDL if table doesn't exist (idempotent — safe to re-run)
-  │       CREATE TABLE IF NOT EXISTS customers (...)
-  │       CREATE INDEX IF NOT EXISTS idx_customers_tenant_id ...
-  │       CREATE POLICY IF NOT EXISTS tenant_isolation ON customers ...
+  INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled, enabled_at)
+  VALUES ('acme-123', pluginName, true, NOW())
+  ON CONFLICT (tenant_id, plugin_name) DO UPDATE SET is_enabled = true, enabled_at = NOW()
   │
-  └── <span class="fn">TenantMigrationRunner</span>.seedTenant(pluginId, tenantId, tier, db)
-          INSERT plugin_installations: { tenantId, pluginId, status:'active' }
-          INSERT plugin_configs:       { tenantId, pluginId, config:{...defaults} }
+  <span class="cm">Plugin tables already exist in shared DB (migration 20260303000004 — CREATE TABLE IF NOT EXISTS + RLS).</span>
+  <span class="cm">AdminTenantsService writes directly to tenant_plugins. No SchemaMigrationRunner or plugin_configs table.</span>
 
 
 <span class="ty">STEP 6: Activate</span>  (~0.5ms)
@@ -444,9 +438,10 @@ Body: { name, domain, tier, adminEmail }
 
 <span class="ty">BƯỚC 4: Enable Plugins mới (nếu có)</span>
 │  delta = enterprise_plugins - premium_plugins = { marketing }
-│  Với mỗi plugin trong delta:
-│  ├── SchemaMigrationRunner.ensureSchema('marketing', db)
-│  └── TenantMigrationRunner.seedTenant('marketing', 'acme-123', 'enterprise', db)
+│  INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled, enabled_at)
+│  VALUES ('acme-123', 'marketing', true, NOW())
+│  ON CONFLICT (tenant_id, plugin_name) DO UPDATE SET is_enabled = true, enabled_at = NOW()
+│  <span class="cm">Plugin tables đã có sẵn trong shared DB (migration 20260303000004). Không cần tạo lại.</span>
 
 
 <span class="ty">BƯỚC 5: Invalidate TenantContext Cache</span>
@@ -483,9 +478,10 @@ Body: { name, domain, tier, adminEmail }
 
 <span class="ty">STEP 4: Enable New Plugins (if any)</span>
 │  delta = enterprise_plugins - premium_plugins = { marketing }
-│  For each plugin in delta:
-│  ├── SchemaMigrationRunner.ensureSchema('marketing', db)
-│  └── TenantMigrationRunner.seedTenant('marketing', 'acme-123', 'enterprise', db)
+│  INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled, enabled_at)
+│  VALUES ('acme-123', 'marketing', true, NOW())
+│  ON CONFLICT (tenant_id, plugin_name) DO UPDATE SET is_enabled = true, enabled_at = NOW()
+│  <span class="cm">Plugin tables already exist in shared DB (migration 20260303000004). No schema changes needed.</span>
 
 
 <span class="ty">STEP 5: Invalidate TenantContext Cache</span>
@@ -508,11 +504,11 @@ Body: { name, domain, tier, adminEmail }
 │    Write requests → <span class="rd">503</span> "Đang nâng cấp, vui lòng thử lại sau ít phút"
 
 
-<span class="ty">BƯỚC 2: Provision Dedicated DB Instance</span>
-│  Tạo PostgreSQL instance mới (8–32 vCPU, 32–128GB RAM theo contract VIP)
-│  Chạy full schema migration (tất cả plugins đã enable):
-│    SchemaMigrationRunner với PostgresMigrationDialect
-│    → Tạo tables, indices, RLS policies trên DB mới
+<span class="ty">BƯỚC 2: Tạo Dedicated Database</span>
+│  CREATE DATABASE crm_vip_acme  (trên cùng PostgreSQL server, không phải instance riêng)
+│  VipMigrationProcessor.createPluginSchema(knex):
+│    → Knex.schema.createTableIfNotExists() cho từng plugin table
+│    → customers, support_cases, automation_triggers, marketing_campaigns
 
 
 <span class="ty">BƯỚC 3: Migrate Data</span>
@@ -555,11 +551,11 @@ Body: { name, domain, tier, adminEmail }
 │    Write requests → <span class="rd">503</span> "Upgrading, please try again in a few minutes"
 
 
-<span class="ty">STEP 2: Provision Dedicated DB Instance</span>
-│  Create new PostgreSQL instance (8–32 vCPU, 32–128GB RAM per VIP contract)
-│  Run full schema migration (all enabled plugins):
-│    SchemaMigrationRunner with PostgresMigrationDialect
-│    → Create tables, indices, RLS policies on new DB
+<span class="ty">STEP 2: Create Dedicated Database</span>
+│  CREATE DATABASE crm_vip_acme  (on the same PostgreSQL server, not a separate instance)
+│  VipMigrationProcessor.createPluginSchema(knex):
+│    → Knex.schema.createTableIfNotExists() for each plugin table
+│    → customers, support_cases, automation_triggers, marketing_campaigns
 
 
 <span class="ty">STEP 3: Migrate Data</span>
@@ -619,13 +615,13 @@ Body: { name, domain, tier, adminEmail }
 <span class="ty">BƯỚC 2: Disable Plugins dư thừa</span>
 │  Với mỗi plugin trong delta_disable (marketing):
 │  │
-│  ├── PluginRegistry.removeRoutes('marketing', 'acme-123')
-│  ├── EventBus.removeHandlers('marketing', 'acme-123')
-│  ├── HookRegistry.removeHooks('marketing', 'acme-123')
+│  UPDATE tenant_plugins SET is_enabled = false
+│  WHERE tenant_id = 'acme-123' AND plugin_name IN ('marketing')
 │  │
-│  └── TenantMigrationRunner.disableTenant('marketing', 'acme-123', db)
-│          UPDATE plugin_installations SET status='disabled'
-│          <span class="cm">Schema (DDL) KHÔNG xóa. Data vẫn còn. Chỉ đổi status.</span>
+│  cache.invalidate('tenant-config:enabled-plugins')
+│  Redis PUBLISH tier:change { tenantId: 'acme-123', tier: 'premium' }
+│  <span class="cm">HookRegistryService gates hooks theo ctx.enabledPlugins — hooks của plugin bị disable tự động bị bỏ qua.</span>
+│  <span class="cm">Schema (DDL) và data KHÔNG xóa. Truy cập bị chặn qua plugin enablement check.</span>
 
 
 <span class="ty">BƯỚC 3: Update Tier + Giảm Pool Cap</span>
@@ -665,13 +661,13 @@ Body: { name, domain, tier, adminEmail }
 <span class="ty">STEP 2: Disable Excess Plugins</span>
 │  For each plugin in delta_disable (marketing):
 │  │
-│  ├── PluginRegistry.removeRoutes('marketing', 'acme-123')
-│  ├── EventBus.removeHandlers('marketing', 'acme-123')
-│  ├── HookRegistry.removeHooks('marketing', 'acme-123')
+│  UPDATE tenant_plugins SET is_enabled = false
+│  WHERE tenant_id = 'acme-123' AND plugin_name IN ('marketing')
 │  │
-│  └── TenantMigrationRunner.disableTenant('marketing', 'acme-123', db)
-│          UPDATE plugin_installations SET status='disabled'
-│          <span class="cm">Schema (DDL) NOT deleted. Data remains. Only status changed.</span>
+│  cache.invalidate('tenant-config:enabled-plugins')
+│  Redis PUBLISH tier:change { tenantId: 'acme-123', tier: 'premium' }
+│  <span class="cm">HookRegistryService gates hooks by ctx.enabledPlugins — disabled plugin hooks are silently skipped.</span>
+│  <span class="cm">Schema (DDL) and data NOT deleted. Access blocked via plugin enablement check.</span>
 
 
 <span class="ty">STEP 3: Update Tier + Reduce Pool Cap</span>
@@ -795,9 +791,8 @@ Body: { name, domain, tier, adminEmail }
 
 
 <span class="ty">BƯỚC 3: Disable tất cả Plugins</span>
-│  Với mỗi enabled plugin của acme-123:
-│  ├── Unregister routes, events, hooks (in-memory, immediate)
-│  └── UPDATE plugin_installations SET status='disabled'
+│  UPDATE tenant_plugins SET is_enabled = false WHERE tenant_id = 'acme-123'
+│  <span class="cm">Hook gating: HookRegistryService bỏ qua hooks của plugin bị disable theo ctx.enabledPlugins.</span>
 
 
 <span class="ty">BƯỚC 4: Xóa Redis Entries</span>
@@ -880,9 +875,8 @@ Body: { name, domain, tier, adminEmail }
 
 
 <span class="ty">STEP 3: Disable All Plugins</span>
-│  For each enabled plugin of acme-123:
-│  ├── Unregister routes, events, hooks (in-memory, immediate)
-│  └── UPDATE plugin_installations SET status='disabled'
+│  UPDATE tenant_plugins SET is_enabled = false WHERE tenant_id = 'acme-123'
+│  <span class="cm">Hook gating: HookRegistryService skips hooks for disabled plugins via ctx.enabledPlugins.</span>
 
 
 <span class="ty">STEP 4: Delete Redis Entries</span>
@@ -974,7 +968,7 @@ Body: { name, domain, tier, adminEmail }
   <span class="rd">OFFBOARDED</span>  (automated offboard flow)
 
 
-<span class="ty">ENFORCEMENT TẠI GATEWAY (AuthGuard kiểm tra tenant.status):</span>
+<span class="ty">ENFORCEMENT TẠI GATEWAY (TenantResolverMiddleware kiểm tra tenant.status):</span>
 
   ┌─────────────────┬────────────────────────────────────────────────────────┐
   │ Status          │ Behavior                                               │
@@ -1017,7 +1011,7 @@ Body: { name, domain, tier, adminEmail }
   <span class="rd">OFFBOARDED</span>  (automated offboard flow)
 
 
-<span class="ty">GATEWAY ENFORCEMENT (AuthGuard checks tenant.status):</span>
+<span class="ty">GATEWAY ENFORCEMENT (TenantResolverMiddleware checks tenant.status):</span>
 
   ┌─────────────────┬────────────────────────────────────────────────────────┐
   │ Status          │ Behavior                                               │
@@ -1047,7 +1041,7 @@ Body: { name, domain, tier, adminEmail }
     if current + newFileSize > quota → 413 Payload Too Large
 
 
-<span class="ty">API RATE LIMIT (per minute, sliding window — Redis):</span>
+<span class="ty">API RATE LIMIT (per minute, fixed-window — Redis):</span>
 
   ┌──────────────┬──────────┬──────────────────────────────────────────────┐
   │ Tier         │ Limit    │ Vượt giới hạn                                │
@@ -1058,7 +1052,8 @@ Body: { name, domain, tier, adminEmail }
   │ <span class="vi">VIP</span>          │ ∞        │ Không limit (soft monitor only)             │
   └──────────────┴──────────┴──────────────────────────────────────────────┘
 
-  Enforced bởi RateLimiter middleware (L2 Gateway), ZADD/ZCARD trên Redis.
+  Enforced bởi TenantRateLimitMiddleware (L2 Gateway): INCR/EXPIRE trên Redis.
+  Key: rl:{tenantId}:{minuteBucket}  — reset mỗi phút.
 
 
 <span class="ty">SANDBOX QUERY LIMIT (per request — tất cả tiers):</span>
@@ -1114,7 +1109,7 @@ Body: { name, domain, tier, adminEmail }
     if current + newFileSize > quota → 413 Payload Too Large
 
 
-<span class="ty">API RATE LIMIT (per minute, sliding window — Redis):</span>
+<span class="ty">API RATE LIMIT (per minute, fixed-window — Redis):</span>
 
   ┌──────────────┬──────────┬──────────────────────────────────────────────┐
   │ Tier         │ Limit    │ When exceeded                                │
@@ -1125,7 +1120,8 @@ Body: { name, domain, tier, adminEmail }
   │ <span class="vi">VIP</span>          │ ∞        │ No limit (soft monitor only)                │
   └──────────────┴──────────┴──────────────────────────────────────────────┘
 
-  Enforced by RateLimiter middleware (L2 Gateway), ZADD/ZCARD on Redis.
+  Enforced by TenantRateLimitMiddleware (L2 Gateway): INCR/EXPIRE on Redis.
+  Key: rl:{tenantId}:{minuteBucket}  — resets every minute.
 
 
 <span class="ty">SANDBOX QUERY LIMIT (per request — all tiers):</span>

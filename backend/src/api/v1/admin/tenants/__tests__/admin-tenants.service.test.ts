@@ -228,6 +228,8 @@ describe('AdminTenantsService', () => {
       mockQuery.mockResolvedValueOnce({ rows: [] });
       // UPDATE tenants SET status='offboarding' RETURNING id, subdomain, tier
       mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid', subdomain: 'acme', tier: 'basic' }] });
+      // SELECT email FROM tenant_admins
+      mockQuery.mockResolvedValueOnce({ rows: [] });
       // UPDATE tenant_plugins SET is_enabled = false
       mockQuery.mockResolvedValueOnce({ rows: [] });
       // UPDATE tenants SET status='offboarded', subdomain=NULL
@@ -321,6 +323,8 @@ describe('AdminTenantsService', () => {
       mockQuery.mockResolvedValueOnce({ rows: [] });
       // UPDATE tenants SET status='offboarding' RETURNING id, subdomain, tier
       mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid', subdomain: 'acme', tier: 'premium' }] });
+      // SELECT email FROM tenant_admins
+      mockQuery.mockResolvedValueOnce({ rows: [] });
       // UPDATE tenant_plugins
       mockQuery.mockResolvedValueOnce({ rows: [] });
       // UPDATE tenants SET status='offboarded'
@@ -349,11 +353,43 @@ describe('AdminTenantsService', () => {
       expect(mockDeregisterVipPool).not.toHaveBeenCalled();
     });
 
+    it('passes adminEmail to data-export job when tenant_admins record exists', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid', name: 'Acme', subdomain: 'acme', tier: 'basic' }] }); // UPDATE offboarding
+      mockQuery.mockResolvedValueOnce({ rows: [{ email: 'admin@acme.com' }] }); // SELECT tenant_admins
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // UPDATE tenant_plugins
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // UPDATE offboarded
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+      await service.offboard('tid');
+
+      expect(mockDataExportQueue.add).toHaveBeenCalledWith(
+        'export',
+        expect.objectContaining({ adminEmail: 'admin@acme.com' }),
+      );
+    });
+
+    it('passes adminEmail as undefined to data-export job when no tenant_admins row', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid', name: 'Acme', subdomain: 'acme', tier: 'basic' }] }); // UPDATE offboarding
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // SELECT tenant_admins → no row
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // UPDATE tenant_plugins
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // UPDATE offboarded
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+      await service.offboard('tid');
+
+      const jobData = mockDataExportQueue.add.mock.calls[0][1];
+      expect(jobData.adminEmail).toBeUndefined();
+    });
+
     it('deregisters VIP pool when tier is vip', async () => {
       // BEGIN
       mockQuery.mockResolvedValueOnce({ rows: [] });
       // UPDATE tenants RETURNING id, subdomain, tier = 'vip'
       mockQuery.mockResolvedValueOnce({ rows: [{ id: 'tid', subdomain: 'big-corp', tier: 'vip' }] });
+      // SELECT email FROM tenant_admins
+      mockQuery.mockResolvedValueOnce({ rows: [] });
       // UPDATE tenant_plugins
       mockQuery.mockResolvedValueOnce({ rows: [] });
       // UPDATE tenants SET status='offboarded'
@@ -538,6 +574,36 @@ describe('AdminTenantsService', () => {
         expect.objectContaining({ tenantId: 'tid', currentTier: 'premium' }),
       );
       expect(mockVipDecommissionQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('VIP downgrade: sets status=migrating in the UPDATE SQL', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'vip' }] }); // SELECT tier
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'enterprise', status: 'migrating', is_active: false, subdomain: 'acme', plugin_count: '4' }] }); // UPDATE
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // UPDATE tenant_plugins (toDisable: automation)
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+      await service.update('tid', { plan: 'enterprise' });
+
+      const updateCall = mockQuery.mock.calls.find(
+        (args) => typeof args[0] === 'string' && args[0].includes('UPDATE tenants SET'),
+      );
+      expect(updateCall![0]).toContain('status = $');
+      expect(updateCall![0]).toContain('is_active = $');
+      expect(updateCall![1]).toContain('migrating');
+      expect(updateCall![1]).toContain(false);
+    });
+
+    it('VIP downgrade: does NOT call TenantQuotaEnforcer.updateCap (VipDecommissionProcessor handles it)', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // BEGIN
+      mockQuery.mockResolvedValueOnce({ rows: [{ tier: 'vip' }] }); // SELECT tier
+      mockQuery.mockResolvedValueOnce({ rows: [{ ...ROW, tier: 'enterprise', status: 'migrating', is_active: false, subdomain: 'acme', plugin_count: '4' }] }); // UPDATE
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // UPDATE tenant_plugins (toDisable: automation)
+      mockQuery.mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+      await service.update('tid', { plan: 'enterprise' });
+
+      expect(mockQuotaUpdateCap).not.toHaveBeenCalled();
     });
 
     it('VIP upgrade: broadcasts config reload to other instances', async () => {

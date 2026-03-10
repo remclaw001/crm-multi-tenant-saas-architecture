@@ -1237,6 +1237,77 @@ html.lang-vi [data-lang="en"]{display:none}
 │  <span class="cm">Existing requests không bị ảnh hưởng</span></pre>
                 </div>
             </div>
+
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">05b</span>
+                    <h2 class="sec-t"><span data-lang="vi">Bootstrap thực tế — Phase 5</span><span data-lang="en">Actual Bootstrap — Phase 5</span></h2>
+                </div>
+
+                <div class="nt gn" data-lang="vi">Không có DB discovery hay artifact download. NestJS DI container load tất cả module đã hardcode; mỗi core tự đăng ký qua <code>OnModuleInit</code>.</div>
+                <div class="nt gn" data-lang="en">No DB discovery or artifact download. NestJS DI container loads all hardcoded modules; each core self-registers via <code>OnModuleInit</code>.</div>
+
+                <div class="dg">
+                    <div class="dg-label">actual bootstrap — phase 5</div>
+                    <pre>
+<span class="hi">NestJS APP BOOTSTRAP</span>  (main.ts → AppModule → ApiModule → PluginsModule)
+
+<span class="ty">Step 1: PluginInfraModule khởi tạo (@Global — MUST be first)</span>
+│  Singletons created: PluginRegistryService (empty Map), HookRegistryService (empty Map),
+│  ExecutionContextBuilder, SandboxService,
+│  PluginDependencyService (indexes BUILT_IN_MANIFESTS by name)
+│  → All exported globally via DI
+│
+▼
+<span class="ty">Step 2: 5 Core Modules khởi tạo (song song)</span>
+│  CustomerDataModule, CustomerCareModule, AnalyticsModule, AutomationModule, MarketingModule
+│  Each Core class instantiated — constructor injects infra services from @Global
+│
+▼
+<span class="ty">Step 3: OnModuleInit() fires for each Core</span>
+│
+│  Ví dụ — CustomerCareCore.onModuleInit():
+│  ┌────────────────────────────────────────────────────────────────┐
+│  │  this.registry.register(this)                                  │
+│  │    → pluginCores.set('customer-care', this)                   │
+│  │                                                                │
+│  │  this.hookRegistry.register(                                  │
+│  │    'customer-care',                                           │
+│  │    { event: 'customer.create', type: 'after', priority: 10 }, │
+│  │    async (ctx, data) =&gt; { <span class="cm">/* Phase 5: no-op */</span> }             │
+│  │  )                                                             │
+│  │    → hooks.set('after:customer.create', [...entry])           │
+│  │      sorted by priority ascending                              │
+│  └────────────────────────────────────────────────────────────────┘
+│
+│  Sau khi tất cả cores init xong:
+│    registry.cores  = { customer-data, customer-care, analytics, automation, marketing }
+│    hookRegistry    = { 'before:customer.create': [automation(5)],
+│                        'after:customer.create':  [customer-care(10)] }
+│
+▼
+<span class="ty">Step 4: PluginsModule.onModuleInit()</span>
+│  pluginDependencyService.validateGraph()
+│    → DFS qua BUILT_IN_MANIFESTS — phát hiện cycle, missing deps
+│    → Log warnings — KHÔNG throw, KHÔNG block startup
+│
+▼
+<span class="gn">✓ App ready. Enabled-per-tenant state được query từ DB khi có request</span>
+  <span class="cm">(PluginRegistryService.getEnabledPlugins → SELECT FROM tenant_plugins WHERE is_enabled=true)</span>
+
+
+<span class="ty">Phase 5 vs Phase 6+:</span>
+  ┌──────────────────────┬──────────────────────────┬───────────────────────────┐
+  │                      │ Phase 5 (current)        │ Phase 6+ (roadmap)        │
+  ├──────────────────────┼──────────────────────────┼───────────────────────────┤
+  │ Discovery source     │ Hardcoded imports        │ plugin_registry DB table  │
+  │ Load mechanism       │ NestJS DI container      │ Dynamic artifact download │
+  │ Self-registration    │ OnModuleInit()           │ core.onLoad() callback    │
+  │ Hot deploy           │ App restart required     │ MQ broadcast, ~5s sync    │
+  │ Manifest storage     │ TypeScript constants     │ plugin.manifest.json      │
+  │ Dep validation       │ PluginDependencyService  │ Same + checksum verify    │
+  └──────────────────────┴──────────────────────────┴───────────────────────────┘</pre>
+                </div>
+            </div>
         </div>
 
         <!-- ═══════════════════════════════════════ -->

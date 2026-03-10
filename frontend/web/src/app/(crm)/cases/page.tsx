@@ -1,10 +1,12 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { crmApi } from '@/lib/api-client';
 import { CasesList } from '@/components/cases-list';
+import { CreateCaseModal } from '@/components/create-case-modal';
 import { PluginGate } from '@/components/plugin-gate';
 import type { SupportCase } from '@/types/api.types';
 
@@ -18,7 +20,9 @@ const STATUSES: { value: SupportCase['status'] | ''; label: string }[] = [
 
 export default function CasesPage() {
   const { token, tenantId } = useAuthStore();
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [modalOpen, setModalOpen] = useState(false);
   const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
 
   const { data, isLoading } = useQuery({
@@ -31,6 +35,10 @@ export default function CasesPage() {
     ? (data?.data ?? []).filter((c) => c.status === statusFilter)
     : (data?.data ?? []);
 
+  function handleSuccess() {
+    queryClient.invalidateQueries({ queryKey: ['cases', tenantId] });
+  }
+
   return (
     <PluginGate plugin="customer-care" pluginLabel="Customer Care">
       <div>
@@ -41,17 +49,26 @@ export default function CasesPage() {
               {data ? `${data.count} support cases` : 'Manage support cases'}
             </p>
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            {STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-3">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4" />
+              New Case
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -61,6 +78,12 @@ export default function CasesPage() {
         ) : (
           <CasesList cases={filtered} />
         )}
+
+        <CreateCaseModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onSuccess={handleSuccess}
+        />
       </div>
     </PluginGate>
   );

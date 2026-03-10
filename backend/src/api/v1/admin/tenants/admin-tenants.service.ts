@@ -446,9 +446,10 @@ export class AdminTenantsService {
         tenantId: id,
         userId: 'system',
         action: 'tenant.offboarded',
-        resource: 'tenant',
+        resourceType: 'tenant',
         resourceId: id,
-        metadata: { subdomain, tier },
+        payload: { subdomain, tier },
+        timestamp: new Date().toISOString(),
       });
 
       // 7. Enqueue S3 data export job

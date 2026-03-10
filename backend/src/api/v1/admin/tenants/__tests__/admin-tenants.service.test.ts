@@ -361,8 +361,8 @@ describe('AdminTenantsService', () => {
       const auditCall = mockPublishAudit.mock.calls[0][0];
       expect(auditCall.action).toBe('tenant.offboarded');
       expect(auditCall.tenantId).toBe('tid');
-      expect(auditCall.resource).toBe('tenant');
-      expect(auditCall.metadata).toMatchObject({ subdomain: 'acme', tier: 'premium' });
+      expect(auditCall.resourceType).toBe('tenant');
+      expect(auditCall.payload).toMatchObject({ subdomain: 'acme', tier: 'premium' });
 
       // 4. VIP pool NOT deregistered (tier is premium, not vip)
       expect(mockDeregisterVipPool).not.toHaveBeenCalled();

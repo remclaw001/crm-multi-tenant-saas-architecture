@@ -171,6 +171,7 @@ export function CreateCaseModal({ open, onClose, onSuccess }: Props) {
                 id="case-title"
                 aria-label="Title"
                 type="text"
+                required
                 value={form.title}
                 onChange={(e) => {
                   setForm((prev) => ({ ...prev, title: e.target.value }));

@@ -7,10 +7,13 @@ const mockCustomers = vi.hoisted(() => [
   { id: 'c1', name: 'Acme Corp', tenant_id: 'tid', email: null, phone: null, company: null, is_active: true, created_at: '', updated_at: '' },
   { id: 'c2', name: 'Beta Ltd',  tenant_id: 'tid', email: null, phone: null, company: null, is_active: true, created_at: '', updated_at: '' },
 ]);
+const mockUseQuery = vi.hoisted(() =>
+  vi.fn(() => ({ data: { data: mockCustomers }, isLoading: false, isError: false })),
+);
 
 vi.mock('@tanstack/react-query', () => ({
   useMutation: vi.fn(() => ({ mutateAsync: mockMutateAsync, isPending: false })),
-  useQuery: vi.fn(() => ({ data: { data: mockCustomers }, isLoading: false, isError: false })),
+  useQuery: mockUseQuery,
 }));
 
 vi.mock('@/stores/auth.store', () => ({
@@ -125,9 +128,8 @@ describe('CreateCaseModal', () => {
     expect(screen.getByRole('button', { name: /medium/i })).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('shows error message when customer list fails to load', async () => {
-    const rq = vi.mocked(await import('@tanstack/react-query'));
-    rq.useQuery.mockReturnValueOnce({ data: undefined, isLoading: false, isError: true } as any);
+  it('shows error message when customer list fails to load', () => {
+    mockUseQuery.mockReturnValueOnce({ data: undefined, isLoading: false, isError: true });
     render(<CreateCaseModal {...defaultProps} />);
     expect(screen.getByText(/failed to load customers/i)).toBeInTheDocument();
   });

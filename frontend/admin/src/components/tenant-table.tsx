@@ -16,15 +16,20 @@ import type { Tenant } from '@/types/api.types';
 import { cn, formatDate } from '@/lib/utils';
 
 const PLAN_BADGE: Record<Tenant['plan'], string> = {
-  standard: 'bg-blue-100 text-blue-700',
-  vip: 'bg-purple-100 text-purple-700',
+  basic: 'bg-blue-100 text-blue-700',
+  premium: 'bg-green-100 text-green-700',
   enterprise: 'bg-amber-100 text-amber-700',
+  vip: 'bg-purple-100 text-purple-700',
 };
 
 const STATUS_BADGE: Record<Tenant['status'], string> = {
+  provisioning: 'bg-blue-100 text-blue-700',
   active: 'bg-green-100 text-green-700',
+  migrating: 'bg-yellow-100 text-yellow-700',
+  grace_period: 'bg-orange-100 text-orange-700',
   suspended: 'bg-red-100 text-red-700',
-  trial: 'bg-yellow-100 text-yellow-700',
+  offboarding: 'bg-red-100 text-red-600',
+  offboarded: 'bg-gray-100 text-gray-500',
 };
 
 const columns: ColumnDef<Tenant>[] = [

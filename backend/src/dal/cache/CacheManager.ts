@@ -120,7 +120,6 @@ export class CacheManager implements ICacheManager {
   async setTenantLookup(tenant: {
     id: string;
     subdomain: string | null;
-    [key: string]: unknown;
   }): Promise<void> {
     const packed = Buffer.from(encode(tenant));
     await this.redis.set(`tenant-lookup:${tenant.id}`, packed, 'EX', 300);

@@ -201,13 +201,7 @@ export class AdminTenantsService {
       // Warm tenant-lookup cache immediately after create
       await this.cache.setTenantLookup({
         id: tenant.id,
-        name: tenant.name ?? input.name,
         subdomain: tenant.subdomain ?? input.subdomain,
-        tier: (input.plan as any),
-        status: 'active' as any,
-        dbUrl: null,
-        isActive: true,
-        allowedOrigins: [],
       });
 
       const result = rowToTenant({

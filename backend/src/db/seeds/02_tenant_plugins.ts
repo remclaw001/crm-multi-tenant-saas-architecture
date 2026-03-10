@@ -27,8 +27,8 @@ export async function seed(knex: Knex): Promise<void> {
   // Clean existing entries first (idempotent re-run)
   await knex('tenant_plugins').del();
 
-  // Load all tenants — no tenant_id filter needed (no RLS on tenants table)
-  const tenants = await knex<TenantRow>('tenants').select('id');
+  // Load all tenants except system tenant — no RLS on tenants table
+  const tenants = await knex<TenantRow>('tenants').select('id').whereNot('subdomain', 'system');
 
   if (tenants.length === 0) {
     console.warn('⚠  No tenants found — run seed 01_tenants.ts first');

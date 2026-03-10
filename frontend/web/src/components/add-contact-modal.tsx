@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
-import { crmApi } from '@/lib/api-client';
+import { crmApi, ApiError } from '@/lib/api-client';
 
 interface Props {
   open: boolean;
@@ -95,8 +95,12 @@ export function AddContactModal({ open, onClose, onSuccess }: Props) {
       setErrors({});
       onSuccess();
       onClose();
-    } catch {
-      setApiError('Failed to save. Please try again.');
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setApiError(err.body.detail ?? err.body.title ?? `Server error (${err.status})`);
+      } else {
+        setApiError('Failed to save. Please try again.');
+      }
     }
   }
 

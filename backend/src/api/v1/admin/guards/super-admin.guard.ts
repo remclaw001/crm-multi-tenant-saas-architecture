@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
 } from '@nestjs/common';
-import type { JwtClaims } from '../../../gateway/dto/jwt-claims.dto';
+import type { JwtClaims } from '../../../../gateway/dto/jwt-claims.dto';
 
 @Injectable()
 export class SuperAdminGuard implements CanActivate {

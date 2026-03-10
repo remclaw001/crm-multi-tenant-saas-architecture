@@ -28,8 +28,7 @@ export async function seed(knex: Knex): Promise<void> {
           subdomain: 'acme',
           tier: 'basic',
           config: JSON.stringify({
-            plugins: ['customer-data', 'customer-care'],
-            cors_origins: ['http://acme.localhost:3001'],
+            allowedOrigins: ['http://localhost:3002', 'http://localhost:3000'],
             max_users: 50,
           }),
         },
@@ -38,8 +37,7 @@ export async function seed(knex: Knex): Promise<void> {
           subdomain: 'globex',
           tier: 'basic',
           config: JSON.stringify({
-            plugins: ['customer-data', 'analytics'],
-            cors_origins: ['http://globex.localhost:3001'],
+            allowedOrigins: ['http://localhost:3002', 'http://localhost:3000'],
             max_users: 100,
           }),
         },
@@ -47,13 +45,10 @@ export async function seed(knex: Knex): Promise<void> {
           name: 'Initech Enterprise',
           subdomain: 'initech',
           tier: 'vip',
-          // VIP dùng dedicated pool nhưng vẫn shared DB trong phase 1
           db_url: null,
           config: JSON.stringify({
-            plugins: ['customer-data', 'customer-care', 'analytics', 'automation', 'marketing'],
-            cors_origins: ['http://initech.localhost:3001'],
+            allowedOrigins: ['http://localhost:3002', 'http://localhost:3000'],
             max_users: 500,
-            vip_pool_size: 30,
           }),
         },
       ])
@@ -86,7 +81,7 @@ export async function seed(knex: Knex): Promise<void> {
       await trx.raw(`SELECT set_config('app.tenant_id', ?, true)`, [tenant.id]);
 
       // Roles
-      const [adminRole, managerRole, agentRole] = await trx('roles')
+      const [adminRole, managerRole] = await trx('roles')
         .insert([
           {
             tenant_id: tenant.id,
@@ -97,11 +92,6 @@ export async function seed(knex: Knex): Promise<void> {
             tenant_id: tenant.id,
             name: 'manager',
             description: 'Xem tất cả, sửa deals và customers',
-          },
-          {
-            tenant_id: tenant.id,
-            name: 'agent',
-            description: 'Chỉ xem và sửa customers/deals được assign',
           },
         ])
         .returning('*');
@@ -119,16 +109,13 @@ export async function seed(knex: Knex): Promise<void> {
         { role_id: managerRole.id, permission_id: permMap['deals:read'] },
         { role_id: managerRole.id, permission_id: permMap['deals:write'] },
         { role_id: managerRole.id, permission_id: permMap['analytics:view'] },
-        // Agent: chỉ read
-        { role_id: agentRole.id, permission_id: permMap['customers:read'] },
-        { role_id: agentRole.id, permission_id: permMap['deals:read'] },
       ]);
 
       // Users (password_hash là bcrypt của "password123" — placeholder cho dev)
       const PLACEHOLDER_HASH =
         '$2b$12$62NgubmgJpkVTY.H/RyuS.G85GPegNcn0KlD2q4v0isyVCiTz5poS';
 
-      const [adminUser, managerUser, agentUser] = await trx('users')
+      const [adminUser, managerUser] = await trx('users')
         .insert([
           {
             tenant_id: tenant.id,
@@ -142,12 +129,6 @@ export async function seed(knex: Knex): Promise<void> {
             password_hash: PLACEHOLDER_HASH,
             name: `Manager (${tenant.name})`,
           },
-          {
-            tenant_id: tenant.id,
-            email: `agent@${tenant.subdomain}.example.com`,
-            password_hash: PLACEHOLDER_HASH,
-            name: `Agent (${tenant.name})`,
-          },
         ])
         .returning('*');
 
@@ -155,7 +136,6 @@ export async function seed(knex: Knex): Promise<void> {
       await trx('user_roles').insert([
         { user_id: adminUser.id,   role_id: adminRole.id,   tenant_id: tenant.id },
         { user_id: managerUser.id, role_id: managerRole.id, tenant_id: tenant.id },
-        { user_id: agentUser.id,   role_id: agentRole.id,   tenant_id: tenant.id },
       ]);
     }
 
@@ -203,7 +183,7 @@ export async function seed(knex: Knex): Promise<void> {
   });
 
   console.log('✓  Seed complete: acme (basic), globex (basic), initech (vip)');
-  console.log('   Users: admin / manager / agent @ <subdomain>.example.com');
+  console.log('   Users: admin / manager @ <subdomain>.example.com');
   console.log('   Password (dev only): password123');
   console.log('   Admin console: admin@crm.dev / admin123');
 }

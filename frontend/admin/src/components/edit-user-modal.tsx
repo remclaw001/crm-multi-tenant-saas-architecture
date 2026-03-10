@@ -48,7 +48,7 @@ export function EditUserModal({ tenantId, user, onClose }: Props) {
   const [form, setForm] = useState<FormState>({
     name: user.name,
     email: user.email,
-    role: user.role ?? 'manager',
+    role: user.role === 'admin' ? 'admin' : 'manager',
     resetPassword: false,
     password: '',
   });
@@ -56,7 +56,7 @@ export function EditUserModal({ tenantId, user, onClose }: Props) {
   const [apiError, setApiError] = useState('');
 
   useEffect(() => {
-    setForm({ name: user.name, email: user.email, role: user.role ?? 'manager', resetPassword: false, password: '' });
+    setForm({ name: user.name, email: user.email, role: user.role === 'admin' ? 'admin' : 'manager', resetPassword: false, password: '' });
     setErrors({});
     setApiError('');
   }, [user.id]);

@@ -37,7 +37,7 @@ function validate(form: FormState): FormErrors {
 export function AddTenantModal({ open, onClose }: Props) {
   const token = useAuthStore((s) => s.token ?? '');
   const queryClient = useQueryClient();
-  const [form, setForm] = useState<FormState>({ name: '', subdomain: '', plan: 'standard' });
+  const [form, setForm] = useState<FormState>({ name: '', subdomain: '', plan: 'basic' });
   const [errors, setErrors] = useState<FormErrors>({});
   const [apiError, setApiError] = useState('');
 
@@ -45,7 +45,7 @@ export function AddTenantModal({ open, onClose }: Props) {
     mutationFn: (input: FormState) => adminApi.createTenant(input, token),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
-      setForm({ name: '', subdomain: '', plan: 'standard' });
+      setForm({ name: '', subdomain: '', plan: 'basic' });
       setErrors({});
       setApiError('');
       onClose();
@@ -57,7 +57,7 @@ export function AddTenantModal({ open, onClose }: Props) {
 
   function handleClose() {
     if (mutation.isPending) return;
-    setForm({ name: '', subdomain: '', plan: 'standard' });
+    setForm({ name: '', subdomain: '', plan: 'basic' });
     setErrors({});
     setApiError('');
     onClose();
@@ -161,9 +161,10 @@ export function AddTenantModal({ open, onClose }: Props) {
                 onChange={handleChange('plan')}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <option value="standard">Standard</option>
-                <option value="vip">VIP</option>
+                <option value="basic">Basic</option>
+                <option value="premium">Premium</option>
                 <option value="enterprise">Enterprise</option>
+                <option value="vip">VIP</option>
               </select>
             </div>
 

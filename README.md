@@ -61,6 +61,7 @@ docker compose exec backend npm run db:seed      # seed dữ liệu mẫu (3 ten
 
 ### Option B — Dev local (backend only)
 
+Terminal 1:
 ```bash
 cd backend
 cp .env.example .env          # điền DATABASE_URL, REDIS_URL, RABBITMQ_URL, JWT_SECRET_FALLBACK
@@ -72,6 +73,17 @@ npm run db:seed               # seed dữ liệu mẫu (3 tenants)
 npm run start:dev             # dev server tại http://localhost:3001
 
 npm test                      # unit tests (vitest)
+
+```
+
+Terminal 2:
+```bash
+cd frontend/web
+npm run dev                   # dev server tại http://localhost:3002
+
+
+cd frontend/admin
+npm run dev                   # dev server tại http://localhost:3000
 ```
 
 ## Tài liệu liên quan

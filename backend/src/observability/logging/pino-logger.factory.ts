@@ -49,9 +49,9 @@ export function buildPinoOptions(): Params {
 
       // customProps(req) — thêm fields từ request object
       // Được gọi một lần khi request bắt đầu để tạo child logger
-      customProps(req: Record<string, unknown>) {
+      customProps(req: import('http').IncomingMessage) {
         return {
-          correlation_id: req['correlationId'] ?? undefined,
+          correlation_id: (req as unknown as Record<string, unknown>)['correlationId'] ?? undefined,
         };
       },
 

@@ -33,10 +33,21 @@ import { TenantConfigReloadService } from './pubsub/tenant-config-reload.service
     },
     {
       provide: 'KNEX_INSTANCE',
-      // Use DATABASE_APP_URL if set — this should point to a non-superuser DB role
-      // so PostgreSQL FORCE ROW LEVEL SECURITY actually applies and enforces tenant isolation.
-      // Falls back to DATABASE_URL (which may be superuser, bypassing RLS).
-      useFactory: () => createKnex(config.DATABASE_APP_URL ?? config.DATABASE_URL, config.DATABASE_POOL_MAX),
+      // DATABASE_APP_URL must point to a non-superuser DB role.
+      // PostgreSQL superusers (like the default 'crm' Docker user) bypass RLS even with
+      // FORCE ROW LEVEL SECURITY — making tenant isolation ineffective at the DB layer.
+      // Run `npm run db:migrate` to create the 'crm_app' non-superuser, then set
+      // DATABASE_APP_URL=postgresql://crm_app:crm_app@localhost:5432/crm_dev in .env.
+      useFactory: () => {
+        if (!config.DATABASE_APP_URL) {
+          console.warn(
+            '\n⚠️  DATABASE_APP_URL is not set. Falling back to DATABASE_URL which may use a ' +
+            'PostgreSQL superuser. Superusers bypass FORCE ROW LEVEL SECURITY, breaking ' +
+            'tenant isolation. Set DATABASE_APP_URL to a non-superuser role in .env.\n'
+          );
+        }
+        return createKnex(config.DATABASE_APP_URL ?? config.DATABASE_URL, config.DATABASE_POOL_MAX);
+      },
     },
     // Raw Redis client for auth (blacklist, refresh tokens) — shares CacheManager's connection
     {

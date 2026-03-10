@@ -82,7 +82,7 @@ export class TenantConfigReloadService
       const data = JSON.parse(raw) as Record<string, string>;
 
       if (channel === CONFIG_RELOAD_CHANNEL) {
-        const { tenantId, newTier } = data as ConfigReloadMessage;
+        const { tenantId, newTier } = data as unknown as ConfigReloadMessage;
         if (!tenantId || !newTier) return;
 
         // Keep this instance's in-memory connection cap in sync
@@ -93,7 +93,7 @@ export class TenantConfigReloadService
       }
 
       if (channel === CACHE_INVALIDATE_CHANNEL) {
-        const { tenantId, scope } = data as CacheInvalidateMessage;
+        const { tenantId, scope } = data as unknown as CacheInvalidateMessage;
         // Redis keys are already deleted by the publishing instance.
         // Log for observability; extend here for in-process LRU caches.
         this.logger.debug(

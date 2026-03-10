@@ -1,6 +1,7 @@
 import {
   Injectable, NotFoundException, ConflictException, BadRequestException,
 } from '@nestjs/common';
+import type { PoolClient } from 'pg';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { PasswordService } from '../../../../common/security/password.service';
 
@@ -30,7 +31,7 @@ export class AdminUsersService {
     private readonly passwordService: PasswordService,
   ) {}
 
-  private async seedRoles(client: { query: Function }, tenantId: string): Promise<void> {
+  private async seedRoles(client: PoolClient, tenantId: string): Promise<void> {
     await client.query(
       `INSERT INTO roles (tenant_id, name, description)
        VALUES ($1, 'admin', 'Administrator'), ($1, 'manager', 'Manager')
@@ -45,7 +46,7 @@ export class AdminUsersService {
     }
   }
 
-  private async withTenant<T>(tenantId: string, fn: (client: { query: Function }) => Promise<T>): Promise<T> {
+  private async withTenant<T>(tenantId: string, fn: (client: PoolClient) => Promise<T>): Promise<T> {
     this.assertUuid(tenantId, 'tenantId');
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {

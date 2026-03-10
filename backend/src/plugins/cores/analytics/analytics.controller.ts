@@ -56,10 +56,7 @@ export class AnalyticsController {
     const reportType = type as ReportType;
 
     const data = await this.sandbox.execute(
-      () =>
-        reportType === 'summary'
-          ? this.core.summary(ctx)
-          : this.core.trends(ctx),
+      () => (reportType === 'summary' ? this.core.summary(ctx) : this.core.trends(ctx)) as Promise<unknown>,
       this.core.manifest.limits.timeoutMs,
     );
 

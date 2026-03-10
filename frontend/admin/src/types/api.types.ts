@@ -2,8 +2,8 @@ export interface Tenant {
   id: string;
   name: string;
   subdomain: string;
-  plan: 'standard' | 'vip' | 'enterprise';
-  status: 'active' | 'suspended' | 'trial';
+  plan: 'basic' | 'premium' | 'enterprise' | 'vip';
+  status: 'provisioning' | 'active' | 'suspended' | 'grace_period' | 'migrating' | 'offboarding' | 'offboarded';
   pluginCount: number;
   createdAt: string;
   updatedAt: string;

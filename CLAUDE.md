@@ -61,7 +61,8 @@ Copy `.env.example` to `.env` in `backend/`. Variables are validated at startup 
 
 | Variable | Notes |
 |---|---|
-| `DATABASE_URL` | Shared PostgreSQL pool (max 200 connections) |
+| `DATABASE_URL` | Shared PostgreSQL pool (max 200 connections) — superuser, used for migrations |
+| `DATABASE_APP_URL` | **Required for tenant isolation.** Must be a non-superuser role (e.g. `crm_app`). PostgreSQL superusers bypass `FORCE ROW LEVEL SECURITY`, leaking cross-tenant data. Run `npm run db:migrate` first to create `crm_app`, then set this. |
 | `REDIS_URL` | ioredis |
 | `RABBITMQ_URL` | amqplib |
 | `JWT_JWKS_URI` **or** `JWT_SECRET_FALLBACK` | One is required; use `JWT_SECRET_FALLBACK` (min 32 chars) in dev |
@@ -245,7 +246,7 @@ Both web and admin use Vitest + Testing Library for tests.
 | L6 | Cross-Cutting | Security (AES-256-GCM, bcrypt), error handling, config, DI |
 | L7 | Observability | Pino structured logging, OpenTelemetry tracing, Prometheus metrics, Sentry |
 
-**Multi-tenancy:** Standard tenants share a PostgreSQL DB (RLS + `tenant_id`). VIP/Enterprise tenants get dedicated PostgreSQL instances. `QueryInterceptor` at L4 handles all scoping automatically.
+**Multi-tenancy:** Standard tenants share a PostgreSQL DB (RLS + `tenant_id`). VIP tenants get a dedicated database (`CREATE DATABASE` on the same PostgreSQL server, registered in `vip_db_registry`). `QueryInterceptor` at L4 handles all scoping automatically.
 
 ## Critical Constraints
 

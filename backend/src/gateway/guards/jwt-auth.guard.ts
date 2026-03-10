@@ -54,6 +54,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
+  // @ts-expect-error NestJS Passport supports async handleRequest at runtime despite the sync base signature
   async handleRequest<T = JwtClaims>(
     err: Error | null,
     user: T | false,

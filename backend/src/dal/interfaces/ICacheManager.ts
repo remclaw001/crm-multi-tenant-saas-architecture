@@ -70,7 +70,6 @@ export interface ICacheManager {
   setTenantLookup(tenant: {
     id: string;
     subdomain: string | null;
-    [key: string]: unknown;
   }): Promise<void>;
 
   /**

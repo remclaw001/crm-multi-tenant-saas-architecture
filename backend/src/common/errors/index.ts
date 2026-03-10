@@ -22,4 +22,4 @@ export {
 } from './plugin.errors';
 
 export { ValidationError } from './validation.errors';
-export { PluginDependencyError } from './plugin-dependency.error';
+export { PluginDependencyError } from '../../plugins/deps/plugin-dependency.error';

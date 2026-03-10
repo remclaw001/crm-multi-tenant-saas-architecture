@@ -61,7 +61,7 @@ import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
 import { PluginDependencyService } from '../../../../plugins/deps/plugin-dependency.service';
-import { PluginDependencyError } from '../../../../common/errors/plugin-dependency.error';
+import { PluginDependencyError } from '../../../../../plugins/deps/plugin-dependency.error';
 import type { PluginInitJobData } from '../../../../workers/bullmq/processors/plugin-init.processor';
 
 const mockVipMigrationQueue    = { add: vi.fn().mockResolvedValue(undefined) } as any;

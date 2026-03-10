@@ -29,7 +29,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AppError } from '../../common/errors/app.error';
-import { PluginDependencyError } from '../../common/errors/plugin-dependency.error';
+import { PluginDependencyError } from '../../plugins/deps/plugin-dependency.error';
 import { TenantContext } from '../../dal/context/TenantContext';
 import { captureException } from '../../observability/sentry/sentry.setup';
 

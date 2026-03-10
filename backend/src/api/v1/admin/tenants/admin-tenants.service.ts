@@ -14,7 +14,7 @@ import type { VipDecommissionJobData } from '../../../../workers/bullmq/processo
 import type { DataExportJobData } from '../../../../workers/bullmq/processors/data-export.processor';
 import type { PluginInitJobData } from '../../../../workers/bullmq/processors/plugin-init.processor';
 import { PluginDependencyService } from '../../../../plugins/deps/plugin-dependency.service';
-import { PluginDependencyError } from '../../../../common/errors/plugin-dependency.error';
+import { PluginDependencyError } from '../../../../plugins/deps/plugin-dependency.error';
 
 const TIER_DEFAULT_PLUGINS: Record<string, string[]> = {
   basic:      ['customer-data'],

@@ -29,6 +29,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AppError } from '../../common/errors/app.error';
+import { PluginDependencyError } from '../../common/errors/plugin-dependency.error';
 import { TenantContext } from '../../dal/context/TenantContext';
 import { captureException } from '../../observability/sentry/sentry.setup';
 
@@ -84,6 +85,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
     // code field: only for AppError subclasses (machine-readable)
     if (code !== undefined) {
       problemDetails['code'] = code;
+    }
+
+    // PluginDependencyError: include missingDeps / blockingDependents in RFC 7807 body
+    if (exception instanceof PluginDependencyError) {
+      if (exception.missingDeps.length > 0) {
+        problemDetails['missingDeps'] = exception.missingDeps;
+      }
+      if (exception.blockingDependents.length > 0) {
+        problemDetails['blockingDependents'] = exception.blockingDependents;
+      }
     }
 
     // ── 5xx: log + forward to Sentry ──────────────────────

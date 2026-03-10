@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
-import { QUEUE_PLUGIN_INIT } from '../queue.constants';
+import { QUEUE_PLUGIN_INIT } from '../../workers/bullmq/queue.constants';
 import { PoolRegistry } from '../../../dal/pool/PoolRegistry';
 
 export interface PluginInitJobData {

@@ -9,7 +9,7 @@
 export type HookType = 'before' | 'after' | 'filter';
 
 export interface PluginHookDef {
-  /** Event name, e.g. 'contact.create', 'deal.update' */
+  /** Event name, e.g. 'customer.create', 'deal.update' */
   event: string;
   type: HookType;
   /** Lower number = higher priority = runs first */

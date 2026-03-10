@@ -1179,14 +1179,80 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 <span class="cm">customer-care, automation, marketing đều có thể load song song — tất cả deps có sẵn sau Round 1.</span>
 
 
-<span class="ty">Disable Cascade</span> (dựa trên dependency graph thực tế):
-  Disable customer-data → <span class="rd">cascade disable</span>: customer-care, automation, marketing
-  Disable customer-care → <span class="gn">no cascade</span> (không plugin nào phụ thuộc care)
-  Disable analytics     → <span class="rd">cascade disable</span>: automation (automation phụ thuộc analytics)
-  Disable automation    → <span class="gn">no cascade</span> (leaf node)
-  Disable marketing     → <span class="gn">no cascade</span> (leaf node)</pre>
+<span class="ty">Disable — Error-and-Reject</span> (hành vi thực tế Phase 5):
+  Disable customer-data → <span class="rd">422 PLUGIN_DEPENDENCY_VIOLATION</span>: blockingDependents = [care, automation, marketing]
+  Disable customer-care → <span class="gn">OK</span> (không plugin nào phụ thuộc care)
+  Disable analytics     → <span class="rd">422 PLUGIN_DEPENDENCY_VIOLATION</span>: blockingDependents = [automation]
+  Disable automation    → <span class="gn">OK</span> (leaf node)
+  Disable marketing     → <span class="gn">OK</span> (leaf node)
+
+  <span class="cm">Không cascade disable. Staff phải tắt thủ công từng dependent trước.</span>
+  <span class="cm">Xem PluginDependencyService bên dưới để biết chi tiết.</span></pre>
                 </div>
             </div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">08</span>
+                    <h2 class="sec-t"><span data-lang="vi">PluginDependencyService — Validation Graph</span><span data-lang="en">PluginDependencyService — Graph Validation</span></h2>
+                </div>
+
+                <div class="dg">
+                    <div class="dg-label">plugin-dependency.service.ts</div>
+                    <pre>
+<span class="ty">PluginDependencyService</span>  (src/plugins/deps/plugin-dependency.service.ts)
+<span class="cm">Injected via PLUGIN_MANIFESTS token (useValue: BUILT_IN_MANIFESTS)</span>
+
+<span class="hi">Bootstrap validation</span>  — PluginsModule.onModuleInit()
+  pluginDependencyService.validateGraph()
+    → DFS cycle detection qua toàn bộ dependency graph
+    → Nếu có issue: log.warn('[PluginDependency] ...') — KHÔNG block startup
+    → Chạy một lần khi NestJS khởi động
+
+<span class="hi">Toggle-time validation</span>  — AdminTenantsService.togglePlugin()
+
+  <span class="gn">Enable path:</span>
+    getMissingDeps(pluginId, currentlyEnabledPlugins)
+      → trả về string[] tên dep chưa enabled
+      → nếu không rỗng → throw PluginDependencyError(missingDeps: [...])
+
+  <span class="rd">Disable path:</span>
+    getBlockingDependents(pluginId, currentlyEnabledPlugins)
+      → trả về string[] tên plugin đang enabled mà phụ thuộc vào pluginId
+      → nếu không rỗng → throw PluginDependencyError(blockingDependents: [...])
+
+
+<span class="ty">PluginDependencyError</span>  (src/common/errors/plugin-dependency.error.ts)
+
+  extends AppError
+  statusCode : 422 Unprocessable Entity
+  code       : <span class="st">'PLUGIN_DEPENDENCY_VIOLATION'</span>
+
+  Payload RFC 7807 (qua HttpExceptionFilter):
+  {
+    "status"  : 422,
+    "title"   : "Plugin Dependency Violation",
+    "code"    : <span class="st">"PLUGIN_DEPENDENCY_VIOLATION"</span>,
+    "detail"  : "...",
+
+    <span class="cm">// Enable bị chặn — dep chưa bật:</span>
+    "missingDeps": [<span class="st">"customer-data"</span>],
+
+    <span class="cm">// Disable bị chặn — plugin khác đang phụ thuộc:</span>
+    "blockingDependents": [<span class="st">"customer-care"</span>, <span class="st">"automation"</span>]
+  }
+
+
+<span class="ty">Ví dụ — Enable customer-care khi customer-data chưa bật:</span>
+  PATCH /api/v1/admin/tenants/ACME/plugins/customer-care
+  Body: { "enabled": true }
+  → 422 { code: "PLUGIN_DEPENDENCY_VIOLATION", missingDeps: ["customer-data"] }
+
+<span class="ty">Ví dụ — Disable customer-data khi customer-care đang bật:</span>
+  PATCH /api/v1/admin/tenants/ACME/plugins/customer-data
+  Body: { "enabled": false }
+  → 422 { code: "PLUGIN_DEPENDENCY_VIOLATION", blockingDependents: ["customer-care", "automation", "marketing"] }</pre>
+                </div>
+            </div>
+
         </div>
 
         <!-- ═══════════════════════════════════════ -->
@@ -1520,8 +1586,12 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   │  Hiển thị: name, version, permissions[], limits (ms/MB/queries)     │
   │  Toggle switch → useMutation:                                        │
   │    PATCH /api/v1/admin/tenants/:id/plugins/:pluginId                │
-  │    { enabled: true | false }                                         │
-  │    → { pluginId, enabled }                                           │
+  │    Body: { enabled: true | false }                                   │
+  │    Header: Authorization: Bearer &lt;token&gt;  (user.sub → userId)       │
+  │    → { pluginId, enabled, initializing?: boolean }                   │
+  │       initializing: true  → first-enable, init job đang chạy        │
+  │       initializing: false → đã init trước đó                        │
+  │       (field vắng mặt khi disable)                                   │
   │  onSuccess: qc.invalidateQueries(['tenants', tenantId, 'plugins'])  │
   │    → Admin plugin list ngay lập tức refresh                         │
   └──────────────────────────────────────────────────────────────────────┘
@@ -1635,17 +1705,36 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 │       Header: Authorization: Bearer &lt;vcc-staff-token&gt;
 │
 ▼
-<span class="ty">BACKEND</span>
+<span class="ty">BACKEND — AdminTenantsController → AdminTenantsService.togglePlugin()</span>
 │
-│  <span class="nu">2</span>  Validate: deps OK (customer-data đã enabled)
-│  <span class="nu">3</span>  Ghi DB:
-│       UPDATE tenant_plugins
-│         SET enabled = true
+│  <span class="nu">2</span>  Trích userId từ JWT: user.sub → truyền vào service
+│
+│  <span class="nu">3</span>  Validate deps: getMissingDeps('customer-care', enabledPlugins)
+│       → customer-data đã enabled → [] → OK
+│       (nếu thiếu dep → 422 PluginDependencyError)
+│
+│  <span class="nu">4</span>  Upsert DB:
+│       INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled)
+│         VALUES (ACME, 'customer-care', true)
+│         ON CONFLICT ... SET is_enabled = true
+│
+│  <span class="nu">5</span>  Kiểm tra first-enable:
+│       SELECT initialized_at FROM tenant_plugins
 │         WHERE tenant_id = ACME AND plugin_name = 'customer-care'
-│  <span class="nu">4</span>  Invalidate TenantContext LRU cache cho ACME
-│       → Request kế tiếp từ ACME sẽ phải reload từ DB
+│       initialized_at IS NULL → <span class="am">isFirstEnable = true</span>
+│       → Enqueue QUEUE_PLUGIN_INIT job: { tenantId: ACME, pluginId: 'customer-care' }
 │
-│  Response → { pluginId: "customer-care", enabled: true }
+│  <span class="nu">6</span>  Publish audit (fire-and-forget, lỗi chỉ log warn):
+│       action      : <span class="st">'plugin.enabled'</span>
+│       resourceType: <span class="st">'plugin'</span>
+│       resourceId  : <span class="st">'customer-care'</span>
+│       userId      : &lt;vcc-staff-sub&gt;
+│       payload     : { pluginId: 'customer-care', initializing: true }
+│
+│  <span class="nu">7</span>  Invalidate TenantContext LRU cache cho ACME
+│
+│  Response → { pluginId: "customer-care", enabled: true, <span class="am">initializing: true</span> }
+│            (initializing: false nếu plugin đã được init trước đó)
 │
 ▼
 <span class="ty">ADMIN CONSOLE — onSuccess callback</span>
@@ -1705,27 +1794,39 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 │       Body: { "enabled": false }
 │
 ▼
-<span class="ty">BACKEND — Kiểm tra cascade</span>
+<span class="ty">BACKEND — Error-and-Reject (không cascade)</span>
 │
-│  <span class="nu">2</span>  Kiểm tra dependency graph:
-│       customer-care  depends on customer-data
-│       automation     depends on customer-data
-│       marketing      depends on customer-data
-│       → <span class="am">⚠ Cascade disable: care, automation, marketing bị tắt theo</span>
+│  <span class="nu">2</span>  Trích userId từ JWT: user.sub
 │
-│  <span class="nu">3</span>  Disable cascade (dependents first):
-│       customer-care → enabled = <span class="rd">false</span>
-│       automation    → enabled = <span class="rd">false</span>
-│       marketing     → enabled = <span class="rd">false</span>
-│       customer-data → enabled = <span class="rd">false</span>
+│  <span class="nu">3</span>  Kiểm tra blocking dependents:
+│       getBlockingDependents('customer-data', enabledPlugins)
+│       → customer-care, automation, marketing đang enabled
+│       → blockingDependents = ['customer-care', 'automation', 'marketing']
 │
-│  <span class="nu">4</span>  Invalidate TenantContext LRU cache cho ACME
+│  <span class="nu">4</span>  → <span class="rd">422 PluginDependencyError</span>
+│       { code: "PLUGIN_DEPENDENCY_VIOLATION",
+│         detail: "Cannot disable: other enabled plugins depend on it",
+│         blockingDependents: ["customer-care", "automation", "marketing"] }
+│
+│  <span class="cm">Staff phải disable customer-care, automation, marketing trước.</span>
+│  <span class="cm">Sau đó mới disable customer-data thành công.</span>
+│
+▼
+<span class="ty">Nếu disable thành công (không có blocking dependents):</span>
+│
+│  <span class="nu">5</span>  Ghi DB: UPDATE tenant_plugins SET is_enabled = false WHERE ...
+│
+│  <span class="nu">6</span>  Publish audit:
+│       action: <span class="st">'plugin.disabled'</span>, resourceType: <span class="st">'plugin'</span>
+│       userId: &lt;vcc-staff-sub&gt;, payload: { pluginId }
+│
+│  <span class="nu">7</span>  Invalidate TenantContext LRU cache cho ACME
 │
 ▼
 <span class="ty">ADMIN CONSOLE — onSuccess</span>
 │
-│  <span class="nu">5</span>  qc.invalidateQueries(['tenants', 'ACME', 'plugins'])
-│       → Admin plugin list refresh, tất cả show enabled = false
+│  <span class="nu">8</span>  qc.invalidateQueries(['tenants', 'ACME', 'plugins'])
+│       → Admin plugin list refresh
 │
 ▼
 <span class="ty">WEB APP FRONTEND — khi cache hết stale hoặc user navigate/reload</span>
@@ -1829,14 +1930,21 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 ──────────────────────────────────────────────────────────────────────
 
 <span class="gn">ENABLED</span>             tenant_plugins:           GET /api/v1/plugins →
-                    enabled = <span class="gn">true</span>             enabledPlugins includes plugin
+                    is_enabled = <span class="gn">true</span>          enabledPlugins includes plugin
                     API routes accessible      visibleNav: nav item xuất hiện
                                                PluginGate: render children
 
+<span class="am">INITIALIZING</span>        is_enabled = <span class="gn">true</span>          Như ENABLED (plugin hoạt động ngay)
+                    initialized_at = NULL      Response toggle: initializing: true
+                    QUEUE_PLUGIN_INIT job      Phase 5: no-op, Phase 6+: seed data
+                    đang chạy async
+
 <span class="rd">DISABLED</span>            tenant_plugins:           GET /api/v1/plugins →
-                    enabled = <span class="rd">false</span>            enabledPlugins KHÔNG includes plugin
+                    is_enabled = <span class="rd">false</span>         enabledPlugins KHÔNG includes plugin
                     Context cache invalidated  visibleNav: nav item ẩn
                     API → 403 Forbidden        PluginGate: render placeholder
+                    (Disable bị chặn nếu có   422 PluginDependencyError nếu có
+                    blocking dependents)       blocking dependents
 
 <span class="am">PHASE 6+ ROADMAP</span>    CDN artifact registry     HostShell.loadRemote() từ CDN
                     Hot deploy via MQ          Module Federation dynamic bundle
@@ -1855,6 +1963,66 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   Cache invalidation là <span class="hi">trigger</span> đồng bộ hoá:
   Thay đổi DB → Xóa LRU cache → Request kế tiếp pick up trạng thái mới
   → TanStack Query staleTime (5 min) → Frontend tự động cập nhật</pre>
+                </div>
+            </div>
+
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">17</span>
+                    <h2 class="sec-t"><span data-lang="vi">PluginInitProcessor — First-Enable Init Job</span><span data-lang="en">PluginInitProcessor — First-Enable Init Job</span></h2>
+                </div>
+
+                <div class="dg">
+                    <div class="dg-label">plugin-init.processor.ts + tenant_plugins</div>
+                    <pre>
+<span class="ty">Mục đích:</span>
+  Khi một plugin được enable lần đầu tiên cho một tenant, cần chạy
+  seed / init data (Phase 6+). Phase 5: tất cả plugin đều no-op,
+  nhưng cơ chế đã sẵn sàng để mở rộng.
+
+<span class="ty">DB column:</span>  tenant_plugins.initialized_at  TIMESTAMPTZ NULL
+  NULL         → chưa init (hoặc đang pending)
+  &lt;timestamp&gt; → đã init thành công
+
+<span class="ty">QUEUE_PLUGIN_INIT</span>  =  <span class="st">'plugin-init'</span>  (BullMQ)
+  concurrency : 5
+  attempts    : 3  (retry với exponential backoff, delay 3 s)
+
+<span class="ty">Luồng:</span>
+
+  togglePlugin() enable path
+    │
+    │  SELECT initialized_at FROM tenant_plugins
+    │    WHERE tenant_id = $1 AND plugin_name = $2
+    │
+    ├── initialized_at IS NULL  →  <span class="am">isFirstEnable = true</span>
+    │     → pluginInitQueue.add('init', { tenantId, pluginId })
+    │     → Response includes  initializing: true
+    │
+    └── initialized_at NOT NULL → <span class="gn">isFirstEnable = false</span>
+          → không enqueue
+          → Response includes  initializing: false
+
+  BullMQ worker (PluginInitProcessor)
+    │
+    │  <span class="nu">1</span>  Nhận job { tenantId, pluginId }
+    │  <span class="nu">2</span>  Re-fetch initialized_at (idempotency guard):
+    │       nếu đã set → return (job trùng / retry không cần làm gì)
+    │  <span class="nu">3</span>  Nếu không có row → <span class="rd">throw</span> → BullMQ retry
+    │       (race condition: INSERT chưa commit khi job bắt đầu)
+    │  <span class="nu">4</span>  runInitFor(pluginId, tenantId)
+    │       Phase 5: tất cả plugin đều no-op
+    │       Phase 6+: seed dữ liệu mặc định theo từng plugin
+    │  <span class="nu">5</span>  UPDATE tenant_plugins SET initialized_at = NOW()
+    │       WHERE tenant_id = $1 AND plugin_name = $2
+    │
+    └── <span class="gn">Done</span>
+
+<span class="ty">Chú ý quan trọng:</span>
+  • Processor chạy <span class="rd">ngoài TenantContext</span> (BullMQ worker) →
+    phải dùng raw SQL với explicit WHERE tenant_id = $1
+    KHÔNG dùng Knex (QueryInterceptor không active)
+  • poolRegistry.acquireMetadataConnection() trong try/finally
+    để đảm bảo client.release() luôn được gọi</pre>
                 </div>
             </div>
 

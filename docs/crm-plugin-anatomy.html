@@ -1288,11 +1288,9 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 <span class="rd">DISABLE customer-care cho ACME</span>
 │
 ├─ Check: có plugin nào depend vào care?
-│  └─ automation depends on care
-│     → <span class="am">Warn: automation cũng sẽ bị disable</span>
-│     → Admin confirm
+│  └─ (không có — không plugin nào depend vào care)
+│     → <span class="gn">No cascade</span>
 │
-├─ Disable automation trước (cascade)
 ├─ Disable customer-care
 ├─ Run DOWN migrations (optional)
 │  └─ Drop tables? hoặc soft-delete?
@@ -1494,10 +1492,10 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
                     <h2 class="sec-t"><span data-lang="vi">Kiến trúc Plugin UI — Phase 5</span><span data-lang="en">Plugin UI Architecture — Phase 5</span></h2>
                 </div>
 
-                <div class="nt am" data-lang="vi"><strong>Phase 5 thực tế:</strong> Hai Next.js app riêng biệt. Admin Console (VCC staff) quản lý plugin cho từng tenant.
-                    Web App chỉ có UI cho <strong>2/5 plugin</strong> (customer-data + customer-care). Analytics, automation, marketing chưa có frontend.</div>
-                <div class="nt am" data-lang="en"><strong>Phase 5 reality:</strong> Two separate Next.js apps. Admin Console (VCC staff) manages plugins per tenant.
-                    Web App only has UI for <strong>2 of 5 plugins</strong> (customer-data + customer-care). Analytics, automation, and marketing have no frontend yet.</div>
+                <div class="nt gn" data-lang="vi"><strong>Phase 5 thực tế:</strong> Hai Next.js app riêng biệt. Admin Console (VCC staff) quản lý plugin cho từng tenant.
+                    Web App có UI đầy đủ cho <strong>cả 5 plugin</strong> — tất cả đều có PluginGate bảo vệ và API calls riêng.</div>
+                <div class="nt gn" data-lang="en"><strong>Phase 5 reality:</strong> Two separate Next.js apps. Admin Console (VCC staff) manages plugins per tenant.
+                    Web App has full UI for <strong>all 5 plugins</strong> — each has its own PluginGate-protected page and API calls.</div>
 
                 <div class="dg">
                     <div class="dg-label">ui architecture — phase 5</div>
@@ -1532,29 +1530,35 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
 <span class="hi">WEB APP (Next.js, :3002) — Tenant users</span>
 
 <span class="ty">Plugin UI coverage:</span>
-  ┌─────────────────────┬──────────────┬───────────────────────────────┐
-  │ Plugin              │ UI có chưa   │ Ghi chú                       │
-  ├─────────────────────┼──────────────┼───────────────────────────────┤
-  │ customer-data       │ <span class="gn">✓ có</span>         │ /contacts — ContactsList       │
-  │ customer-care       │ <span class="gn">✓ có</span>         │ /cases — CasesList + filter    │
-  │ analytics           │ <span class="rd">✗ chưa có</span>    │ Phase 6+                       │
-  │ automation          │ <span class="rd">✗ chưa có</span>    │ Phase 6+                       │
-  │ marketing           │ <span class="rd">✗ chưa có</span>    │ Phase 6+                       │
-  └─────────────────────┴──────────────┴───────────────────────────────┘
+  ┌─────────────────────┬──────────────┬────────────────────────────────────────────────────┐
+  │ Plugin              │ UI có chưa   │ Ghi chú                                            │
+  ├─────────────────────┼──────────────┼────────────────────────────────────────────────────┤
+  │ customer-data       │ <span class="gn">✓ có</span>         │ /contacts — ContactsList                           │
+  │ customer-care       │ <span class="gn">✓ có</span>         │ /cases — CasesList + filter                        │
+  │ analytics           │ <span class="gn">✓ có</span>         │ /analytics — AnalyticsSummaryView + TrendPoints    │
+  │ automation          │ <span class="gn">✓ có</span>         │ /automation — TriggersList                         │
+  │ marketing           │ <span class="gn">✓ có</span>         │ /marketing — CampaignsList + status filter         │
+  └─────────────────────┴──────────────┴────────────────────────────────────────────────────┘
 
   ┌──────────────────────────────────────────────────────────────────────┐
   │ <span class="ty">CrmLayout</span>  «(crm)/layout.tsx — Client Component»                    │
   │                                                                      │
-  │  const PLUGIN_PAGES = [                           ← chỉ 2 entry    │
+  │  const PLUGIN_PAGES = [                           ← 5 entry         │
   │    { plugin: 'customer-data', label: 'Contacts',                     │
-  │      href: '/contacts', icon: Users },                               │
+  │      href: '/contacts',  icon: Users     },                          │
   │    { plugin: 'customer-care', label: 'Cases',                        │
-  │      href: '/cases',    icon: Headset },                             │
+  │      href: '/cases',     icon: Headset   },                          │
+  │    { plugin: 'analytics',     label: 'Analytics',                    │
+  │      href: '/analytics', icon: BarChart3 },                          │
+  │    { plugin: 'automation',    label: 'Automation',                   │
+  │      href: '/automation',icon: Zap       },                          │
+  │    { plugin: 'marketing',     label: 'Marketing',                    │
+  │      href: '/marketing', icon: Megaphone },                          │
   │  ];                                                                  │
   │                                                                      │
   │  useQuery(['enabled-plugins', tenantId],                             │
   │    () => crmApi.getEnabledPlugins(ctx),                              │
-  │    { staleTime: 5 * 60 * 1000 })  ← 5 phút                         │
+  │    { staleTime: 0 })  ← luôn stale, refetch mỗi lần mount           │
   │       → GET /api/v1/plugins                                          │
   │         Headers: Authorization: Bearer &lt;token&gt;                      │
   │                  X-Tenant-ID: &lt;tenantId&gt;                             │
@@ -1602,7 +1606,15 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
   crmApi.createCase(input)             POST /api/v1/plugins/customer-care/cases
   crmApi.updateCase(id, input)         PUT  /api/v1/plugins/customer-care/cases/:id
 
-  <span class="rd">analytics / automation / marketing → chưa có API methods</span></pre>
+  <span class="cm">── analytics plugin ──────────────────────────────────────────────────</span>
+  crmApi.getAnalyticsSummary()         GET  /api/v1/plugins/analytics/reports/summary
+  crmApi.getAnalyticsTrends()          GET  /api/v1/plugins/analytics/reports/trends
+
+  <span class="cm">── automation plugin ─────────────────────────────────────────────────</span>
+  crmApi.getTriggers()                 GET  /api/v1/plugins/automation/triggers
+
+  <span class="cm">── marketing plugin ──────────────────────────────────────────────────</span>
+  crmApi.getCampaigns()                GET  /api/v1/plugins/marketing/campaigns</pre>
                 </div>
             </div>
 

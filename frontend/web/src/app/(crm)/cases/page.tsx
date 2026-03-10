@@ -25,7 +25,7 @@ export default function CasesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['cases', tenantId],
     queryFn: () => crmApi.getCases(ctx),
     enabled: Boolean(token && tenantId),
@@ -74,6 +74,10 @@ export default function CasesPage() {
         {isLoading ? (
           <div className="flex h-64 items-center justify-center text-muted-foreground">
             Loading…
+          </div>
+        ) : isError ? (
+          <div className="flex h-64 items-center justify-center text-red-600">
+            Failed to load cases.
           </div>
         ) : (
           <CasesList cases={filtered} />

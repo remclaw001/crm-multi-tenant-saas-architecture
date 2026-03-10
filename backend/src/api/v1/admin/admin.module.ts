@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { BullModule } from '@nestjs/bullmq';
 import { config } from '../../../config/env';
-import { QUEUE_VIP_MIGRATION, QUEUE_VIP_DECOMMISSION, QUEUE_DATA_EXPORT } from '../../../workers/bullmq/queue.constants';
+import { QUEUE_VIP_MIGRATION, QUEUE_VIP_DECOMMISSION, QUEUE_DATA_EXPORT, QUEUE_PLUGIN_INIT } from '../../../workers/bullmq/queue.constants';
 import { SuperAdminGuard } from './guards/super-admin.guard';
 import { AdminAuthController } from './admin-auth/admin-auth.controller';
 import { AdminAuthService } from './admin-auth/admin-auth.service';
@@ -23,6 +23,7 @@ import { AdminUsersService } from './tenants/admin-users.service';
       { name: QUEUE_VIP_MIGRATION },
       { name: QUEUE_VIP_DECOMMISSION },
       { name: QUEUE_DATA_EXPORT },
+      { name: QUEUE_PLUGIN_INIT },
     ),
   ],
   controllers: [

@@ -34,7 +34,7 @@ export interface UpdateCaseInput {
   description?: string;
   status?: 'open' | 'in_progress' | 'resolved' | 'closed';
   priority?: 'low' | 'medium' | 'high';
-  assigned_to?: string;
+  assigned_to?: string | null;
 }
 
 @Injectable()

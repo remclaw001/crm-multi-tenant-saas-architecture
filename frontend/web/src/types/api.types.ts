@@ -29,6 +29,12 @@ export interface SupportCase {
   updated_at: string;
 }
 
+export interface TenantUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
 /** Backend list response: { plugin, data, count } */
 export interface PluginListResponse<T> {
   plugin: string;

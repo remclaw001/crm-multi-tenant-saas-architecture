@@ -2,6 +2,7 @@
 import type {
   Customer,
   SupportCase,
+  TenantUser,
   AnalyticsSummary,
   TrendPoint,
   AutomationTrigger,
@@ -155,6 +156,10 @@ export const crmApi = {
       body: JSON.stringify(input),
       ...ctx,
     });
+  },
+
+  getUsers(ctx: AuthCtx): Promise<TenantUser[]> {
+    return request('/api/v1/users', ctx);
   },
 
   // ─── Analytics (read-only) ────────────────────────────────────────────────

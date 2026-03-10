@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { crmApi } from '@/lib/api-client';
 import { CasesList } from '@/components/cases-list';
 import { CreateCaseModal } from '@/components/create-case-modal';
+import { EditCaseModal } from '@/components/edit-case-modal';
 import { PluginGate } from '@/components/plugin-gate';
 import type { SupportCase } from '@/types/api.types';
 
@@ -23,6 +24,7 @@ export default function CasesPage() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingCase, setEditingCase] = useState<SupportCase | null>(null);
   const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
 
   const { data, isLoading, isError } = useQuery({
@@ -80,7 +82,7 @@ export default function CasesPage() {
             Failed to load cases.
           </div>
         ) : (
-          <CasesList cases={filtered} />
+          <CasesList cases={filtered} onEdit={setEditingCase} />
         )}
 
         <CreateCaseModal
@@ -88,6 +90,14 @@ export default function CasesPage() {
           onClose={() => setModalOpen(false)}
           onSuccess={handleSuccess}
         />
+
+        {editingCase && (
+          <EditCaseModal
+            supportCase={editingCase}
+            onClose={() => setEditingCase(null)}
+            onSuccess={handleSuccess}
+          />
+        )}
       </div>
     </PluginGate>
   );

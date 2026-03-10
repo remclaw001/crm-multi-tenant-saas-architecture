@@ -750,6 +750,82 @@ html.lang-vi [data-lang="en"]{display:none}
                   └── VD: Twilio SID, email templates, SLA thresholds</pre>
                 </div>
             </div>
+            <div class="sec">
+                <div class="sec-h"><span class="sec-n">02b</span>
+                    <h2 class="sec-t"><span data-lang="vi">Cấu trúc thực tế — Phase 5</span><span data-lang="en">Actual Structure — Phase 5</span></h2>
+                </div>
+
+                <div class="nt gn" data-lang="vi"><strong>Phase 5 thực tế:</strong> Toàn bộ plugin system nằm trong <code>backend/src/plugins/</code>. Không có per-plugin folder hay artifact — mỗi plugin là một NestJS module trong cùng monorepo.</div>
+                <div class="nt gn" data-lang="en"><strong>Phase 5 reality:</strong> The entire plugin system lives under <code>backend/src/plugins/</code>. No per-plugin folders or artifacts — each plugin is a NestJS module in the same monorepo.</div>
+
+                <div class="dg">
+                    <div class="dg-label">src/plugins/ — actual layout</div>
+                    <pre>
+<span class="hi">src/plugins/</span>
+│
+├── <span class="ty">manifest/</span>                    <span class="cm">← Tất cả manifests tập trung ở đây</span>
+│   ├── built-in-manifests.ts    <span class="cm">← 5 manifest constants + BUILT_IN_MANIFESTS[]</span>
+│   └── plugin-manifests.token.ts <span class="cm">← DI token: PLUGIN_MANIFESTS = 'PLUGIN_MANIFESTS'</span>
+│
+├── <span class="ty">interfaces/</span>                  <span class="cm">← Type definitions</span>
+│   ├── plugin-manifest.interface.ts  <span class="cm">← PluginManifest, PluginHookDef, PluginResourceLimits</span>
+│   ├── plugin-core.interface.ts      <span class="cm">← IPluginCore { manifest: PluginManifest }</span>
+│   └── execution-context.interface.ts
+│
+├── <span class="ty">cores/</span>                       <span class="cm">← 1 subdirectory per plugin</span>
+│   ├── customer-data/
+│   │   ├── customer-data.core.ts       <span class="cm">← Business logic, OnModuleInit self-register</span>
+│   │   ├── customer-data.controller.ts <span class="cm">← REST routes under /api/v1/plugins/customer-data/</span>
+│   │   ├── customer-data.module.ts     <span class="cm">← NestJS module wiring</span>
+│   │   └── dto/create-customer.dto.ts
+│   ├── customer-care/  <span class="cm">(same pattern)</span>
+│   ├── analytics/      <span class="cm">(same pattern)</span>
+│   ├── automation/     <span class="cm">(same pattern)</span>
+│   └── marketing/      <span class="cm">(same pattern)</span>
+│
+├── <span class="ty">deps/</span>                        <span class="cm">← Dependency validation subsystem</span>
+│   ├── plugin-dependency.service.ts  <span class="cm">← validateGraph(), getMissingDeps(), getBlockingDependents()</span>
+│   └── plugin-dependency.error.ts    <span class="cm">← PluginDependencyError extends AppError (HTTP 422)</span>
+│
+├── <span class="ty">init/</span>                        <span class="cm">← First-enable initialization</span>
+│   └── plugin-init.processor.ts     <span class="cm">← BullMQ @Processor(QUEUE_PLUGIN_INIT), idempotency via initialized_at</span>
+│
+├── <span class="ty">hooks/</span>
+│   └── hook-registry.service.ts     <span class="cm">← before/after/filter hooks, priority ordering</span>
+│
+├── <span class="ty">registry/</span>
+│   └── plugin-registry.service.ts   <span class="cm">← In-memory Map of loaded cores; getEnabledPlugins() from DB</span>
+│
+├── <span class="ty">sandbox/</span>
+│   ├── sandbox.service.ts           <span class="cm">← Promise.race timeout wrapper (5 s, 50 queries)</span>
+│   ├── isolated-sandbox.service.ts  <span class="cm">← V8 isolate (Phase 6+, not active)</span>
+│   └── sandbox-bridge.ts
+│
+├── <span class="ty">context/</span>
+│   ├── execution-context-builder.service.ts  <span class="cm">← Assembles per-request ExecutionContext</span>
+│   └── execution-context.ts                  <span class="cm">← Concrete class holding tenant, user, enabledPlugins, db, cache</span>
+│
+├── <span class="ty">plugin-infra.module.ts</span>       <span class="cm">← @Global() — provides &amp; exports all infra services</span>
+├── <span class="ty">plugins.module.ts</span>            <span class="cm">← Imports infra + 5 core modules; runs validateGraph() on init</span>
+└── <span class="ty">plugins-list.controller.ts</span>   <span class="cm">← GET /api/v1/plugins → { enabledPlugins: string[] }</span>
+
+
+<span class="ty">Module wiring summary:</span>
+
+  AppModule
+    └── ApiModule
+          └── PluginsModule                 <span class="cm">← OnModuleInit: validateGraph()</span>
+                ├── PluginInfraModule  <span class="cm">(@Global — MUST be first import)</span>
+                │     provides: PLUGIN_MANIFESTS token, PluginDependencyService,
+                │               PluginRegistryService, ExecutionContextBuilder,
+                │               HookRegistryService, SandboxService
+                ├── CustomerDataModule
+                ├── CustomerCareModule       <span class="cm">← OnModuleInit: registry.register(this)</span>
+                ├── AnalyticsModule          <span class="cm">← OnModuleInit: registry.register(this)</span>
+                ├── AutomationModule         <span class="cm">← OnModuleInit: registry.register(this)</span>
+                └── MarketingModule          <span class="cm">← OnModuleInit: registry.register(this)</span></pre>
+                </div>
+            </div>
         </div>
 
         <!-- ═══════════════════════════════════════ -->

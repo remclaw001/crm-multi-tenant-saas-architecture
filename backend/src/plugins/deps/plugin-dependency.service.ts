@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PluginManifest } from '../interfaces/plugin-manifest.interface';
-import { PLUGIN_MANIFESTS } from './plugin-manifests.token';
+import { PLUGIN_MANIFESTS } from '../manifest/plugin-manifests.token';
 
 export interface GraphValidationIssue {
   type: 'missing_dependency' | 'circular_dependency';

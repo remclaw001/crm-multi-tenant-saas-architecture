@@ -28,7 +28,7 @@ import { ExecutionContextBuilder } from './context/execution-context-builder.ser
 import { HookRegistryService } from './hooks/hook-registry.service';
 import { SandboxService } from './sandbox/sandbox.service';
 import { IsolatedSandboxService } from './sandbox/isolated-sandbox.service';
-import { PLUGIN_MANIFESTS } from './deps/plugin-manifests.token';
+import { PLUGIN_MANIFESTS } from './manifest/plugin-manifests.token';
 import { PluginDependencyService } from './deps/plugin-dependency.service';
 import { BUILT_IN_MANIFESTS } from './manifest/built-in-manifests';
 

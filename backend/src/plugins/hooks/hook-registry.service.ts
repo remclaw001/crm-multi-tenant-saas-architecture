@@ -45,6 +45,7 @@ export class HookRegistryService {
   ): Promise<void> {
     const entries = this.hooks.get(`before:${event}`) ?? [];
     for (const entry of entries) {
+      if (ctx.enabledPlugins && !ctx.enabledPlugins.includes(entry.pluginName)) continue;
       await entry.handler(ctx, data);
     }
   }
@@ -56,6 +57,7 @@ export class HookRegistryService {
   ): Promise<void> {
     const entries = this.hooks.get(`after:${event}`) ?? [];
     for (const entry of entries) {
+      if (ctx.enabledPlugins && !ctx.enabledPlugins.includes(entry.pluginName)) continue;
       await entry.handler(ctx, data);
     }
   }
@@ -68,6 +70,7 @@ export class HookRegistryService {
     const entries = this.hooks.get(`filter:${event}`) ?? [];
     let result: unknown = data;
     for (const entry of entries) {
+      if (ctx.enabledPlugins && !ctx.enabledPlugins.includes(entry.pluginName)) continue;
       result = await entry.handler(ctx, result);
     }
     return result as T;

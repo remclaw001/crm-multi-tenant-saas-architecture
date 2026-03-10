@@ -125,6 +125,68 @@ describe('HookRegistryService', () => {
     });
   });
 
+  // ============================================================
+  // Per-tenant plugin gating (enabledPlugins enforcement)
+  //
+  // Hooks registered by a plugin must NOT fire when that plugin is
+  // not in ctx.enabledPlugins.  This enforces the downgrade/offboard
+  // invariant: disabled plugins produce zero side-effects even if
+  // their hook handlers remain in the in-memory registry.
+  // ============================================================
+  describe('per-tenant plugin gating', () => {
+    const ctxWith = (enabledPlugins: string[]) =>
+      ({ enabledPlugins } as IExecutionContext);
+
+    it('runBefore: skips hooks from plugins not in enabledPlugins', async () => {
+      const called: string[] = [];
+      registry.register('enabled-plugin', { event: 'x', type: 'before', priority: 1 }, async () => { called.push('enabled'); });
+      registry.register('disabled-plugin', { event: 'x', type: 'before', priority: 2 }, async () => { called.push('disabled'); });
+
+      await registry.runBefore('x', ctxWith(['enabled-plugin']), {});
+
+      expect(called).toEqual(['enabled']);
+    });
+
+    it('runAfter: skips hooks from plugins not in enabledPlugins', async () => {
+      const called: string[] = [];
+      registry.register('plugin-a', { event: 'y', type: 'after', priority: 1 }, async () => { called.push('a'); });
+      registry.register('plugin-b', { event: 'y', type: 'after', priority: 2 }, async () => { called.push('b'); });
+
+      await registry.runAfter('y', ctxWith(['plugin-a']), {});
+
+      expect(called).toEqual(['a']);
+    });
+
+    it('runFilter: skips filter hooks from plugins not in enabledPlugins', async () => {
+      registry.register('plugin-on', { event: 'z', type: 'filter', priority: 1 }, async (_ctx, d) => ({ ...(d as object), on: true }));
+      registry.register('plugin-off', { event: 'z', type: 'filter', priority: 2 }, async (_ctx, d) => ({ ...(d as object), off: true }));
+
+      const result = await registry.runFilter('z', ctxWith(['plugin-on']), { base: true });
+
+      expect(result).toEqual({ base: true, on: true });
+      expect(result).not.toHaveProperty('off');
+    });
+
+    it('runs all hooks when all plugins are enabled', async () => {
+      const called: string[] = [];
+      registry.register('p1', { event: 'ev', type: 'before', priority: 1 }, async () => { called.push('p1'); });
+      registry.register('p2', { event: 'ev', type: 'before', priority: 2 }, async () => { called.push('p2'); });
+
+      await registry.runBefore('ev', ctxWith(['p1', 'p2']), {});
+
+      expect(called).toEqual(['p1', 'p2']);
+    });
+
+    it('fires no hooks when enabledPlugins is empty', async () => {
+      const called: string[] = [];
+      registry.register('any-plugin', { event: 'ev', type: 'after', priority: 1 }, async () => { called.push('ran'); });
+
+      await registry.runAfter('ev', ctxWith([]), {});
+
+      expect(called).toHaveLength(0);
+    });
+  });
+
   describe('hook type isolation', () => {
     it('before and after hooks on same event do not interfere', async () => {
       const beforeCalls: string[] = [];

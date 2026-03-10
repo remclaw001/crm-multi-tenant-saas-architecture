@@ -275,9 +275,9 @@ export class AdminTenantsService {
       if (input.name) { args.push(input.name); sets.push(`name = $${args.length}`); }
       if (input.plan) { args.push(input.plan); sets.push(`tier = $${args.length}`); }
 
-      if (isVipUpgrade) {
-        // Immediately gate the tenant as read-only while migration runs (spec §02).
-        // VipMigrationProcessor sets status back to 'active' on success or rolls back on failure.
+      if (isVipUpgrade || isVipDowngrade) {
+        // Gate the tenant as read-only while migration runs (spec §02 / §03).
+        // VipMigrationProcessor / VipDecommissionProcessor sets status back to 'active' on completion.
         args.push('migrating'); sets.push(`status = $${args.length}`);
         args.push(false);       sets.push(`is_active = $${args.length}`);
       } else if (input.status) {
@@ -339,8 +339,9 @@ export class AdminTenantsService {
         await this.cache.invalidateTenantLookup(id, subdomain);
 
         // Update this instance's in-memory quota cap.
-        // VIP upgrades are exempt — VipMigrationProcessor deregisters after migration completes.
-        if (!isVipUpgrade) {
+        // VIP upgrades/downgrades are exempt — the respective processor handles
+        // deregister/register after migration completes.
+        if (!isVipUpgrade && !isVipDowngrade) {
           TenantQuotaEnforcer.updateCap(id, input.plan);
         }
 
@@ -403,6 +404,13 @@ export class AdminTenantsService {
       const tier = lockRes.rows[0].tier;
       const tenantName = lockRes.rows[0].name;
 
+      // Fetch admin contact for export notification email
+      const adminRes = await client.query<{ email: string }>(
+        `SELECT email FROM tenant_admins WHERE tenant_id = $1 LIMIT 1`,
+        [id],
+      );
+      const adminEmail = adminRes.rows[0]?.email;
+
       // Step 2: disable all plugins
       await client.query(
         `UPDATE tenant_plugins SET is_enabled = false WHERE tenant_id = $1`,
@@ -443,6 +451,7 @@ export class AdminTenantsService {
         tenantId: id,
         tenantName,
         tier,
+        adminEmail,
       } satisfies DataExportJobData);
 
       // 8. If VIP: deregister dedicated pool

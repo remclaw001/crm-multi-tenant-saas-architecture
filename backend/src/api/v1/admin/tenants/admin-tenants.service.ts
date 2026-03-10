@@ -7,11 +7,12 @@ import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { TenantQuotaEnforcer } from '../../../../dal/pool/TenantQuotaEnforcer';
 import { BUILT_IN_MANIFESTS } from '../../../../plugins/manifest/built-in-manifests';
 import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
-import { QUEUE_VIP_MIGRATION, QUEUE_VIP_DECOMMISSION, QUEUE_DATA_EXPORT } from '../../../../workers/bullmq/queue.constants';
+import { QUEUE_VIP_MIGRATION, QUEUE_VIP_DECOMMISSION, QUEUE_DATA_EXPORT, QUEUE_PLUGIN_INIT } from '../../../../workers/bullmq/queue.constants';
 import { CONFIG_RELOAD_CHANNEL, CACHE_INVALIDATE_CHANNEL } from '../../../../dal/pubsub/tenant-config-reload.service';
 import type { VipMigrationJobData } from '../../../../workers/bullmq/processors/vip-migration.processor';
 import type { VipDecommissionJobData } from '../../../../workers/bullmq/processors/vip-decommission.processor';
 import type { DataExportJobData } from '../../../../workers/bullmq/processors/data-export.processor';
+import type { PluginInitJobData } from '../../../../workers/bullmq/processors/plugin-init.processor';
 import { PluginDependencyService } from '../../../../plugins/deps/plugin-dependency.service';
 import { PluginDependencyError } from '../../../../common/errors/plugin-dependency.error';
 
@@ -80,6 +81,7 @@ export class AdminTenantsService {
     @InjectQueue(QUEUE_VIP_DECOMMISSION) private readonly vipDecommissionQueue: Queue,
     @InjectQueue(QUEUE_DATA_EXPORT)      private readonly dataExportQueue: Queue,
     private readonly deps: PluginDependencyService,
+    @InjectQueue(QUEUE_PLUGIN_INIT)      private readonly pluginInitQueue: Queue,
   ) {}
 
   async list(params: { page: number; limit: number; search?: string }) {
@@ -495,14 +497,23 @@ export class AdminTenantsService {
     }
   }
 
-  async togglePlugin(tenantId: string, pluginId: string, enabled: boolean) {
+  async togglePlugin(
+    tenantId: string,
+    pluginId: string,
+    enabled: boolean,
+    userId: string,
+  ): Promise<{ pluginId: string; enabled: boolean; initializing?: boolean }> {
     const manifest = BUILT_IN_MANIFESTS.find((m) => m.name === pluginId);
     if (!manifest) throw new NotFoundException(`Unknown plugin: ${pluginId}`);
 
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
-      const { rows } = await client.query<{ plugin_name: string; is_enabled: boolean }>(
-        `SELECT plugin_name, is_enabled FROM tenant_plugins WHERE tenant_id = $1`,
+      const { rows } = await client.query<{
+        plugin_name: string;
+        is_enabled: boolean;
+        initialized_at: string | null;
+      }>(
+        `SELECT plugin_name, is_enabled, initialized_at FROM tenant_plugins WHERE tenant_id = $1`,
         [tenantId],
       );
       const enabledPlugins = rows.filter((r) => r.is_enabled).map((r) => r.plugin_name);
@@ -518,6 +529,22 @@ export class AdminTenantsService {
            ON CONFLICT (tenant_id, plugin_name) DO UPDATE SET is_enabled = true`,
           [tenantId, pluginId],
         );
+        const targetRow = rows.find((r) => r.plugin_name === pluginId);
+        const isFirstEnable = !targetRow?.initialized_at;
+        if (isFirstEnable) {
+          await this.pluginInitQueue.add('init', { tenantId, pluginId } satisfies PluginInitJobData);
+        }
+        await this.amqp.publishAudit({
+          tenantId,
+          userId,
+          action: 'plugin.enabled',
+          resourceType: 'plugin',
+          resourceId: pluginId,
+          payload: { pluginId, initializing: isFirstEnable },
+          timestamp: new Date().toISOString(),
+        });
+        await this.cache.delForTenant(tenantId, 'tenant-config', 'enabled-plugins');
+        return { pluginId, enabled: true, initializing: isFirstEnable };
       } else {
         const blocking = this.deps.getBlockingDependents(pluginId, enabledPlugins);
         if (blocking.length > 0) {
@@ -529,10 +556,18 @@ export class AdminTenantsService {
            ON CONFLICT (tenant_id, plugin_name) DO UPDATE SET is_enabled = false`,
           [tenantId, pluginId],
         );
+        await this.amqp.publishAudit({
+          tenantId,
+          userId,
+          action: 'plugin.disabled',
+          resourceType: 'plugin',
+          resourceId: pluginId,
+          payload: { pluginId },
+          timestamp: new Date().toISOString(),
+        });
+        await this.cache.delForTenant(tenantId, 'tenant-config', 'enabled-plugins');
+        return { pluginId, enabled: false };
       }
-
-      await this.cache.delForTenant(tenantId, 'tenant-config', 'enabled-plugins');
-      return { pluginId, enabled };
     } finally {
       client.release();
     }

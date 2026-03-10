@@ -62,10 +62,12 @@ import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
 import { PluginDependencyService } from '../../../../plugins/deps/plugin-dependency.service';
 import { PluginDependencyError } from '../../../../common/errors/plugin-dependency.error';
+import type { PluginInitJobData } from '../../../../workers/bullmq/processors/plugin-init.processor';
 
 const mockVipMigrationQueue    = { add: vi.fn().mockResolvedValue(undefined) } as any;
 const mockVipDecommissionQueue = { add: vi.fn().mockResolvedValue(undefined) } as any;
 const mockDataExportQueue      = { add: vi.fn().mockResolvedValue(undefined) } as any;
+const mockPluginInitQueue      = { add: vi.fn().mockResolvedValue(undefined) } as any;
 const mockRedis                = { publish: mockRedisPublish } as any;
 
 const ROW = {
@@ -90,7 +92,8 @@ describe('AdminTenantsService', () => {
       mockVipMigrationQueue,
       mockVipDecommissionQueue,
       mockDataExportQueue,
-      new (PluginDependencyService as any)(),  // ← add this
+      new (PluginDependencyService as any)(),
+      mockPluginInitQueue,
     );
   });
 
@@ -796,23 +799,24 @@ describe('AdminTenantsService', () => {
 
   describe('togglePlugin()', () => {
     const tenantId = 'tenant-uuid';
+    const userId   = 'user-123';
 
     describe('enable path', () => {
       it('enables plugin when all dependencies are satisfied', async () => {
         mockGetMissingDeps.mockReturnValue([]);
         mockQuery
-          .mockResolvedValueOnce({ rows: [{ plugin_name: 'customer-data', is_enabled: true }] })
+          .mockResolvedValueOnce({ rows: [{ plugin_name: 'customer-data', is_enabled: true, initialized_at: null }] })
           .mockResolvedValueOnce({ rows: [] }); // INSERT
 
-        const result = await service.togglePlugin(tenantId, 'customer-care', true);
-        expect(result).toEqual({ pluginId: 'customer-care', enabled: true });
+        const result = await service.togglePlugin(tenantId, 'customer-care', true, userId);
+        expect(result).toEqual({ pluginId: 'customer-care', enabled: true, initializing: true });
       });
 
       it('throws PluginDependencyError (422) when a dependency is not enabled', async () => {
         mockGetMissingDeps.mockReturnValue(['customer-data']);
         mockQuery.mockResolvedValueOnce({ rows: [] });
 
-        await expect(service.togglePlugin(tenantId, 'customer-care', true))
+        await expect(service.togglePlugin(tenantId, 'customer-care', true, userId))
           .rejects.toMatchObject({
             statusCode: 422,
             code: 'PLUGIN_DEPENDENCY_VIOLATION',
@@ -825,10 +829,10 @@ describe('AdminTenantsService', () => {
       it('disables plugin when no enabled plugin depends on it', async () => {
         mockGetBlockingDependents.mockReturnValue([]);
         mockQuery
-          .mockResolvedValueOnce({ rows: [{ plugin_name: 'analytics', is_enabled: true }] })
+          .mockResolvedValueOnce({ rows: [{ plugin_name: 'analytics', is_enabled: true, initialized_at: '2026-03-10T00:00:00Z' }] })
           .mockResolvedValueOnce({ rows: [] }); // INSERT
 
-        const result = await service.togglePlugin(tenantId, 'analytics', false);
+        const result = await service.togglePlugin(tenantId, 'analytics', false, userId);
         expect(result).toEqual({ pluginId: 'analytics', enabled: false });
       });
 
@@ -836,13 +840,13 @@ describe('AdminTenantsService', () => {
         mockGetBlockingDependents.mockReturnValue(['customer-care', 'marketing']);
         mockQuery.mockResolvedValueOnce({
           rows: [
-            { plugin_name: 'customer-data', is_enabled: true },
-            { plugin_name: 'customer-care', is_enabled: true },
-            { plugin_name: 'marketing', is_enabled: true },
+            { plugin_name: 'customer-data', is_enabled: true, initialized_at: '2026-03-10T00:00:00Z' },
+            { plugin_name: 'customer-care', is_enabled: true, initialized_at: '2026-03-10T00:00:00Z' },
+            { plugin_name: 'marketing', is_enabled: true, initialized_at: '2026-03-10T00:00:00Z' },
           ],
         });
 
-        await expect(service.togglePlugin(tenantId, 'customer-data', false))
+        await expect(service.togglePlugin(tenantId, 'customer-data', false, userId))
           .rejects.toMatchObject({
             statusCode: 422,
             code: 'PLUGIN_DEPENDENCY_VIOLATION',
@@ -853,12 +857,94 @@ describe('AdminTenantsService', () => {
       it('does NOT cascade-disable dependents (breaking change from old behavior)', async () => {
         mockGetBlockingDependents.mockReturnValue(['customer-care']);
         mockQuery.mockResolvedValueOnce({
-          rows: [{ plugin_name: 'customer-care', is_enabled: true }],
+          rows: [{ plugin_name: 'customer-care', is_enabled: true, initialized_at: '2026-03-10T00:00:00Z' }],
         });
 
-        await expect(service.togglePlugin(tenantId, 'customer-data', false)).rejects.toThrow();
+        await expect(service.togglePlugin(tenantId, 'customer-data', false, userId)).rejects.toThrow();
         // INSERT must NOT have been called — only the SELECT
         expect(mockQuery).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
+  describe('togglePlugin() — init and audit', () => {
+    const tenantId = 'tenant-uuid';
+    const userId   = 'user-123';
+
+    describe('first-enable init job', () => {
+      it('enqueues init job and returns initializing:true when no prior row', async () => {
+        mockGetMissingDeps.mockReturnValue([]);
+        mockQuery
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({ rows: [] });
+
+        const result = await service.togglePlugin(tenantId, 'customer-data', true, userId);
+
+        expect(result).toEqual({ pluginId: 'customer-data', enabled: true, initializing: true });
+        expect(mockPluginInitQueue.add).toHaveBeenCalledWith('init', {
+          tenantId,
+          pluginId: 'customer-data',
+        } satisfies PluginInitJobData);
+      });
+
+      it('enqueues init job when initialized_at is null', async () => {
+        mockGetMissingDeps.mockReturnValue([]);
+        mockQuery
+          .mockResolvedValueOnce({ rows: [{ plugin_name: 'customer-data', is_enabled: false, initialized_at: null }] })
+          .mockResolvedValueOnce({ rows: [] });
+
+        const result = await service.togglePlugin(tenantId, 'customer-data', true, userId);
+
+        expect(result.initializing).toBe(true);
+        expect(mockPluginInitQueue.add).toHaveBeenCalledOnce();
+      });
+
+      it('does NOT enqueue init job when already initialized', async () => {
+        mockGetMissingDeps.mockReturnValue([]);
+        mockQuery
+          .mockResolvedValueOnce({ rows: [{ plugin_name: 'customer-data', is_enabled: false, initialized_at: '2026-03-10T00:00:00Z' }] })
+          .mockResolvedValueOnce({ rows: [] });
+
+        const result = await service.togglePlugin(tenantId, 'customer-data', true, userId);
+
+        expect(result.initializing).toBe(false);
+        expect(mockPluginInitQueue.add).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('audit log', () => {
+      it('publishes plugin.enabled audit on enable', async () => {
+        mockGetMissingDeps.mockReturnValue([]);
+        mockQuery
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({ rows: [] });
+
+        await service.togglePlugin(tenantId, 'customer-data', true, userId);
+
+        expect(mockPublishAudit).toHaveBeenCalledWith(expect.objectContaining({
+          action: 'plugin.enabled',
+          resourceType: 'plugin',
+          resourceId: 'customer-data',
+          tenantId,
+          userId,
+        }));
+      });
+
+      it('publishes plugin.disabled audit on disable', async () => {
+        mockGetBlockingDependents.mockReturnValue([]);
+        mockQuery
+          .mockResolvedValueOnce({ rows: [{ plugin_name: 'customer-data', is_enabled: true, initialized_at: '2026-03-10T00:00:00Z' }] })
+          .mockResolvedValueOnce({ rows: [] });
+
+        await service.togglePlugin(tenantId, 'customer-data', false, userId);
+
+        expect(mockPublishAudit).toHaveBeenCalledWith(expect.objectContaining({
+          action: 'plugin.disabled',
+          resourceType: 'plugin',
+          resourceId: 'customer-data',
+          tenantId,
+          userId,
+        }));
       });
     });
   });

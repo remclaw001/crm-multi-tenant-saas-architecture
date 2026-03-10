@@ -4,6 +4,8 @@ import {
 } from '@nestjs/common';
 import { SuperAdminGuard } from '../guards/super-admin.guard';
 import { AdminTenantsService, TenantStatus } from './admin-tenants.service';
+import { CurrentUser } from '../../../../gateway/decorators/current-tenant.decorator';
+import type { JwtClaims } from '../../../../gateway/dto/jwt-claims.dto';
 
 @Controller('api/v1/admin/tenants')
 @UseGuards(SuperAdminGuard)
@@ -81,7 +83,8 @@ export class AdminTenantsController {
     @Param('tenantId') tenantId: string,
     @Param('pluginId') pluginId: string,
     @Body() body: { enabled: boolean },
+    @CurrentUser() user: JwtClaims,
   ) {
-    return this.tenantsService.togglePlugin(tenantId, pluginId, body.enabled);
+    return this.tenantsService.togglePlugin(tenantId, pluginId, body.enabled, user.sub);
   }
 }

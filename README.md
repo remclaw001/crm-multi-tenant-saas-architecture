@@ -20,7 +20,7 @@ Hệ thống theo **7-layer architecture**:
 
 | Layer | Tên | Trách nhiệm chính |
 |---|---|---|
-| L1 | Presentation | Web (Next.js), Admin Console, Module Federation |
+| L1 | Presentation | Web (Next.js), Admin Console |
 | L2 | API Gateway | Tenant resolution, JWT auth, rate limiting, route matching |
 | L3 | Business Logic | Plugin management, stateless plugin cores, context building |
 | L4 | Data Access | Query interception, connection pool, cache, migration |
@@ -42,15 +42,34 @@ docs/             Tài liệu kiến trúc HTML (nguồn của web docs)
 
 ## Quick Start
 
+### Option A — Docker (toàn bộ stack)
+
+```bash
+docker compose up -d                        # build + khởi động tất cả services
+
+docker compose exec backend npm run db:migrate   # chạy migrations (lần đầu)
+docker compose exec backend npm run db:seed      # seed dữ liệu mẫu (3 tenants)
+```
+
+| Service | URL |
+|---------|-----|
+| Backend API | http://localhost:3001 |
+| Admin Console | http://localhost:3000 |
+| Web App | http://localhost:3002 |
+| RabbitMQ UI | http://localhost:15672 (crm / crm) |
+| MinIO Console | http://localhost:9001 (crm / crm_secret_dev) |
+
+### Option B — Dev local (backend only)
+
 ```bash
 cd backend
 cp .env.example .env          # điền DATABASE_URL, REDIS_URL, RABBITMQ_URL, JWT_SECRET_FALLBACK
 
-docker compose up -d          # khởi động PostgreSQL, Redis, RabbitMQ
+docker compose up -d          # khởi động infra (PostgreSQL, Redis, RabbitMQ)
 
 npm run db:migrate            # chạy migrations
 npm run db:seed               # seed dữ liệu mẫu (3 tenants)
-npm run start:dev             # dev server tại http://localhost:3000
+npm run start:dev             # dev server tại http://localhost:3001
 
 npm test                      # unit tests (vitest)
 ```

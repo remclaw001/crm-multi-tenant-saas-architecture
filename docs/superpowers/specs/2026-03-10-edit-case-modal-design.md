@@ -81,7 +81,7 @@ No `open` prop — parent controls mount/unmount via `{editingCase && <EditCaseM
 
 ### Behavior
 - `useEffect` resets form when `supportCase.id` changes (user opens different case)
-- `useQuery` fetches users (always enabled — modal is only mounted when open)
+- `useQuery` fetches users; no `enabled: open` guard needed (modal is only mounted when open), but still guard on `Boolean(token && tenantId)` as with all other queries in this codebase
 - `useMutation` calls `crmApi.updateCase(supportCase.id, input, ctx)`
 - On success: `onSuccess()` then `onClose()` — caller owns cache invalidation
 - On API error: inline error message above footer buttons
@@ -150,6 +150,7 @@ Mount modal conditionally:
   - Renders all 5 fields pre-filled from `supportCase`
   - Validation: title required
   - Correct payload sent to `mutateAsync`
+  - Selecting "Unassigned" sends `assigned_to: null` explicitly in the payload (not a missing key)
   - `onSuccess` + `onClose` called after success
   - API error displayed
   - Users loaded into Assigned To dropdown

@@ -111,6 +111,36 @@ code{font-family:monospace;font-size:.78rem;color:#818cf8;background:#111420;pad
 .note{font-size:.76rem;color:#7880a0;font-style:italic;margin-top:10px;padding:8px 12px;border-left:2px solid #1c2038;line-height:1.5}
 html.lang-en [data-lang="vi"]{display:none}
 html.lang-vi [data-lang="en"]{display:none}
+
+/* ── REPO SECTION ── */
+.repo-link{display:flex;align-items:center;gap:16px;background:#111420;border:1px solid rgba(129,140,248,.3);border-radius:8px;padding:16px 18px;text-decoration:none;transition:border-color .2s,background .2s;margin-bottom:16px}
+.repo-link:hover{border-color:rgba(129,140,248,.6);background:rgba(129,140,248,.05)}
+.repo-link-name{font-family:monospace;font-size:.85rem;font-weight:600;color:#818cf8;margin-bottom:3px}
+.repo-link-url{font-family:monospace;font-size:.7rem;color:#484e6a}
+.repo-link-arrow{color:#484e6a;font-size:1.2rem;flex-shrink:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+.item{background:#111420;border:1px solid #1c2038;border-radius:6px;padding:14px 16px}
+.item-head{font-size:.82rem;font-weight:600;color:#d8dce8;margin-bottom:5px}
+.item-body{font-size:.78rem;color:#7880a0;line-height:1.65}
+.item-body code{font-family:monospace;font-size:.76rem;color:#818cf8;background:#1c2038;padding:1px 5px;border-radius:3px}
+.file-tree{font-family:monospace;font-size:.76rem;line-height:1.9;color:#7880a0;background:#111420;border:1px solid #1c2038;border-radius:6px;padding:14px 16px;white-space:pre;overflow-x:auto;margin-bottom:16px}
+.file-tree .dir{color:#818cf8}
+.file-tree .fnote{color:#484e6a}
+.phase-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+@media(max-width:640px){.phase-grid{grid-template-columns:repeat(3,1fr)}}
+.phase-chip{border:1px solid #1c2038;border-radius:6px;padding:10px 8px;text-align:center;background:#111420}
+.phase-chip.done{border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.04)}
+.phase-chip.pending{opacity:.5}
+.chip-num{font-family:monospace;font-size:.72rem;font-weight:700;margin-bottom:2px}
+.phase-chip.done .chip-num{color:#34d399}
+.phase-chip.pending .chip-num{color:#484e6a}
+.chip-name{font-size:.68rem;color:#7880a0;line-height:1.4}
+.chip-badge{font-size:.6rem;font-family:monospace;padding:1px 5px;border-radius:2px;margin-top:4px;display:inline-block}
+.phase-chip.done .chip-badge{background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.25)}
+.phase-chip.pending .chip-badge{background:rgba(120,128,160,.08);color:#484e6a;border:1px solid #1c2038}
+.tag.ok{border-color:rgba(52,211,153,.25);color:#34d399;background:rgba(52,211,153,.07)}
+.tag.warn{border-color:rgba(250,204,21,.25);color:#facc15;background:rgba(250,204,21,.07)}
 </style>
 <script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
@@ -351,6 +381,107 @@ html.lang-vi [data-lang="en"]{display:none}
     </div>
 
   </div><!-- end .timeline -->
+
+  <!-- ── REPOSITORY ── -->
+  <div class="summary-box" style="margin-top:20px">
+    <h3>Repository</h3>
+    <a class="repo-link" href="https://github.com/remclaw001/crm-multi-tenant-saas-architecture" target="_blank" rel="noopener noreferrer">
+      <div style="font-size:1.4rem;flex-shrink:0">⌥</div>
+      <div style="flex:1;min-width:0">
+        <div class="repo-link-name">remclaw001 / crm-multi-tenant-saas-architecture</div>
+        <div class="repo-link-url">https://github.com/remclaw001/crm-multi-tenant-saas-architecture</div>
+      </div>
+      <div class="repo-link-arrow">↗</div>
+    </a>
+
+    <h3>Mục đích</h3>
+    <div class="grid2">
+      <div class="item">
+        <div class="item-head">🎯 Thực hành</div>
+        <div class="item-body">Codebase để áp dụng và kiểm chứng trực tiếp các quyết định kiến trúc được mô tả trong tài liệu này. Mỗi phase trong Build Roadmap có branch tương ứng để theo dõi tiến trình xây dựng từng bước.</div>
+      </div>
+      <div class="item">
+        <div class="item-head">🧪 Demo</div>
+        <div class="item-body">Repo công khai dùng để minh hoạ các pattern multi-tenancy, plugin sandbox, async workers với code thực tế chạy được — không chỉ là diagram trên giấy.</div>
+      </div>
+      <div class="item">
+        <div class="item-head">📐 Nguyên tắc</div>
+        <div class="item-body">Đây <em>không phải</em> production codebase. Ưu tiên rõ ràng, dễ đọc, và minh hoạ đúng pattern hơn là tối ưu hiệu năng. Comment giải thích lý do thiết kế (<em>why</em>), không chỉ what.</div>
+      </div>
+      <div class="item">
+        <div class="item-head">🔗 Quan hệ với docs</div>
+        <div class="item-body">Repo này song song với tài liệu kiến trúc. Mỗi module trong <code>backend/src/</code> có tài liệu giải thích tương ứng trong site này. Code và docs được cập nhật đồng thời.</div>
+      </div>
+    </div>
+
+    <h3>Cấu trúc repo</h3>
+    <div class="file-tree"><span class="dir">crm-multi-tenant-saas-architecture/</span>
+├── <span class="dir">backend/</span>               <span class="fnote"># NestJS API — L2 đến L7</span>
+│   ├── <span class="dir">src/</span>
+│   │   ├── <span class="dir">api/</span>           <span class="fnote"># L3 — REST routes v1</span>
+│   │   ├── <span class="dir">common/</span>        <span class="fnote"># L6 — security, error handling</span>
+│   │   ├── <span class="dir">config/</span>        <span class="fnote"># env schema (Zod)</span>
+│   │   ├── <span class="dir">dal/</span>           <span class="fnote"># L4 — pool, cache, interceptor, context</span>
+│   │   ├── <span class="dir">gateway/</span>       <span class="fnote"># L2 — middleware, JWT guard, CORS</span>
+│   │   ├── <span class="dir">observability/</span> <span class="fnote"># L7 — Pino, OTel, Prometheus, Sentry</span>
+│   │   ├── <span class="dir">plugins/</span>       <span class="fnote"># L3 — cores, hooks, sandbox, manifest</span>
+│   │   └── <span class="dir">workers/</span>       <span class="fnote"># L5 — RabbitMQ, BullMQ, cron</span>
+│   ├── docker-compose.yml    <span class="fnote"># infra local + observability stack</span>
+│   └── knexfile.ts           <span class="fnote"># DB migration config</span>
+├── <span class="dir">frontend/</span>
+│   ├── <span class="dir">admin/</span>             <span class="fnote"># Next.js 15, port 3000</span>
+│   └── <span class="dir">web/</span>               <span class="fnote"># Next.js 15, port 3002</span>
+└── <span class="dir">docs/</span>                  <span class="fnote"># ← tài liệu bạn đang đọc</span></div>
+
+    <h3>Quick start</h3>
+    <div class="code-block"><span class="k">git clone</span> https://github.com/remclaw001/crm-multi-tenant-saas-architecture
+<span class="k">cd</span> crm-multi-tenant-saas-architecture/backend
+<span class="k">cp</span> .env.example .env          <span class="c"># điền thông tin</span>
+<span class="k">docker compose up</span> -d          <span class="c"># PostgreSQL, Redis, RabbitMQ</span>
+<span class="k">npm run</span> db:migrate            <span class="c"># chạy migrations</span>
+<span class="k">npm run</span> db:seed               <span class="c"># seed 3 tenants</span>
+<span class="k">npm run</span> start:dev             <span class="c"># dev server :3000</span>
+<span class="k">npm test</span>                      <span class="c"># unit tests</span></div>
+
+    <h3>Tech stack</h3>
+    <div class="grid2">
+      <div class="item">
+        <div class="item-head">Backend</div>
+        <div class="item-body">
+          <span class="tag">NestJS 10</span> <span class="tag">TypeScript 5</span> <span class="tag">Knex.js</span>
+          <span class="tag">ioredis</span> <span class="tag">amqplib</span> <span class="tag">BullMQ</span>
+          <span class="tag">Pino</span> <span class="tag">OpenTelemetry</span> <span class="tag">Prometheus</span>
+          <span class="tag">Sentry</span> <span class="tag">Vitest</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-head">Frontend</div>
+        <div class="item-body">
+          <span class="tag">Next.js 15</span> <span class="tag">React 19</span>
+          <span class="tag">TanStack Query</span> <span class="tag">Zustand</span>
+          <span class="tag">Tailwind CSS</span> <span class="tag">Module Federation</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-head">Infrastructure</div>
+        <div class="item-body">
+          <span class="tag">PostgreSQL 16</span> <span class="tag">Redis 7</span> <span class="tag">RabbitMQ 3</span>
+          <span class="tag">Jaeger</span> <span class="tag">Grafana</span> <span class="tag">Loki</span>
+          <span class="tag">Docker Compose</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="item-head">Runtime</div>
+        <div class="item-body">
+          <span class="tag">Node.js ≥ 22</span>
+          <span class="tag ok">Row-Level Security</span>
+          <span class="tag ok">AsyncLocalStorage</span>
+          <span class="tag warn">V8 Isolate sandbox</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══════════════════════════════════════════════

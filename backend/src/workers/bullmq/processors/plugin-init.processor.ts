@@ -33,6 +33,9 @@ export class PluginInitProcessor extends WorkerHost {
         return;
       }
       if (!rows[0]) {
+        // Race condition: in high-concurrency scenarios this processor can start
+        // before togglePlugin's INSERT has been committed to the DB. Throwing here
+        // causes BullMQ to retry the job, at which point the row will be visible.
         throw new Error(
           `[PluginInit] No tenant_plugins row found for tenant=${tenantId} plugin=${pluginId} — will retry`,
         );

@@ -39,6 +39,7 @@ import {
   PluginTimeoutError,
   PluginDisabledError,
   ConflictError,
+  PluginDependencyError,
 } from '../../common/errors';
 
 describe('HttpExceptionFilter', () => {
@@ -174,6 +175,31 @@ describe('HttpExceptionFilter', () => {
     expect(body.status).toBe(409);
     expect(body.code).toBe('CONFLICT');
     expect(body.detail).toBe('Email already exists');
+  });
+
+  it('maps PluginDependencyError with missingDeps → 422 with missingDeps array and code PLUGIN_DEPENDENCY_VIOLATION', () => {
+    const exception = new PluginDependencyError('customer-care', 'enable', ['customer-data'], []);
+    const res = makeRes();
+    filter.catch(exception, makeHost({ url: '/api/v1', correlationId: 'x' }, res));
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    const body = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(body.status).toBe(422);
+    expect(body.code).toBe('PLUGIN_DEPENDENCY_VIOLATION');
+    expect(body.missingDeps).toEqual(['customer-data']);
+    expect(body.blockingDependents).toBeUndefined();
+  });
+
+  it('maps PluginDependencyError with blockingDependents → 422 with blockingDependents array', () => {
+    const exception = new PluginDependencyError('customer-data', 'disable', [], ['customer-care', 'automation']);
+    const res = makeRes();
+    filter.catch(exception, makeHost({ url: '/api/v1', correlationId: 'x' }, res));
+
+    expect(res.status).toHaveBeenCalledWith(422);
+    const body = (res.json as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(body.status).toBe(422);
+    expect(body.blockingDependents).toEqual(['customer-care', 'automation']);
+    expect(body.missingDeps).toBeUndefined();
   });
 
   it('does not set code field for NestJS HttpException', () => {

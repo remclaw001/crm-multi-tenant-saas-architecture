@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Inject, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Redis } from 'ioredis';
 import type { Queue } from 'bullmq';
@@ -72,6 +72,8 @@ function rowToTenant(row: TenantRow) {
 
 @Injectable()
 export class AdminTenantsService {
+  private readonly logger = new Logger(AdminTenantsService.name);
+
   constructor(
     private readonly poolRegistry: PoolRegistry,
     private readonly cache: CacheManager,
@@ -535,15 +537,19 @@ export class AdminTenantsService {
         if (isFirstEnable) {
           await this.pluginInitQueue.add('init', { tenantId, pluginId } satisfies PluginInitJobData);
         }
-        await this.amqp.publishAudit({
-          tenantId,
-          userId,
-          action: 'plugin.enabled',
-          resourceType: 'plugin',
-          resourceId: pluginId,
-          payload: { pluginId, initializing: isFirstEnable },
-          timestamp: new Date().toISOString(),
-        });
+        try {
+          await this.amqp.publishAudit({
+            tenantId,
+            userId,
+            action: 'plugin.enabled',
+            resourceType: 'plugin',
+            resourceId: pluginId,
+            payload: { pluginId, initializing: isFirstEnable },
+            timestamp: new Date().toISOString(),
+          });
+        } catch (auditErr) {
+          this.logger.warn(`[togglePlugin] audit publish failed for plugin.enabled (tenant=${tenantId}, plugin=${pluginId}): ${(auditErr as Error).message}`);
+        }
         await this.cache.delForTenant(tenantId, 'tenant-config', 'enabled-plugins');
         return { pluginId, enabled: true, initializing: isFirstEnable };
       } else {
@@ -557,15 +563,19 @@ export class AdminTenantsService {
            ON CONFLICT (tenant_id, plugin_name) DO UPDATE SET is_enabled = false`,
           [tenantId, pluginId],
         );
-        await this.amqp.publishAudit({
-          tenantId,
-          userId,
-          action: 'plugin.disabled',
-          resourceType: 'plugin',
-          resourceId: pluginId,
-          payload: { pluginId },
-          timestamp: new Date().toISOString(),
-        });
+        try {
+          await this.amqp.publishAudit({
+            tenantId,
+            userId,
+            action: 'plugin.disabled',
+            resourceType: 'plugin',
+            resourceId: pluginId,
+            payload: { pluginId },
+            timestamp: new Date().toISOString(),
+          });
+        } catch (auditErr) {
+          this.logger.warn(`[togglePlugin] audit publish failed for plugin.disabled (tenant=${tenantId}, plugin=${pluginId}): ${(auditErr as Error).message}`);
+        }
         await this.cache.delForTenant(tenantId, 'tenant-config', 'enabled-plugins');
         return { pluginId, enabled: false };
       }

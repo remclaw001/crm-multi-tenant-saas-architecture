@@ -15,6 +15,8 @@ const mockDeregisterVipPool = vi.hoisted(() => vi.fn().mockResolvedValue(undefin
 const mockQuotaRegister = vi.hoisted(() => vi.fn());
 const mockQuotaDeregister = vi.hoisted(() => vi.fn());
 const mockQuotaUpdateCap = vi.hoisted(() => vi.fn());
+const mockGetMissingDeps       = vi.hoisted(() => vi.fn().mockReturnValue([]));
+const mockGetBlockingDependents = vi.hoisted(() => vi.fn().mockReturnValue([]));
 
 vi.mock('../../../../dal/pool/PoolRegistry', () => ({
   PoolRegistry: vi.fn().mockImplementation(() => ({
@@ -47,10 +49,19 @@ vi.mock('../../../../../dal/pool/TenantQuotaEnforcer', () => ({
   },
 }));
 
+vi.mock('../../../../plugins/deps/plugin-dependency.service', () => ({
+  PluginDependencyService: vi.fn().mockImplementation(() => ({
+    getMissingDeps: mockGetMissingDeps,
+    getBlockingDependents: mockGetBlockingDependents,
+  })),
+}));
+
 import { AdminTenantsService } from '../admin-tenants.service';
 import { PoolRegistry } from '../../../../dal/pool/PoolRegistry';
 import { CacheManager } from '../../../../dal/cache/CacheManager';
 import { AmqpPublisher } from '../../../../workers/amqp/amqp-publisher.service';
+import { PluginDependencyService } from '../../../../plugins/deps/plugin-dependency.service';
+import { PluginDependencyError } from '../../../../common/errors/plugin-dependency.error';
 
 const mockVipMigrationQueue    = { add: vi.fn().mockResolvedValue(undefined) } as any;
 const mockVipDecommissionQueue = { add: vi.fn().mockResolvedValue(undefined) } as any;
@@ -79,6 +90,7 @@ describe('AdminTenantsService', () => {
       mockVipMigrationQueue,
       mockVipDecommissionQueue,
       mockDataExportQueue,
+      new (PluginDependencyService as any)(),  // ← add this
     );
   });
 
@@ -779,6 +791,75 @@ describe('AdminTenantsService', () => {
     it('throws BadRequestException for unknown newPlan', async () => {
       await expect(service.confirmDowngrade('tid', 'gold')).rejects.toThrow(BadRequestException);
       expect(mockQuery).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('togglePlugin()', () => {
+    const tenantId = 'tenant-uuid';
+
+    describe('enable path', () => {
+      it('enables plugin when all dependencies are satisfied', async () => {
+        mockGetMissingDeps.mockReturnValue([]);
+        mockQuery
+          .mockResolvedValueOnce({ rows: [{ plugin_name: 'customer-data', is_enabled: true }] })
+          .mockResolvedValueOnce({ rows: [] }); // INSERT
+
+        const result = await service.togglePlugin(tenantId, 'customer-care', true);
+        expect(result).toEqual({ pluginId: 'customer-care', enabled: true });
+      });
+
+      it('throws PluginDependencyError (422) when a dependency is not enabled', async () => {
+        mockGetMissingDeps.mockReturnValue(['customer-data']);
+        mockQuery.mockResolvedValueOnce({ rows: [] });
+
+        await expect(service.togglePlugin(tenantId, 'customer-care', true))
+          .rejects.toMatchObject({
+            statusCode: 422,
+            code: 'PLUGIN_DEPENDENCY_VIOLATION',
+            missingDeps: ['customer-data'],
+          });
+      });
+    });
+
+    describe('disable path', () => {
+      it('disables plugin when no enabled plugin depends on it', async () => {
+        mockGetBlockingDependents.mockReturnValue([]);
+        mockQuery
+          .mockResolvedValueOnce({ rows: [{ plugin_name: 'analytics', is_enabled: true }] })
+          .mockResolvedValueOnce({ rows: [] }); // INSERT
+
+        const result = await service.togglePlugin(tenantId, 'analytics', false);
+        expect(result).toEqual({ pluginId: 'analytics', enabled: false });
+      });
+
+      it('throws PluginDependencyError (422) when enabled plugins depend on target', async () => {
+        mockGetBlockingDependents.mockReturnValue(['customer-care', 'marketing']);
+        mockQuery.mockResolvedValueOnce({
+          rows: [
+            { plugin_name: 'customer-data', is_enabled: true },
+            { plugin_name: 'customer-care', is_enabled: true },
+            { plugin_name: 'marketing', is_enabled: true },
+          ],
+        });
+
+        await expect(service.togglePlugin(tenantId, 'customer-data', false))
+          .rejects.toMatchObject({
+            statusCode: 422,
+            code: 'PLUGIN_DEPENDENCY_VIOLATION',
+            blockingDependents: ['customer-care', 'marketing'],
+          });
+      });
+
+      it('does NOT cascade-disable dependents (breaking change from old behavior)', async () => {
+        mockGetBlockingDependents.mockReturnValue(['customer-care']);
+        mockQuery.mockResolvedValueOnce({
+          rows: [{ plugin_name: 'customer-care', is_enabled: true }],
+        });
+
+        await expect(service.togglePlugin(tenantId, 'customer-data', false)).rejects.toThrow();
+        // INSERT must NOT have been called — only the SELECT
+        expect(mockQuery).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });

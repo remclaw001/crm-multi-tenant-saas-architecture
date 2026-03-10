@@ -12,6 +12,8 @@ import { CONFIG_RELOAD_CHANNEL, CACHE_INVALIDATE_CHANNEL } from '../../../../dal
 import type { VipMigrationJobData } from '../../../../workers/bullmq/processors/vip-migration.processor';
 import type { VipDecommissionJobData } from '../../../../workers/bullmq/processors/vip-decommission.processor';
 import type { DataExportJobData } from '../../../../workers/bullmq/processors/data-export.processor';
+import { PluginDependencyService } from '../../../../plugins/deps/plugin-dependency.service';
+import { PluginDependencyError } from '../../../../common/errors/plugin-dependency.error';
 
 const TIER_DEFAULT_PLUGINS: Record<string, string[]> = {
   basic:      ['customer-data'],
@@ -77,6 +79,7 @@ export class AdminTenantsService {
     @InjectQueue(QUEUE_VIP_MIGRATION)    private readonly vipMigrationQueue: Queue,
     @InjectQueue(QUEUE_VIP_DECOMMISSION) private readonly vipDecommissionQueue: Queue,
     @InjectQueue(QUEUE_DATA_EXPORT)      private readonly dataExportQueue: Queue,
+    private readonly deps: PluginDependencyService,
   ) {}
 
   async list(params: { page: number; limit: number; search?: string }) {
@@ -498,20 +501,16 @@ export class AdminTenantsService {
 
     const client = await this.poolRegistry.acquireMetadataConnection();
     try {
-      // Load current enabled state for all plugins of this tenant
       const { rows } = await client.query<{ plugin_name: string; is_enabled: boolean }>(
         `SELECT plugin_name, is_enabled FROM tenant_plugins WHERE tenant_id = $1`,
         [tenantId],
       );
-      const enabledSet = new Set(rows.filter((r) => r.is_enabled).map((r) => r.plugin_name));
+      const enabledPlugins = rows.filter((r) => r.is_enabled).map((r) => r.plugin_name);
 
       if (enabled) {
-        // ENABLE: all dependencies must already be enabled
-        const missing = manifest.dependencies.filter((dep) => !enabledSet.has(dep));
+        const missing = this.deps.getMissingDeps(pluginId, enabledPlugins);
         if (missing.length > 0) {
-          throw new BadRequestException(
-            `Cannot enable "${pluginId}": required dependencies are disabled: ${missing.join(', ')}`,
-          );
+          throw new PluginDependencyError(pluginId, 'enable', missing, []);
         }
         await client.query(
           `INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled)
@@ -520,21 +519,16 @@ export class AdminTenantsService {
           [tenantId, pluginId],
         );
       } else {
-        // DISABLE: cascade disable all dependents (plugins that depend on this one)
-        const toCascade = BUILT_IN_MANIFESTS
-          .filter((m) => m.dependencies.includes(pluginId) && enabledSet.has(m.name))
-          .map((m) => m.name);
-
-        const toDisable = [pluginId, ...toCascade];
+        const blocking = this.deps.getBlockingDependents(pluginId, enabledPlugins);
+        if (blocking.length > 0) {
+          throw new PluginDependencyError(pluginId, 'disable', [], blocking);
+        }
         await client.query(
           `INSERT INTO tenant_plugins (tenant_id, plugin_name, is_enabled)
-           SELECT $1, unnest($2::text[]), false
+           VALUES ($1, $2, false)
            ON CONFLICT (tenant_id, plugin_name) DO UPDATE SET is_enabled = false`,
-          [tenantId, toDisable],
+          [tenantId, pluginId],
         );
-
-        await this.cache.delForTenant(tenantId, 'tenant-config', 'enabled-plugins');
-        return { pluginId, enabled, cascadeDisabled: toCascade };
       }
 
       await this.cache.delForTenant(tenantId, 'tenant-config', 'enabled-plugins');

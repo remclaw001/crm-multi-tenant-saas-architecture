@@ -5,7 +5,7 @@ import { CreateTriggerModal } from '../create-trigger-modal';
 const mockMutateAsync = vi.hoisted(() => vi.fn());
 
 vi.mock('@tanstack/react-query', () => ({
-  useMutation: vi.fn(() => ({ mutateAsync: mockMutateAsync, isPending: false })),
+  useMutation: vi.fn(() => ({ mutateAsync: mockMutateAsync, isPending: false, reset: vi.fn() })),
 }));
 
 vi.mock('@/stores/auth.store', () => ({

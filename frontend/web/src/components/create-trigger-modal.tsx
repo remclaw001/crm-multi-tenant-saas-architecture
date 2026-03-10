@@ -83,8 +83,9 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
       setForm(EMPTY_FORM);
       setConditionErrors({});
       setApiError('');
+      mutation.reset();
     }
-  }, [open]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
 
@@ -93,6 +94,7 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
     setForm(EMPTY_FORM);
     setConditionErrors({});
     setApiError('');
+    mutation.reset();
     onClose();
   }
 
@@ -138,7 +140,7 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
     setApiError('');
     if (!validateConditions()) return;
 
-    const payload = {
+    const payload: Parameters<typeof crmApi.createTrigger>[0] = {
       name: form.name.trim(),
       event_type: form.eventType,
       is_active: form.isActive,
@@ -146,7 +148,7 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
         form.conditions.length > 0
           ? { and: form.conditions.map((r) => ({ field: r.field, op: r.op, value: r.value })) }
           : {},
-      actions: [] as unknown[],
+      actions: [],
     };
 
     try {
@@ -326,12 +328,13 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
                             value={row.value}
                             onChange={(e) => updateCondition(row.id, { value: e.target.value })}
                             placeholder="Value…"
+                            aria-describedby={conditionErrors[row.id] ? `condition-error-${row.id}` : undefined}
                             className={`w-full rounded-md border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring ${
                               conditionErrors[row.id] ? 'border-red-500' : 'border-border'
                             }`}
                           />
                           {conditionErrors[row.id] && (
-                            <p className="mt-0.5 text-xs text-red-500">{conditionErrors[row.id]}</p>
+                            <p id={`condition-error-${row.id}`} className="mt-0.5 text-xs text-red-500">{conditionErrors[row.id]}</p>
                           )}
                         </div>
                       )}

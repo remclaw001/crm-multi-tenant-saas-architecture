@@ -12,7 +12,7 @@ import { CONFIG_RELOAD_CHANNEL, CACHE_INVALIDATE_CHANNEL } from '../../../../dal
 import type { VipMigrationJobData } from '../../../../workers/bullmq/processors/vip-migration.processor';
 import type { VipDecommissionJobData } from '../../../../workers/bullmq/processors/vip-decommission.processor';
 import type { DataExportJobData } from '../../../../workers/bullmq/processors/data-export.processor';
-import type { PluginInitJobData } from '../../../../workers/bullmq/processors/plugin-init.processor';
+import type { PluginInitJobData } from '../../../../plugins/init/plugin-init.processor';
 import { PluginDependencyService } from '../../../../plugins/deps/plugin-dependency.service';
 import { PluginDependencyError } from '../../../../plugins/deps/plugin-dependency.error';
 

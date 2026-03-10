@@ -14,7 +14,7 @@ import { VipMigrationProcessor }      from './processors/vip-migration.processor
 import { VipDecommissionProcessor }   from './processors/vip-decommission.processor';
 import { DataExportProcessor }        from './processors/data-export.processor';
 import { VipSharedCleanupProcessor }  from './processors/vip-shared-cleanup.processor';
-import { PluginInitProcessor }        from './processors/plugin-init.processor';
+import { PluginInitProcessor }        from '../../plugins/init/plugin-init.processor';
 
 @Module({
   imports: [

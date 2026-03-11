@@ -7,7 +7,7 @@
 import { Module }      from '@nestjs/common';
 import { BullModule }  from '@nestjs/bullmq';
 import { config }      from '../../config/env';
-import { QUEUE_EMAIL, QUEUE_WEBHOOK, QUEUE_VIP_MIGRATION, QUEUE_VIP_DECOMMISSION, QUEUE_DATA_EXPORT, QUEUE_VIP_SHARED_CLEANUP, QUEUE_PLUGIN_INIT } from './queue.constants';
+import { QUEUE_EMAIL, QUEUE_WEBHOOK, QUEUE_VIP_MIGRATION, QUEUE_VIP_DECOMMISSION, QUEUE_DATA_EXPORT, QUEUE_VIP_SHARED_CLEANUP, QUEUE_PLUGIN_INIT, QUEUE_AUTOMATION_ACTIONS } from './queue.constants';
 import { EmailProcessor }             from './processors/email.processor';
 import { WebhookRetryProcessor }      from './processors/webhook-retry.processor';
 import { VipMigrationProcessor }      from './processors/vip-migration.processor';
@@ -15,6 +15,7 @@ import { VipDecommissionProcessor }   from './processors/vip-decommission.proces
 import { DataExportProcessor }        from './processors/data-export.processor';
 import { VipSharedCleanupProcessor }  from './processors/vip-shared-cleanup.processor';
 import { PluginInitProcessor }        from '../../plugins/init/plugin-init.processor';
+import { AutomationActionProcessor }  from '../../plugins/cores/automation/automation-action.processor';
 
 @Module({
   imports: [
@@ -28,10 +29,11 @@ import { PluginInitProcessor }        from '../../plugins/init/plugin-init.proce
       { name: QUEUE_VIP_DECOMMISSION,   defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 5000 } } },
       { name: QUEUE_DATA_EXPORT,        defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 3000 } } },
       { name: QUEUE_VIP_SHARED_CLEANUP, defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 60_000 } } },
-      { name: QUEUE_PLUGIN_INIT,        defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 3000 } } },
+      { name: QUEUE_PLUGIN_INIT,           defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 3000 } } },
+      { name: QUEUE_AUTOMATION_ACTIONS,    defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } } },
     ),
   ],
-  providers: [EmailProcessor, WebhookRetryProcessor, VipMigrationProcessor, VipDecommissionProcessor, DataExportProcessor, VipSharedCleanupProcessor, PluginInitProcessor],
+  providers: [EmailProcessor, WebhookRetryProcessor, VipMigrationProcessor, VipDecommissionProcessor, DataExportProcessor, VipSharedCleanupProcessor, PluginInitProcessor, AutomationActionProcessor],
   exports:   [BullModule],  // re-export so consumers can InjectQueue
 })
 export class BullMqModule {}

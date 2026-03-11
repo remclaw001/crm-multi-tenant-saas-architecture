@@ -18,6 +18,7 @@ import type { JwtClaims } from '../../../gateway/dto/jwt-claims.dto';
 import { ExecutionContextBuilder } from '../../context/execution-context-builder.service';
 import { SandboxService } from '../../sandbox/sandbox.service';
 import { AutomationCore, CreateTriggerInput, UpdateTriggerInput } from './automation.core';
+import { ActionRegistry } from './action-registry';
 
 const PLUGIN_NAME = 'automation';
 
@@ -27,7 +28,19 @@ export class AutomationController {
     private readonly core: AutomationCore,
     private readonly contextBuilder: ExecutionContextBuilder,
     private readonly sandbox: SandboxService,
+    private readonly actionRegistry: ActionRegistry,
   ) {}
+
+  @Get('actions')
+  async getAvailableActions(
+    @CurrentTenant() tenant: ResolvedTenant,
+    @CurrentUser() user: JwtClaims,
+    @Req() req: Request & { correlationId?: string },
+  ) {
+    const ctx = await this.buildCtx(tenant, user, req);
+    const actions = this.actionRegistry.getAvailableFor(ctx.enabledPlugins);
+    return { plugin: PLUGIN_NAME, data: actions };
+  }
 
   private async buildCtx(
     tenant: ResolvedTenant,

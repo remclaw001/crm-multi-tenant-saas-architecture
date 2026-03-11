@@ -60,6 +60,6 @@ describe('CaseCreateHandler', () => {
     mockFirst.mockResolvedValue({ id: 'cust-1', tenant_id: 'other' });
     await expect(
       handler.execute(ctx, { title: 'Test', priority: 'low' }),
-    ).rejects.toThrow('tenant');
+    ).rejects.toThrow('Customer not found');
   });
 });

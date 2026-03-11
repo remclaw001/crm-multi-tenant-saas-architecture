@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type { Knex } from 'knex';
-import { DomainError } from '../../../../common/errors/domain.errors';
+import { ResourceNotFoundError } from '../../../../common/errors/domain.errors';
 import type { CommandHandler, ActionCommandContext } from './command-handler.interface';
 import { resolveTemplate } from '../template-engine';
 
@@ -8,12 +8,6 @@ interface CaseCreateParams {
   title: string;
   priority: 'low' | 'medium' | 'high';
   description?: string;
-}
-
-class ActionDomainError extends DomainError {
-  constructor(message: string) {
-    super(message, 422, 'ACTION_DOMAIN_ERROR');
-  }
 }
 
 @Injectable()
@@ -31,10 +25,10 @@ export class CaseCreateHandler implements CommandHandler<CaseCreateParams> {
       .first();
 
     if (!customer) {
-      throw new ActionDomainError('Customer not found');
+      throw new ResourceNotFoundError('Customer', customerId);
     }
     if (customer.tenant_id !== ctx.tenantId) {
-      throw new ActionDomainError('Customer belongs to different tenant');
+      throw new ResourceNotFoundError('Customer', customerId);
     }
 
     const title = resolveTemplate(params.title, ctx.triggerContext);

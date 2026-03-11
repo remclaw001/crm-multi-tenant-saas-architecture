@@ -57,7 +57,7 @@ describe('CustomerUpdateFieldHandler', () => {
     mockFirst.mockResolvedValue({ id: 'cust-1', tenant_id: 'other-tenant' });
     await expect(
       handler.execute(ctx, { field: 'company', value: 'X' }),
-    ).rejects.toThrow('tenant');
+    ).rejects.toThrow('Customer not found');
   });
 
   it('rejects invalid field names', async () => {

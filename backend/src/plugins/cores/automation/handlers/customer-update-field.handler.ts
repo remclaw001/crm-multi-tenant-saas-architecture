@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type { Knex } from 'knex';
-import { DomainError } from '../../../../common/errors/domain.errors';
+import { DomainError, ResourceNotFoundError } from '../../../../common/errors/domain.errors';
 import type { CommandHandler, ActionCommandContext } from './command-handler.interface';
 import { resolveTemplate } from '../template-engine';
 
@@ -12,12 +12,6 @@ interface CustomerUpdateFieldParams {
   value: string;
 }
 
-class ActionDomainError extends DomainError {
-  constructor(message: string) {
-    super(message, 422, 'ACTION_DOMAIN_ERROR');
-  }
-}
-
 @Injectable()
 export class CustomerUpdateFieldHandler implements CommandHandler<CustomerUpdateFieldParams> {
   readonly actionType = 'customer.update_field';
@@ -26,7 +20,7 @@ export class CustomerUpdateFieldHandler implements CommandHandler<CustomerUpdate
 
   async execute(ctx: ActionCommandContext, params: CustomerUpdateFieldParams): Promise<void> {
     if (!(ALLOWED_FIELDS as readonly string[]).includes(params.field)) {
-      throw new ActionDomainError(`Invalid field: "${params.field}". Allowed: ${ALLOWED_FIELDS.join(', ')}`);
+      throw new DomainError(`Invalid field: "${params.field}". Allowed: ${ALLOWED_FIELDS.join(', ')}`, 400, 'INVALID_ACTION_PARAMS');
     }
 
     const customerId = (ctx.triggerContext.customer as Record<string, unknown>)?.id as string;
@@ -37,10 +31,10 @@ export class CustomerUpdateFieldHandler implements CommandHandler<CustomerUpdate
       .first();
 
     if (!customer) {
-      throw new ActionDomainError('Customer not found');
+      throw new ResourceNotFoundError('Customer', customerId);
     }
     if (customer.tenant_id !== ctx.tenantId) {
-      throw new ActionDomainError('Customer belongs to different tenant');
+      throw new ResourceNotFoundError('Customer', customerId);
     }
 
     const resolved = resolveTemplate(params.value, ctx.triggerContext);

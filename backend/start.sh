@@ -25,4 +25,15 @@ until npm run db:migrate 2>&1; do
 done
 
 echo "Migrations complete. Starting application..."
+echo "PORT=$PORT"
+echo "NODE_ENV=$NODE_ENV"
+
+# Verify dist exists
+if [ ! -f "dist/main.js" ]; then
+  echo "ERROR: dist/main.js not found. Build may have failed."
+  ls -la dist/ 2>&1 || echo "dist/ directory does not exist"
+  exit 1
+fi
+
+echo "dist/main.js found. Running node..."
 exec node dist/main.js

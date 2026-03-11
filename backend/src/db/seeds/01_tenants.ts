@@ -27,29 +27,20 @@ export async function seed(knex: Knex): Promise<void> {
           name: 'Acme Corporation',
           subdomain: 'acme',
           tier: 'basic',
-          config: JSON.stringify({
-            allowedOrigins: ['http://localhost:3002', 'http://localhost:3000'],
-            max_users: 50,
-          }),
+          config: JSON.stringify({ allowedOrigins: [], max_users: 50 }),
         },
         {
           name: 'Globex Inc',
           subdomain: 'globex',
           tier: 'basic',
-          config: JSON.stringify({
-            allowedOrigins: ['http://localhost:3002', 'http://localhost:3000'],
-            max_users: 100,
-          }),
+          config: JSON.stringify({ allowedOrigins: [], max_users: 100 }),
         },
         {
           name: 'Initech Enterprise',
           subdomain: 'initech',
           tier: 'vip',
           db_url: null,
-          config: JSON.stringify({
-            allowedOrigins: ['http://localhost:3002', 'http://localhost:3000'],
-            max_users: 500,
-          }),
+          config: JSON.stringify({ allowedOrigins: [], max_users: 500 }),
         },
       ])
       .returning('*');

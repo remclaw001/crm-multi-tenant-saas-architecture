@@ -40,14 +40,24 @@ export async function up(knex: Knex): Promise<void> {
   // Grant sequence access for any uuid/serial columns in existing tables
   await knex.raw(`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO crm_app`);
 
-  // Grant DML on tables/sequences created by future migrations (run as 'crm')
+  // Grant DML on tables/sequences created by future migrations.
+  // Use current_user instead of hardcoding 'crm' so this works on any
+  // PostgreSQL host (Railway, Supabase, etc.) regardless of admin username.
   await knex.raw(`
-    ALTER DEFAULT PRIVILEGES FOR ROLE crm IN SCHEMA public
-      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO crm_app
-  `);
-  await knex.raw(`
-    ALTER DEFAULT PRIVILEGES FOR ROLE crm IN SCHEMA public
-      GRANT USAGE, SELECT ON SEQUENCES TO crm_app
+    DO $$
+    DECLARE
+      v_owner text := current_user;
+    BEGIN
+      EXECUTE format(
+        'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO crm_app',
+        v_owner
+      );
+      EXECUTE format(
+        'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO crm_app',
+        v_owner
+      );
+    END;
+    $$
   `);
 }
 

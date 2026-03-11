@@ -26,4 +26,4 @@ RUN test -f dist/main.js || (echo "ERROR: dist/main.js not found after build" &&
 
 EXPOSE 3001
 
-CMD ["sh", "start.sh"]
+CMD ["sh", "-c", "npm run db:migrate && echo '>>> MIGRATION OK, STARTING NODE' && node dist/main.js 2>&1 || echo '>>> NODE FAILED'"]

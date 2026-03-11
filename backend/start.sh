@@ -6,6 +6,7 @@
 # Script này retry migration cho đến khi DB accept connection.
 # ============================================================
 
+exec 2>&1   # redirect this shell's stderr to stdout so Railway captures everything
 set -ex
 
 MAX_RETRIES=30

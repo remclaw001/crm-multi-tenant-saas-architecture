@@ -10,15 +10,29 @@ frontend/
   web/            Customer-facing app  — Next.js 15, port 3002
   admin/          Admin console        — Next.js 15, port 3000
 docs/             HTML architectural reference docs
+docker-compose.yml  Full-stack compose (root) — backend + both frontends + infra
 ```
 
 ## Common Commands
 
-All backend commands run from `backend/`.
+**Full-stack Docker (from repo root):**
+
+```bash
+docker compose up -d                               # build + start everything
+docker compose exec backend npm run db:migrate     # run migrations (first time)
+docker compose exec backend npm run db:seed        # seed dev data
+docker compose --profile observability up -d       # + jaeger, prometheus, grafana, loki
+```
+
+Ports: backend `:3001`, admin `:3000`, web `:3002`, RabbitMQ UI `:15672`, MinIO `:9001`.
+
+`backend/Dockerfile` uses `start.sh` as entrypoint: retries `npm run db:migrate` until the DB accepts connections (up to 30 attempts × 5 s), then runs `node dist/main.js`. This handles Railway and other platforms that lack `depends_on` healthcheck support.
+
+**Local dev — all backend commands run from `backend/`:**
 
 ```bash
 # Infrastructure (required before starting the API)
-docker compose up -d                          # postgres, redis, rabbitmq
+docker compose up -d                          # postgres, redis, rabbitmq (backend/docker-compose.yml)
 docker compose --profile observability up -d  # + jaeger, prometheus, grafana, loki
 
 # Database

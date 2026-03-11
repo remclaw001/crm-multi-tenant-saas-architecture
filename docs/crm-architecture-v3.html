@@ -537,10 +537,19 @@
   • <span class="hi">Ví dụ:</span> Web App (:3002), Admin Console (:3000).
 
 
+
+
+
+
+
 <span class="kw">L2 API GATEWAY (Entry Point)</span>
   • <span class="hi">Trách nhiệm:</span> AuthN, AuthZ, Rate Limit, Routing.
   • <span class="hi">Đặc điểm:</span> Sequential middleware pipeline. Fail-fast.
   • <span class="hi">Output:</span> Routed to Plugin/Handler.
+
+
+
+
 
 
 <span class="kw">L3 BUSINESS LOGIC (Core)</span>
@@ -551,26 +560,26 @@
     Tương tác qua Context.
   • <span class="hi">Thành phần:</span> Plugin System, Execution Context,
     Shared Services.
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-    
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <span class="kw">L4 DATA ACCESS (Abstraction)</span>
   • <span class="hi">Vai trò:</span> Trung gian bảo vệ và tối ưu hóa truy xuất dữ liệu.
   • <span class="hi">Trách nhiệm:</span> Quản lý kết nối (Pooling), Caching (L1/L2),
@@ -578,21 +587,21 @@
   • <span class="hi">Đặc điểm:</span> Developer KHÔNG gọi trực tiếp DB Driver mà gọi
     qua L4 abstraction.
   • <span class="hi">Mục tiêu:</span> Che giấu sự phức tạp của hạ tầng multi-tenant.
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <span class="kw">L5 INFRASTRUCTURE (Stateful)</span>
   • <span class="hi">Vai trò:</span> Lưu trữ và duy trì trạng thái hệ thống.
   • <span class="hi">Trách nhiệm:</span> Persist data (PostgreSQL), Cache (Redis),
@@ -601,11 +610,23 @@
     Cần backup, replication.
 
 
+
+
+
+
+
+
 <span class="rd">L6 CROSS-CUTTING CONCERNS (System-wide)</span>
   • <span class="hi">Vai trò:</span> Các chính sách áp dụng toàn cục.
   • <span class="hi">Trách nhiệm:</span> Security Policy, Error Handling,
     Config Management, Dependency Injection.
   • <span class="hi">Đặc điểm:</span> Áp dụng lên TẤT CẢ các tầng L1-L5.
+
+
+
+
+
+
 
 
 <span class="vi">L7 OBSERVABILITY (Monitoring)</span>

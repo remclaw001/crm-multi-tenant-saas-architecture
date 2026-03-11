@@ -51,11 +51,11 @@ describe('AutomationCore', () => {
       expect(mockRegistry.register).toHaveBeenCalledWith(core);
     });
 
-    it('registers before:customer.create hook handler', () => {
+    it('registers after:customer.create hook handler with priority 20', () => {
       core.onModuleInit();
       expect(mockHookRegistry.register).toHaveBeenCalledWith(
         'automation',
-        expect.objectContaining({ event: 'customer.create', type: 'before' }),
+        expect.objectContaining({ event: 'customer.create', type: 'after', priority: 20 }),
         expect.any(Function),
       );
     });
@@ -115,6 +115,122 @@ describe('AutomationCore', () => {
     it('throws ResourceNotFoundError when not found', async () => {
       const ctx = makeCtx({ del: vi.fn().mockResolvedValue(0) });
       await expect(core.deleteTrigger(ctx, 'missing')).rejects.toThrow(ResourceNotFoundError);
+    });
+  });
+
+  describe('fireTriggerEvents', () => {
+    it('does nothing when no active triggers match event_type', async () => {
+      const ctx = makeCtx({ orderBy: vi.fn().mockResolvedValue([]) });
+      await core.fireTriggerEvents(ctx, 'customer.create', { customer: { id: 'c1' } });
+      expect(ctx.db.db).toHaveBeenCalledWith('automation_triggers');
+    });
+
+    it('inserts one event row per action in matching trigger', async () => {
+      const trigger = {
+        id: 'trig-1',
+        tenant_id: 'tenant-123',
+        event_type: 'customer.create',
+        is_active: true,
+        conditions: {},
+        actions: [
+          { type: 'webhook.call', params: { url: 'https://x.com', method: 'POST' } },
+          { type: 'case.create', params: { title: 'New case', priority: 'low' } },
+        ],
+      };
+
+      const insertMock = vi.fn().mockResolvedValue([]);
+      const ctx = makeCtx({
+        orderBy: vi.fn().mockResolvedValue([trigger]),
+        insert: insertMock,
+      });
+
+      await core.fireTriggerEvents(ctx, 'customer.create', { customer: { id: 'c1' } });
+
+      expect(insertMock).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ action_index: 0, action_type: 'webhook.call' }),
+          expect.objectContaining({ action_index: 1, action_type: 'case.create' }),
+        ]),
+      );
+    });
+
+    it('skips trigger whose conditions do not match', async () => {
+      const trigger = {
+        id: 'trig-1',
+        tenant_id: 'tenant-123',
+        event_type: 'customer.create',
+        is_active: true,
+        conditions: { and: [{ field: 'company', op: 'equals', value: 'SpecificCo' }] },
+        actions: [{ type: 'webhook.call', params: { url: 'https://x.com', method: 'POST' } }],
+      };
+
+      const insertMock = vi.fn();
+      const ctx = makeCtx({
+        orderBy: vi.fn().mockResolvedValue([trigger]),
+        insert: insertMock,
+      });
+
+      await core.fireTriggerEvents(ctx, 'customer.create', { customer: { company: 'OtherCo' } });
+      expect(insertMock).not.toHaveBeenCalled();
+    });
+
+    it('skips trigger with no actions', async () => {
+      const trigger = {
+        id: 'trig-2',
+        tenant_id: 'tenant-123',
+        event_type: 'customer.create',
+        is_active: true,
+        conditions: {},
+        actions: [],
+      };
+
+      const insertMock = vi.fn();
+      const ctx = makeCtx({
+        orderBy: vi.fn().mockResolvedValue([trigger]),
+        insert: insertMock,
+      });
+
+      await core.fireTriggerEvents(ctx, 'customer.create', { customer: { id: 'c1' } });
+      expect(insertMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('evaluateConditions', () => {
+    it('returns true for empty conditions', () => {
+      expect(core.evaluateConditions({}, {})).toBe(true);
+    });
+
+    it('returns true for null conditions', () => {
+      expect(core.evaluateConditions(null as any, {})).toBe(true);
+    });
+
+    it('equals operator matches exact value', () => {
+      expect(core.evaluateConditions(
+        { and: [{ field: 'company', op: 'equals', value: 'Acme' }] },
+        { customer: { company: 'Acme' } }
+      )).toBe(true);
+      expect(core.evaluateConditions(
+        { and: [{ field: 'company', op: 'equals', value: 'Acme' }] },
+        { customer: { company: 'Other' } }
+      )).toBe(false);
+    });
+
+    it('contains operator works', () => {
+      expect(core.evaluateConditions(
+        { and: [{ field: 'email', op: 'contains', value: '@gmail' }] },
+        { customer: { email: 'alice@gmail.com' } }
+      )).toBe(true);
+    });
+
+    it('is_empty operator works', () => {
+      expect(core.evaluateConditions(
+        { and: [{ field: 'phone', op: 'is_empty' }] },
+        { customer: { phone: '' } }
+      )).toBe(true);
+      expect(core.evaluateConditions(
+        { and: [{ field: 'phone', op: 'is_empty' }] },
+        { customer: { phone: '123' } }
+      )).toBe(false);
     });
   });
 });

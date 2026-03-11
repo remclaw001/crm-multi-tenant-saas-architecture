@@ -55,29 +55,27 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .pnl.on .sec:nth-child(2){animation-delay:.04s}
 .pnl.on .sec:nth-child(3){animation-delay:.08s}
 .pnl.on .sec:nth-child(4){animation-delay:.12s}
-html.lang-en [data-lang="vi"]{display:none}
-html.lang-vi [data-lang="en"]{display:none}
+
 </style>
-<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Layer 1 — Presentation</div>
-    <h1 data-lang="vi">Mọi thứ bên trong <span>Presentation Layer</span></h1>
-    <h1 data-lang="en">Everything Inside the <span>Presentation Layer</span></h1>
-    <p data-lang="vi">3 thành phần: Web App (Host Shell + Plugin Remotes), Admin Console, Plugin UI System.</p>
-    <p data-lang="en">3 components: Web App (Host Shell + Plugin Remotes), Admin Console, Plugin UI System.</p>
+    <h1>Mọi thứ bên trong <span>Presentation Layer</span></h1>
+    
+    <p>3 thành phần: Web App (Host Shell + Plugin Remotes), Admin Console, Plugin UI System.</p>
+    
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ L1</span><span data-lang="en">L1 Map</span></button>
+    <button class="on" onclick="go('map')"><span>Bản đồ L1</span></button>
     <button onclick="go('web')">Web App</button>
     <button onclick="go('fed')">Module Federation</button>
     <button onclick="go('adm')">Admin Console</button>
     <button onclick="go('sec')">Security (L1)</button>
-    <button onclick="go('flow')"><span data-lang="vi">Luồng tổng hợp</span><span data-lang="en">Complete Flow</span></button>
-    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
+    <button onclick="go('flow')"><span>Luồng tổng hợp</span></button>
+    
 </div></div>
 
 <div class="wrap">
@@ -85,9 +83,9 @@ html.lang-vi [data-lang="en"]{display:none}
 <!-- MAP -->
 <div class="pnl on" id="p-map">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ L1 — 3 thành phần</span><span data-lang="en">L1 Map — 3 Components</span></h2></div>
-    <div class="nt bl" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> L1 là lớp DUY NHẤT user nhìn thấy. L1 hoàn toàn client-side (chạy trên browser). Mọi tương tác đều gọi API tới L2 Gateway — L1 KHÔNG truy cập database, cache, hay MQ trực tiếp. Plugin UI được load ĐỘNG dựa trên tenant đã enable plugins nào.</div>
-    <div class="nt bl" data-lang="en"><strong>Core principle:</strong> L1 is the ONLY layer users see. L1 is entirely client-side (runs in browser). Every interaction calls the API to L2 Gateway — L1 does NOT directly access database, cache, or MQ. Plugin UI is loaded DYNAMICALLY based on which plugins the tenant has enabled.</div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span>Bản đồ L1 — 3 thành phần</span></h2></div>
+    <div class="nt bl"><strong>Nguyên tắc cốt lõi:</strong> L1 là lớp DUY NHẤT user nhìn thấy. L1 hoàn toàn client-side (chạy trên browser). Mọi tương tác đều gọi API tới L2 Gateway — L1 KHÔNG truy cập database, cache, hay MQ trực tiếp. Plugin UI được load ĐỘNG dựa trên tenant đã enable plugins nào.</div>
+    
     <div class="dg"><div class="dg-label">L1 overview</div><pre>
   ┌─ <span class="ty">L1 PRESENTATION</span> ────────────────────────────────────────────────────────┐
   │                                                                          │
@@ -115,10 +113,10 @@ html.lang-vi [data-lang="en"]{display:none}
                               L2 API Gateway
 
 
-  <span class="ty"><span data-lang="vi">L1 = Next.js 15, hoàn toàn client-side.</span><span data-lang="en">L1 = Next.js 15, fully client-side.</span></span>
-  <span data-lang="vi">Không truy cập DB, Redis, MQ. Chỉ gọi API tới L2 Gateway.</span><span data-lang="en">No direct DB, Redis, or MQ access. Only calls API to L2 Gateway.</span>
-  <span data-lang="vi">Tenant isolation: sidebar + PluginGate dựa trên enabledPlugins từ GET /api/v1/plugins.</span><span data-lang="en">Tenant isolation: sidebar + PluginGate based on enabledPlugins from GET /api/v1/plugins.</span>
-  <span data-lang="vi">Auth: JWT trong localStorage (Zustand persist), X-Tenant-ID header mỗi request.</span><span data-lang="en">Auth: JWT in localStorage (Zustand persist), X-Tenant-ID header on every request.</span></pre></div>
+  <span class="ty"><span>L1 = Next.js 15, hoàn toàn client-side.</span></span>
+  <span>Không truy cập DB, Redis, MQ. Chỉ gọi API tới L2 Gateway.</span>
+  <span>Tenant isolation: sidebar + PluginGate dựa trên enabledPlugins từ GET /api/v1/plugins.</span>
+  <span>Auth: JWT trong localStorage (Zustand persist), X-Tenant-ID header mỗi request.</span></pre></div>
 </div>
 </div>
 
@@ -126,13 +124,13 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-web">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t">Web App — Host Shell + Plugin Remotes</h2></div>
-    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Next.js 15 app chính mà tenant users truy cập. Gồm login page, CRM layout với auth guard + plugin-driven sidebar, và các pages cho từng plugin. Sidebar và nội dung thay đổi theo plugin nào đang bật cho tenant — dựa trên <code>GET /api/v1/plugins</code>. Component <code>contacts-list.tsx</code> được thiết kế để expose qua Module Federation nhưng MF hiện bị disabled do không tương thích với Next.js 15.</div>
-    <div class="nt bl" data-lang="en"><strong>Role:</strong> The primary Next.js 15 app that tenant users access. Consists of a login page, CRM layout with auth guard + plugin-driven sidebar, and pages for each plugin. Sidebar and content change based on which plugins are enabled for the tenant — driven by <code>GET /api/v1/plugins</code>. <code>contacts-list.tsx</code> is designed for Module Federation exposure but MF is currently disabled due to Next.js 15 incompatibility.</div>
+    <div class="nt bl"><strong>Vai trò:</strong> Next.js 15 app chính mà tenant users truy cập. Gồm login page, CRM layout với auth guard + plugin-driven sidebar, và các pages cho từng plugin. Sidebar và nội dung thay đổi theo plugin nào đang bật cho tenant — dựa trên <code>GET /api/v1/plugins</code>. Component <code>contacts-list.tsx</code> được thiết kế để expose qua Module Federation nhưng MF hiện bị disabled do không tương thích với Next.js 15.</div>
+    
     <div class="dg"><div class="dg-label">web app architecture</div><pre>
-<span class="ty">CRM APP (Next.js 15, port 3002 — <span data-lang="vi">triển khai thực tế</span><span data-lang="en">actual implementation</span>):</span>
+<span class="ty">CRM APP (Next.js 15, port 3002 — <span>triển khai thực tế</span>):</span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
-  │  <span class="am">Web App</span> — Next.js 15, <span data-lang="vi">entry point cho tenant users</span><span data-lang="en">entry point for tenant users</span>                  │
+  │  <span class="am">Web App</span> — Next.js 15, <span>entry point cho tenant users</span>                  │
   │                                                                        │
   │  ┌─ <span class="hi">Login Page</span>  (/login) ──────────────────────────────────────────┐   │
   │  │  tenantSlug + email + password                                   │   │
@@ -157,7 +155,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │  │  └──────────┘  └────────────────────────────────────────────┘  │   │
   │  └──────────────────────────────────────────────────────────────────┘   │
   │                                                                        │
-  │  <span class="ty"><span data-lang="vi">Trách nhiệm thực tế:</span><span data-lang="en">Actual responsibilities:</span></span>                                    │
+  │  <span class="ty"><span>Trách nhiệm thực tế:</span></span>                                    │
   │  ├── Auth:    Zustand persist → localStorage (token, tenantId, ...)  │
   │  │           onFinishHydration() guard trước khi redirect            │
   │  ├── Nav:    GET /api/v1/plugins → filter PLUGIN_PAGES array         │
@@ -168,49 +166,49 @@ html.lang-vi [data-lang="en"]{display:none}
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">MODULE FEDERATION — <span class="rd"><span data-lang="vi">DISABLED (Next.js 15 không tương thích)</span><span data-lang="en">DISABLED (Next.js 15 incompatibility)</span></span>:</span>
+<span class="ty">MODULE FEDERATION — <span class="rd"><span>DISABLED (Next.js 15 không tương thích)</span></span>:</span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │                                                                        │
-  │  <span class="fn">next.config.ts</span> (web) — <span class="rd"><span data-lang="vi">hiện tại trống:</span><span data-lang="en">currently empty:</span></span>                          │
+  │  <span class="fn">next.config.ts</span> (web) — <span class="rd"><span>hiện tại trống:</span></span>                          │
   │  <span class="cm">// @module-federation/nextjs-mf is not compatible with Next.js 15.</span>    │
   │  <span class="cm">// Plugin is disabled until a compatible version is available.</span>        │
   │  const nextConfig: NextConfig = {};                                    │
   │                                                                        │
-  │  <span data-lang="vi">Package đã cài:</span><span data-lang="en">Package installed:</span>  @module-federation/nextjs-mf ^8.7.0         │
-  │  <span data-lang="vi">Config thiết kế:</span><span data-lang="en">Designed config:</span> expose <span class="st">'./ContactsList'</span> từ contacts-list.tsx  │
-  │  <span data-lang="vi">File sẵn sàng:</span><span data-lang="en">File ready:</span>      contacts-list.tsx (<span data-lang="vi">có comment MF</span><span data-lang="en">has MF comment</span>)         │
+  │  <span>Package đã cài:</span>  @module-federation/nextjs-mf ^8.7.0         │
+  │  <span>Config thiết kế:</span> expose <span class="st">'./ContactsList'</span> từ contacts-list.tsx  │
+  │  <span>File sẵn sàng:</span>      contacts-list.tsx (<span>có comment MF</span>)         │
   │                                                                        │
-  │  <span class="am"><span data-lang="vi">Plugin UI apps riêng (customer-plugin, analytics-plugin) chưa có.</span><span data-lang="en">Standalone plugin UI apps (customer-plugin, analytics-plugin) not yet built.</span></span>   │
-  │  <span class="cm"><span data-lang="vi">Roadmap: enable lại khi có phiên bản tương thích Next.js 15.</span><span data-lang="en">Roadmap: re-enable when a Next.js 15 compatible version is available.</span></span>     │
+  │  <span class="am"><span>Plugin UI apps riêng (customer-plugin, analytics-plugin) chưa có.</span></span>   │
+  │  <span class="cm"><span>Roadmap: enable lại khi có phiên bản tương thích Next.js 15.</span></span>     │
   │                                                                        │
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">BOOTSTRAPPING SEQUENCE (<span data-lang="vi">thực tế</span><span data-lang="en">actual</span>):</span>
+<span class="ty">BOOTSTRAPPING SEQUENCE (<span>thực tế</span>):</span>
 
-  <span class="nu">1.</span> <span data-lang="vi">User truy cập</span><span data-lang="en">User navigates to</span> /login (Next.js SSR)
+  <span class="nu">1.</span> <span>User truy cập</span> /login (Next.js SSR)
   <span class="nu">2.</span> Zustand persist hydrates from localStorage <span class="st">'crm-web-auth'</span>
-     Token found? → redirect /contacts (<span data-lang="vi">đã đăng nhập</span><span data-lang="en">already authenticated</span>)
-     No token? → <span data-lang="vi">render login form</span><span data-lang="en">render login form</span>
-  <span class="nu">3.</span> <span data-lang="vi">User nhập</span><span data-lang="en">User enters</span> tenantSlug + email + password
+     Token found? → redirect /contacts (<span>đã đăng nhập</span>)
+     No token? → <span>render login form</span>
+  <span class="nu">3.</span> <span>User nhập</span> tenantSlug + email + password
      POST /auth/login → { token, user: { id, name, email, roles },
                           tenant: { id, subdomain, name, tier } }
      setAuth() → Zustand persist → localStorage → router.push('/contacts')
   <span class="nu">4.</span> CRM Layout: <span class="fn">onFinishHydration()</span> guard → auth check
      GET /api/v1/plugins  (Headers: Authorization + X-Tenant-ID)
      → { enabledPlugins: [<span class="st">"customer-data"</span>, <span class="st">"customer-care"</span>] }
-  <span class="nu">5.</span> Sidebar <span data-lang="vi">filter</span><span data-lang="en">filters</span> PLUGIN_PAGES <span data-lang="vi">theo</span><span data-lang="en">by</span> enabledPlugins:
+  <span class="nu">5.</span> Sidebar <span>filter</span> PLUGIN_PAGES <span>theo</span> enabledPlugins:
      customer-data → Contacts, customer-care → Cases
-  <span class="nu">6.</span> <span data-lang="vi">User click</span><span data-lang="en">User clicks</span> "Cases" → Next.js router → /cases
+  <span class="nu">6.</span> <span>User click</span> "Cases" → Next.js router → /cases
   <span class="nu">7.</span> CasesPage renders → &lt;PluginGate plugin=<span class="st">"customer-care"</span>&gt;
-     <span data-lang="vi">Check enabledPlugins (TanStack Query cache, stale 5min)</span><span data-lang="en">Check enabledPlugins (TanStack Query cache, stale 5min)</span>
+     <span>Check enabledPlugins (TanStack Query cache, stale 5min)</span>
      enabled → render &lt;CasesList /&gt;
-     disabled → ShieldOff icon + <span data-lang="vi">thông báo liên hệ admin</span><span data-lang="en">contact administrator message</span>
+     disabled → ShieldOff icon + <span>thông báo liên hệ admin</span>
   <span class="nu">8.</span> CasesList: GET /api/v1/plugins/customer-care/cases
      queryKey: [<span class="st">'cases'</span>, tenantId]
      → L2 Gateway → L3 Plugin → L4 DB → response
-  <span class="nu">9.</span> <span data-lang="vi">Navigation tiếp theo: TanStack Query cache → giảm API calls</span><span data-lang="en">Subsequent navigation: TanStack Query cache → fewer API calls</span></pre></div>
+  <span class="nu">9.</span> <span>Navigation tiếp theo: TanStack Query cache → giảm API calls</span></pre></div>
 </div>
 </div>
 
@@ -218,10 +216,10 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-fed">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t">Module Federation — Plugin UI System <span class="rd">(Roadmap)</span></h2></div>
-    <div class="nt rd" data-lang="vi"><strong>Trạng thái hiện tại:</strong> Module Federation bị <strong>disabled</strong> do <code>@module-federation/nextjs-mf</code> không tương thích với Next.js 15. Package đã cài (v8.7.0) nhưng cả hai <code>next.config.ts</code> đều trống. Plugin gating hiện hoạt động qua <code>GET /api/v1/plugins</code> + <code>&lt;PluginGate&gt;</code> + dynamic sidebar — không cần MF.</div>
-    <div class="nt rd" data-lang="en"><strong>Current status:</strong> Module Federation is <strong>disabled</strong> — <code>@module-federation/nextjs-mf</code> is not compatible with Next.js 15. Package is installed (v8.7.0) but both <code>next.config.ts</code> files are empty. Plugin gating currently works via <code>GET /api/v1/plugins</code> + <code>&lt;PluginGate&gt;</code> + dynamic sidebar — no MF required.</div>
+    <div class="nt rd"><strong>Trạng thái hiện tại:</strong> Module Federation bị <strong>disabled</strong> do <code>@module-federation/nextjs-mf</code> không tương thích với Next.js 15. Package đã cài (v8.7.0) nhưng cả hai <code>next.config.ts</code> đều trống. Plugin gating hiện hoạt động qua <code>GET /api/v1/plugins</code> + <code>&lt;PluginGate&gt;</code> + dynamic sidebar — không cần MF.</div>
+    
     <div class="dg"><div class="dg-label">module federation</div><pre>
-<span class="ty"><span data-lang="vi">THỰC TẾ HIỆN TẠI — Plugin gating KHÔNG qua MF:</span><span data-lang="en">CURRENT IMPLEMENTATION — Plugin gating WITHOUT MF:</span></span>
+<span class="ty"><span>THỰC TẾ HIỆN TẠI — Plugin gating KHÔNG qua MF:</span></span>
 
   <span class="gn">Web App (:3002) — plugin-driven sidebar + PluginGate</span>
   ┌────────────────────────────────────────────────────────────────────┐
@@ -244,7 +242,7 @@ html.lang-vi [data-lang="en"]{display:none}
   └────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty"><span data-lang="vi">THIẾT KẾ ROADMAP (khi MF được enable):</span><span data-lang="en">ROADMAP DESIGN (when MF is re-enabled):</span></span>
+<span class="ty"><span>THIẾT KẾ ROADMAP (khi MF được enable):</span></span>
 
   <span class="am">Admin Console</span> = <span class="hi">HOST</span>                    <span class="gn">Web App</span> = <span class="hi">REMOTE</span>
   ┌───────────────────────────────┐       ┌───────────────────────────┐
@@ -267,20 +265,20 @@ html.lang-vi [data-lang="en"]{display:none}
   │ })                            │
   └───────────────────────────────┘
 
-  <span class="cm"><span data-lang="vi">Files đã sẵn sàng để enable MF:</span><span data-lang="en">Files ready for when MF is enabled:</span></span>
+  <span class="cm"><span>Files đã sẵn sàng để enable MF:</span></span>
   ├── frontend/web/src/components/contacts-list.tsx     <span class="cm">← ready to expose</span>
   └── frontend/admin/src/lib/design-tokens.ts           <span class="cm">← ready to expose</span>
 
 
-<span class="ty"><span data-lang="vi">PLUGIN REMOTE URLs (thiết kế):</span><span data-lang="en">PLUGIN REMOTE URLS (designed):</span></span>
+<span class="ty"><span>PLUGIN REMOTE URLs (thiết kế):</span></span>
 
   CUSTOMER_PLUGIN_URL  → <span class="st">'http://localhost:3010'</span> (dev default)
   ANALYTICS_PLUGIN_URL → <span class="st">'http://localhost:3011'</span> (dev default)
 
   <span class="fn">remoteEntry.js</span> path: <span class="st">/_next/static/chunks/remoteEntry.js</span>
 
-  <span class="rd"><span data-lang="vi">Hiện tại: chưa có app nào chạy tại :3010 hay :3011.</span><span data-lang="en">Currently: no app is running at :3010 or :3011.</span></span>
-  <span class="cm"><span data-lang="vi">Roadmap: build customer-plugin app và analytics-plugin app riêng biệt.</span><span data-lang="en">Roadmap: build standalone customer-plugin and analytics-plugin apps.</span></span></pre></div>
+  <span class="rd"><span>Hiện tại: chưa có app nào chạy tại :3010 hay :3011.</span></span>
+  <span class="cm"><span>Roadmap: build customer-plugin app và analytics-plugin app riêng biệt.</span></span></pre></div>
 </div>
 </div>
 
@@ -288,10 +286,10 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-mob" style="display:none">
 <div class="sec">
     <div class="sec-h"><h2 class="sec-t">Mobile App (removed)</h2></div>
-    <div class="nt gn" data-lang="vi"><strong>Vai trò:</strong> Native/cross-platform app cho iOS + Android. Tương tự Web App nhưng thích nghi cho mobile: dynamic feature modules (thay cho Module Federation), OTA updates, offline-first với sync queue.</div>
-    <div class="nt gn" data-lang="en"><strong>Role:</strong> Native/cross-platform app for iOS + Android. Similar to Web App but adapted for mobile: dynamic feature modules (replacing Module Federation), OTA updates, offline-first with sync queue.</div>
+    <div class="nt gn"><strong>Vai trò:</strong> Native/cross-platform app cho iOS + Android. Tương tự Web App nhưng thích nghi cho mobile: dynamic feature modules (thay cho Module Federation), OTA updates, offline-first với sync queue.</div>
+    
     <div class="dg"><div class="dg-label">mobile app</div><pre>
-<span class="ty"><span data-lang="vi">KIẾN TRÚC:</span><span data-lang="en">ARCHITECTURE:</span></span>
+<span class="ty"><span>KIẾN TRÚC:</span></span>
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │  <span class="am">Mobile Shell</span> (React Native / Flutter)                                 │
@@ -310,8 +308,8 @@ html.lang-vi [data-lang="en"]{display:none}
   │  │ │Contact form  │ │Call logger   │ │Charts        │               ││
   │  │ │Company view  │ │Ticket list   │ │Export (PDF)  │               ││
   │  │ └──────────────┘ └──────────────┘ └──────────────┘               ││
-  │  │ <span class="cm"><span data-lang="vi">Download chỉ modules mà tenant enable.</span><span data-lang="en">Downloads only modules the tenant enables.</span></span>                            ││
-  │  │ <span class="cm"><span data-lang="vi">Xóa khi tenant disable → free storage.</span><span data-lang="en">Removed when tenant disables → frees storage.</span></span>                             ││
+  │  │ <span class="cm"><span>Download chỉ modules mà tenant enable.</span></span>                            ││
+  │  │ <span class="cm"><span>Xóa khi tenant disable → free storage.</span></span>                             ││
   │  └──────────────────────────────────────────────────────────────────┘││
   │                                                                        │
   └────────────────────────────────────────────────────────────────────────┘
@@ -328,12 +326,12 @@ html.lang-vi [data-lang="en"]{display:none}
   │  <span class="nu">4.</span> Download delta bundle (~500KB-2MB)                               │
   │  <span class="nu">5.</span> Apply silently → next screen load uses new code                  │
   │                                                                        │
-  │  <span class="am"><span data-lang="vi">Khi nào CẦN App Store update:</span><span data-lang="en">When App Store update is REQUIRED:</span></span>                                       │
+  │  <span class="am"><span>Khi nào CẦN App Store update:</span></span>                                       │
   │  ├── Native module thay đổi (camera, GPS, biometric)                 │
   │  ├── Shell navigation thay đổi                                       │
   │  └── React Native / Flutter version upgrade                          │
   │                                                                        │
-  │  <span class="gn"><span data-lang="vi">Khi nào OTA đủ:</span><span data-lang="en">When OTA is sufficient:</span></span>                                                      │
+  │  <span class="gn"><span>Khi nào OTA đủ:</span></span>                                                      │
   │  ├── Plugin UI logic thay đổi (JS/Dart code)                        │
   │  ├── New screens, components, styling                                │
   │  └── Bug fixes trong plugin UI                                       │
@@ -358,7 +356,7 @@ html.lang-vi [data-lang="en"]{display:none}
   │  ├── Stored in SQLite: { id, method, url, body, createdAt }         │
   │  ├── Max queue: 1000 operations                                      │
   │  ├── Retry on reconnect: sequential, respect order                   │
-  │  └── Fail → flag for user review (<span data-lang="vi">không tự động discard</span><span data-lang="en">not auto-discarded</span>)             │
+  │  └── Fail → flag for user review (<span>không tự động discard</span>)             │
   └────────────────────────────────────────────────────────────────────────┘</pre></div>
 </div>
 </div>
@@ -367,14 +365,14 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-adm">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">Admin Console — VCC Platform Management</h2></div>
-    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Một Next.js 15 app duy nhất dành riêng cho đội VCC (không phải tenant users). Auth riêng biệt: email + password → POST /api/v1/admin/auth/login, trả về role super_admin hoặc admin. JWT lưu trong localStorage 'crm-admin-auth' (Zustand persist). Thiết kế là Module Federation HOST nhưng MF hiện bị disabled.</div>
-    <div class="nt am" data-lang="en"><strong>Role:</strong> A single Next.js 15 app exclusively for the VCC team (not tenant users). Separate auth: email + password → POST /api/v1/admin/auth/login, returns role super_admin or admin. JWT stored in localStorage 'crm-admin-auth' (Zustand persist). Designed as Module Federation HOST but MF is currently disabled.</div>
+    <div class="nt am"><strong>Vai trò:</strong> Một Next.js 15 app duy nhất dành riêng cho đội VCC (không phải tenant users). Auth riêng biệt: email + password → POST /api/v1/admin/auth/login, trả về role super_admin hoặc admin. JWT lưu trong localStorage 'crm-admin-auth' (Zustand persist). Thiết kế là Module Federation HOST nhưng MF hiện bị disabled.</div>
+    
     <div class="dg"><div class="dg-label">admin console</div><pre>
 <span class="ty">ADMIN CONSOLE</span> (Next.js 15, port 3000)
 
-  <span data-lang="vi">Ai dùng:</span><span data-lang="en">Who uses:</span>  <span data-lang="vi">Đội VCC — super_admin, admin</span><span data-lang="en">VCC team — super_admin, admin</span>
-  Port:     3000 (dev), <span data-lang="vi">domain riêng biệt với Web App (:3002)</span><span data-lang="en">separate domain from Web App (:3002)</span>
-  Auth:     email + password (<span data-lang="vi">không cần tenantSlug</span><span data-lang="en">no tenantSlug needed</span>)
+  <span>Ai dùng:</span>  <span>Đội VCC — super_admin, admin</span>
+  Port:     3000 (dev), <span>domain riêng biệt với Web App (:3002)</span>
+  Auth:     email + password (<span>không cần tenantSlug</span>)
 
   ┌────────────────────────────────────────────────────────────────────────┐
   │  <span class="fn">Auth Flow</span>                                                            │
@@ -387,9 +385,9 @@ html.lang-vi [data-lang="en"]{display:none}
   │  <span class="fn">Auth Guard</span> ((dashboard)/layout.tsx)                                 │
   │  ├── 'use client' + useAuthStore + useRouter                        │
   │  ├── useAuthStore.persist.onFinishHydration() guard                 │
-  │  │   → <span data-lang="vi">chờ Zustand hydrate xong trước khi check token</span><span data-lang="en">waits for Zustand hydration before checking token</span>          │
+  │  │   → <span>chờ Zustand hydrate xong trước khi check token</span>          │
   │  ├── !token → router.replace('/login')                              │
-  │  └── !hydrated || !token → return null (<span data-lang="vi">không flash content</span><span data-lang="en">no content flash</span>)    │
+  │  └── !hydrated || !token → return null (<span>không flash content</span>)    │
   │                                                                        │
   │  <span class="fn">Sidebar</span>                                                              │
   │  ├── Tenants → /dashboard/tenants                                   │
@@ -411,23 +409,23 @@ html.lang-vi [data-lang="en"]{display:none}
   └────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty">MODULE FEDERATION — <span class="rd"><span data-lang="vi">DISABLED (roadmap):</span><span data-lang="en">DISABLED (roadmap):</span></span></span>
+<span class="ty">MODULE FEDERATION — <span class="rd"><span>DISABLED (roadmap):</span></span></span>
 
-  <span class="rd"><span data-lang="vi">next.config.ts trống — MF không tương thích Next.js 15.</span><span data-lang="en">next.config.ts is empty — MF incompatible with Next.js 15.</span></span>
-  <span data-lang="vi">Thiết kế (khi enable):</span><span data-lang="en">Design (when enabled):</span>
+  <span class="rd"><span>next.config.ts trống — MF không tương thích Next.js 15.</span></span>
+  <span>Thiết kế (khi enable):</span>
   ├── load customerPlugin  @ CUSTOMER_PLUGIN_URL ?? <span class="st">'http://localhost:3010'</span>
   ├── load analyticsPlugin @ ANALYTICS_PLUGIN_URL ?? <span class="st">'http://localhost:3011'</span>
   └── export ./DesignTokens → plugin UIs stay visually consistent
 
-  <span class="rd"><span data-lang="vi">Hiện tại: plugin remote apps (:3010, :3011) chưa được build.</span><span data-lang="en">Currently: plugin remote apps (:3010, :3011) are not yet built.</span></span>
-  <span class="rd"><span data-lang="vi">design-tokens.ts có nhưng chưa được expose.</span><span data-lang="en">design-tokens.ts exists but is not exposed.</span></span>
+  <span class="rd"><span>Hiện tại: plugin remote apps (:3010, :3011) chưa được build.</span></span>
+  <span class="rd"><span>design-tokens.ts có nhưng chưa được expose.</span></span>
 
 
-<span class="ty"><span data-lang="vi">SỰ KHÁC BIỆT VỚI WEB APP:</span><span data-lang="en">DIFFERENCES FROM WEB APP:</span></span>
-  ├── Auth: <span data-lang="vi">không có tenantSlug field</span><span data-lang="en">no tenantSlug field</span>, role = super_admin | admin
-  ├── API: <span data-lang="vi">KHÔNG gửi X-Tenant-ID header</span><span data-lang="en">does NOT send X-Tenant-ID header</span> (<span data-lang="vi">cross-tenant operations</span><span data-lang="en">cross-tenant operations</span>)
+<span class="ty"><span>SỰ KHÁC BIỆT VỚI WEB APP:</span></span>
+  ├── Auth: <span>không có tenantSlug field</span>, role = super_admin | admin
+  ├── API: <span>KHÔNG gửi X-Tenant-ID header</span> (<span>cross-tenant operations</span>)
   ├── Store: localStorage key = <span class="st">'crm-admin-auth'</span> (≠ <span class="st">'crm-web-auth'</span>)
-  ├── MF:   <span data-lang="vi">thiết kế HOST (disabled)</span><span data-lang="en">designed as HOST (disabled)</span> ≠ Web (<span data-lang="vi">thiết kế REMOTE, disabled</span><span data-lang="en">designed REMOTE, disabled</span>)
+  ├── MF:   <span>thiết kế HOST (disabled)</span> ≠ Web (<span>thiết kế REMOTE, disabled</span>)
   └── Port: 3000 ≠ Web App 3002</pre></div>
 </div>
 </div>
@@ -435,25 +433,24 @@ html.lang-vi [data-lang="en"]{display:none}
 <!-- SECURITY L1 -->
 <div class="pnl" id="p-sec">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">Security tại L1 — Client-side Defense</span><span data-lang="en">Security at L1 — Client-side Defense</span></h2></div>
-    <div class="nt rd" data-lang="vi"><strong>L1 là tuyến phòng thủ đầu tiên.</strong> Mặc dù backend (L2-L7) có defense in depth, L1 vẫn cần security riêng để ngăn chặn tấn công phía client: XSS, clickjacking, data leak qua browser, token theft.</div>
-    <div class="nt rd" data-lang="en"><strong>L1 is the first line of defense.</strong> Although the backend (L2-L7) has defense in depth, L1 still needs its own security to prevent client-side attacks: XSS, clickjacking, data leak via browser, token theft.</div>
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span>Security tại L1 — Client-side Defense</span></h2></div>
+    <div class="nt rd"><strong>L1 là tuyến phòng thủ đầu tiên.</strong> Mặc dù backend (L2-L7) có defense in depth, L1 vẫn cần security riêng để ngăn chặn tấn công phía client: XSS, clickjacking, data leak qua browser, token theft.</div>
+    
     <div class="dg"><div class="dg-label">L1 security</div><pre>
 <span class="ty">CSP (Content Security Policy) HEADERS:</span>
 
-  <span data-lang="vi">Served by CDN / Nginx cùng HTML:</span><span data-lang="en">Served by CDN / Nginx alongside HTML:</span>
+  <span>Served by CDN / Nginx cùng HTML:</span>
   Content-Security-Policy:
     default-src 'self';
-    script-src  'self' cdn.crm.com;          <span class="cm">← <span data-lang="vi">chỉ load JS từ CDN</span><span data-lang="en">only load JS from CDN</span></span>
+    script-src  'self' cdn.crm.com;          <span class="cm">← <span>chỉ load JS từ CDN</span></span>
     style-src   'self' 'unsafe-inline' fonts.googleapis.com;
     img-src     'self' data: *.crm.com s3.amazonaws.com;
     connect-src 'self' api.crm.com wss://ws.crm.com;
     frame-src   'none';                       <span class="cm">← no iframe embed</span>
     object-src  'none';                       <span class="cm">← no Flash/plugins</span>
 
-  → <span data-lang="vi">Ngăn inline script injection (XSS), unauthorized external scripts,
-    data exfiltration qua connect-src whitelist.</span><span data-lang="en">Prevents inline script injection (XSS), unauthorized external scripts,
-    data exfiltration via connect-src whitelist.</span>
+  → <span>Ngăn inline script injection (XSS), unauthorized external scripts,
+    data exfiltration qua connect-src whitelist.</span>
 
 
 <span class="ty">XSS PREVENTION:</span>
@@ -462,10 +459,9 @@ html.lang-vi [data-lang="en"]{display:none}
   ├── dangerouslySetInnerHTML: FORBIDDEN trong plugin UI code
   │   → ESLint rule: no-dangerously-set-inner-html → build fail
   ├── User input sanitization: DOMPurify cho rich text fields
-  ├── URL sanitization: <span data-lang="vi">chỉ http/https</span><span data-lang="en">only http/https</span> (block javascript: protocol)
-  └── Plugin UI sandboxed: <span data-lang="vi">chạy trong Host Shell Error Boundary
-      → plugin XSS bug → chỉ ảnh hưởng plugin area, không host</span><span data-lang="en">runs within Host Shell Error Boundary
-      → plugin XSS bug → only affects plugin area, not host</span>
+  ├── URL sanitization: <span>chỉ http/https</span> (block javascript: protocol)
+  └── Plugin UI sandboxed: <span>chạy trong Host Shell Error Boundary
+      → plugin XSS bug → chỉ ảnh hưởng plugin area, không host</span>
 
 
 <span class="ty">CORS (Cross-Origin Resource Sharing):</span>
@@ -482,23 +478,23 @@ html.lang-vi [data-lang="en"]{display:none}
   └── * (wildcard) NEVER used → prevent cross-tenant request
 
 
-<span class="ty">JWT STORAGE (<span data-lang="vi">thực tế</span><span data-lang="en">actual implementation</span>):</span>
+<span class="ty">JWT STORAGE (<span>thực tế</span>):</span>
 
-  <span class="gn"><span data-lang="vi">DÙNG: localStorage via Zustand persist middleware</span><span data-lang="en">USE: localStorage via Zustand persist middleware</span></span>
+  <span class="gn"><span>DÙNG: localStorage via Zustand persist middleware</span></span>
   ├── Web App:   localStorage key = <span class="st">'crm-web-auth'</span>   (token + tenantId + user)
   ├── Admin:     localStorage key = <span class="st">'crm-admin-auth'</span> (token + user)
-  ├── Zustand <span class="fn">onFinishHydration()</span> guard: <span data-lang="vi">chờ hydrate xong trước redirect</span><span data-lang="en">waits for hydration before redirect</span>
-  ├── Tab close → token <span data-lang="vi">còn trong localStorage → không cần re-auth</span><span data-lang="en">stays in localStorage → no re-auth needed</span>
-  └── <span class="am">XSS risk: <span data-lang="vi">localStorage có thể bị đọc bởi injected script</span><span data-lang="en">localStorage can be read by injected scripts</span></span>
-      <span data-lang="vi">Giảm thiểu: CSP header ngăn inline script injection.</span><span data-lang="en">Mitigation: CSP header prevents inline script injection.</span>
+  ├── Zustand <span class="fn">onFinishHydration()</span> guard: <span>chờ hydrate xong trước redirect</span>
+  ├── Tab close → token <span>còn trong localStorage → không cần re-auth</span>
+  └── <span class="am">XSS risk: <span>localStorage có thể bị đọc bởi injected script</span></span>
+      <span>Giảm thiểu: CSP header ngăn inline script injection.</span>
 
-  <span class="cm"><span data-lang="vi">Roadmap: chuyển sang httpOnly cookie + refresh token để tăng security.</span><span data-lang="en">Roadmap: migrate to httpOnly cookie + refresh token for better security.</span></span>
+  <span class="cm"><span>Roadmap: chuyển sang httpOnly cookie + refresh token để tăng security.</span></span>
 
 
 <span class="ty">CLICKJACKING PROTECTION:</span>
   X-Frame-Options: DENY
   frame-ancestors 'none' (CSP)
-  → <span data-lang="vi">App KHÔNG THỂ bị embed trong iframe của site khác</span><span data-lang="en">App CANNOT be embedded in an iframe from another site</span>
+  → <span>App KHÔNG THỂ bị embed trong iframe của site khác</span>
 
 
 <span class="ty">ADDITIONAL:</span>
@@ -509,26 +505,26 @@ html.lang-vi [data-lang="en"]{display:none}
   │   (disable browser APIs không cần → giảm attack surface)
   └── Subresource Integrity (SRI): plugin remoteEntry.js có integrity hash
       → CDN bị compromise → hash mismatch → browser refuse to load
-      <span class="cm">(<span data-lang="vi">Roadmap: áp dụng khi MF được enable</span><span data-lang="en">Roadmap: applies when MF is re-enabled</span>)</span></pre></div>
+      <span class="cm">(<span>Roadmap: áp dụng khi MF được enable</span>)</span></pre></div>
 </div>
 </div>
 
 <!-- FLOW -->
 <div class="pnl" id="p-flow">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Luồng tổng hợp — User xem Cases</span><span data-lang="en">Complete Flow — User Views Cases</span></h2></div>
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span>Luồng tổng hợp — User xem Cases</span></h2></div>
     <div class="dg"><div class="dg-label">L1 complete flow</div><pre>
-<span class="ty">User (ACME) <span data-lang="vi">mở browser → localhost:3002 → đăng nhập → xem Cases</span><span data-lang="en">opens browser → localhost:3002 → logs in → views Cases</span></span>
+<span class="ty">User (ACME) <span>mở browser → localhost:3002 → đăng nhập → xem Cases</span></span>
 
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ <span class="hi">PHASE 1: Login</span>                                                         │
 │                                                                         │
-│ ① <span data-lang="vi">Browser truy cập</span><span data-lang="en">Browser navigates to</span> /login (Next.js page render)              │
+│ ① <span>Browser truy cập</span> /login (Next.js page render)              │
 │   Zustand hydrate từ localStorage <span class="st">'crm-web-auth'</span>                      │
 │   Token found → redirect /contacts                                     │
 │   No token → render login form                                         │
 │                                                                         │
-│ ② <span data-lang="vi">User nhập</span><span data-lang="en">User enters</span> tenantSlug + email + password → click Sign in       │
+│ ② <span>User nhập</span> tenantSlug + email + password → click Sign in       │
 │   POST /auth/login                                                      │
 │   → { token, user: { id, name, email, roles },                        │
 │        tenant: { id, subdomain, name, tier } }                         │
@@ -540,7 +536,7 @@ html.lang-vi [data-lang="en"]{display:none}
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ <span class="hi">PHASE 2: CRM Layout Bootstrap</span>                                          │
 │                                                                         │
-│ ③ (crm)/layout.tsx — <span data-lang="vi">auth guard khởi động</span><span data-lang="en">auth guard initializes</span>                     │
+│ ③ (crm)/layout.tsx — <span>auth guard khởi động</span>                     │
 │   onFinishHydration() → hydrated = true                                │
 │   !token → redirect /login (nếu không có token)                        │
 │                                                                         │
@@ -549,10 +545,10 @@ html.lang-vi [data-lang="en"]{display:none}
 │   → { enabledPlugins: ["customer-data", "customer-care"] }            │
 │   TanStack Query cache (staleTime: 5min)                               │
 │                                                                         │
-│ ⑤ Sidebar <span data-lang="vi">filter</span><span data-lang="en">filters</span> PLUGIN_PAGES <span data-lang="vi">theo</span><span data-lang="en">by</span> enabledPlugins:              │
-│   customer-data  → "Contacts" item (<span data-lang="vi">hiện</span><span data-lang="en">shown</span>)                          │
-│   customer-care  → "Cases" item (<span data-lang="vi">hiện</span><span data-lang="en">shown</span>)                             │
-│   (<span data-lang="vi">analytics, automation, marketing chưa enable → ẩn</span><span data-lang="en">analytics, automation, marketing not enabled → hidden</span>)         │
+│ ⑤ Sidebar <span>filter</span> PLUGIN_PAGES <span>theo</span> enabledPlugins:              │
+│   customer-data  → "Contacts" item (<span>hiện</span>)                          │
+│   customer-care  → "Cases" item (<span>hiện</span>)                             │
+│   (<span>analytics, automation, marketing chưa enable → ẩn</span>)         │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 
@@ -565,7 +561,7 @@ html.lang-vi [data-lang="en"]{display:none}
 │ ⑦ CasesPage render → &lt;PluginGate plugin="customer-care"&gt;              │
 │   Check enabledPlugins cache                                           │
 │   enabled → render &lt;CasesList /&gt;                                      │
-│   disabled → ShieldOff icon + <span data-lang="vi">thông báo liên hệ admin</span><span data-lang="en">contact administrator message</span>           │
+│   disabled → ShieldOff icon + <span>thông báo liên hệ admin</span>           │
 │                                                                         │
 │ ⑧ CasesList: GET /api/v1/plugins/customer-care/cases                  │
 │   queryKey: [<span class="st">'cases'</span>, tenantId]   <span class="cm">← tenantId ngăn cross-tenant cache</span>    │
@@ -574,30 +570,30 @@ html.lang-vi [data-lang="en"]{display:none}
 │   → [{ id, subject, status, customerId, ... }, ...]                   │
 │                                                                         │
 │ ⑨ CasesList render list of cases                                      │
-│   Subsequent navigation: TanStack Query cache → <span data-lang="vi">ít API call hơn</span><span data-lang="en">fewer API calls</span>  │
+│   Subsequent navigation: TanStack Query cache → <span>ít API call hơn</span>  │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 
 
-<span class="ty"><span data-lang="vi">API ENDPOINTS THỰC TẾ:</span><span data-lang="en">ACTUAL API ENDPOINTS:</span></span>
+<span class="ty"><span>API ENDPOINTS THỰC TẾ:</span></span>
 
   ┌────────────────────────────────────────┬────────────────────────────┐
-  │ <span data-lang="vi">Endpoint</span><span data-lang="en">Endpoint</span>                              │ <span data-lang="vi">Ghi chú</span><span data-lang="en">Note</span>                   │
+  │ <span>Endpoint</span>                              │ <span>Ghi chú</span>                   │
   ├────────────────────────────────────────┼────────────────────────────┤
-  │ POST /auth/login                       │ <span data-lang="vi">đăng nhập Web App</span><span data-lang="en">Web App login</span>       │
-  │ POST /api/v1/admin/auth/login          │ <span data-lang="vi">đăng nhập Admin Console</span><span data-lang="en">Admin Console login</span>│
+  │ POST /auth/login                       │ <span>đăng nhập Web App</span>       │
+  │ POST /api/v1/admin/auth/login          │ <span>đăng nhập Admin Console</span>│
   │ GET  /api/v1/plugins                   │ enabledPlugins[]           │
   │ GET  /api/v1/plugins/customer-data/    │                            │
-  │        customers                       │ <span data-lang="vi">danh sách contacts</span><span data-lang="en">contacts list</span>       │
+  │        customers                       │ <span>danh sách contacts</span>       │
   │ POST /api/v1/plugins/customer-data/    │                            │
-  │        customers                       │ <span data-lang="vi">tạo contact mới</span><span data-lang="en">create contact</span>       │
+  │        customers                       │ <span>tạo contact mới</span>       │
   │ GET  /api/v1/plugins/customer-care/    │                            │
-  │        cases                           │ <span data-lang="vi">danh sách cases</span><span data-lang="en">cases list</span>          │
+  │        cases                           │ <span>danh sách cases</span>          │
   └────────────────────────────────────────┴────────────────────────────┘
 
 
-  <span class="ty"><span data-lang="vi">L1 KHÔNG chứa business logic.</span><span data-lang="en">L1 does NOT contain business logic.</span></span>
-  <span data-lang="vi">L1 chỉ: render UI, gọi API, hiển thị response.</span><span data-lang="en">L1 only: renders UI, calls API, displays response.</span>
+  <span class="ty"><span>L1 KHÔNG chứa business logic.</span></span>
+  <span>L1 chỉ: render UI, gọi API, hiển thị response.</span>
   Business logic: L3. Data access: L4. Storage: L5.</pre></div>
 </div>
 </div>
@@ -616,17 +612,6 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
-function toggleLang(){
-    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
-    document.documentElement.className='lang-'+next;
-    localStorage.setItem('crm-docs-lang',next);
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=next==='en'?'VI':'EN';
-}
-(function(){
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
-})();
 </script>
 </body>
 </html>

@@ -32,17 +32,15 @@ body{background:#060810;color:#d8dce8;font-family:'Segoe UI',sans-serif}
 .desc td{padding:8px 10px;border:1px solid #1c2038;color:#9ca3c0;vertical-align:top}
 .desc td:first-child{color:#d8dce8;font-family:monospace;font-size:.78rem;white-space:nowrap}
 .desc .code{font-family:monospace;font-size:.8rem;background:#111420;border:1px solid #1c2038;border-radius:4px;padding:14px 18px;color:#8890b8;margin:12px 0}
-html.lang-en [data-lang="vi"]{display:none}
-html.lang-vi [data-lang="en"]{display:none}
+
 </style>
-<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 <div class="hero">
-<h1 data-lang="vi">11 Class Diagrams <span>SOLID-aligned</span></h1>
-<h1 data-lang="en">11 Class Diagrams <span>SOLID-aligned</span></h1>
-<p data-lang="vi">17 interfaces, ~100 entities. Mỗi sơ đồ kèm mô tả vai trò + quan hệ chi tiết.</p>
-<p data-lang="en">17 interfaces, ~100 entities. Each diagram includes role descriptions and detailed relationships.</p>
+<h1>11 Class Diagrams <span>SOLID-aligned</span></h1>
+
+<p>17 interfaces, ~100 entities. Mỗi sơ đồ kèm mô tả vai trò + quan hệ chi tiết.</p>
+
 </div>
 <div class="nw"><div class="nav">
     <button class=on onclick="go(0)">Interfaces (17)</button>
@@ -56,7 +54,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <button onclick="go(8)">L1 Presentation</button>
     <button onclick="go(9)">Query Builder</button>
     <button onclick="go(10)">Cross-layer DIP</button>
-    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
+    
 </div></div>
 <div class="wrap">
 <div class="pnl on" id="p-0">
@@ -204,30 +202,25 @@ classDiagram
     IExecutionContext *-- ILogger
 </pre></div>
 <div class="desc">
-<h3><span data-lang="vi">Vai trò</span><span data-lang="en">Role</span></h3>
-<p data-lang="vi">17 interfaces là <strong>hợp đồng trung tâm</strong> của toàn bộ kiến trúc. Chúng tạo ranh giới abstraction giữa các layer — plugin (L3) chỉ biết interface, không biết implementation cụ thể ở L4/L5. So với phiên bản 14 interfaces, bổ sung thêm <strong>3 interfaces mới cho Query Builder DIP</strong>: ISQLDialect, ITenantStrategy, IMigrationDialect.</p>
-<p data-lang="en">17 interfaces are the <strong>central contracts</strong> of the entire architecture. They create abstraction boundaries between layers — plugins (L3) only know the interface, not the concrete implementation at L4/L5. Compared to the 14-interface version, <strong>3 new interfaces for Query Builder DIP</strong> have been added: ISQLDialect, ITenantStrategy, IMigrationDialect.</p>
+<h3><span>Vai trò</span></h3>
+<p>17 interfaces là <strong>hợp đồng trung tâm</strong> của toàn bộ kiến trúc. Chúng tạo ranh giới abstraction giữa các layer — plugin (L3) chỉ biết interface, không biết implementation cụ thể ở L4/L5. So với phiên bản 14 interfaces, bổ sung thêm <strong>3 interfaces mới cho Query Builder DIP</strong>: ISQLDialect, ITenantStrategy, IMigrationDialect.</p>
+
 
 <h3>IExecutionContext — ISP Composition</h3>
-<p data-lang="vi"><code>IExecutionContext</code> là composition của 5 interfaces nhỏ: IDbContext, ICacheContext, IEventContext, IServiceContext, ILogger. Plugin method chỉ khai báo interface nó CẦN.</p>
-<p data-lang="en"><code>IExecutionContext</code> is a composition of 5 smaller interfaces: IDbContext, ICacheContext, IEventContext, IServiceContext, ILogger. A plugin method only declares the interface it NEEDS.</p>
+<p><code>IExecutionContext</code> là composition của 5 interfaces nhỏ: IDbContext, ICacheContext, IEventContext, IServiceContext, ILogger. Plugin method chỉ khai báo interface nó CẦN.</p>
+
 
 <h3>3 Interfaces mới (Query Builder DIP)</h3>
-<table data-lang="vi">
+<table>
 <tr><th>Interface</th><th>Vai trò</th><th>Implementations</th></tr>
 <tr><td>ISQLDialect</td><td>Chuyển QueryAST → parameterized SQL cho từng loại DB. Mỗi DB có syntax riêng (placeholder, RETURNING, upsert...)</td><td>PostgresDialect, MySQLDialect, SQLiteDialect</td></tr>
 <tr><td>ITenantStrategy</td><td>Inject tenant_id vào QueryAST + configure connection isolation. Mỗi DB có cơ chế isolation khác nhau (RLS, session variable...)</td><td>PostgresRLSStrategy, MySQLTenantStrategy, SQLiteTenantStrategy</td></tr>
 <tr><td>IMigrationDialect</td><td>Generate DDL theo DB syntax. Xử lý khác biệt transactional DDL, RLS policy, advisory lock...</td><td>PostgresMigrationDialect, MySQLMigrationDialect, SQLiteMigrationDialect</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Interface</th><th>Role</th><th>Implementations</th></tr>
-<tr><td>ISQLDialect</td><td>Converts QueryAST → parameterized SQL for each DB type. Each DB has its own syntax (placeholder, RETURNING, upsert...)</td><td>PostgresDialect, MySQLDialect, SQLiteDialect</td></tr>
-<tr><td>ITenantStrategy</td><td>Injects tenant_id into QueryAST + configures connection isolation. Each DB has a different isolation mechanism (RLS, session variable...)</td><td>PostgresRLSStrategy, MySQLTenantStrategy, SQLiteTenantStrategy</td></tr>
-<tr><td>IMigrationDialect</td><td>Generates DDL per DB syntax. Handles differences in transactional DDL, RLS policy, advisory lock...</td><td>PostgresMigrationDialect, MySQLMigrationDialect, SQLiteMigrationDialect</td></tr>
-</table>
 
-<h3><span data-lang="vi">Quan hệ chính (14 interfaces gốc)</span><span data-lang="en">Key Relationships (14 original interfaces)</span></h3>
-<table data-lang="vi">
+
+<h3><span>Quan hệ chính (14 interfaces gốc)</span></h3>
+<table>
 <tr><th>Interface</th><th>Implement bởi</th><th>Consumed bởi</th></tr>
 <tr><td>IPluginCore</td><td>CustomerDataCore, CustomerCareCore, AutomationCore, AnalyticsCore, MarketingCore</td><td>SandboxEngine (L3)</td></tr>
 <tr><td>IDbContext</td><td>TenantScopedDB (L4)</td><td>Mọi Plugin Core qua ctx.db</td></tr>
@@ -242,21 +235,7 @@ classDiagram
 <tr><td>IAuditWriter</td><td>AuditTrailWriter (L7)</td><td>SandboxEngine sau mỗi mutation (L3)</td></tr>
 <tr><td>IPluginRegistry</td><td>PluginRegistry (L3)</td><td>RouteMatcher (L2), SandboxEngine, EventBus, HookRegistry (L3)</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Interface</th><th>Implemented by</th><th>Consumed by</th></tr>
-<tr><td>IPluginCore</td><td>CustomerDataCore, CustomerCareCore, AutomationCore, AnalyticsCore, MarketingCore</td><td>SandboxEngine (L3)</td></tr>
-<tr><td>IDbContext</td><td>TenantScopedDB (L4)</td><td>All Plugin Cores via ctx.db</td></tr>
-<tr><td>ICacheContext</td><td>TenantScopedCache (L4)</td><td>Plugin Core via ctx.cache</td></tr>
-<tr><td>IEventContext</td><td>ScopedEventBus, ScopedHookRunner (L3)</td><td>Plugin Core via ctx.events</td></tr>
-<tr><td>IServiceContext</td><td>ServiceContainer (L3)</td><td>Plugin Core via ctx.services</td></tr>
-<tr><td>IConnectionPool</td><td>SharedPool, VipPool (L4)</td><td>PoolRouter (L4)</td></tr>
-<tr><td>ICacheProvider</td><td>L1MemoryCache, L2RedisCache (L4)</td><td>TenantResolver, AuthGuard, RateLimiter (L2)</td></tr>
-<tr><td>IMessageBroker</td><td>RabbitMQAdapter (L5)</td><td>EventBus (L3), BroadcastManager (L3), WorkerPool (L5)</td></tr>
-<tr><td>ISearchEngine</td><td>ElasticsearchAdapter (L5)</td><td>SearchService (L3)</td></tr>
-<tr><td>ILogger</td><td>ScopedLogger (L7)</td><td>All Plugin Cores via ctx.logger</td></tr>
-<tr><td>IAuditWriter</td><td>AuditTrailWriter (L7)</td><td>SandboxEngine after each mutation (L3)</td></tr>
-<tr><td>IPluginRegistry</td><td>PluginRegistry (L3)</td><td>RouteMatcher (L2), SandboxEngine, EventBus, HookRegistry (L3)</td></tr>
-</table>
+
 </div>
 </div>
 
@@ -346,12 +325,12 @@ classDiagram
 </pre></div>
 <div class="desc">
 
-<h3><span data-lang="vi">Vai trò</span><span data-lang="en">Role</span></h3>
-<p data-lang="vi">5 middleware chạy <strong>tuần tự</strong> mỗi request: LoadBalancer → TenantResolver → AuthGuard → RateLimiter → RouteMatcher → PermissionChecker. Mỗi middleware có quyền <strong>REJECT sớm</strong> — request không hợp lệ bị chặn ngay, không tốn resource L3/L4/L5. Total latency: ~3.9ms best case.</p>
-<p data-lang="en">5 middleware run <strong>sequentially</strong> per request: LoadBalancer → TenantResolver → AuthGuard → RateLimiter → RouteMatcher → PermissionChecker. Each middleware has the right to <strong>REJECT early</strong> — invalid requests are blocked immediately, saving L3/L4/L5 resources. Total latency: ~3.9ms best case.</p>
+<h3><span>Vai trò</span></h3>
+<p>5 middleware chạy <strong>tuần tự</strong> mỗi request: LoadBalancer → TenantResolver → AuthGuard → RateLimiter → RouteMatcher → PermissionChecker. Mỗi middleware có quyền <strong>REJECT sớm</strong> — request không hợp lệ bị chặn ngay, không tốn resource L3/L4/L5. Total latency: ~3.9ms best case.</p>
 
-<h3><span data-lang="vi">Vai trò từng thực thể</span><span data-lang="en">Role of Each Entity</span></h3>
-<table data-lang="vi">
+
+<h3><span>Vai trò từng thực thể</span></h3>
+<table>
 <tr><th>Class</th><th>Vai trò</th><th>Depend on</th></tr>
 <tr><td>LoadBalancer</td><td>TLS terminate, route VIP/shared pool, health check</td><td>—</td></tr>
 <tr><td>TenantResolver</td><td>Subdomain/domain/header → tenantId + tier + status</td><td>ICacheProvider (Redis domain-map)</td></tr>
@@ -362,23 +341,12 @@ classDiagram
 <tr><td>GatewayContext</td><td>DTO per-request: tổng hợp output 5 middleware, chuyển cho L3</td><td>—</td></tr>
 <tr><td>TokenManager</td><td>Issue/revoke/rotate JWT. Refresh token rotation</td><td>SecretManager, ICacheProvider</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Class</th><th>Role</th><th>Depend on</th></tr>
-<tr><td>LoadBalancer</td><td>TLS terminate, route VIP/shared pool, health check</td><td>—</td></tr>
-<tr><td>TenantResolver</td><td>Subdomain/domain/header → tenantId + tier + status</td><td>ICacheProvider (Redis domain-map)</td></tr>
-<tr><td>AuthGuard</td><td>JWT verify (RS256), expiry, tenant claim match, blacklist</td><td>ICacheProvider (blacklist), SecretManager (signing key)</td></tr>
-<tr><td>RateLimiter</td><td>Sliding window counter per-tenant. Tier limits: 100/500/2000/∞</td><td>ICacheProvider (sorted set), ConfigResolver (tier limits)</td></tr>
-<tr><td>RouteMatcher</td><td>Trie-based URL lookup → plugin + method + requiredPermission</td><td>IPluginRegistry (routeTable)</td></tr>
-<tr><td>PermissionChecker</td><td>3 checks: plugin enabled? user has perm? tier includes feature?</td><td>IPluginRegistry (permissionMap)</td></tr>
-<tr><td>GatewayContext</td><td>DTO per-request: aggregates output from 5 middleware, passes to L3</td><td>—</td></tr>
-<tr><td>TokenManager</td><td>Issue/revoke/rotate JWT. Refresh token rotation</td><td>SecretManager, ICacheProvider</td></tr>
-</table>
 
-<h3><span data-lang="vi">Quan hệ đặc biệt</span><span data-lang="en">Special Relationships</span></h3>
-<p data-lang="vi"><strong>Pipeline chain</strong> (..>): LoadBalancer → TenantResolver → AuthGuard → RateLimiter → RouteMatcher — mỗi bước forward output cho bước tiếp.<br>
+
+<h3><span>Quan hệ đặc biệt</span></h3>
+<p><strong>Pipeline chain</strong> (..>): LoadBalancer → TenantResolver → AuthGuard → RateLimiter → RouteMatcher — mỗi bước forward output cho bước tiếp.<br>
 <strong>DIP</strong>: L2 middleware depend on <code>ICacheProvider</code> và <code>IPluginRegistry</code> (abstraction), không phụ thuộc Redis hay PluginRegistry cụ thể.</p>
-<p data-lang="en"><strong>Pipeline chain</strong> (..>): LoadBalancer → TenantResolver → AuthGuard → RateLimiter → RouteMatcher — each step forwards its output to the next.<br>
-<strong>DIP</strong>: L2 middleware depends on <code>ICacheProvider</code> and <code>IPluginRegistry</code> (abstractions), not on Redis or a concrete PluginRegistry.</p>
+
 
 </div>
 </div>
@@ -480,12 +448,12 @@ classDiagram
 </pre></div>
 <div class="desc">
 
-<h3><span data-lang="vi">Vai trò</span><span data-lang="en">Role</span></h3>
-<p data-lang="vi">Quản lý <strong>lifecycle toàn bộ plugin system</strong>: deploy, upgrade, rollback, enable/disable per-tenant. PluginManager là orchestrator chính, phối hợp nhiều component nội bộ và cross-layer.</p>
-<p data-lang="en">Manages the <strong>lifecycle of the entire plugin system</strong>: deploy, upgrade, rollback, enable/disable per-tenant. PluginManager is the main orchestrator, coordinating many internal and cross-layer components.</p>
+<h3><span>Vai trò</span></h3>
+<p>Quản lý <strong>lifecycle toàn bộ plugin system</strong>: deploy, upgrade, rollback, enable/disable per-tenant. PluginManager là orchestrator chính, phối hợp nhiều component nội bộ và cross-layer.</p>
 
-<h3><span data-lang="vi">Vai trò từng thực thể</span><span data-lang="en">Role of Each Entity</span></h3>
-<table data-lang="vi">
+
+<h3><span>Vai trò từng thực thể</span></h3>
+<table>
 <tr><th>Class</th><th>Vai trò</th><th>Quan hệ</th></tr>
 <tr><td>PluginManager</td><td>Orchestrator lifecycle. Deploy/upgrade/rollback/enable/disable</td><td>Composition (◆): LifecycleController, CanaryController, BroadcastManager</td></tr>
 <tr><td>PluginRegistry</td><td>In-memory metadata: 5 maps (plugin, route, event, hook, permission). Implements IPluginRegistry</td><td>Consumed bởi RouteMatcher (L2), SandboxEngine, EventBus, HookRegistry</td></tr>
@@ -496,21 +464,11 @@ classDiagram
 <tr><td>CanaryController</td><td>Gradual rollout: 5%→25%→100%. Auto-rollback if error &gt;5%</td><td>Depends: MetricsCollector (L7) để monitor</td></tr>
 <tr><td>BroadcastManager</td><td>Fanout system events (plugin.deployed, config.updated) qua MQ</td><td>Depends: IMessageBroker</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Class</th><th>Role</th><th>Relationship</th></tr>
-<tr><td>PluginManager</td><td>Lifecycle orchestrator. Deploy/upgrade/rollback/enable/disable</td><td>Composition (◆): LifecycleController, CanaryController, BroadcastManager</td></tr>
-<tr><td>PluginRegistry</td><td>In-memory metadata: 5 maps (plugin, route, event, hook, permission). Implements IPluginRegistry</td><td>Consumed by RouteMatcher (L2), SandboxEngine, EventBus, HookRegistry</td></tr>
-<tr><td>SandboxEngine</td><td>VM isolation. Enforce timeout/memory/queries. Error boundary per-execution</td><td>Depends: IPluginRegistry (get core), MetricsCollector (L7, observe)</td></tr>
-<tr><td>EventBus</td><td>Dual-mode: sync in-process + async via IMessageBroker</td><td>Depends: IPluginRegistry (eventMap), IMessageBroker (async publish)</td></tr>
-<tr><td>HookRegistry</td><td>before/after/filter hooks. Priority sort, tenant-aware filter</td><td>Depends: IPluginRegistry (hookMap)</td></tr>
-<tr><td>LifecycleController</td><td>Orchestrates deploy pipeline: artifact → validate → register → migrate → broadcast</td><td>Owned by PluginManager (composition)</td></tr>
-<tr><td>CanaryController</td><td>Gradual rollout: 5%→25%→100%. Auto-rollback if error &gt;5%</td><td>Depends: MetricsCollector (L7) to monitor</td></tr>
-<tr><td>BroadcastManager</td><td>Fanout system events (plugin.deployed, config.updated) via MQ</td><td>Depends: IMessageBroker</td></tr>
-</table>
+
 
 <h3>Cross-layer dependencies</h3>
-<p data-lang="vi">PluginManager → <strong>DependencyResolver (L6)</strong> kiểm tra deps trước enable/disable. → <strong>SchemaMigrationRunner (L4)</strong> chạy DDL. → <strong>TenantMigrationRunner (L4)</strong> chạy DML per-tenant.</p>
-<p data-lang="en">PluginManager → <strong>DependencyResolver (L6)</strong> checks deps before enable/disable. → <strong>SchemaMigrationRunner (L4)</strong> runs DDL. → <strong>TenantMigrationRunner (L4)</strong> runs DML per-tenant.</p>
+<p>PluginManager → <strong>DependencyResolver (L6)</strong> kiểm tra deps trước enable/disable. → <strong>SchemaMigrationRunner (L4)</strong> chạy DDL. → <strong>TenantMigrationRunner (L4)</strong> chạy DML per-tenant.</p>
+
 
 </div>
 </div>
@@ -622,9 +580,9 @@ classDiagram
 </pre></div>
 <div class="desc">
 
-<h3><span data-lang="vi">Vai trò</span><span data-lang="en">Role</span></h3>
-<p data-lang="vi">5 Plugin Cores chứa <strong>business logic thuần</strong>. ExecutionContextBuilder tạo per-request context theo ISP — mỗi core chỉ nhận interfaces mà nó cần. <strong>LSP</strong>: SandboxEngine chạy bất kỳ IPluginCore nào mà không cần biết đó là plugin gì.</p>
-<p data-lang="en">5 Plugin Cores contain <strong>pure business logic</strong>. ExecutionContextBuilder creates a per-request context following ISP — each core only receives the interfaces it needs. <strong>LSP</strong>: SandboxEngine runs any IPluginCore without needing to know which plugin it is.</p>
+<h3><span>Vai trò</span></h3>
+<p>5 Plugin Cores chứa <strong>business logic thuần</strong>. ExecutionContextBuilder tạo per-request context theo ISP — mỗi core chỉ nhận interfaces mà nó cần. <strong>LSP</strong>: SandboxEngine chạy bất kỳ IPluginCore nào mà không cần biết đó là plugin gì.</p>
+
 
 <h3>Plugin Cores (implement IPluginCore)</h3>
 <table>
@@ -637,8 +595,8 @@ classDiagram
 </table>
 
 <h3>Context Building — ISP in action</h3>
-<p data-lang="vi"><code>ExecutionContextBuilder</code> tạo 5 scoped wrappers per-request (◆ composition):</p>
-<p data-lang="en"><code>ExecutionContextBuilder</code> creates 5 scoped wrappers per-request (◆ composition):</p>
+<p><code>ExecutionContextBuilder</code> tạo 5 scoped wrappers per-request (◆ composition):</p>
+
 <table>
 <tr><th>Scoped Wrapper</th><th>Implements</th><th>Wraps</th></tr>
 <tr><td>TenantScopedDB</td><td>IDbContext</td><td>DB connection + TenantInjector + QueryValidator + QueryCounter</td></tr>
@@ -648,9 +606,9 @@ classDiagram
 <tr><td>ScopedLogger</td><td>ILogger</td><td>Logger + auto-bind requestId/tenantId/userId + PiiRedactor</td></tr>
 </table>
 
-<h3><span data-lang="vi">DIP — Plugin không biết infrastructure</span><span data-lang="en">DIP — Plugin does not know infrastructure</span></h3>
-<p data-lang="vi">Cores depend on <strong>IDbContext</strong> (abstraction) — không biết PostgreSQL, Connection Pool, hay RLS. Đổi PostgreSQL sang MySQL = chỉ đổi implementation TenantScopedDB, plugin code không đổi dòng nào.</p>
-<p data-lang="en">Cores depend on <strong>IDbContext</strong> (abstraction) — they don't know about PostgreSQL, Connection Pool, or RLS. Switching PostgreSQL to MySQL = only change TenantScopedDB implementation; plugin code changes zero lines.</p>
+<h3><span>DIP — Plugin không biết infrastructure</span></h3>
+<p>Cores depend on <strong>IDbContext</strong> (abstraction) — không biết PostgreSQL, Connection Pool, hay RLS. Đổi PostgreSQL sang MySQL = chỉ đổi implementation TenantScopedDB, plugin code không đổi dòng nào.</p>
+
 
 </div>
 </div>
@@ -818,12 +776,12 @@ classDiagram
     PoolRouter --> CircuitBreaker : fast-fail
 </pre></div>
 <div class="desc">
-<h3><span data-lang="vi">Vai trò</span><span data-lang="en">Role</span></h3>
-<p data-lang="vi">L4 chứa 3 nhóm: <strong>Query Builder + Pipeline</strong> (CrmQueryBuilder → QueryAST → ISQLDialect/ITenantStrategy → validate → count → log), <strong>Pool Manager</strong> (connection lifecycle), <strong>Cache + Migration</strong>. Plugin không bao giờ truy cập DB trực tiếp — mọi query đi qua CrmQueryBuilder.</p>
-<p data-lang="en">L4 contains 3 groups: <strong>Query Builder + Pipeline</strong> (CrmQueryBuilder → QueryAST → ISQLDialect/ITenantStrategy → validate → count → log), <strong>Pool Manager</strong> (connection lifecycle), <strong>Cache + Migration</strong>. Plugins never access DB directly — all queries go through CrmQueryBuilder.</p>
+<h3><span>Vai trò</span></h3>
+<p>L4 chứa 3 nhóm: <strong>Query Builder + Pipeline</strong> (CrmQueryBuilder → QueryAST → ISQLDialect/ITenantStrategy → validate → count → log), <strong>Pool Manager</strong> (connection lifecycle), <strong>Cache + Migration</strong>. Plugin không bao giờ truy cập DB trực tiếp — mọi query đi qua CrmQueryBuilder.</p>
+
 
 <h3>Query Builder Pipeline (DIP)</h3>
-<table data-lang="vi">
+<table>
 <tr><th>Class</th><th>Vai trò</th><th>Quan hệ</th></tr>
 <tr><td>TenantScopedDB</td><td>Implements IDbContext. Plugin gọi ctx.db → tạo CrmQueryBuilder per query. Inject ISQLDialect + ITenantStrategy qua constructor (DI)</td><td>Composition (◆): CrmQueryBuilder, QueryValidator, QueryCounter, QueryLogger. Depends: ISQLDialect, ITenantStrategy</td></tr>
 <tr><td>CrmQueryBuilder</td><td>Fluent API per-query. 18 chain methods + 5 terminal methods. Tạo QueryAST (DB-agnostic). KHÔNG generate SQL</td><td>Produces: QueryAST. Created by TenantScopedDB per mỗi .query() call</td></tr>
@@ -834,37 +792,21 @@ classDiagram
 <tr><td>QueryCounter</td><td>Query budget per-request [n/50]. Exceed → QueryLimitError</td><td>Per-request, owned by TenantScopedDB</td></tr>
 <tr><td>QueryLogger</td><td>Log query + context + duration. Slow query: >100ms WARN, >500ms ALERT</td><td>Consumed by TenantScopedDB sau DB execute</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Class</th><th>Role</th><th>Relationship</th></tr>
-<tr><td>TenantScopedDB</td><td>Implements IDbContext. Plugin calls ctx.db → creates CrmQueryBuilder per query. Injects ISQLDialect + ITenantStrategy via constructor (DI)</td><td>Composition (◆): CrmQueryBuilder, QueryValidator, QueryCounter, QueryLogger. Depends: ISQLDialect, ITenantStrategy</td></tr>
-<tr><td>CrmQueryBuilder</td><td>Fluent API per-query. 18 chain methods + 5 terminal methods. Creates QueryAST (DB-agnostic). Does NOT generate SQL</td><td>Produces: QueryAST. Created by TenantScopedDB per each .query() call</td></tr>
-<tr><td>QueryAST</td><td>Value object. Pure data: table, operation, where[], join[], orderBy[], limit... Serializable, testable, DB-agnostic</td><td>Consumed by ISQLDialect.generateXxx() and ITenantStrategy.injectTenant()</td></tr>
-<tr><td>ISQLDialect</td><td>Interface. AST → parameterized SQL per DB type. Injected into TenantScopedDB</td><td>Implementations at L5: PostgresDialect, MySQLDialect, SQLiteDialect</td></tr>
-<tr><td>ITenantStrategy</td><td>Interface. Injects tenant_id into AST + configures connection isolation. Injected into TenantScopedDB</td><td>Implementations at L5: PostgresRLSStrategy, MySQLTenantStrategy, SQLiteTenantStrategy</td></tr>
-<tr><td>QueryValidator</td><td>6 safety checks on AST: tenant_id? allowedTables? no DDL? no system tables? parameterized? JOIN tenant?</td><td>Consumed by TenantScopedDB after ITenantStrategy.inject</td></tr>
-<tr><td>QueryCounter</td><td>Query budget per-request [n/50]. Exceed → QueryLimitError</td><td>Per-request, owned by TenantScopedDB</td></tr>
-<tr><td>QueryLogger</td><td>Log query + context + duration. Slow query: >100ms WARN, >500ms ALERT</td><td>Consumed by TenantScopedDB after DB execute</td></tr>
-</table>
+
 
 <h3>Pool Manager</h3>
-<table data-lang="vi">
+<table>
 <tr><th>Class</th><th>Vai trò</th><th>Quan hệ</th></tr>
 <tr><td>PoolRegistry</td><td>Holds all pools (bootstrap). Aggregation: SharedPool, VipPool</td><td>PoolRouter lookup từ đây</td></tr>
 <tr><td>PoolRouter</td><td>Route tenant → đúng pool. Depends CircuitBreaker (L6) để fast-fail</td><td>Depends: PoolRegistry, ConnectionConfigurator, TenantQuotaEnforcer, CircuitBreaker</td></tr>
 <tr><td>SharedPool / VipPool</td><td>Implement IConnectionPool. SharedPool: PgBouncer→SharedDataDB, 200 max. VipPool: dedicated per VIP</td><td>Aggregated by PoolRegistry</td></tr>
 <tr><td>ConnectionConfigurator</td><td>SET/RESET app.current_tenant per connection (RLS context)</td><td>Consumed by PoolRouter</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Class</th><th>Role</th><th>Relationship</th></tr>
-<tr><td>PoolRegistry</td><td>Holds all pools (bootstrap). Aggregation: SharedPool, VipPool</td><td>PoolRouter lookup from here</td></tr>
-<tr><td>PoolRouter</td><td>Routes tenant → correct pool. Depends on CircuitBreaker (L6) for fast-fail</td><td>Depends: PoolRegistry, ConnectionConfigurator, TenantQuotaEnforcer, CircuitBreaker</td></tr>
-<tr><td>SharedPool / VipPool</td><td>Implement IConnectionPool. SharedPool: PgBouncer→SharedDataDB, 200 max. VipPool: dedicated per VIP</td><td>Aggregated by PoolRegistry</td></tr>
-<tr><td>ConnectionConfigurator</td><td>SET/RESET app.current_tenant per connection (RLS context)</td><td>Consumed by PoolRouter</td></tr>
-</table>
+
 
 <h3>Cache + Migration</h3>
-<p data-lang="vi"><strong>L1MemoryCache</strong> (ICacheProvider, LRU, 60s) → <strong>L2RedisCache</strong> (ICacheProvider, cluster, 5-15min). <strong>SchemaMigrationRunner</strong> + <strong>TenantMigrationRunner</strong> dùng <strong>IMigrationDialect</strong> (DIP) để generate DDL per DB type.</p>
-<p data-lang="en"><strong>L1MemoryCache</strong> (ICacheProvider, LRU, 60s) → <strong>L2RedisCache</strong> (ICacheProvider, cluster, 5-15min). <strong>SchemaMigrationRunner</strong> + <strong>TenantMigrationRunner</strong> use <strong>IMigrationDialect</strong> (DIP) to generate DDL per DB type.</p>
+<p><strong>L1MemoryCache</strong> (ICacheProvider, LRU, 60s) → <strong>L2RedisCache</strong> (ICacheProvider, cluster, 5-15min). <strong>SchemaMigrationRunner</strong> + <strong>TenantMigrationRunner</strong> dùng <strong>IMigrationDialect</strong> (DIP) để generate DDL per DB type.</p>
+
 </div>
 </div>
 
@@ -1001,12 +943,12 @@ classDiagram
     WorkerPool --> RetryPolicy : retry
 </pre></div>
 <div class="desc">
-<h3><span data-lang="vi">Vai trò</span><span data-lang="en">Role</span></h3>
-<p data-lang="vi">Adapter layer: concrete implementations wrap external systems và implement interfaces ở L3/L4. Đây là nơi <strong>Dependency Inversion hoàn thành</strong> — L3/L4 depend on interfaces, L5 provides implementations. Bao gồm 9 implementations mới cho Query Builder DIP (3 dialects × 3 interfaces).</p>
-<p data-lang="en">Adapter layer: concrete implementations wrap external systems and implement interfaces at L3/L4. This is where <strong>Dependency Inversion is completed</strong> — L3/L4 depend on interfaces, L5 provides implementations. Includes 9 new implementations for Query Builder DIP (3 dialects × 3 interfaces).</p>
+<h3><span>Vai trò</span></h3>
+<p>Adapter layer: concrete implementations wrap external systems và implement interfaces ở L3/L4. Đây là nơi <strong>Dependency Inversion hoàn thành</strong> — L3/L4 depend on interfaces, L5 provides implementations. Bao gồm 9 implementations mới cho Query Builder DIP (3 dialects × 3 interfaces).</p>
 
-<h3><span data-lang="vi">Query Builder DIP — 9 Implementations mới</span><span data-lang="en">Query Builder DIP — 9 New Implementations</span></h3>
-<table data-lang="vi">
+
+<h3><span>Query Builder DIP — 9 Implementations mới</span></h3>
+<table>
 <tr><th>Interface</th><th>Implementation</th><th>DB-specific details</th></tr>
 <tr><td rowspan="3">ISQLDialect</td><td>PostgresDialect</td><td>$1,$2 placeholder, RETURNING *, ON CONFLICT, ILIKE, ::jsonb cast</td></tr>
 <tr><td>MySQLDialect</td><td>? placeholder, LAST_INSERT_ID(), ON DUPLICATE KEY, JSON_EXTRACT()</td></tr>
@@ -1018,20 +960,9 @@ classDiagram
 <tr><td>MySQLMigrationDialect</td><td>No RLS policy, implicit DDL commit, GET_LOCK()</td></tr>
 <tr><td>SQLiteMigrationDialect</td><td>No RLS, limited ALTER TABLE, file-level locking</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Interface</th><th>Implementation</th><th>DB-specific details</th></tr>
-<tr><td rowspan="3">ISQLDialect</td><td>PostgresDialect</td><td>$1,$2 placeholder, RETURNING *, ON CONFLICT, ILIKE, ::jsonb cast</td></tr>
-<tr><td>MySQLDialect</td><td>? placeholder, LAST_INSERT_ID(), ON DUPLICATE KEY, JSON_EXTRACT()</td></tr>
-<tr><td>SQLiteDialect</td><td>? placeholder, last_insert_rowid(), limited JSON, FTS5</td></tr>
-<tr><td rowspan="3">ITenantStrategy</td><td>PostgresRLSStrategy</td><td>AST inject + SET app.current_tenant + RLS policies. 3 protection layers</td></tr>
-<tr><td>MySQLTenantStrategy</td><td>AST inject + SET @app_tenant session var. 2 protection layers (no RLS)</td></tr>
-<tr><td>SQLiteTenantStrategy</td><td>AST inject only. 1 layer. Used for unit tests</td></tr>
-<tr><td rowspan="3">IMigrationDialect</td><td>PostgresMigrationDialect</td><td>CREATE POLICY, transactional DDL, pg_advisory_lock</td></tr>
-<tr><td>MySQLMigrationDialect</td><td>No RLS policy, implicit DDL commit, GET_LOCK()</td></tr>
-<tr><td>SQLiteMigrationDialect</td><td>No RLS, limited ALTER TABLE, file-level locking</td></tr>
-</table>
 
-<h3><span data-lang="vi">Infrastructure Adapters (6 gốc)</span><span data-lang="en">Infrastructure Adapters (6 original)</span></h3>
+
+<h3><span>Infrastructure Adapters (6 gốc)</span></h3>
 <table>
 <tr><th>Interface</th><th>Implementation</th><th>External System</th></tr>
 <tr><td>IConnectionPool</td><td>SharedPool, VipPool</td><td>PgBouncer → SharedDataDB, VipDataDB</td></tr>
@@ -1042,8 +973,8 @@ classDiagram
 
 <h3>External Systems</h3>
 <p>MetadataDB (system config), SharedDataDB (RLS-enabled, 3 read replicas), VipDataDB (dedicated), PgBouncer (200→50 multiplexer), RedisCluster (6 roles), S3ObjectStore (SSE-KMS, WORM), CDN (shell + plugin remotes).</p>
-<p data-lang="vi"><strong>WorkerPool</strong> consumes IMessageBroker queues, dùng <strong>RetryPolicy (L6)</strong>: 3x exponential → DLQ.</p>
-<p data-lang="en"><strong>WorkerPool</strong> consumes IMessageBroker queues, using <strong>RetryPolicy (L6)</strong>: 3x exponential → DLQ.</p>
+<p><strong>WorkerPool</strong> consumes IMessageBroker queues, dùng <strong>RetryPolicy (L6)</strong>: 3x exponential → DLQ.</p>
+
 </div>
 </div>
 
@@ -1127,42 +1058,32 @@ classDiagram
 </pre></div>
 <div class="desc">
 
-<h3><span data-lang="vi">Vai trò</span><span data-lang="en">Role</span></h3>
-<p data-lang="vi">4 concerns <strong>xuyên suốt L1→L5</strong>: Error hierarchy, Resilience patterns, Security, Config, Dependency. L6 không xử lý request — nó cung cấp <strong>policies, patterns, libraries</strong> mà L1→L5 consume.</p>
-<p data-lang="en">4 concerns that <strong>cut across L1→L5</strong>: Error hierarchy, Resilience patterns, Security, Config, Dependency. L6 does not handle requests — it provides <strong>policies, patterns, libraries</strong> that L1→L5 consume.</p>
+<h3><span>Vai trò</span></h3>
+<p>4 concerns <strong>xuyên suốt L1→L5</strong>: Error hierarchy, Resilience patterns, Security, Config, Dependency. L6 không xử lý request — nó cung cấp <strong>policies, patterns, libraries</strong> mà L1→L5 consume.</p>
+
 
 <h3>Error Hierarchy (LSP)</h3>
-<table data-lang="vi">
+<table>
 <tr><th>Class</th><th>isRetryable</th><th>HTTP Status</th><th>Xử lý</th></tr>
 <tr><td>CrmError (abstract)</td><td>—</td><td>—</td><td>Base class, mọi error kế thừa. code + message + status + isRetryable</td></tr>
 <tr><td>BusinessError</td><td>false</td><td>400, 403, 404, 409</td><td>Permanent. Client KHÔNG retry. VD: CUSTOMER_NOT_FOUND</td></tr>
 <tr><td>SystemError</td><td>true</td><td>502, 503, 504</td><td>Transient. Client CÓ THỂ retry. VD: DB_TIMEOUT</td></tr>
 <tr><td>PluginError</td><td>varies</td><td>500, 504</td><td>Sandbox catches. VD: PLUGIN_CRASH, MEMORY_EXCEEDED</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Class</th><th>isRetryable</th><th>HTTP Status</th><th>Handling</th></tr>
-<tr><td>CrmError (abstract)</td><td>—</td><td>—</td><td>Base class, all errors inherit. code + message + status + isRetryable</td></tr>
-<tr><td>BusinessError</td><td>false</td><td>400, 403, 404, 409</td><td>Permanent. Client must NOT retry. E.g.: CUSTOMER_NOT_FOUND</td></tr>
-<tr><td>SystemError</td><td>true</td><td>502, 503, 504</td><td>Transient. Client CAN retry. E.g.: DB_TIMEOUT</td></tr>
-<tr><td>PluginError</td><td>varies</td><td>500, 504</td><td>Sandbox catches. E.g.: PLUGIN_CRASH, MEMORY_EXCEEDED</td></tr>
-</table>
-<p data-lang="vi"><strong>LSP</strong>: error handler chỉ cần check <code>error.isRetryable</code> — bất kỳ subclass nào cũng xử lý đúng mà không cần biết loại cụ thể.</p>
-<p data-lang="en"><strong>LSP</strong>: error handler only needs to check <code>error.isRetryable</code> — any subclass is handled correctly without knowing the concrete type.</p>
+
+<p><strong>LSP</strong>: error handler chỉ cần check <code>error.isRetryable</code> — bất kỳ subclass nào cũng xử lý đúng mà không cần biết loại cụ thể.</p>
+
 
 <h3>Resilience Patterns</h3>
-<table data-lang="vi">
+<table>
 <tr><th>Class</th><th>Vai trò</th><th>Consumed bởi</th></tr>
 <tr><td>CircuitBreaker</td><td>CLOSED → OPEN → HALF-OPEN. Fast-fail khi downstream lỗi</td><td>PoolRouter (L4 DB), external API clients</td></tr>
 <tr><td>RetryPolicy</td><td>Exponential backoff + jitter: 5s→30s→2min. Chỉ retry isRetryable=true</td><td>WorkerPool (L5), MQPublisher (L3)</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Class</th><th>Role</th><th>Consumed by</th></tr>
-<tr><td>CircuitBreaker</td><td>CLOSED → OPEN → HALF-OPEN. Fast-fail when downstream fails</td><td>PoolRouter (L4 DB), external API clients</td></tr>
-<tr><td>RetryPolicy</td><td>Exponential backoff + jitter: 5s→30s→2min. Only retries isRetryable=true</td><td>WorkerPool (L5), MQPublisher (L3)</td></tr>
-</table>
+
 
 <h3>Security + Config + Dependency</h3>
-<table data-lang="vi">
+<table>
 <tr><th>Class</th><th>Vai trò</th><th>Consumed bởi</th></tr>
 <tr><td>EncryptionService</td><td>AES-256-GCM encrypt/decrypt</td><td>pgcrypto columns, S3 SSE, backup</td></tr>
 <tr><td>PiiRedactor</td><td>Auto-mask PII (email, phone, token) trước khi log</td><td>ScopedLogger (L7)</td></tr>
@@ -1172,16 +1093,7 @@ classDiagram
 <tr><td>DependencyResolver</td><td>checkCanEnable/checkCanDisable. Topological sort</td><td>PluginManager (L3)</td></tr>
 <tr><td>DependencyGraph</td><td>In-memory DAG plugin → deps</td><td>DependencyResolver, SchemaMigrationRunner (L4)</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Class</th><th>Role</th><th>Consumed by</th></tr>
-<tr><td>EncryptionService</td><td>AES-256-GCM encrypt/decrypt</td><td>pgcrypto columns, S3 SSE, backup</td></tr>
-<tr><td>PiiRedactor</td><td>Auto-masks PII (email, phone, token) before logging</td><td>ScopedLogger (L7)</td></tr>
-<tr><td>SecretManager</td><td>Vault/KMS client. Lease TTL 8h, auto-renew</td><td>AuthGuard (L2), TokenManager (L2), ConnectionConfigurator (L4)</td></tr>
-<tr><td>ConfigResolver</td><td>3-level cascade: Global → Tier → Tenant. Hot reload</td><td>RateLimiter (L2), TenantQuotaEnforcer (L4), L2RedisCache (L4)</td></tr>
-<tr><td>FeatureFlagService</td><td>Per-flag: global + tier + tenant override</td><td>HostShell (L1), Plugin Cores (L3)</td></tr>
-<tr><td>DependencyResolver</td><td>checkCanEnable/checkCanDisable. Topological sort</td><td>PluginManager (L3)</td></tr>
-<tr><td>DependencyGraph</td><td>In-memory DAG plugin → deps</td><td>DependencyResolver, SchemaMigrationRunner (L4)</td></tr>
-</table>
+
 
 </div>
 </div>
@@ -1262,41 +1174,29 @@ classDiagram
 </pre></div>
 <div class="desc">
 
-<h3><span data-lang="vi">Vai trò</span><span data-lang="en">Role</span></h3>
-<p data-lang="vi">Quan sát toàn bộ hệ thống: <strong>Log</strong> (what happened), <strong>Trace</strong> (request journey), <strong>Metrics</strong> (how much), <strong>Alert</strong> (when bad), <strong>Audit</strong> (who changed what), <strong>Health</strong> (is it alive).</p>
-<p data-lang="en">Observes the entire system: <strong>Log</strong> (what happened), <strong>Trace</strong> (request journey), <strong>Metrics</strong> (how much), <strong>Alert</strong> (when bad), <strong>Audit</strong> (who changed what), <strong>Health</strong> (is it alive).</p>
+<h3><span>Vai trò</span></h3>
+<p>Quan sát toàn bộ hệ thống: <strong>Log</strong> (what happened), <strong>Trace</strong> (request journey), <strong>Metrics</strong> (how much), <strong>Alert</strong> (when bad), <strong>Audit</strong> (who changed what), <strong>Health</strong> (is it alive).</p>
+
 
 <h3>Core Observability</h3>
-<table data-lang="vi">
+<table>
 <tr><th>Class</th><th>Vai trò</th><th>Quan hệ</th></tr>
 <tr><td>ScopedLogger</td><td>Per-request. Auto-bind requestId/tenantId/userId. JSON → stdout → Loki. Implements ILogger</td><td>Depends: PiiRedactor (L6, redact PII), TracingManager (inject traceId). Consumed bởi mọi Plugin Core</td></tr>
 <tr><td>TracingManager</td><td>OpenTelemetry. Auto-instrument HTTP, DB, Redis, MQ. Sampling: 5% normal, 100% errors, VIP 20%</td><td>Export → Jaeger. ScopedLogger inject traceId vào log lines</td></tr>
 <tr><td>MetricsCollector</td><td>Prometheus client. Histograms: request_duration, plugin_execution. Counters: request_total, error_total</td><td>Feed → AlertManager khi threshold vượt ngưỡng</td></tr>
 <tr><td>AlertManager</td><td>3 severity: WARNING (Slack), CRITICAL (PagerDuty), FATAL (Phone). Escalation 0→5→15→30→60min</td><td>Nhận từ MetricsCollector (threshold) và AnomalyDetector (pattern)</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Class</th><th>Role</th><th>Relationship</th></tr>
-<tr><td>ScopedLogger</td><td>Per-request. Auto-bind requestId/tenantId/userId. JSON → stdout → Loki. Implements ILogger</td><td>Depends: PiiRedactor (L6, redact PII), TracingManager (inject traceId). Consumed by all Plugin Cores</td></tr>
-<tr><td>TracingManager</td><td>OpenTelemetry. Auto-instrument HTTP, DB, Redis, MQ. Sampling: 5% normal, 100% errors, VIP 20%</td><td>Export → Jaeger. ScopedLogger injects traceId into log lines</td></tr>
-<tr><td>MetricsCollector</td><td>Prometheus client. Histograms: request_duration, plugin_execution. Counters: request_total, error_total</td><td>Feeds → AlertManager when threshold is exceeded</td></tr>
-<tr><td>AlertManager</td><td>3 severity: WARNING (Slack), CRITICAL (PagerDuty), FATAL (Phone). Escalation 0→5→15→30→60min</td><td>Receives from MetricsCollector (threshold) and AnomalyDetector (pattern)</td></tr>
-</table>
+
 
 <h3>Health + Audit</h3>
-<table data-lang="vi">
+<table>
 <tr><th>Class</th><th>Vai trò</th><th>Note</th></tr>
 <tr><td>LivenessProbe</td><td>/health/live (10s). Process alive? Fail → K8s restart container</td><td>Lightweight, no external deps</td></tr>
 <tr><td>ReadinessProbe</td><td>/health/ready (5s). DB? Redis? Plugins loaded? Not ready → LB skip</td><td>Check tất cả dependencies</td></tr>
 <tr><td>AuditTrailWriter</td><td>Immutable compliance record. Chỉ data mutations. Buffer 1s → batch INSERT. Implements IAuditWriter</td><td>Partitioned monthly → S3 WORM. NO UPDATE/DELETE</td></tr>
 <tr><td>AnomalyDetector</td><td>Pattern analysis: cross-tenant attempts, error rate spike, traffic anomaly</td><td>Feed → AlertManager</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Class</th><th>Role</th><th>Note</th></tr>
-<tr><td>LivenessProbe</td><td>/health/live (10s). Process alive? Fail → K8s restart container</td><td>Lightweight, no external deps</td></tr>
-<tr><td>ReadinessProbe</td><td>/health/ready (5s). DB? Redis? Plugins loaded? Not ready → LB skip</td><td>Checks all dependencies</td></tr>
-<tr><td>AuditTrailWriter</td><td>Immutable compliance record. Data mutations only. Buffer 1s → batch INSERT. Implements IAuditWriter</td><td>Partitioned monthly → S3 WORM. NO UPDATE/DELETE</td></tr>
-<tr><td>AnomalyDetector</td><td>Pattern analysis: cross-tenant attempts, error rate spike, traffic anomaly</td><td>Feed → AlertManager</td></tr>
-</table>
+
 
 </div>
 </div>
@@ -1351,12 +1251,12 @@ classDiagram
 </pre></div>
 <div class="desc">
 
-<h3><span data-lang="vi">Vai trò</span><span data-lang="en">Role</span></h3>
-<p data-lang="vi">Lớp DUY NHẤT user nhìn thấy. Hoàn toàn <strong>client-side</strong> — không truy cập DB, Redis, MQ. Chỉ gọi API tới L2 Gateway. Plugin UI loaded ĐỘNG qua Module Federation.</p>
-<p data-lang="en">The ONLY layer the user sees. Entirely <strong>client-side</strong> — no direct access to DB, Redis, or MQ. Only calls API to L2 Gateway. Plugin UI is loaded DYNAMICALLY via Module Federation.</p>
+<h3><span>Vai trò</span></h3>
+<p>Lớp DUY NHẤT user nhìn thấy. Hoàn toàn <strong>client-side</strong> — không truy cập DB, Redis, MQ. Chỉ gọi API tới L2 Gateway. Plugin UI loaded ĐỘNG qua Module Federation.</p>
 
-<h3><span data-lang="vi">Vai trò từng thực thể</span><span data-lang="en">Role of Each Entity</span></h3>
-<table data-lang="vi">
+
+<h3><span>Vai trò từng thực thể</span></h3>
+<table>
 <tr><th>Class</th><th>Vai trò</th><th>Quan hệ</th></tr>
 <tr><td>HostShell</td><td>React SPA frame: sidebar, topbar, auth (JWT memory), React Router, theme, remote loading</td><td>Composition (◆): PluginArea, ThemeEngine, ApiClient. Aggregation (◇): PluginRemote (load động)</td></tr>
 <tr><td>PluginRemote</td><td>Module Federation remote (remoteEntry.js). Pages + components cho 1 plugin. CDN per-version</td><td>Loaded dynamically bởi HostShell khi navigate</td></tr>
@@ -1366,16 +1266,7 @@ classDiagram
 <tr><td>TenantAdminApp</td><td>SPA cho tenant admin: plugin enable/disable, user RBAC, plugin config, billing</td><td>Standalone (admin.{sub}.crm.com)</td></tr>
 <tr><td>SystemAdminApp</td><td>SPA cho platform ops: tenant CRUD, deploy, monitoring (VPN + MFA only)</td><td>Standalone (system.crm.internal)</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Class</th><th>Role</th><th>Relationship</th></tr>
-<tr><td>HostShell</td><td>React SPA frame: sidebar, topbar, auth (JWT memory), React Router, theme, remote loading</td><td>Composition (◆): PluginArea, ThemeEngine, ApiClient. Aggregation (◇): PluginRemote (loaded dynamically)</td></tr>
-<tr><td>PluginRemote</td><td>Module Federation remote (remoteEntry.js). Pages + components for 1 plugin. CDN per-version</td><td>Loaded dynamically by HostShell when navigating</td></tr>
-<tr><td>PluginArea</td><td>React slot. Render active remote based on URL. ErrorBoundary per-plugin</td><td>Owned by HostShell</td></tr>
-<tr><td>ThemeEngine</td><td>Apply tenant theme (logo, colors) via CSS variables</td><td>Owned by HostShell</td></tr>
-<tr><td>ApiClient</td><td>HTTP client. Auto-attach JWT + X-Tenant-ID. Handle 401 → auto refresh</td><td>Owned by HostShell</td></tr>
-<tr><td>TenantAdminApp</td><td>SPA for tenant admin: plugin enable/disable, user RBAC, plugin config, billing</td><td>Standalone (admin.{sub}.crm.com)</td></tr>
-<tr><td>SystemAdminApp</td><td>SPA for platform ops: tenant CRUD, deploy, monitoring (VPN + MFA only)</td><td>Standalone (system.crm.internal)</td></tr>
-</table>
+
 
 </div>
 </div>
@@ -1504,26 +1395,21 @@ classDiagram
     SQLiteTenantStrategy ..|> ITenantStrategy
 </pre></div>
 <div class="desc">
-<h3><span data-lang="vi">Vai trò</span><span data-lang="en">Role</span></h3>
-<p data-lang="vi">Sơ đồ chi tiết <strong>CrmQueryBuilder pipeline</strong> — trung tâm của mọi truy vấn DB. Plugin gọi ctx.db.query() → CrmQueryBuilder (fluent) → QueryAST (DB-agnostic) → ITenantStrategy inject tenant_id → QueryValidator validate → ISQLDialect generate SQL → execute → QueryLogger log.</p>
-<p data-lang="en">Detailed diagram of the <strong>CrmQueryBuilder pipeline</strong> — the center of all DB queries. Plugin calls ctx.db.query() → CrmQueryBuilder (fluent) → QueryAST (DB-agnostic) → ITenantStrategy inject tenant_id → QueryValidator validate → ISQLDialect generate SQL → execute → QueryLogger log.</p>
+<h3><span>Vai trò</span></h3>
+<p>Sơ đồ chi tiết <strong>CrmQueryBuilder pipeline</strong> — trung tâm của mọi truy vấn DB. Plugin gọi ctx.db.query() → CrmQueryBuilder (fluent) → QueryAST (DB-agnostic) → ITenantStrategy inject tenant_id → QueryValidator validate → ISQLDialect generate SQL → execute → QueryLogger log.</p>
 
-<h3><span data-lang="vi">3 Layer tách biệt (DIP)</span><span data-lang="en">3 Separate Layers (DIP)</span></h3>
-<table data-lang="vi">
+
+<h3><span>3 Layer tách biệt (DIP)</span></h3>
+<table>
 <tr><th>Layer</th><th>Class</th><th>Vai trò</th></tr>
 <tr><td>Layer 1: Plugin-facing</td><td>CrmQueryBuilder</td><td>Fluent API. 18 chain + 5 terminal methods. Build QueryAST. KHÔNG biết DB nào, KHÔNG generate SQL</td></tr>
 <tr><td>Layer 2: Abstraction</td><td>QueryAST</td><td>Value object. Pure data: table, operation, where[], join[], limit... DB-agnostic, serializable, testable</td></tr>
 <tr><td>Layer 3: DB-specific</td><td>ISQLDialect, ITenantStrategy</td><td>AST → DB-specific SQL + tenant isolation. Swap implementation = swap DB</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Layer</th><th>Class</th><th>Role</th></tr>
-<tr><td>Layer 1: Plugin-facing</td><td>CrmQueryBuilder</td><td>Fluent API. 18 chain + 5 terminal methods. Builds QueryAST. Does NOT know which DB, does NOT generate SQL</td></tr>
-<tr><td>Layer 2: Abstraction</td><td>QueryAST</td><td>Value object. Pure data: table, operation, where[], join[], limit... DB-agnostic, serializable, testable</td></tr>
-<tr><td>Layer 3: DB-specific</td><td>ISQLDialect, ITenantStrategy</td><td>AST → DB-specific SQL + tenant isolation. Swap implementation = swap DB</td></tr>
-</table>
 
-<h3><span data-lang="vi">Pipeline 7 bước</span><span data-lang="en">7-Step Pipeline</span></h3>
-<table data-lang="vi">
+
+<h3><span>Pipeline 7 bước</span></h3>
+<table>
 <tr><th>Bước</th><th>Component</th><th>DB-agnostic?</th></tr>
 <tr><td>① toAST()</td><td>CrmQueryBuilder</td><td>✓ Agnostic</td></tr>
 <tr><td>② injectTenant()</td><td>ITenantStrategy impl</td><td>✗ Strategy</td></tr>
@@ -1533,22 +1419,13 @@ classDiagram
 <tr><td>⑥ query(text, params)</td><td>IConnectionPool impl</td><td>✗ Abstracted</td></tr>
 <tr><td>⑦ log()</td><td>QueryLogger</td><td>✓ Agnostic</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>Step</th><th>Component</th><th>DB-agnostic?</th></tr>
-<tr><td>① toAST()</td><td>CrmQueryBuilder</td><td>✓ Agnostic</td></tr>
-<tr><td>② injectTenant()</td><td>ITenantStrategy impl</td><td>✗ Strategy</td></tr>
-<tr><td>③ validate()</td><td>QueryValidator</td><td>✓ Agnostic</td></tr>
-<tr><td>④ increment()</td><td>QueryCounter</td><td>✓ Agnostic</td></tr>
-<tr><td>⑤ generateXxx()</td><td>ISQLDialect impl</td><td>✗ Strategy</td></tr>
-<tr><td>⑥ query(text, params)</td><td>IConnectionPool impl</td><td>✗ Abstracted</td></tr>
-<tr><td>⑦ log()</td><td>QueryLogger</td><td>✓ Agnostic</td></tr>
-</table>
-<p data-lang="vi">~70% pipeline DB-agnostic (①③④⑦). ~30% swap qua interface (②⑤⑥). Swap DB = tạo 3 implementations mới (~535 LOC), zero plugin code change.</p>
-<p data-lang="en">~70% of the pipeline is DB-agnostic (①③④⑦). ~30% is swapped via interface (②⑤⑥). Swap DB = create 3 new implementations (~535 LOC), zero plugin code changes.</p>
 
-<h3><span data-lang="vi">Security — 3 tầng bảo vệ</span><span data-lang="en">Security — 3 Protection Layers</span></h3>
-<p data-lang="vi"><strong>Tầng 1</strong>: CrmQueryBuilder (AST typed, không raw SQL) + ITenantStrategy (inject tenant_id). <strong>Tầng 2</strong>: QueryValidator (6 rules on AST). <strong>Tầng 3</strong>: PostgreSQL RLS (nếu dialect hỗ trợ). MySQL chỉ có 2 tầng → enforce stricter validation.</p>
-<p data-lang="en"><strong>Layer 1</strong>: CrmQueryBuilder (AST typed, no raw SQL) + ITenantStrategy (inject tenant_id). <strong>Layer 2</strong>: QueryValidator (6 rules on AST). <strong>Layer 3</strong>: PostgreSQL RLS (if dialect supports it). MySQL only has 2 layers → enforces stricter validation.</p>
+<p>~70% pipeline DB-agnostic (①③④⑦). ~30% swap qua interface (②⑤⑥). Swap DB = tạo 3 implementations mới (~535 LOC), zero plugin code change.</p>
+
+
+<h3><span>Security — 3 tầng bảo vệ</span></h3>
+<p><strong>Tầng 1</strong>: CrmQueryBuilder (AST typed, không raw SQL) + ITenantStrategy (inject tenant_id). <strong>Tầng 2</strong>: QueryValidator (6 rules on AST). <strong>Tầng 3</strong>: PostgreSQL RLS (nếu dialect hỗ trợ). MySQL chỉ có 2 tầng → enforce stricter validation.</p>
+
 </div>
 </div>
 
@@ -1682,19 +1559,19 @@ classDiagram
     TenantScopedDB --> ITenantStrategy
 </pre></div>
 <div class="desc">
-<h3><span data-lang="vi">Vai trò</span><span data-lang="en">Role</span></h3>
-<p data-lang="vi">Tổng hợp <strong>Dependency Inversion Principle</strong> xuyên toàn bộ kiến trúc. Mũi tên dependency luôn hướng VÀO abstraction (interface) từ CẢ HAI phía: high-level (L3 Plugin) → interface ← low-level (L4/L5 implementation). Bao gồm 17 interfaces và ~25 concrete implementations.</p>
-<p data-lang="en">Summarizes the <strong>Dependency Inversion Principle</strong> across the entire architecture. Dependency arrows always point INTO the abstraction (interface) from BOTH sides: high-level (L3 Plugin) → interface ← low-level (L4/L5 implementation). Includes 17 interfaces and ~25 concrete implementations.</p>
+<h3><span>Vai trò</span></h3>
+<p>Tổng hợp <strong>Dependency Inversion Principle</strong> xuyên toàn bộ kiến trúc. Mũi tên dependency luôn hướng VÀO abstraction (interface) từ CẢ HAI phía: high-level (L3 Plugin) → interface ← low-level (L4/L5 implementation). Bao gồm 17 interfaces và ~25 concrete implementations.</p>
+
 
 <h3>DIP Pattern</h3>
 <div class="code" style="font-family:monospace;font-size:.8rem;background:#111420;border:1px solid #1c2038;border-radius:4px;padding:14px 18px;color:#8890b8;margin:12px 0">
 Plugin Core (L3) ──depends on──▶ Interface ◁──implements── Concrete (L4/L5)<br><br>
-<span data-lang="vi">VD: CustomerDataCore ──▶ IDbContext ◁── TenantScopedDB ──▶ ISQLDialect ◁── PostgresDialect</span><span data-lang="en">E.g.: CustomerDataCore ──▶ IDbContext ◁── TenantScopedDB ──▶ ISQLDialect ◁── PostgresDialect</span><br>
+<span>VD: CustomerDataCore ──▶ IDbContext ◁── TenantScopedDB ──▶ ISQLDialect ◁── PostgresDialect</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└──▶ ITenantStrategy ◁── PostgresRLSStrategy
 </div>
 
-<h3><span data-lang="vi">Swap bất kỳ component — zero plugin change</span><span data-lang="en">Swap any component — zero plugin change</span></h3>
-<table data-lang="vi">
+<h3><span>Swap bất kỳ component — zero plugin change</span></h3>
+<table>
 <tr><th>Khi cần</th><th>Chỉ cần tạo/đổi</th><th>Không đổi</th></tr>
 <tr><td>Swap PostgreSQL → MySQL</td><td>MySQLDialect, MySQLTenantStrategy, MySQLMigrationDialect (~535 LOC)</td><td>CrmQueryBuilder, QueryAST, QueryValidator, mọi Plugin Core, L2 Gateway, L7 Observability</td></tr>
 <tr><td>Swap Redis → Memcached</td><td>MemcachedAdapter (implements ICacheProvider)</td><td>TenantScopedCache, mọi consumer ICacheProvider</td></tr>
@@ -1703,19 +1580,11 @@ Plugin Core (L3) ──depends on──▶ Interface ◁──implements── C
 <tr><td>Thêm plugin mới</td><td>Tạo class implements IPluginCore</td><td>SandboxEngine, EventBus, HookRegistry, PluginManager</td></tr>
 <tr><td>Mixed-DB deployment</td><td>TenantContextManager resolve dialect per-tenant</td><td>Tenant A dùng PG, Tenant B dùng MySQL</td></tr>
 </table>
-<table data-lang="en">
-<tr><th>When needed</th><th>Only create/change</th><th>Unchanged</th></tr>
-<tr><td>Swap PostgreSQL → MySQL</td><td>MySQLDialect, MySQLTenantStrategy, MySQLMigrationDialect (~535 LOC)</td><td>CrmQueryBuilder, QueryAST, QueryValidator, all Plugin Cores, L2 Gateway, L7 Observability</td></tr>
-<tr><td>Swap Redis → Memcached</td><td>MemcachedAdapter (implements ICacheProvider)</td><td>TenantScopedCache, all ICacheProvider consumers</td></tr>
-<tr><td>Swap RabbitMQ → Kafka</td><td>KafkaAdapter (implements IMessageBroker)</td><td>EventBus, BroadcastManager, WorkerPool</td></tr>
-<tr><td>Swap Elasticsearch → Typesense</td><td>TypesenseAdapter (implements ISearchEngine)</td><td>SearchService, all plugins using ctx.services.search</td></tr>
-<tr><td>Add a new plugin</td><td>Create class implementing IPluginCore</td><td>SandboxEngine, EventBus, HookRegistry, PluginManager</td></tr>
-<tr><td>Mixed-DB deployment</td><td>TenantContextManager resolves dialect per-tenant</td><td>Tenant A uses PG, Tenant B uses MySQL</td></tr>
-</table>
+
 
 <h3>19 concrete implements 13 interfaces</h3>
-<p data-lang="vi">Mỗi đường ..|> (implements) thể hiện 1 DIP boundary. Bao gồm 6 implementations gốc (pool, cache, MQ, search, log, audit) + 9 implementations Query Builder DIP (3 dialect × 3 interface) + 4 plugin cores. Tổng ~25 implementation relationships.</p>
-<p data-lang="en">Each ..|> (implements) arrow represents 1 DIP boundary. Includes 6 original implementations (pool, cache, MQ, search, log, audit) + 9 Query Builder DIP implementations (3 dialect × 3 interface) + 4 plugin cores. Total ~25 implementation relationships.</p>
+<p>Mỗi đường ..|> (implements) thể hiện 1 DIP boundary. Bao gồm 6 implementations gốc (pool, cache, MQ, search, log, audit) + 9 implementations Query Builder DIP (3 dialect × 3 interface) + 4 plugin cores. Tổng ~25 implementation relationships.</p>
+
 </div>
 </div>
 
@@ -1727,17 +1596,6 @@ var rendered={};
 function renderPanel(n){if(rendered[n])return;var pnl=document.getElementById('p-'+n);if(!pnl)return;var pre=pnl.querySelector('pre.mermaid');if(!pre)return;rendered[n]=true;mermaid.run({nodes:[pre]});}
 function go(n){document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on')});document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on')});var p=document.getElementById('p-'+n);if(p)p.classList.add('on');var btns=document.querySelectorAll('.nav button');if(btns[n])btns[n].classList.add('on');setTimeout(function(){renderPanel(n)},50);window.scrollTo({top:120,behavior:'smooth'});}
 document.addEventListener('DOMContentLoaded',function(){renderPanel(0)});
-function toggleLang(){
-    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
-    document.documentElement.className='lang-'+next;
-    localStorage.setItem('crm-docs-lang',next);
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=next==='en'?'VI':'EN';
-}
-(function(){
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
-})();
 </script>
 </body>
 </html>

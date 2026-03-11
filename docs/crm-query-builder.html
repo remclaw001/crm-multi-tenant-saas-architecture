@@ -46,22 +46,20 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .nt strong{color:inherit}
 @keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .pnl.on .sec{animation:fu .3s ease both}
-html.lang-en [data-lang="vi"]{display:none}
-html.lang-vi [data-lang="en"]{display:none}
+
 </style>
-<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Query Builder & Pipeline — DIP Architecture</div>
     <h1><span>CrmQueryBuilder</span> Deep Dive</h1>
-    <p data-lang="vi">Plugin → fluent builder → AST (DB-agnostic) → ISQLDialect (multi-DB) → ITenantStrategy (tenant isolation) → 4 bộ lọc tự động → parameterized SQL. Swap DB = tạo implementation mới, zero plugin change.</p>
-    <p data-lang="en">Plugin → fluent builder → AST (DB-agnostic) → ISQLDialect (multi-DB) → ITenantStrategy (tenant isolation) → 4 automatic filters → parameterized SQL. Swap DB = create new implementation, zero plugin change.</p>
+    <p>Plugin → fluent builder → AST (DB-agnostic) → ISQLDialect (multi-DB) → ITenantStrategy (tenant isolation) → 4 bộ lọc tự động → parameterized SQL. Swap DB = tạo implementation mới, zero plugin change.</p>
+    
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('arch')"><span data-lang="vi">Kiến trúc DIP</span><span data-lang="en">DIP Architecture</span></button>
+    <button class="on" onclick="go('arch')"><span>Kiến trúc DIP</span></button>
     <button onclick="go('iface')">Interfaces</button>
     <button onclick="go('impl')">Implementations</button>
     <button onclick="go('pipe')">Query Pipeline</button>
@@ -69,7 +67,7 @@ html.lang-vi [data-lang="en"]{display:none}
     <button onclick="go('adv')">Advanced Queries</button>
     <button onclick="go('sec')">Security</button>
     <button onclick="go('perf')">Performance</button>
-    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
+    
 </div></div>
 
 <div class="wrap">
@@ -77,9 +75,9 @@ html.lang-vi [data-lang="en"]{display:none}
 <!-- ① KIẾN TRÚC DIP -->
 <div class="pnl on" id="p-arch">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Kiến trúc DIP — 3-layer Query Architecture</span><span data-lang="en">DIP Architecture — 3-layer Query Architecture</span></h2></div>
-    <div class="nt vi" data-lang="vi"><strong>Nguyên tắc:</strong> Plugin KHÔNG BAO GIỜ viết raw SQL. Mọi truy vấn đi qua CrmQueryBuilder (fluent API) → QueryAST (DB-agnostic) → ISQLDialect (DB-specific). Plugin chỉ biết IDbContext — không biết đang dùng PostgreSQL, MySQL, hay SQLite.</div>
-    <div class="nt vi" data-lang="en"><strong>Principle:</strong> Plugins NEVER write raw SQL. Every query goes through CrmQueryBuilder (fluent API) → QueryAST (DB-agnostic) → ISQLDialect (DB-specific). Plugins only know IDbContext — they have no knowledge of whether PostgreSQL, MySQL, or SQLite is in use.</div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span>Kiến trúc DIP — 3-layer Query Architecture</span></h2></div>
+    <div class="nt vi"><strong>Nguyên tắc:</strong> Plugin KHÔNG BAO GIỜ viết raw SQL. Mọi truy vấn đi qua CrmQueryBuilder (fluent API) → QueryAST (DB-agnostic) → ISQLDialect (DB-specific). Plugin chỉ biết IDbContext — không biết đang dùng PostgreSQL, MySQL, hay SQLite.</div>
+    
     <div class="dg"><div class="dg-label">3-layer architecture</div><pre>
 <span class="ty">3 LAYER TÁCH BIỆT:</span>
 
@@ -384,9 +382,9 @@ html.lang-vi [data-lang="en"]{display:none}
 <!-- ④ QUERY PIPELINE -->
 <div class="pnl" id="p-pipe">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Query Pipeline — 7 bước tự động</span><span data-lang="en">Query Pipeline — 7 Automatic Steps</span></h2></div>
-    <div class="nt rd" data-lang="vi"><strong>Mọi query đi qua 7 bước.</strong> Plugin chỉ thấy bước 1 (gọi builder) và bước 7 (nhận result). Bước 2→6 hoàn toàn tự động, plugin KHÔNG CAN THIỆP được.</div>
-    <div class="nt rd" data-lang="en"><strong>Every query passes through 7 steps.</strong> Plugins only see step 1 (calling the builder) and step 7 (receiving the result). Steps 2→6 are fully automatic — plugins CANNOT intervene.</div>
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span>Query Pipeline — 7 bước tự động</span></h2></div>
+    <div class="nt rd"><strong>Mọi query đi qua 7 bước.</strong> Plugin chỉ thấy bước 1 (gọi builder) và bước 7 (nhận result). Bước 2→6 hoàn toàn tự động, plugin KHÔNG CAN THIỆP được.</div>
+    
     <div class="dg"><div class="dg-label">full pipeline</div><pre>
 <span class="ty">PLUGIN CODE:</span>
 
@@ -479,8 +477,8 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-gen">
 <div class="sec">
     <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t">SQL Generation — AST → Parameterized SQL</h2></div>
-    <div class="nt gn" data-lang="vi"><strong>Nguyên tắc:</strong> SQLGenerator KHÔNG BAO GIỜ interpolate giá trị vào SQL string. Mọi value → $N placeholder. Params array truyền riêng cho pg driver. SQL injection = impossible ở tầng structural.</div>
-    <div class="nt gn" data-lang="en"><strong>Principle:</strong> SQLGenerator NEVER interpolates values into the SQL string. Every value → $N placeholder. Params array is passed separately to the pg driver. SQL injection = impossible at the structural level.</div>
+    <div class="nt gn"><strong>Nguyên tắc:</strong> SQLGenerator KHÔNG BAO GIỜ interpolate giá trị vào SQL string. Mọi value → $N placeholder. Params array truyền riêng cho pg driver. SQL injection = impossible ở tầng structural.</div>
+    
     <div class="dg"><div class="dg-label">SQL generation examples</div><pre>
 <span class="ty">① SELECT — cơ bản</span>
 
@@ -737,9 +735,9 @@ html.lang-vi [data-lang="en"]{display:none}
 </div>
 <div class="pnl" id="p-sec">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Security Layer — 3 tầng bảo vệ</span><span data-lang="en">Security Layer — 3 Defence Layers</span></h2></div>
-    <div class="nt rd" data-lang="vi"><strong>Defense in Depth:</strong> Nếu 1 tầng có bug, 2 tầng còn lại vẫn chặn. Xác suất cả 3 fail đồng thời ≈ 0.</div>
-    <div class="nt rd" data-lang="en"><strong>Defense in Depth:</strong> If one layer has a bug, the other two still block. Probability of all 3 failing simultaneously ≈ 0.</div>
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span>Security Layer — 3 tầng bảo vệ</span></h2></div>
+    <div class="nt rd"><strong>Defense in Depth:</strong> Nếu 1 tầng có bug, 2 tầng còn lại vẫn chặn. Xác suất cả 3 fail đồng thời ≈ 0.</div>
+    
     <div class="dg"><div class="dg-label">3-layer security</div><pre>
 <span class="ty">TẦNG 1 — CrmQueryBuilder + ITenantStrategy (Application Level)</span>
 
@@ -972,17 +970,6 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
-function toggleLang(){
-    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
-    document.documentElement.className='lang-'+next;
-    localStorage.setItem('crm-docs-lang',next);
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=next==='en'?'VI':'EN';
-}
-(function(){
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
-})();
 </script>
 </body>
 </html>

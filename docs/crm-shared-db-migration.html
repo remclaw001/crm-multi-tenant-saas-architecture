@@ -55,30 +55,28 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .pnl.on .sec:nth-child(2){animation-delay:.04s}
 .pnl.on .sec:nth-child(3){animation-delay:.08s}
 .pnl.on .sec:nth-child(4){animation-delay:.12s}
-html.lang-en [data-lang="vi"]{display:none}
-html.lang-vi [data-lang="en"]{display:none}
+
 </style>
-<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Migration Paradox — Shared DB</div>
-    <h1 data-lang="vi">Khi enable/disable plugin<br>trong <span>Shared Database</span></h1>
-    <h1 data-lang="en">Enabling/Disabling Plugins<br>in a <span>Shared Database</span></h1>
-    <p data-lang="vi">Tables dùng chung nhưng plugins enable riêng — Migration Engine giải quyết nghịch lý này như thế nào?</p>
-    <p data-lang="en">Tables are shared, yet plugins are enabled per-tenant — how does the Migration Engine resolve this paradox?</p>
+    <h1>Khi enable/disable plugin<br>trong <span>Shared Database</span></h1>
+    
+    <p>Tables dùng chung nhưng plugins enable riêng — Migration Engine giải quyết nghịch lý này như thế nào?</p>
+    
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('prob')"><span data-lang="vi">Nghịch lý</span><span data-lang="en">The Paradox</span></button>
-    <button onclick="go('split')"><span data-lang="vi">2 loại Migration</span><span data-lang="en">2 Migration Types</span></button>
-    <button onclick="go('en')"><span data-lang="vi">Enable: Kịch bản cụ thể</span><span data-lang="en">Enable: Concrete Scenarios</span></button>
-    <button onclick="go('dis')"><span data-lang="vi">Disable: Kịch bản cụ thể</span><span data-lang="en">Disable: Concrete Scenarios</span></button>
+    <button class="on" onclick="go('prob')"><span>Nghịch lý</span></button>
+    <button onclick="go('split')"><span>2 loại Migration</span></button>
+    <button onclick="go('en')"><span>Enable: Kịch bản cụ thể</span></button>
+    <button onclick="go('dis')"><span>Disable: Kịch bản cụ thể</span></button>
     <button onclick="go('up')">Upgrade Plugin Version</button>
-    <button onclick="go('vip')"><span data-lang="vi">So sánh VIP DB</span><span data-lang="en">VIP DB Comparison</span></button>
+    <button onclick="go('vip')"><span>So sánh VIP DB</span></button>
     <button onclick="go('edge')">Edge Cases & Risks</button>
-    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
+    
 </div></div>
 
 <div class="wrap">
@@ -89,7 +87,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl on" id="p-prob">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Nghịch lý cốt lõi</span><span data-lang="en">The Core Paradox</span></h2></div>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span>Nghịch lý cốt lõi</span></h2></div>
 
     <div class="dg"><div class="dg-label">the paradox</div><pre>
 <span class="ty">BÀI TOÁN:</span>
@@ -157,7 +155,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-split">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">2 loại Migration — Schema vs Tenant</span><span data-lang="en">2 Migration Types — Schema vs Tenant</span></h2></div>
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span>2 loại Migration — Schema vs Tenant</span></h2></div>
 
     <div class="dg"><div class="dg-label">migration types</div><pre>
 <span class="ty">MỖI PLUGIN CÓ 2 THƯ MỤC MIGRATION:</span>
@@ -272,7 +270,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-en">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span data-lang="vi">Enable Plugin — 3 kịch bản cụ thể</span><span data-lang="en">Enable Plugin — 3 Concrete Scenarios</span></h2></div>
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span>Enable Plugin — 3 kịch bản cụ thể</span></h2></div>
 
     <div class="dg"><div class="dg-label">scenario: first enable</div><pre>
 <span class="ty">SCENARIO A: ACME enable customer-care</span>
@@ -435,7 +433,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-dis">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Disable Plugin — Bảng chung không bị ảnh hưởng</span><span data-lang="en">Disable Plugin — Shared Tables Are Unaffected</span></h2></div>
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span>Disable Plugin — Bảng chung không bị ảnh hưởng</span></h2></div>
 
     <div class="dg"><div class="dg-label">disable: soft vs hard</div><pre>
 <span class="ty">ACME disable customer-care</span>
@@ -666,7 +664,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-vip">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">So sánh: Shared DB vs VIP Dedicated DB</span><span data-lang="en">Comparison: Shared DB vs VIP Dedicated DB</span></h2></div>
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span>So sánh: Shared DB vs VIP Dedicated DB</span></h2></div>
 
     <div class="dg"><div class="dg-label">shared vs vip migration</div><pre>
 <span class="ty">CÙNG THAO TÁC, KHÁC CƠ CHẾ:</span>
@@ -857,17 +855,6 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
-function toggleLang(){
-    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
-    document.documentElement.className='lang-'+next;
-    localStorage.setItem('crm-docs-lang',next);
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=next==='en'?'VI':'EN';
-}
-(function(){
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
-})();
 </script>
 </body>
 </html>

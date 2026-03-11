@@ -362,13 +362,7 @@
          animation-delay: .12s
       }
 
-      html.lang-en [data-lang="vi"] {
-         display: none
-      }
-
-      html.lang-vi [data-lang="en"] {
-         display: none
-      }
+      
 
       .split-layout {
          display: grid;
@@ -383,7 +377,6 @@
          }
       }
    </style>
-   <script>(function () { var l = localStorage.getItem('crm-docs-lang'); document.documentElement.className = (l === 'en' ? 'lang-en' : 'lang-vi'); })();</script>
 </head>
 
 <body>
@@ -391,19 +384,17 @@
    <div class="hero">
       <div class="hero-tag">Architecture v3 — Consolidated</div>
       <h1>CRM Multi-tenant <span>SaaS</span></h1>
-      <p data-lang="vi">Kiến trúc 7 layers hợp nhất — đồng bộ với mọi tài liệu chi tiết đã xây dựng.</p>
-      <p data-lang="en">Unified 7-layer architecture — consistent with all detailed documents built.</p>
+      <p>Kiến trúc 7 layers hợp nhất — đồng bộ với mọi tài liệu chi tiết đã xây dựng.</p>
+      
    </div>
 
    <div class="nw">
       <div class="nav">
-         <button class="on" onclick="go('arch')"><span data-lang="vi">Kiến trúc tổng quan</span><span
-               data-lang="en">Architecture Overview</span></button>
+         <button class="on" onclick="go('arch')"><span>Kiến trúc tổng quan</span></button>
          <button onclick="go('data')">Database Topology</button>
          <button onclick="go('deploy')">Deployment Topology</button>
          <button onclick="go('tier')">Tier Comparison</button>
-         <button id="lang-btn" onclick="toggleLang()"
-            style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
+         
 
       </div>
    </div>
@@ -417,8 +408,7 @@
 
          <div class="sec">
             <div class="sec-h"><span class="sec-n">ARCH</span>
-               <h2 class="sec-t"><span data-lang="vi">Kiến trúc 7 Layers — Sơ đồ & Vai trò</span><span
-                     data-lang="en">7-Layer Architecture — Diagram & Roles</span></h2>
+               <h2 class="sec-t"><span>Kiến trúc 7 Layers — Sơ đồ & Vai trò</span></h2>
             </div>
 
             <div class="split-layout">
@@ -475,10 +465,10 @@
 └─────────────────────────────────────┬───────────────────────────────────────────┘
                                       │
 ┌─────────────────────────────────────▼───────────────────────────────────────────┐
-│  <span class="kw">L4  DATA ACCESS</span>  <span class="cm">(<span data-lang="vi">mọi DB/cache access PHẢI qua L4</span><span data-lang="en">all DB/cache access MUST go through L4</span>)</span>                             │
+│  <span class="kw">L4  DATA ACCESS</span>  <span class="cm">(<span>mọi DB/cache access PHẢI qua L4</span>)</span>                             │
 │                                                                                 │
 │  ┌──────────────────────────────────────────────────────────────────────────┐  │
-│  │  <span class="rd">Query Interceptor</span>  <span class="cm">(<span data-lang="vi">cổng duy nhất tới DB</span><span data-lang="en">single gateway to DB</span>)</span>                                │  │
+│  │  <span class="rd">Query Interceptor</span>  <span class="cm">(<span>cổng duy nhất tới DB</span>)</span>                                │  │
 │  │  ┌─────────────┐ ┌──────────────┐ ┌─────────────┐ ┌──────────────────┐│  │
 │  │  │Tenant       │ │Query         │ │Query        │ │Query             ││  │
 │  │  │Injector     │ │Validator     │ │Counter      │ │Logger            ││  │
@@ -511,7 +501,7 @@
 │  └──────────────┘ └───────────────┘ └──────────────┘ └─────────┘ └──────────┘│
 └─────────────────────────────────────────────────────────────────────────────────┘
 
-<span class="cm">┃  <span class="rd">L6  CROSS-CUTTING CONCERNS</span>  (vertical — <span data-lang="vi">xuyên suốt L1-L5</span><span data-lang="en">spans all L1-L5</span>)                      ┃</span>
+<span class="cm">┃  <span class="rd">L6  CROSS-CUTTING CONCERNS</span>  (vertical — <span>xuyên suốt L1-L5</span>)                      ┃</span>
 <span class="cm">┃                                                                                ┃</span>
 <span class="cm">┃  ┌─────────────────┐ ┌────────────────┐ ┌────────────────┐ ┌──────────────┐   ┃</span>
 <span class="cm">┃  │   Security       │ │ Error Handling │ │   Config       │ │  Dependency  │   ┃</span>
@@ -537,7 +527,7 @@
                </div>
 
                <div>
-                  <div class="dg" data-lang="vi">
+                  <div class="dg">
                      <div class="dg-label">layer responsibility matrix</div>
                      <pre>
 
@@ -547,18 +537,10 @@
   • <span class="hi">Ví dụ:</span> Web App (:3002), Admin Console (:3000).
 
 
-
-
-
-
 <span class="kw">L2 API GATEWAY (Entry Point)</span>
   • <span class="hi">Trách nhiệm:</span> AuthN, AuthZ, Rate Limit, Routing.
   • <span class="hi">Đặc điểm:</span> Sequential middleware pipeline. Fail-fast.
   • <span class="hi">Output:</span> Routed to Plugin/Handler.
-
-
-
-
 
 
 <span class="kw">L3 BUSINESS LOGIC (Core)</span>
@@ -619,23 +601,11 @@
     Cần backup, replication.
 
 
-
-
-
-
-
-
 <span class="rd">L6 CROSS-CUTTING CONCERNS (System-wide)</span>
   • <span class="hi">Vai trò:</span> Các chính sách áp dụng toàn cục.
   • <span class="hi">Trách nhiệm:</span> Security Policy, Error Handling,
     Config Management, Dependency Injection.
   • <span class="hi">Đặc điểm:</span> Áp dụng lên TẤT CẢ các tầng L1-L5.
-
-
-
-
-
-
 
 
 <span class="vi">L7 OBSERVABILITY (Monitoring)</span>
@@ -645,114 +615,7 @@
   • <span class="hi">Đặc điểm:</span> Passive, overhead thấp (~1ms).
     Trả lời câu hỏi "Tại sao?".</pre>
                   </div>
-                  <div class="dg" data-lang="en">
-                     <div class="dg-label">layer responsibility matrix</div>
-                     <pre>
-
-<span class="kw">L1 PRESENTATION (Front-end)</span>
-  • <span class="hi">Responsibility:</span> UI/UX, data display, user input.
-  • <span class="hi">Characteristics:</span> Client-side (React/Flutter). No business logic.
-  • <span class="hi">Examples:</span> Web App (:3002), Admin Console (:3000).
-
-
-
-
-
-
-<span class="kw">L2 API GATEWAY (Entry Point)</span>
-  • <span class="hi">Responsibility:</span> AuthN, AuthZ, Rate Limit, Routing.
-  • <span class="hi">Characteristics:</span> Sequential middleware pipeline. Fail-fast.
-  • <span class="hi">Output:</span> Routed to Plugin/Handler.
-
-
-
-
-
-
-<span class="kw">L3 BUSINESS LOGIC (Core)</span>
-  • <span class="hi">Role:</span> Heart of the system, handles business operations.
-  • <span class="hi">Responsibilities:</span> Execute plugin logic, validate business
-    rules, compute, emit events.
-  • <span class="hi">Characteristics:</span> Stateless. Runs in Sandbox (plugins).
-    Interacts via Context.
-  • <span class="hi">Components:</span> Plugin System, Execution Context,
-    Shared Services.
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-    
-  
-<span class="kw">L4 DATA ACCESS (Abstraction)</span>
-  • <span class="hi">Role:</span> Middleware protecting and optimizing data access.
-  • <span class="hi">Responsibilities:</span> Connection pooling, Caching (L1/L2),
-    Tenant injection (RLS), Query interception.
-  • <span class="hi">Characteristics:</span> Developers do NOT call DB Driver directly —
-    they call through L4 abstraction.
-  • <span class="hi">Goal:</span> Hide multi-tenant infrastructure complexity.
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-<span class="kw">L5 INFRASTRUCTURE (Stateful)</span>
-  • <span class="hi">Role:</span> Store and maintain system state.
-  • <span class="hi">Responsibilities:</span> Persist data (PostgreSQL), Cache (Redis),
-    Queue (RabbitMQ), File (S3).
-  • <span class="hi">Characteristics:</span> The only “stateful” layer.
-    Requires backup, replication.
-
-
-
-
-
-
-
-
-<span class="rd">L6 CROSS-CUTTING CONCERNS (System-wide)</span>
-  • <span class="hi">Role:</span> Policies applied globally across all layers.
-  • <span class="hi">Responsibilities:</span> Security policy, Error handling,
-    Config management, Dependency injection.
-  • <span class="hi">Characteristics:</span> Applied to ALL layers L1–L5.
-
-
-
-
-
-
-
-
-<span class="vi">L7 OBSERVABILITY (Monitoring)</span>
-  • <span class="hi">Role:</span> Monitor system health and behavior.
-  • <span class="hi">Responsibilities:</span> Logging (Logs), Tracing (Spans),
-    Metrics (Counter/Gauge).
-  • <span class="hi">Characteristics:</span> Passive, low overhead (~1ms).
-    Answers the question "Why?".</pre>
-                  </div>
+                  
                </div>
             </div>
          </div>
@@ -803,13 +666,12 @@
 │  └──────────────────┘  └──────────┘  └──────────┘  └────────┘ └────────┘ │
 │                                                                             │
 │  <span class="cm">VIP: Dedicated PostgreSQL per tenant. Redis/MQ shared (dedicated optional).</span>│
-│  <span class="cm">PostgreSQL isolation = primary bottleneck → <span data-lang="vi">dedicated DB giải quyết.</span><span data-lang="en">solved by a dedicated DB.</span></span>       │
+│  <span class="cm">PostgreSQL isolation = primary bottleneck → <span>dedicated DB giải quyết.</span></span>       │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘</pre>
             </div>
          </div>
       </div>
-
 
 
       <!-- ═══════════════════════════════════════ -->
@@ -819,8 +681,7 @@
 
       <div class="sec">
          <div class="sec-h"><span class="sec-n">DB</span>
-            <h2 class="sec-t"><span data-lang="vi">Database Topology — 3 loại DB + Connection Pools</span><span
-                  data-lang="en">Database Topology — 3 DB Types + Connection Pools</span></h2>
+            <h2 class="sec-t"><span>Database Topology — 3 loại DB + Connection Pools</span></h2>
          </div>
 
          <div class="dg">
@@ -902,14 +763,13 @@
 │ Alert escalation      │ Standard     │ Standard     │ Standard     │ <span class="vi">×50% faster</span>  │
 └───────────────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
 
-<span class="cm">* VIP Redis/MQ <span data-lang="vi">shared mặc định. Dedicated chỉ khi workload justify.</span><span data-lang="en">shared by default. Dedicated only when workload justifies.</span></span>
-<span class="cm">  VIP isolation <span data-lang="vi">chủ yếu ở PostgreSQL — bottleneck chính.</span><span data-lang="en">is primarily at PostgreSQL — the main bottleneck.</span></span>
+<span class="cm">* VIP Redis/MQ <span>shared mặc định. Dedicated chỉ khi workload justify.</span></span>
+<span class="cm">  VIP isolation <span>chủ yếu ở PostgreSQL — bottleneck chính.</span></span>
 
 </pre>
          </div>
       </div>
    </div>
-
 
 
    </div><!-- /wrap -->
@@ -926,17 +786,6 @@
          if (i >= 0 && btns[i]) btns[i].classList.add('on');
          window.scrollTo({ top: 160, behavior: 'smooth' });
       }
-      function toggleLang() {
-         var next = document.documentElement.classList.contains('lang-vi') ? 'en' : 'vi';
-         document.documentElement.className = 'lang-' + next;
-         localStorage.setItem('crm-docs-lang', next);
-         var btn = document.getElementById('lang-btn');
-         if (btn) btn.textContent = next === 'en' ? 'VI' : 'EN';
-      }
-      (function () {
-         var btn = document.getElementById('lang-btn');
-         if (btn) btn.textContent = document.documentElement.classList.contains('lang-en') ? 'VI' : 'EN';
-      })();
    </script>
 </body>
 

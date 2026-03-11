@@ -55,30 +55,28 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .pnl.on .sec:nth-child(2){animation-delay:.04s}
 .pnl.on .sec:nth-child(3){animation-delay:.08s}
 .pnl.on .sec:nth-child(4){animation-delay:.12s}
-html.lang-en [data-lang="vi"]{display:none}
-html.lang-vi [data-lang="en"]{display:none}
+
 </style>
-<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Database Topology</div>
-    <h1 data-lang="vi">Phân bố <span>Database</span></h1>
-    <h1 data-lang="en">Database <span>Distribution</span></h1>
-    <p data-lang="vi">Metadata DB, Shared Data DB, VIP Dedicated DBs — kết nối, schema, pool, và mối liên hệ tới từng tầng trong hệ thống.</p>
-    <p data-lang="en">Metadata DB, Shared Data DB, VIP Dedicated DBs — connections, schema, pools, and their relationships across system layers.</p>
+    <h1>Phân bố <span>Database</span></h1>
+    
+    <p>Metadata DB, Shared Data DB, VIP Dedicated DBs — kết nối, schema, pool, và mối liên hệ tới từng tầng trong hệ thống.</p>
+    
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('topo')"><span data-lang="vi">Topology tổng quan</span><span data-lang="en">Topology Overview</span></button>
+    <button class="on" onclick="go('topo')"><span>Topology tổng quan</span></button>
     <button onclick="go('meta')">Metadata DB</button>
     <button onclick="go('data')">Tenant Data DB</button>
     <button onclick="go('pool')">Connection Pool</button>
-    <button onclick="go('layer')"><span data-lang="vi">Liên hệ các tầng</span><span data-lang="en">Layer Relationships</span></button>
-    <button onclick="go('flow')"><span data-lang="vi">Luồng Query</span><span data-lang="en">Query Flow</span></button>
+    <button onclick="go('layer')"><span>Liên hệ các tầng</span></button>
+    <button onclick="go('flow')"><span>Luồng Query</span></button>
     <button onclick="go('scale')">Scaling & Replicas</button>
-    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
+    
 </div></div>
 
 <div class="wrap">
@@ -89,7 +87,7 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl on" id="p-topo">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Database Topology — Bức tranh toàn cảnh</span><span data-lang="en">Database Topology — Full Picture</span></h2></div>
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span>Database Topology — Bức tranh toàn cảnh</span></h2></div>
 
     <div class="dg"><div class="dg-label">full topology</div><pre>
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -199,10 +197,10 @@ html.lang-vi [data-lang="en"]{display:none}
 <div class="pnl" id="p-meta">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span data-lang="vi">Metadata Database — Schema chi tiết</span><span data-lang="en">Metadata Database — Detailed Schema</span></h2></div>
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span>Metadata Database — Schema chi tiết</span></h2></div>
 
-    <div class="nt am" data-lang="vi"><strong>Metadata DB là "bộ não" của hệ thống.</strong> Chứa thông tin về tenants, plugins, configs — nhưng KHÔNG chứa business data (customers, sales...). Mọi app instance, mọi worker đều đọc DB này để biết "tenant nào dùng gì".</div>
-    <div class="nt am" data-lang="en"><strong>Metadata DB is the system's "brain."</strong> Contains information about tenants, plugins, configs — but does NOT contain business data (customers, sales...). Every app instance, every worker reads this DB to know "which tenant uses what."</div>
+    <div class="nt am"><strong>Metadata DB là "bộ não" của hệ thống.</strong> Chứa thông tin về tenants, plugins, configs — nhưng KHÔNG chứa business data (customers, sales...). Mọi app instance, mọi worker đều đọc DB này để biết "tenant nào dùng gì".</div>
+    
 
     <div class="dg"><div class="dg-label">metadata db schema</div><pre>
 ┌─ <span class="am">METADATA DATABASE</span> ── PostgreSQL Instance #1 ──────────────────────────────┐
@@ -319,7 +317,7 @@ html.lang-vi [data-lang="en"]{display:none}
 </div>
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Ai đọc/ghi Metadata DB?</span><span data-lang="en">Who Reads/Writes Metadata DB?</span></h2></div>
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span>Ai đọc/ghi Metadata DB?</span></h2></div>
 
     <div class="dg"><div class="dg-label">metadata access patterns</div><pre>
 <span class="ty">THÀNH PHẦN</span>                     <span class="ty">TABLE</span>              <span class="ty">ĐỌC/GHI</span>   <span class="ty">KHI NÀO</span>
@@ -518,7 +516,7 @@ Config Manager                system_config      READ      Hot reload configs
 <div class="pnl" id="p-pool">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">Connection Pool — Quản lý kết nối</span><span data-lang="en">Connection Pool — Connection Management</span></h2></div>
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span>Connection Pool — Quản lý kết nối</span></h2></div>
 
     <div class="dg"><div class="dg-label">pool architecture</div><pre>
 <span class="ty">TENANT-AWARE POOL MANAGER</span>
@@ -628,7 +626,7 @@ Config Manager                system_config      READ      Hot reload configs
 <div class="pnl" id="p-layer">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Mối liên hệ Database ↔ Các tầng</span><span data-lang="en">Database ↔ Layer Relationships</span></h2></div>
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span>Mối liên hệ Database ↔ Các tầng</span></h2></div>
 
     <div class="dg"><div class="dg-label">layer-db relationship map</div><pre>
 <span class="ty">TẦNG NÀO TRUY CẬP DATABASE NÀO, QUA THÀNH PHẦN NÀO?</span>
@@ -730,7 +728,7 @@ Config Manager                system_config      READ      Hot reload configs
 </div>
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t"><span data-lang="vi">Tổng hợp: Request path qua database</span><span data-lang="en">Summary: Request Path Through Database</span></h2></div>
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t"><span>Tổng hợp: Request path qua database</span></h2></div>
 
     <div class="dg"><div class="dg-label">request database path</div><pre>
 <span class="hi">POST /api/v1/sales — ACME (Premium, shared DB)</span>
@@ -809,7 +807,7 @@ Config Manager                system_config      READ      Hot reload configs
 <div class="pnl" id="p-flow">
 
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t"><span data-lang="vi">Luồng Query — Từ plugin code đến disk</span><span data-lang="en">Query Flow — From Plugin Code to Disk</span></h2></div>
+    <div class="sec-h"><span class="sec-n">08</span><h2 class="sec-t"><span>Luồng Query — Từ plugin code đến disk</span></h2></div>
 
     <div class="dg"><div class="dg-label">query flow through layers</div><pre>
 <span class="ty">Plugin code gọi:</span>  ctx.db.query('sales').where({ status: 'new' }).limit(10).execute()
@@ -1042,17 +1040,6 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
-function toggleLang(){
-    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
-    document.documentElement.className='lang-'+next;
-    localStorage.setItem('crm-docs-lang',next);
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=next==='en'?'VI':'EN';
-}
-(function(){
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
-})();
 </script>
 </body>
 </html>

@@ -55,31 +55,29 @@ body{font-family:var(--body);background:var(--bg);color:var(--tx);line-height:1.
 .pnl.on .sec:nth-child(2){animation-delay:.04s}
 .pnl.on .sec:nth-child(3){animation-delay:.08s}
 .pnl.on .sec:nth-child(4){animation-delay:.12s}
-html.lang-en [data-lang="vi"]{display:none}
-html.lang-vi [data-lang="en"]{display:none}
+
 </style>
-<script>(function(){var l=localStorage.getItem('crm-docs-lang');document.documentElement.className=(l==='en'?'lang-en':'lang-vi');})();</script>
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-tag">Layer 2 — API Gateway</div>
-    <h1 data-lang="vi">Mọi thứ bên trong <span>API Gateway Layer</span></h1>
-    <h1 data-lang="en">Everything inside the <span>API Gateway Layer</span></h1>
-    <p data-lang="vi">5 middleware tuần tự + 1 permission check — mỗi bước có thể REJECT request ngay lập tức.</p>
-    <p data-lang="en">5 sequential middleware + 1 permission check — each step can REJECT the request immediately.</p>
+    <h1>Mọi thứ bên trong <span>API Gateway Layer</span></h1>
+    
+    <p>5 middleware tuần tự + 1 permission check — mỗi bước có thể REJECT request ngay lập tức.</p>
+    
 </div>
 
 <div class="nw"><div class="nav">
-    <button class="on" onclick="go('map')"><span data-lang="vi">Bản đồ L2</span><span data-lang="en">L2 Map</span></button>
+    <button class="on" onclick="go('map')"><span>Bản đồ L2</span></button>
     <button onclick="go('lb')">Load Balancer</button>
     <button onclick="go('tr')">Tenant Resolver</button>
     <button onclick="go('auth')">Auth Guard</button>
     <button onclick="go('rl')">Rate Limiter</button>
     <button onclick="go('rm')">Route Matcher</button>
     <button onclick="go('perm')">Permission Check</button>
-    <button onclick="go('err')"><span data-lang="vi">Error Responses</span><span data-lang="en">Error Responses</span></button>
-    <button id="lang-btn" onclick="toggleLang()" style="margin-left:auto;font-family:monospace;font-size:11px;padding:6px 12px;background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.3);color:#818cf8;border-radius:4px;cursor:pointer;white-space:nowrap">EN</button>
+    <button onclick="go('err')"><span>Error Responses</span></button>
+    
 </div></div>
 
 <div class="wrap">
@@ -87,10 +85,10 @@ html.lang-vi [data-lang="en"]{display:none}
 <!-- MAP -->
 <div class="pnl on" id="p-map">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span data-lang="vi">Bản đồ L2 — Pipeline tuần tự</span><span data-lang="en">L2 Map — Sequential Pipeline</span></h2></div>
-    <div class="nt bl" data-lang="vi"><strong>Nguyên tắc cốt lõi:</strong> L2 là "cổng duy nhất" vào hệ thống. MỌI request (từ Web, Mobile, API) đều đi qua 5 middleware theo đúng thứ tự. Mỗi middleware có thể REJECT request ngay — nếu pass, chuyển tiếp cho middleware sau. Qua hết 5 bước → request đạt đủ điều kiện để vào L3.</div>
-    <div class="nt bl" data-lang="en"><strong>Core principle:</strong> L2 is the "single gateway" into the system. ALL requests (from Web, Mobile, API) pass through 5 middleware in exact order. Each middleware can REJECT the request immediately — if it passes, it forwards to the next middleware. Through all 5 steps → the request qualifies to enter L3.</div>
-    <div class="dg" data-lang="vi"><div class="dg-label">L2 pipeline</div><pre>
+    <div class="sec-h"><span class="sec-n">00</span><h2 class="sec-t"><span>Bản đồ L2 — Pipeline tuần tự</span></h2></div>
+    <div class="nt bl"><strong>Nguyên tắc cốt lõi:</strong> L2 là "cổng duy nhất" vào hệ thống. MỌI request (từ Web, Mobile, API) đều đi qua 5 middleware theo đúng thứ tự. Mỗi middleware có thể REJECT request ngay — nếu pass, chuyển tiếp cho middleware sau. Qua hết 5 bước → request đạt đủ điều kiện để vào L3.</div>
+    
+    <div class="dg"><div class="dg-label">L2 pipeline</div><pre>
   Client (Web/Mobile/API) → HTTPS → Ingress
                                       │
   ┌─ <span class="ty">L2 API GATEWAY</span> ─────────────────────▼──────────────────────────────────┐
@@ -135,61 +133,17 @@ html.lang-vi [data-lang="en"]{display:none}
   ├── ~0.01% bị 429 (rate limit, chủ yếu Basic tier)
   ├── ~0.001% bị 403 (permission, plugin not enabled)
   └── 99.8% requests pass qua Gateway thành công</pre></div>
-    <div class="dg" data-lang="en"><div class="dg-label">L2 pipeline</div><pre>
-  Client (Web/Mobile/API) → HTTPS → Ingress
-                                      │
-  ┌─ <span class="ty">L2 API GATEWAY</span> ─────────────────────▼──────────────────────────────────┐
-  │                                                                          │
-  │  <span class="hi">❶ LOAD BALANCER</span>          TLS terminate, select instance         ~0ms  │
-  │  │  Nginx/K8s Ingress      VIP → dedicated pool                         │
-  │  │                         Standard → shared pool (least-conn)          │
-  │  │                         Health-check → removes dead instance         │
-  │  ▼                                                                       │
-  │  <span class="hi">❷ TENANT RESOLVER</span>        URL → tenant_id + tier + status        ~1ms  │
-  │  │  Redis cache → Meta DB   subdomain: acme.crm.com → "acme-123"       │
-  │  │                         custom domain: SNI routing                    │
-  │  │  <span class="rd">REJECT: 404 Not Found / 403 Suspended / 410 Gone</span>                   │
-  │  ▼                                                                       │
-  │  <span class="hi">❸ AUTH GUARD</span>             JWT validate + RBAC extract            ~1.5ms│
-  │  │  JWT decode + verify    tenant claim match? blacklist check?         │
-  │  │                         → extract userId, roles, permissions         │
-  │  │  <span class="rd">REJECT: 401 Unauthorized / 401 Expired / 403 Forbidden</span>             │
-  │  ▼                                                                       │
-  │  <span class="hi">❹ RATE LIMITER</span>           Sliding window counter (Redis)          ~1ms  │
-  │  │  Redis ZADD              Basic:100, Prem:500, Ent:2000, VIP:∞        │
-  │  │                         Burst: 2× in 5s                              │
-  │  │  <span class="rd">REJECT: 429 Too Many Requests + Retry-After</span>                       │
-  │  ▼                                                                       │
-  │  <span class="hi">❺ ROUTE MATCHER</span>          URL → plugin + method + permission      ~0.3ms│
-  │  │  Plugin Registry         POST /api/v1/sales → care.createSale       │
-  │  │  routeTable lookup      + check plugin enabled for tenant           │
-  │  │                         + check user has required permission         │
-  │  │  <span class="rd">REJECT: 404 No Route / 403 Plugin Not Available / 403 Forbidden</span>    │
-  │  ▼                                                                       │
-  │  OUTPUT:                                                                 │
-  │  { tenantId, tier, userId, roles, plugin, method, permission }          │
-  │  → Forward to L3 Context Building                                       │
-  │                                                                          │
-  └──────────────────────────────────────────────────────────────────────────┘
-
-  <span class="ty">TOTAL L2 TIME: ~3.9ms</span> (best case, all cache hits)
-  Worst case (cache miss): ~8-12ms (Metadata DB query for tenant/domain)
-
-  <span class="ty">AVERAGE REJECT RATE:</span>
-  ├── ~0.1% get 401 (token expired, invalid)
-  ├── ~0.01% get 429 (rate limit, mostly Basic tier)
-  ├── ~0.001% get 403 (permission, plugin not enabled)
-  └── 99.8% requests pass through Gateway successfully</pre></div>
+    
 </div>
 </div>
 
 <!-- LOAD BALANCER -->
 <div class="pnl" id="p-lb">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span data-lang="vi">Load Balancer + TLS Termination</span><span data-lang="en">Load Balancer + TLS Termination</span></h2></div>
-    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Điểm tiếp xúc đầu tiên. Terminate HTTPS → chuyển HTTP nội bộ (within cluster). Phân phối traffic tới đúng instance pool dựa trên tenant tier. Loại instance chết khỏi rotation.</div>
-    <div class="nt bl" data-lang="en"><strong>Role:</strong> First point of contact. Terminate HTTPS → forward as internal HTTP (within cluster). Distribute traffic to the correct instance pool based on tenant tier. Remove dead instances from rotation.</div>
-    <div class="dg" data-lang="vi"><div class="dg-label">load balancer</div><pre>
+    <div class="sec-h"><span class="sec-n">01</span><h2 class="sec-t"><span>Load Balancer + TLS Termination</span></h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Điểm tiếp xúc đầu tiên. Terminate HTTPS → chuyển HTTP nội bộ (within cluster). Phân phối traffic tới đúng instance pool dựa trên tenant tier. Loại instance chết khỏi rotation.</div>
+    
+    <div class="dg"><div class="dg-label">load balancer</div><pre>
 <span class="ty">THÀNH PHẦN: Nginx / K8s Ingress Controller / AWS ALB</span>
 
 <span class="ty">TLS TERMINATION:</span>
@@ -227,54 +181,17 @@ html.lang-vi [data-lang="en"]{display:none}
   ├── crm-api (shared):  scale 3→10 khi CPU &gt; 70%
   ├── crm-api-vip:       scale 2→4 khi CPU &gt; 60%
   └── crm-workers:       scale 2→6 khi queue depth &gt; 500</pre></div>
-    <div class="dg" data-lang="en"><div class="dg-label">load balancer</div><pre>
-<span class="ty">COMPONENTS: Nginx / K8s Ingress Controller / AWS ALB</span>
-
-<span class="ty">TLS TERMINATION:</span>
-  HTTPS → HTTP (cluster internal, plain HTTP between services)
-  Certificate: wildcard *.crm.com or per-tenant
-  Custom domain: acme.example.com → SNI routing → crm backend
-
-<span class="ty">ROUTING LOGIC:</span>
-
-  Request from acme.crm.com
-    │
-    ├── Tenant ACME tier = VIP?
-    │   <span class="gn">YES</span> → route to <span class="vi">VIP instance pool</span> (crm-api-vip, 2-4 replicas)
-    │         Sticky routing: same VIP tenant → same pool
-    │
-    │   <span class="rd">NO</span>  → route to <span class="gn">shared instance pool</span> (crm-api, 3-10 replicas)
-    │         Algorithm: least-connections
-    │         → selects instance with fewest active requests
-    │
-    └── ACME tier = premium → <span class="gn">shared pool</span>, Instance #3 selected
-
-  <span class="cm">Note: LB does not know the exact tenant tier.</span>
-  <span class="cm">VIP routing is based on statically configured domain/IP range.</span>
-  <span class="cm">Standard domains (*.crm.com) → shared pool.</span>
-  <span class="cm">VIP domains (vip-initech.crm.com) → VIP pool.</span>
-
-<span class="ty">HEALTH CHECK:</span>
-  ├── Probe: GET /health/live every 10s
-  ├── Instance fails 3 consecutive times → removed from rotation
-  ├── Instance recovers → re-added to rotation
-  └── K8s readiness probe: GET /health/ready every 5s
-      → not ready = will not receive new traffic
-
-<span class="ty">HPA (Horizontal Pod Autoscaler):</span>
-  ├── crm-api (shared):  scale 3→10 when CPU &gt; 70%
-  ├── crm-api-vip:       scale 2→4 when CPU &gt; 60%
-  └── crm-workers:       scale 2→6 when queue depth &gt; 500</pre></div>
+    
 </div>
 </div>
 
 <!-- TENANT RESOLVER -->
 <div class="pnl" id="p-tr">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span data-lang="vi">Tenant Resolver — URL → Tenant Identity</span><span data-lang="en">Tenant Resolver — URL → Tenant Identity</span></h2></div>
-    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Xác định request thuộc về tenant nào. Dựa vào subdomain, custom domain, hoặc header. Cache kết quả trong Redis để tránh query DB mỗi request. Output: tenantId + tier + status.</div>
-    <div class="nt bl" data-lang="en"><strong>Role:</strong> Determine which tenant the request belongs to. Based on subdomain, custom domain, or header. Cache results in Redis to avoid querying DB on every request. Output: tenantId + tier + status.</div>
-    <div class="dg" data-lang="vi"><div class="dg-label">tenant resolver</div><pre>
+    <div class="sec-h"><span class="sec-n">02</span><h2 class="sec-t"><span>Tenant Resolver — URL → Tenant Identity</span></h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Xác định request thuộc về tenant nào. Dựa vào subdomain, custom domain, hoặc header. Cache kết quả trong Redis để tránh query DB mỗi request. Output: tenantId + tier + status.</div>
+    
+    <div class="dg"><div class="dg-label">tenant resolver</div><pre>
 <span class="ty">INPUT:</span> HTTP Host header = "acme.crm.com"
 
 <span class="ty">STRATEGY (thử lần lượt, dừng khi match):</span>
@@ -322,64 +239,17 @@ html.lang-vi [data-lang="en"]{display:none}
   Redis HIT: ~0.5ms
   Redis MISS + DB: ~3-5ms (hiếm, ~5% requests)
   Trung bình: ~1ms</pre></div>
-    <div class="dg" data-lang="en"><div class="dg-label">tenant resolver</div><pre>
-<span class="ty">INPUT:</span> HTTP Host header = "acme.crm.com"
-
-<span class="ty">STRATEGY (try in order, stop when matched):</span>
-
-  <span class="nu">①</span> <span class="hi">Subdomain resolution</span> (most common):
-     Extract "acme" from "acme.crm.com"
-     → Redis: GET domain-map:acme
-     → HIT:  { tenantId: "acme-123", tier: "premium", status: "active" }
-     → MISS: Query Metadata DB:
-             SELECT id, tier, status, config
-             FROM tenants WHERE subdomain = 'acme'
-             → Cache in Redis (TTL 5min)
-
-  <span class="nu">②</span> <span class="hi">Custom domain resolution</span> (Enterprise/VIP):
-     Host = "crm.initech.io" (not *.crm.com)
-     → Redis: GET domain-map:crm.initech.io
-     → MISS: SELECT ... FROM tenants WHERE custom_domain = 'crm.initech.io'
-     → Requires: tenant to set up CNAME/A record → crm platform IP
-
-  <span class="nu">③</span> <span class="hi">Header-based resolution</span> (M2M / API calls):
-     Header X-Tenant-ID: acme-123
-     → Validate tenantId exists in Redis/DB
-     → Used for API keys, server-to-server calls
-     → Requires: JWT tenant claim must match (double-checked at Auth Guard)
-
-
-<span class="ty">OUTPUT:</span>
-  { tenantId: "acme-123", tier: "premium", status: "active" }
-  → Attached to request context, used throughout the rest of the pipeline
-
-<span class="ty">REDIS CACHE:</span>
-  Key: domain-map:{subdomain|domain}
-  Value: { tenantId, tier, status }
-  TTL: 5 minutes
-  Invalidation: tenant update → DELETE domain-map:* for that tenant
-
-<span class="ty">REJECT CASES:</span>
-  ├── Subdomain/domain does not exist     → <span class="rd">404 Tenant Not Found</span>
-  ├── Tenant status = "suspended"         → <span class="rd">403 Account Suspended</span>
-  │   (unpaid bill, TOS violation)          Body: { reason, contactEmail }
-  ├── Tenant status = "deleted"           → <span class="rd">410 Gone</span>
-  └── Tenant status = "pending_setup"     → <span class="rd">503 Not Ready</span> (still setting up)
-
-<span class="ty">PERFORMANCE:</span>
-  Redis HIT: ~0.5ms
-  Redis MISS + DB: ~3-5ms (rare, ~5% of requests)
-  Average: ~1ms</pre></div>
+    
 </div>
 </div>
 
 <!-- AUTH GUARD -->
 <div class="pnl" id="p-auth">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span data-lang="vi">Auth Guard — JWT Validation + RBAC Extract</span><span data-lang="en">Auth Guard — JWT Validation + RBAC Extract</span></h2></div>
-    <div class="nt rd" data-lang="vi"><strong>Vai trò:</strong> Xác thực người dùng (authentication) và trích xuất quyền hạn (authorization data). Validate JWT signature + expiry, kiểm tra token chưa bị revoke, đảm bảo tenant claim khớp với Tenant Resolver output. Output: userId, roles, permissions.</div>
-    <div class="nt rd" data-lang="en"><strong>Role:</strong> Authenticate users and extract authorization data. Validate JWT signature + expiry, check token has not been revoked, ensure tenant claim matches Tenant Resolver output. Output: userId, roles, permissions.</div>
-    <div class="dg" data-lang="vi"><div class="dg-label">auth guard</div><pre>
+    <div class="sec-h"><span class="sec-n">03</span><h2 class="sec-t"><span>Auth Guard — JWT Validation + RBAC Extract</span></h2></div>
+    <div class="nt rd"><strong>Vai trò:</strong> Xác thực người dùng (authentication) và trích xuất quyền hạn (authorization data). Validate JWT signature + expiry, kiểm tra token chưa bị revoke, đảm bảo tenant claim khớp với Tenant Resolver output. Output: userId, roles, permissions.</div>
+    
+    <div class="dg"><div class="dg-label">auth guard</div><pre>
 <span class="ty">INPUT:</span> Header "Authorization: Bearer eyJhbG..."
 
 <span class="ty">6 BƯỚC VALIDATION:</span>
@@ -438,75 +308,17 @@ html.lang-vi [data-lang="en"]{display:none}
   Redis blacklist check:             ~0.5ms
   Tenant claim compare:              ~0ms (in-memory)
   Total:                             ~1-1.5ms</pre></div>
-    <div class="dg" data-lang="en"><div class="dg-label">auth guard</div><pre>
-<span class="ty">INPUT:</span> Header "Authorization: Bearer eyJhbG..."
-
-<span class="ty">6 VALIDATION STEPS:</span>
-
-  <span class="nu">①</span> <span class="hi">Decode JWT header</span> → get signing algorithm (RS256)
-     If algorithm is not in whitelist → reject immediately
-
-  <span class="nu">②</span> <span class="hi">Validate signature</span> using public key
-     Public key cached in-memory, rotated periodically
-     Invalid signature → token forged or tampered
-
-  <span class="nu">③</span> <span class="hi">Check expiration</span>: exp &gt; now()?
-     Access token TTL: 15 minutes
-     Expired → client must use refresh token (7 days) to get a new token
-     Refresh token: rotation per use (1 use → issue new pair)
-
-  <span class="nu">④</span> <span class="hi">Check tenant claim</span>: jwt.tenantId == resolved tenantId?
-     <span class="rd">CRITICAL:</span> Prevents Tenant A user from using token on Tenant B URL
-     ACME token cannot be used on globex.crm.com
-     → Cross-tenant access attack blocked
-
-  <span class="nu">⑤</span> <span class="hi">Check blacklist</span>: Redis GET blacklist:{jti}
-     jti = JWT ID (unique per token)
-     Token is blacklisted when: user logout, admin revoke, password changed
-     TTL of blacklist entry = remaining token lifetime
-     (after token expires → blacklist entry auto-deleted)
-
-  <span class="nu">⑥</span> <span class="hi">Extract claims</span>:
-     userId:      "user-5"
-     roles:       ["sales_manager"]
-     permissions: ["sales:read", "sales:write", "calls:read", ...]
-
-
-<span class="ty">AUTH TYPES:</span>
-
-  ┌──────────────┬────────────────────────────────────────────────────────┐
-  │ Type          │ Mechanism                                              │
-  ├──────────────┼────────────────────────────────────────────────────────┤
-  │ User (Web)   │ JWT Bearer token (access 15m + refresh 7d)            │
-  │ User (Mobile)│ JWT + device fingerprint + biometric optional         │
-  │ M2M (API)    │ API Key + HMAC signature (no JWT, tenant in header)   │
-  │ SSO (Ent.)   │ SAML 2.0 / OIDC → exchange for JWT pair             │
-  │ Webhook (in) │ Signature validation (HMAC-SHA256 with shared secret) │
-  └──────────────┴────────────────────────────────────────────────────────┘
-
-
-<span class="ty">REJECT CASES:</span>
-  ├── Invalid/missing token        → <span class="rd">401 Unauthorized</span>
-  ├── Signature verify failed      → <span class="rd">401 Invalid Token</span>
-  ├── Token expired                → <span class="rd">401 Token Expired</span> + hint: refresh
-  ├── Tenant claim mismatch        → <span class="rd">403 Forbidden</span> (cross-tenant attack)
-  └── Token blacklisted (revoked)  → <span class="rd">401 Token Revoked</span>
-
-<span class="ty">PERFORMANCE:</span>
-  JWT decode + verify (cached key):  ~0.5ms
-  Redis blacklist check:             ~0.5ms
-  Tenant claim compare:              ~0ms (in-memory)
-  Total:                             ~1-1.5ms</pre></div>
+    
 </div>
 </div>
 
 <!-- RATE LIMITER -->
 <div class="pnl" id="p-rl">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t"><span data-lang="vi">Rate Limiter — Per-Tier Throttling</span><span data-lang="en">Rate Limiter — Per-Tier Throttling</span></h2></div>
-    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Bảo vệ hệ thống khỏi overload — cả cố ý (DDoS) lẫn vô ý (script bug gọi API lặp). Giới hạn PER-TENANT, không per-user — tenant Basic 100 req/min, Premium 500, Enterprise 2000, VIP unlimited.</div>
-    <div class="nt am" data-lang="en"><strong>Role:</strong> Protect the system from overload — both intentional (DDoS) and unintentional (script bug calling API repeatedly). Limit is PER-TENANT, not per-user — Basic tenant 100 req/min, Premium 500, Enterprise 2000, VIP unlimited.</div>
-    <div class="dg" data-lang="vi"><div class="dg-label">rate limiter</div><pre>
+    <div class="sec-h"><span class="sec-n">04</span><h2 class="sec-t"><span>Rate Limiter — Per-Tier Throttling</span></h2></div>
+    <div class="nt am"><strong>Vai trò:</strong> Bảo vệ hệ thống khỏi overload — cả cố ý (DDoS) lẫn vô ý (script bug gọi API lặp). Giới hạn PER-TENANT, không per-user — tenant Basic 100 req/min, Premium 500, Enterprise 2000, VIP unlimited.</div>
+    
+    <div class="dg"><div class="dg-label">rate limiter</div><pre>
 <span class="ty">ALGORITHM: Sliding Window Counter (Redis Sorted Set)</span>
 
   Triển khai dùng Redis ZADD + ZREMRANGEBYSCORE:
@@ -560,70 +372,17 @@ html.lang-vi [data-lang="en"]{display:none}
 <span class="ty">METRICS:</span>
   rate_limit_hits_total{tenant_id} — Counter (đếm số lần bị 429)
   → Alert: rate_limit_hits &gt; 0 for 5min → WARNING Slack #alerts</pre></div>
-    <div class="dg" data-lang="en"><div class="dg-label">rate limiter</div><pre>
-<span class="ty">ALGORITHM: Sliding Window Counter (Redis Sorted Set)</span>
-
-  Implementation using Redis ZADD + ZREMRANGEBYSCORE:
-
-  ┌────────────────────────────────────────────────────────────────────────┐
-  │                                                                        │
-  │  Key:    rl:{tenantId}  (Sorted Set)                                  │
-  │  Member: requestId (unique per request)                               │
-  │  Score:  timestamp (Unix milliseconds)                                │
-  │                                                                        │
-  │  For each request:                                                    │
-  │  <span class="nu">1.</span> ZREMRANGEBYSCORE rl:acme-123 0 (now - 60000)                     │
-  │     → Remove entries older than 60 seconds (clean expired)            │
-  │                                                                        │
-  │  <span class="nu">2.</span> ZCARD rl:acme-123                                                │
-  │     → Count remaining entries = requests in current window            │
-  │     → current = 147                                                    │
-  │                                                                        │
-  │  <span class="nu">3.</span> 147 &lt; 500 (premium limit)?                                       │
-  │     <span class="gn">YES → ZADD rl:acme-123 {now} {requestId}</span>                         │
-  │           EXPIRE rl:acme-123 61  (auto cleanup)                       │
-  │           → PASS                                                       │
-  │                                                                        │
-  │     <span class="rd">NO  → REJECT 429 Too Many Requests</span>                                │
-  │           Retry-After: {seconds until oldest entry expires}           │
-  │                                                                        │
-  └────────────────────────────────────────────────────────────────────────┘
-
-
-<span class="ty">TIER LIMITS:</span>
-
-  ┌───────────────┬───────────┬───────────────┬────────────────────────────┐
-  │ Tier           │ Limit     │ Burst         │ Note                       │
-  ├───────────────┼───────────┼───────────────┼────────────────────────────┤
-  │ Basic         │ 100/min   │ 200 in 5s     │ Solo users, small teams    │
-  │ Premium       │ 500/min   │ 1000 in 5s    │ Growing businesses         │
-  │ Enterprise    │ 2000/min  │ 4000 in 5s    │ Large teams                │
-  │ VIP           │ Unlimited │ N/A           │ Dedicated infrastructure   │
-  └───────────────┴───────────┴───────────────┴────────────────────────────┘
-
-  <span class="am">Burst:</span> allows double the limit within a 5-second window.
-  Example: Premium = 500/min, but 1000 req in the first 5s is OK.
-  Helps handle natural spikes (batch import, page load).
-
-
-<span class="ty">RESPONSE HEADERS (all responses, including passes):</span>
-  X-RateLimit-Limit:     500
-  X-RateLimit-Remaining: 353
-  X-RateLimit-Reset:     1707567600  (Unix timestamp window reset)
-
-<span class="ty">METRICS:</span>
-  rate_limit_hits_total{tenant_id} — Counter (number of 429s issued)
-  → Alert: rate_limit_hits &gt; 0 for 5min → WARNING Slack #alerts</pre></div>
+    
 </div>
 </div>
 
 <!-- ROUTE MATCHER -->
 <div class="pnl" id="p-rm">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span data-lang="vi">Route Matcher — URL → Plugin + Method</span><span data-lang="en">Route Matcher — URL → Plugin + Method</span></h2></div>
-    <div class="nt bl" data-lang="vi"><strong>Vai trò:</strong> Map URL + HTTP method vào đúng plugin + handler method. Dùng routeTable từ Plugin Registry (populated khi plugin deploy). Output là tín hiệu cho L3 biết chính xác plugin nào xử lý, method nào gọi, permission nào cần.</div>
-    <div class="nt bl" data-lang="en"><strong>Role:</strong> Map URL + HTTP method to the correct plugin + handler method. Uses routeTable from Plugin Registry (populated when plugin is deployed). Output signals L3 exactly which plugin handles the request, which method to call, and which permission is required.</div>
-    <div class="dg" data-lang="vi"><div class="dg-label">route matcher</div><pre>
+    <div class="sec-h"><span class="sec-n">05</span><h2 class="sec-t"><span>Route Matcher — URL → Plugin + Method</span></h2></div>
+    <div class="nt bl"><strong>Vai trò:</strong> Map URL + HTTP method vào đúng plugin + handler method. Dùng routeTable từ Plugin Registry (populated khi plugin deploy). Output là tín hiệu cho L3 biết chính xác plugin nào xử lý, method nào gọi, permission nào cần.</div>
+    
+    <div class="dg"><div class="dg-label">route matcher</div><pre>
 <span class="ty">INPUT:</span> POST /api/v1/sales
 
 <span class="ty">ROUTE TABLE (in-memory, from Plugin Registry):</span>
@@ -671,64 +430,17 @@ html.lang-vi [data-lang="en"]{display:none}
 
 <span class="ty">REJECT CASES:</span>
   └── No route match → <span class="rd">404 Not Found</span></pre></div>
-    <div class="dg" data-lang="en"><div class="dg-label">route matcher</div><pre>
-<span class="ty">INPUT:</span> POST /api/v1/sales
-
-<span class="ty">ROUTE TABLE (in-memory, from Plugin Registry):</span>
-
-  ┌──────────────────────────────────────────────────────────────────────┐
-  │  HTTP    URL Pattern              Plugin          Method             │
-  │  ──────  ────────────────────    ─────────────   ────────────────   │
-  │  GET     /api/v1/customers       customer-data   listCustomers      │
-  │  POST    /api/v1/customers       customer-data   createCustomer     │
-  │  GET     /api/v1/customers/:id   customer-data   getCustomer        │
-  │  PUT     /api/v1/customers/:id   customer-data   updateCustomer     │
-  │  DELETE  /api/v1/customers/:id   customer-data   deleteCustomer     │
-  │                                                                      │
-  │  GET     /api/v1/sales           customer-care   listSales          │
-  │  <span class="hi">POST    /api/v1/sales           customer-care   createSale</span>  ◀ match │
-  │  GET     /api/v1/sales/:id       customer-care   getSale            │
-  │  PUT     /api/v1/sales/:id       customer-care   updateSale         │
-  │                                                                      │
-  │  GET     /api/v1/calls           customer-care   listCalls          │
-  │  POST    /api/v1/calls           customer-care   createCall         │
-  │                                                                      │
-  │  GET     /api/v1/reports         analytics       listReports        │
-  │  POST    /api/v1/reports         analytics       createReport       │
-  │  ...                                                                 │
-  └──────────────────────────────────────────────────────────────────────┘
-
-  Matching: trie-based prefix tree → O(path length), ~0.1ms
-  Parametric: /api/v1/sales/:id → extract params { id: "sale-42" }
-
-<span class="ty">OUTPUT:</span>
-  {
-    plugin:             "customer-care",
-    method:             "createSale",
-    requiredPermission: "sales:write",
-    params:             {}
-  }
-
-
-<span class="ty">ROUTE TABLE LIFECYCLE:</span>
-  ├── Built when: app bootstrap (loads all plugin manifests)
-  ├── Updated when: plugin deploy/upgrade/undeploy
-  │   → MQ broadcast "plugin.deployed" → all instances rebuild
-  ├── In-memory: no DB/Redis query per-request
-  └── Collision detection: 2 plugins register the same route → reject deploy
-
-<span class="ty">REJECT CASES:</span>
-  └── No route match → <span class="rd">404 Not Found</span></pre></div>
+    
 </div>
 </div>
 
 <!-- PERMISSION CHECK -->
 <div class="pnl" id="p-perm">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span data-lang="vi">Permission Check — Plugin + User + Tenant</span><span data-lang="en">Permission Check — Plugin + User + Tenant</span></h2></div>
-    <div class="nt am" data-lang="vi"><strong>Vai trò:</strong> Kiểm tra 3 lớp quyền: plugin có enabled cho tenant? User có quyền? Tenant tier có bao gồm feature? Đây là bước cuối trước khi request vào L3. Dùng data đã extract từ Tenant Resolver + Auth Guard + Route Matcher.</div>
-    <div class="nt am" data-lang="en"><strong>Role:</strong> Check 3 permission layers: is the plugin enabled for the tenant? Does the user have permission? Does the tenant tier include the feature? This is the final step before the request enters L3. Uses data already extracted from Tenant Resolver + Auth Guard + Route Matcher.</div>
-    <div class="dg" data-lang="vi"><div class="dg-label">permission check</div><pre>
+    <div class="sec-h"><span class="sec-n">06</span><h2 class="sec-t"><span>Permission Check — Plugin + User + Tenant</span></h2></div>
+    <div class="nt am"><strong>Vai trò:</strong> Kiểm tra 3 lớp quyền: plugin có enabled cho tenant? User có quyền? Tenant tier có bao gồm feature? Đây là bước cuối trước khi request vào L3. Dùng data đã extract từ Tenant Resolver + Auth Guard + Route Matcher.</div>
+    
+    <div class="dg"><div class="dg-label">permission check</div><pre>
 <span class="ty">3 LỚP KIỂM TRA:</span>
 
   Route requires: "sales:write" (from Route Matcher)
@@ -801,87 +513,15 @@ html.lang-vi [data-lang="en"]{display:none}
   └─────────────────────────────────────────────────────────────────────┘
 
   Cost: ~0.1ms (in-memory role lookup, no I/O)</pre></div>
-    <div class="dg" data-lang="en"><div class="dg-label">permission check</div><pre>
-<span class="ty">3 CHECK LAYERS:</span>
-
-  Route requires: "sales:write" (from Route Matcher)
-  Tenant: acme-123, premium (from Tenant Resolver)
-  User: user-5, roles: ["sales_manager"] (from Auth Guard)
-
-  ┌────────────────────────────────────────────────────────────────────────┐
-  │                                                                        │
-  │  <span class="nu">Check 1:</span> <span class="hi">Plugin enabled for tenant?</span>                                   │
-  │                                                                        │
-  │    Route target: plugin "customer-care"                                │
-  │    Need to know: does ACME have customer-care enabled?                │
-  │                                                                        │
-  │    At this stage, Tenant Context is not fully loaded yet.             │
-  │    → Quick check: Redis cache or Metadata DB                          │
-  │      SELECT 1 FROM tenant_plugins                                     │
-  │      WHERE tenant_id='acme-123' AND plugin='customer-care'            │
-  │      AND enabled=true                                                  │
-  │    → <span class="gn">EXISTS → PASS</span>                                                     │
-  │    → <span class="rd">NOT EXISTS → 403 Plugin Not Available</span>                             │
-  │                                                                        │
-  │                                                                        │
-  │  <span class="nu">Check 2:</span> <span class="hi">Does user have the required permission?</span>                      │
-  │                                                                        │
-  │    Required: "sales:write"                                            │
-  │    User roles: ["sales_manager"]                                      │
-  │    Role "sales_manager" grants: sales:read, sales:write,              │
-  │                                  calls:read, calls:write              │
-  │    "sales:write" ∈ role permissions?                                  │
-  │    → <span class="gn">YES → PASS</span>                                                       │
-  │    → <span class="rd">NO  → 403 Forbidden</span> ("You don't have sales:write permission")   │
-  │                                                                        │
-  │                                                                        │
-  │  <span class="nu">Check 3:</span> <span class="hi">Tenant-level permission?</span>                                     │
-  │                                                                        │
-  │    Tenant aggregatedPermissions = union of all enabled plugins' perms │
-  │    "sales:write" ∈ aggregatedPermissions?                             │
-  │    → <span class="gn">YES → PASS</span>                                                       │
-  │    → <span class="rd">NO  → 403 Feature Not Included In Your Plan</span>                      │
-  │    (occurs when plugin is enabled but a specific feature is           │
-  │     restricted by tier config — e.g., Premium has sales but not      │
-  │     sales:export because export is Enterprise and above only)        │
-  │                                                                        │
-  │                                                                        │
-  │  <span class="gn">All 3 checks pass → PROCEED to L3</span>                                   │
-  │                                                                        │
-  └────────────────────────────────────────────────────────────────────────┘
-
-
-<span class="ty">RBAC MODEL:</span>
-
-  ┌─────────────────────────────────────────────────────────────────────┐
-  │                                                                     │
-  │  Tenant has Roles:                                                 │
-  │  ├── admin:          * (all permissions)                           │
-  │  ├── sales_manager:  sales:*, calls:*, customers:read             │
-  │  ├── support:        tickets:*, calls:read, customers:read        │
-  │  ├── viewer:         *.read (read-only across all)                │
-  │  └── custom roles:   tenant-defined, any combination              │
-  │                                                                     │
-  │  User has Roles (assigned per-tenant):                             │
-  │  user-5 → ["sales_manager"]                                       │
-  │  user-8 → ["admin"]                                               │
-  │  user-12 → ["support", "viewer"]                                  │
-  │                                                                     │
-  │  Permission format: {resource}:{action}                            │
-  │  Actions: read, write, delete, export, admin                      │
-  │  Wildcard: sales:* = all actions on sales                         │
-  │                                                                     │
-  └─────────────────────────────────────────────────────────────────────┘
-
-  Cost: ~0.1ms (in-memory role lookup, no I/O)</pre></div>
+    
 </div>
 </div>
 
 <!-- ERROR RESPONSES -->
 <div class="pnl" id="p-err">
 <div class="sec">
-    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t"><span data-lang="vi">Error Responses — Bảng tổng hợp</span><span data-lang="en">Error Responses — Summary Table</span></h2></div>
-    <div class="dg" data-lang="vi"><div class="dg-label">gateway errors</div><pre>
+    <div class="sec-h"><span class="sec-n">07</span><h2 class="sec-t"><span>Error Responses — Bảng tổng hợp</span></h2></div>
+    <div class="dg"><div class="dg-label">gateway errors</div><pre>
 <span class="ty">MỖI MIDDLEWARE CÓ THỂ TRẢ LỖI RIÊNG:</span>
 
 ┌────────────────────┬──────┬────────────────────────────┬─────────────────────────┐
@@ -929,54 +569,7 @@ html.lang-vi [data-lang="en"]{display:none}
 
   <span class="cm">Mọi error đều có requestId → correlate với logs/traces.</span>
   <span class="cm">Không leak internal details (stack trace, DB error, etc.)</span></pre></div>
-    <div class="dg" data-lang="en"><div class="dg-label">gateway errors</div><pre>
-<span class="ty">EACH MIDDLEWARE CAN RETURN ITS OWN ERROR:</span>
-
-┌────────────────────┬──────┬────────────────────────────┬─────────────────────────┐
-│ Middleware          │ HTTP │ Error                      │ Cause                   │
-├────────────────────┼──────┼────────────────────────────┼─────────────────────────┤
-│                    │      │                            │                         │
-│ <span class="hi">Tenant Resolver</span>   │ 404  │ Tenant Not Found           │ Subdomain/domain invalid│
-│                    │ 403  │ Account Suspended          │ Billing/TOS issue       │
-│                    │ 410  │ Gone                       │ Tenant deleted          │
-│                    │ 503  │ Not Ready                  │ Tenant still setting up │
-│                    │      │                            │                         │
-│ <span class="hi">Auth Guard</span>        │ 401  │ Unauthorized               │ Missing/invalid token   │
-│                    │ 401  │ Token Expired              │ Access token expired    │
-│                    │ 401  │ Token Revoked              │ Logged out / revoked    │
-│                    │ 403  │ Forbidden                  │ Tenant claim mismatch   │
-│                    │      │                            │                         │
-│ <span class="hi">Rate Limiter</span>      │ 429  │ Too Many Requests          │ Quota exceeded per-tier │
-│                    │      │ + Retry-After header       │                         │
-│                    │      │                            │                         │
-│ <span class="hi">Route Matcher</span>     │ 404  │ Not Found                  │ URL does not match route│
-│                    │      │                            │                         │
-│ <span class="hi">Permission Check</span>  │ 403  │ Plugin Not Available       │ Plugin not enabled      │
-│                    │ 403  │ Forbidden                  │ User lacks permission   │
-│                    │ 403  │ Feature Not In Plan        │ Tier insufficient       │
-│                    │      │                            │                         │
-└────────────────────┴──────┴────────────────────────────┴─────────────────────────┘
-
-
-<span class="ty">RESPONSE FORMAT (consistent for all errors):</span>
-
-  {
-    "error": {
-      "code":    "RATE_LIMIT_EXCEEDED",
-      "message": "Too many requests. Please retry after 23 seconds.",
-      "status":  429,
-      "details": {
-        "limit":     500,
-        "remaining": 0,
-        "resetAt":   "2025-07-01T10:00:00Z"
-      }
-    },
-    "requestId": "req-789",
-    "timestamp": "2025-07-01T09:59:37Z"
-  }
-
-  <span class="cm">All errors include requestId → correlate with logs/traces.</span>
-  <span class="cm">Do not leak internal details (stack trace, DB error, etc.)</span></pre></div>
+    
 </div>
 </div>
 
@@ -996,17 +589,6 @@ function go(n){
     if(i>=0&&btns[i])btns[i].classList.add('on');
     window.scrollTo({top:160,behavior:'smooth'});
 }
-function toggleLang(){
-    var next=document.documentElement.classList.contains('lang-vi')?'en':'vi';
-    document.documentElement.className='lang-'+next;
-    localStorage.setItem('crm-docs-lang',next);
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=next==='en'?'VI':'EN';
-}
-(function(){
-    var btn=document.getElementById('lang-btn');
-    if(btn)btn.textContent=document.documentElement.classList.contains('lang-en')?'VI':'EN';
-})();
 </script>
 </body>
 </html>

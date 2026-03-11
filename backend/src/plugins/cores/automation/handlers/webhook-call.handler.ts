@@ -13,7 +13,7 @@ export class WebhookCallHandler implements CommandHandler<WebhookCallParams> {
   readonly actionType = 'webhook.call';
 
   async execute(ctx: ActionCommandContext, params: WebhookCallParams): Promise<void> {
-    const resolved = resolveParams(params as Record<string, unknown>, ctx.triggerContext) as WebhookCallParams;
+    const resolved = resolveParams(params as unknown as Record<string, unknown>, ctx.triggerContext) as unknown as WebhookCallParams;
 
     const options: RequestInit = {
       method: resolved.method,

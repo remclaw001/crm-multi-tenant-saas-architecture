@@ -6,13 +6,16 @@ import type { ActionDefinition } from './action-catalog';
 
 @Injectable()
 export class ActionRegistry {
-  private readonly handlers = new Map<string, CommandHandler>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly handlers = new Map<string, CommandHandler<any>>();
 
-  register(handler: CommandHandler): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  register(handler: CommandHandler<any>): void {
     this.handlers.set(handler.actionType, handler);
   }
 
-  getHandler(type: string): CommandHandler {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getHandler(type: string): CommandHandler<any> {
     const handler = this.handlers.get(type);
     if (!handler) {
       throw new PluginError(`Unknown action type: "${type}"`, 400, 'UNKNOWN_ACTION_TYPE', 'automation');

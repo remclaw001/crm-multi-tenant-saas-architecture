@@ -74,13 +74,35 @@ export interface TrendPoint {
 }
 
 /** Automation plugin */
+export interface ActionParamSchema {
+  name: string;
+  label: string;
+  type: 'string' | 'url' | 'enum' | 'template-string';
+  required: boolean;
+  options?: { value: string; label: string }[];
+  hint?: string;
+}
+
+export interface ActionDefinition {
+  type: string;
+  label: string;
+  description: string;
+  requiredPlugins: string[];
+  params: ActionParamSchema[];
+}
+
+export interface StoredAction {
+  type: string;
+  params: Record<string, unknown>;
+}
+
 export interface AutomationTrigger {
   id: string;
   tenant_id: string;
   name: string;
   event_type: string;
   conditions: Record<string, unknown>;
-  actions: unknown[];
+  actions: StoredAction[];
   is_active: boolean;
   created_at: string;
   updated_at: string;

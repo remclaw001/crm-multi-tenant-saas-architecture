@@ -6,6 +6,8 @@ import type {
   AnalyticsSummary,
   TrendPoint,
   AutomationTrigger,
+  ActionDefinition,
+  StoredAction,
   Campaign,
   PluginListResponse,
   PluginItemResponse,
@@ -176,8 +178,12 @@ export const crmApi = {
     return request('/api/v1/plugins/automation/triggers', ctx);
   },
 
+  getAvailableActions(ctx: AuthCtx): Promise<{ plugin: string; data: ActionDefinition[] }> {
+    return request('/api/v1/plugins/automation/actions', ctx);
+  },
+
   createTrigger(
-    input: { name: string; event_type: string; conditions?: Record<string, unknown>; actions?: unknown[]; is_active?: boolean },
+    input: { name: string; event_type: string; conditions?: Record<string, unknown>; actions?: StoredAction[]; is_active?: boolean },
     ctx: AuthCtx,
   ): Promise<PluginItemResponse<AutomationTrigger>> {
     return request('/api/v1/plugins/automation/triggers', {

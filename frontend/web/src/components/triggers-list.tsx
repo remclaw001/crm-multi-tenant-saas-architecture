@@ -34,6 +34,18 @@ export function TriggersList({ triggers }: { triggers: AutomationTrigger[] }) {
               {t.is_active ? 'Active' : 'Inactive'}
             </span>
           </div>
+          {t.actions.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {t.actions.map((a, i) => (
+                <span
+                  key={i}
+                  className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
+                >
+                  {a.type}
+                </span>
+              ))}
+            </div>
+          )}
           <p className="mt-2 text-xs text-muted-foreground">Created {formatDate(t.created_at)}</p>
         </div>
       ))}

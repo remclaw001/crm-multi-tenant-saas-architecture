@@ -5,6 +5,8 @@ import { useMutation } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { crmApi } from '@/lib/api-client';
+import { ActionsStep } from '@/components/automation/actions-step';
+import type { StoredAction } from '@/types/api.types';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -21,7 +23,7 @@ const OPERATORS = [
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type Step = 1 | 2;
+type Step = 1 | 2 | 3;
 
 interface ConditionRow {
   id: string;
@@ -35,6 +37,7 @@ interface FormState {
   eventType: string;
   isActive: boolean;
   conditions: ConditionRow[];
+  actions: StoredAction[];
 }
 
 interface Props {
@@ -58,6 +61,7 @@ const EMPTY_FORM: FormState = {
   eventType: EVENT_TYPES[0],
   isActive: true,
   conditions: [],
+  actions: [],
 };
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -138,7 +142,6 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
 
   async function handleSubmit() {
     setApiError('');
-    if (!validateConditions()) return;
 
     const payload: Parameters<typeof crmApi.createTrigger>[0] = {
       name: form.name.trim(),
@@ -148,7 +151,7 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
         form.conditions.length > 0
           ? { and: form.conditions.map((r) => ({ field: r.field, op: r.op, value: r.value })) }
           : {},
-      actions: [],
+      actions: form.actions,
     };
 
     try {
@@ -164,21 +167,28 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
   // ── Step indicator ─────────────────────────────────────────────────────────
   const StepIndicator = (
     <div className="flex items-center gap-2 mb-5">
-      <div
-        className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-          step === 1 ? 'bg-primary text-primary-foreground' : 'bg-green-500 text-white'
-        }`}
-      >
-        {step === 1 ? '1' : '✓'}
-      </div>
-      <div className={`h-0.5 flex-1 ${step === 2 ? 'bg-green-500' : 'bg-border'}`} />
-      <div
-        className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-          step === 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-        }`}
-      >
-        2
-      </div>
+      {([1, 2, 3] as const).map((s, i) => (
+        <>
+          {i > 0 && (
+            <div
+              key={`line-${s}`}
+              className={`h-0.5 flex-1 ${step > s - 1 ? 'bg-green-500' : 'bg-border'}`}
+            />
+          )}
+          <div
+            key={`step-${s}`}
+            className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+              step === s
+                ? 'bg-primary text-primary-foreground'
+                : step > s
+                ? 'bg-green-500 text-white'
+                : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            {step > s ? '✓' : s}
+          </div>
+        </>
+      ))}
     </div>
   );
 
@@ -361,12 +371,20 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
               >
                 + Add condition
               </button>
-
-              {/* API error */}
-              {apiError && (
-                <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{apiError}</p>
-              )}
             </div>
+          )}
+
+          {/* ── Step 3 ─────────────────────────────────────────────────────── */}
+          {step === 3 && (
+            <ActionsStep
+              actions={form.actions}
+              onChange={(actions) => setForm((prev) => ({ ...prev, actions }))}
+            />
+          )}
+
+          {/* API error */}
+          {apiError && (
+            <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{apiError}</p>
           )}
         </div>
 
@@ -384,11 +402,28 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
                 Next →
               </button>
             </>
-          ) : (
+          ) : step === 2 ? (
             <>
               <button
                 type="button"
                 onClick={() => setStep(1)}
+                className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                onClick={() => { if (validateConditions()) setStep(3); }}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Next →
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setStep(2)}
                 className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
               >
                 ← Back

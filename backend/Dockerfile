@@ -26,4 +26,4 @@ RUN test -f dist/main.js || (echo "ERROR: dist/main.js not found after build" &&
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "echo 'DOCKERFILE_CMD_IS_RUNNING'; ls dist/ 2>&1; node dist/main.js 2>&1"]
+CMD ["sh", "start.sh"]

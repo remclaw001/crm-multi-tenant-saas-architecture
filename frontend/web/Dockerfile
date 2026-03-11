@@ -35,4 +35,5 @@ COPY --from=builder /app/public ./public
 
 EXPOSE 3002
 
-CMD ["npm", "run", "start"]
+# Railway inject $PORT tự động — dùng $PORT nếu có, fallback 3002 (local docker)
+CMD ["sh", "-c", "node_modules/.bin/next start -p ${PORT:-3002}"]

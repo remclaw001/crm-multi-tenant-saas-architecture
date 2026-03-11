@@ -6,7 +6,7 @@
 # Script này retry migration cho đến khi DB accept connection.
 # ============================================================
 
-set -e
+set -ex
 
 MAX_RETRIES=30
 RETRY_INTERVAL=5

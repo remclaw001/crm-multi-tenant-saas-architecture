@@ -15,7 +15,7 @@ import { VipDecommissionProcessor }   from './processors/vip-decommission.proces
 import { DataExportProcessor }        from './processors/data-export.processor';
 import { VipSharedCleanupProcessor }  from './processors/vip-shared-cleanup.processor';
 import { PluginInitProcessor }        from '../../plugins/init/plugin-init.processor';
-import { AutomationActionProcessor }  from '../../plugins/cores/automation/automation-action.processor';
+// AutomationActionProcessor lives in AutomationModule (needs ActionRegistry from same module)
 
 @Module({
   imports: [
@@ -33,7 +33,7 @@ import { AutomationActionProcessor }  from '../../plugins/cores/automation/autom
       { name: QUEUE_AUTOMATION_ACTIONS,    defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 2000 } } },
     ),
   ],
-  providers: [EmailProcessor, WebhookRetryProcessor, VipMigrationProcessor, VipDecommissionProcessor, DataExportProcessor, VipSharedCleanupProcessor, PluginInitProcessor, AutomationActionProcessor],
+  providers: [EmailProcessor, WebhookRetryProcessor, VipMigrationProcessor, VipDecommissionProcessor, DataExportProcessor, VipSharedCleanupProcessor, PluginInitProcessor],
   exports:   [BullModule],  // re-export so consumers can InjectQueue
 })
 export class BullMqModule {}

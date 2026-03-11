@@ -7,10 +7,8 @@ import { WebhookCallHandler } from './handlers/webhook-call.handler';
 import { CustomerUpdateFieldHandler } from './handlers/customer-update-field.handler';
 import { CaseCreateHandler } from './handlers/case-create.handler';
 import { AutomationActionPoller } from './automation-action.poller';
+import { AutomationActionProcessor } from './automation-action.processor';
 import { QUEUE_AUTOMATION_ACTIONS } from '../../../workers/bullmq/queue.constants';
-
-// Note: AutomationActionProcessor is registered in BullMqModule — it requires
-// @Processor decorator which needs the queue registered at that module level.
 
 @Module({
   imports: [
@@ -25,6 +23,7 @@ import { QUEUE_AUTOMATION_ACTIONS } from '../../../workers/bullmq/queue.constant
     CustomerUpdateFieldHandler,
     CaseCreateHandler,
     AutomationActionPoller,
+    AutomationActionProcessor,
   ],
   exports: [AutomationCore, ActionRegistry],
 })

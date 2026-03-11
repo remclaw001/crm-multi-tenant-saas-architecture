@@ -6,3 +6,5 @@ dist
 *.log
 coverage
 .nyc_output
+# Exclude start.sh from COPY . . so changes to it don't invalidate build cache
+start.sh

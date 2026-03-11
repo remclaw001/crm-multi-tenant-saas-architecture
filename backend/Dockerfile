@@ -16,12 +16,16 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Copy toàn bộ source + compile
+# Copy source (start.sh excluded via .dockerignore để không invalidate build cache)
 COPY . .
 RUN npm run build
 
+# Verify build output — fail loudly nếu tsc không tạo ra dist/main.js
+RUN test -f dist/main.js || (echo "ERROR: dist/main.js not found after build" && exit 1)
+
 EXPOSE 3001
 
+# Copy start.sh sau build để changes start.sh không trigger full rebuild
 COPY start.sh ./start.sh
 RUN chmod +x start.sh
 

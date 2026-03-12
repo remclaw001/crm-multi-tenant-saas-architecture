@@ -858,7 +858,7 @@
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">03</span>
-                    <h2 class="sec-t"><span>Quy trình tạo một Plugin mới</span></h2>
+                    <h2 class="sec-t"><span>Tạo Plugin mới</span></h2>
                 </div>
                 <div class="steps">
                     <div class="stp bl"><span class="sn">①</span>Manifest</div>
@@ -867,105 +867,8 @@
                     <div class="stp cy"><span class="sn">④</span>Module</div>
                     <div class="stp vi"><span class="sn">⑤</span>Register</div>
                     <div class="stp or"><span class="sn">⑥</span>Migration</div>
-                    <div class="stp rd"><span class="sn">⑦</span>Frontend</div>
-                </div>
-
-                <div class="dg">
-                    <div class="dg-label">creation pipeline</div>
-                    <pre>
-<span class="hi">① Khai báo Manifest</span>   <span class="cm">src/plugins/manifest/built-in-manifests.ts</span>
-│
-│   Thêm TypeScript constant vào file:
-│   export const LOYALTY_MANIFEST: PluginManifest = {
-│     name: 'loyalty-program', version: '1.0.0',
-│     dependencies: ['customer-data'],
-│     permissions: ['customers:read', 'customers:write'],
-│     limits: DEFAULT_LIMITS,
-│     hooks: [{ event: 'customer.create', type: 'after', priority: 20 }],
-│   };
-│   export const BUILT_IN_MANIFESTS = [..., LOYALTY_MANIFEST];
-│
-▼
-<span class="gn">② Tạo Core</span>   <span class="cm">src/plugins/cores/loyalty-program/loyalty-program.core.ts</span>
-│
-│   @Injectable()
-│   export class LoyaltyProgramCore implements IPluginCore, OnModuleInit {
-│     readonly manifest = LOYALTY_MANIFEST;
-│     onModuleInit() {
-│       this.registry.register(this);
-│       this.hookRegistry.register('loyalty-program',
-│         { event: 'customer.create', type: 'after', priority: 20 },
-│         async (ctx, data) =&gt; { /* award signup points */ });
-│     }
-│     async getPoints(ctx, customerId) {
-│       return ctx.db.db('loyalty_points').where({ customer_id: customerId });
-│     }
-│   }
-│
-│   <span class="cm">Quy tắc quan trọng:</span>
-│   <span class="rd">✗</span> Không thêm WHERE tenant_id = ?  (QueryInterceptor tự inject)
-│   <span class="rd">✗</span> Không giữ state module-level
-│   <span class="gn">✓</span> Mọi DB access qua ctx.db (Knex)
-│   <span class="gn">✓</span> Stateless — cùng input → cùng output
-│
-▼
-<span class="am">③ Tạo Controller</span>   <span class="cm">src/plugins/cores/loyalty-program/loyalty-program.controller.ts</span>
-│
-│   @Controller('api/v1/plugins/loyalty-program')
-│   export class LoyaltyProgramController {
-│     @Get('points/:customerId')
-│     async getPoints(@Param('customerId') id, @CurrentTenant() tenant,
-│                     @CurrentUser() user, @Req() req) {
-│       const ctx = await this.contextBuilder.build(tenant, user, req.correlationId);
-│       if (!ctx.enabledPlugins.includes('loyalty-program'))
-│         throw new ForbiddenException('loyalty-program plugin not enabled');
-│       return this.sandbox.execute(() =&gt; this.core.getPoints(ctx, id),
-│                                   this.core.manifest.limits.timeoutMs);
-│     }
-│   }
-│
-▼
-<span class="cy">④ Tạo NestJS Module</span>   <span class="cm">src/plugins/cores/loyalty-program/loyalty-program.module.ts</span>
-│
-│   @Module({ controllers: [LoyaltyProgramController], providers: [LoyaltyProgramCore] })
-│   export class LoyaltyProgramModule {}
-│
-▼
-<span class="vi">⑤ Register trong PluginsModule</span>   <span class="cm">src/plugins/plugins.module.ts</span>
-│
-│   @Module({
-│     imports: [PluginInfraModule, CustomerDataModule, ..., LoyaltyProgramModule],
-│   })
-│   export class PluginsModule implements OnModuleInit { ... }
-│
-▼
-<span class="or">⑥ DB migration (nếu cần table riêng)</span>   <span class="cm">src/db/migrations/YYYYMMDD_loyalty_points.ts</span>
-│
-│   await knex.schema.createTable('loyalty_points', (t) =&gt; {
-│     t.uuid('id').primary(); t.uuid('tenant_id').notNullable();
-│     t.uuid('customer_id').notNullable(); t.integer('points').defaultTo(0);
-│   });
-│   await knex.raw('ALTER TABLE loyalty_points ENABLE ROW LEVEL SECURITY');
-│   // npm run db:migrate
-│
-▼
-<span class="rd">⑦ Frontend page</span>   <span class="cm">frontend/web/src/app/(plugins)/loyalty-program/page.tsx</span>
-│
-│   export default function LoyaltyProgramPage() {
-│     return (
-│       &lt;<span class="fn">PluginGate</span> plugin="loyalty-program" pluginLabel="Loyalty Program"&gt;
-│         {/* UI — gọi crmApi.xxx() từ api-client.ts */}
-│       &lt;/<span class="fn">PluginGate</span>&gt;
-│     );
-│   }
-│
-└── <span class="gn">✓ Plugin sẵn sàng — Admin bật qua PATCH /api/v1/admin/tenants/:id/plugins/loyalty-program</span></pre>
-                </div>
-            </div>
-
-            <div class="sec">
-                <div class="sec-h"><span class="sec-n">03b</span>
-                    <h2 class="sec-t"><span>Tạo Plugin mới</span></h2>
+                    <div class="stp rd"><span class="sn">⑦</span>Actions</div>
+                    <div class="stp bl"><span class="sn">⑧</span>Frontend</div>
                 </div>
 
                 <div class="dg">

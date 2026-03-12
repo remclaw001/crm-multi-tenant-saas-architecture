@@ -53,8 +53,8 @@ export class AutomationCore implements IPluginCore, OnModuleInit {
       'automation',
       { event: 'customer.create', type: 'after', priority: 20 },
       async (ctx: IExecutionContext, data: unknown) => {
-        const d = data as { customer: Record<string, unknown> };
-        await this.fireTriggerEvents(ctx, 'customer.create', { customer: d.customer });
+        const customer = data as Record<string, unknown>;
+        await this.fireTriggerEvents(ctx, 'customer.create', { customer });
       },
     );
   }

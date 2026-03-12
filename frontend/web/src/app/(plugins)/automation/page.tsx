@@ -64,7 +64,12 @@ export default function AutomationPage() {
             Failed to load triggers.
           </div>
         ) : (
-          <TriggersList triggers={data?.data ?? []} onEdit={openEdit} onToggled={() => { void refetch(); }} />
+          <TriggersList
+            triggers={data?.data ?? []}
+            onEdit={openEdit}
+            onToggled={() => { void refetch(); }}
+            onDeleted={() => { void refetch(); }}
+          />
         )}
 
         <CreateTriggerModal

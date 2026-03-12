@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { crmApi } from '@/lib/api-client';
 import type { AutomationTrigger } from '@/types/api.types';
@@ -13,14 +14,18 @@ export function TriggersList({
   triggers,
   onEdit,
   onToggled,
+  onDeleted,
 }: {
   triggers: AutomationTrigger[];
   onEdit: (t: AutomationTrigger) => void;
   onToggled: () => void;
+  onDeleted: () => void;
 }) {
   const { token, tenantId } = useAuthStore();
   const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function handleToggle(t: AutomationTrigger) {
     if (togglingId) return;
@@ -30,6 +35,17 @@ export function TriggersList({
       onToggled();
     } finally {
       setTogglingId(null);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    try {
+      await crmApi.deleteTrigger(id, ctx);
+      onDeleted();
+    } finally {
+      setDeletingId(null);
+      setConfirmDeleteId(null);
     }
   }
 
@@ -56,20 +72,55 @@ export function TriggersList({
                 Event: <span className="font-mono">{t.event_type}</span>
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleToggle(t)}
-              disabled={togglingId === t.id}
-              aria-label={t.is_active ? 'Deactivate trigger' : 'Activate trigger'}
-              className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium transition-opacity disabled:opacity-50 ${
-                t.is_active
-                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {togglingId === t.id ? '…' : t.is_active ? 'Active' : 'Inactive'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleToggle(t)}
+                disabled={togglingId === t.id}
+                aria-label={t.is_active ? 'Deactivate trigger' : 'Activate trigger'}
+                className={`rounded-full px-2 py-0.5 text-xs font-medium transition-opacity disabled:opacity-50 ${
+                  t.is_active
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {togglingId === t.id ? '…' : t.is_active ? 'Active' : 'Inactive'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteId(t.id)}
+                aria-label="Delete trigger"
+                className="text-muted-foreground hover:text-red-500"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
+
+          {/* Inline confirm */}
+          {confirmDeleteId === t.id && (
+            <div className="mt-3 flex items-center gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+              <p className="flex-1 text-xs text-red-700">
+                Xóa trigger <strong>{t.name}</strong>? Không thể hoàn tác.
+              </p>
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteId(null)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={deletingId === t.id}
+                onClick={() => handleDelete(t.id)}
+                className="rounded bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {deletingId === t.id ? 'Đang xóa…' : 'Xóa'}
+              </button>
+            </div>
+          )}
+
           {t.actions.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {t.actions.map((a, i) => (

@@ -205,6 +205,13 @@ export const crmApi = {
     });
   },
 
+  deleteTrigger(id: string, ctx: AuthCtx): Promise<void> {
+    return request(`/api/v1/plugins/automation/triggers/${id}`, {
+      method: 'DELETE',
+      ...ctx,
+    });
+  },
+
   // ─── Marketing ────────────────────────────────────────────────────────────
   getCampaigns(ctx: AuthCtx): Promise<PluginListResponse<Campaign>> {
     return request('/api/v1/plugins/marketing/campaigns', ctx);

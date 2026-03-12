@@ -7,17 +7,34 @@ import { crmApi } from '@/lib/api-client';
 import { TriggersList } from '@/components/triggers-list';
 import { PluginGate } from '@/components/plugin-gate';
 import { CreateTriggerModal } from '@/components/create-trigger-modal';
+import type { AutomationTrigger } from '@/types/api.types';
 
 export default function AutomationPage() {
   const { token, tenantId } = useAuthStore();
   const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingTrigger, setEditingTrigger] = useState<AutomationTrigger | undefined>();
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['triggers', tenantId],
     queryFn: () => crmApi.getTriggers(ctx),
     enabled: Boolean(token && tenantId),
   });
+
+  function openCreate() {
+    setEditingTrigger(undefined);
+    setModalOpen(true);
+  }
+
+  function openEdit(trigger: AutomationTrigger) {
+    setEditingTrigger(trigger);
+    setModalOpen(true);
+  }
+
+  function handleClose() {
+    setModalOpen(false);
+    setEditingTrigger(undefined);
+  }
 
   return (
     <PluginGate plugin="automation" pluginLabel="Automation">
@@ -31,7 +48,7 @@ export default function AutomationPage() {
           </div>
           <button
             type="button"
-            onClick={() => setModalOpen(true)}
+            onClick={openCreate}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             + Add Trigger
@@ -47,13 +64,14 @@ export default function AutomationPage() {
             Failed to load triggers.
           </div>
         ) : (
-          <TriggersList triggers={data?.data ?? []} />
+          <TriggersList triggers={data?.data ?? []} onEdit={openEdit} />
         )}
 
         <CreateTriggerModal
           open={modalOpen}
-          onClose={() => setModalOpen(false)}
+          onClose={handleClose}
           onSuccess={() => { void refetch(); }}
+          trigger={editingTrigger}
         />
       </div>
     </PluginGate>

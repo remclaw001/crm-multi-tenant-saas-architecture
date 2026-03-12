@@ -6,7 +6,7 @@ import { X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { crmApi } from '@/lib/api-client';
 import { ActionsStep } from '@/components/automation/actions-step';
-import type { StoredAction } from '@/types/api.types';
+import type { AutomationTrigger, StoredAction } from '@/types/api.types';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -44,6 +44,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  trigger?: AutomationTrigger; // when set → edit mode
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -56,6 +57,27 @@ function operatorNeedsValue(op: string): boolean {
   return OPERATORS.find((o) => o.value === op)?.needsValue ?? true;
 }
 
+function conditionsToRows(conditions: Record<string, unknown>): ConditionRow[] {
+  const and = (conditions as { and?: { field: string; op: string; value?: string }[] }).and;
+  if (!and) return [];
+  return and.map((c) => ({
+    id: crypto.randomUUID(),
+    field: c.field ?? ATTRIBUTES[0],
+    op: c.op ?? OPERATORS[0].value,
+    value: c.value ?? '',
+  }));
+}
+
+function triggerToForm(t: AutomationTrigger): FormState {
+  return {
+    name: t.name,
+    eventType: t.event_type,
+    isActive: t.is_active,
+    conditions: conditionsToRows(t.conditions),
+    actions: t.actions,
+  };
+}
+
 const EMPTY_FORM: FormState = {
   name: '',
   eventType: EVENT_TYPES[0],
@@ -66,30 +88,39 @@ const EMPTY_FORM: FormState = {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
+export function CreateTriggerModal({ open, onClose, onSuccess, trigger }: Props) {
   const { token, tenantId } = useAuthStore();
   const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
+  const isEdit = Boolean(trigger);
 
   const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [conditionErrors, setConditionErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState('');
 
-  const mutation = useMutation({
+  const createMutation = useMutation({
     mutationFn: (input: Parameters<typeof crmApi.createTrigger>[0]) =>
       crmApi.createTrigger(input, ctx),
   });
 
-  // Reset on close
+  const updateMutation = useMutation({
+    mutationFn: (input: Parameters<typeof crmApi.updateTrigger>[1]) =>
+      crmApi.updateTrigger(trigger!.id, input, ctx),
+  });
+
+  const mutation = isEdit ? updateMutation : createMutation;
+
+  // Sync form when modal opens
   useEffect(() => {
-    if (!open) {
+    if (open) {
       setStep(1);
-      setForm(EMPTY_FORM);
+      setForm(trigger ? triggerToForm(trigger) : EMPTY_FORM);
       setConditionErrors({});
       setApiError('');
-      mutation.reset();
+      createMutation.reset();
+      updateMutation.reset();
     }
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, trigger?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
 
@@ -98,7 +129,8 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
     setForm(EMPTY_FORM);
     setConditionErrors({});
     setApiError('');
-    mutation.reset();
+    createMutation.reset();
+    updateMutation.reset();
     onClose();
   }
 
@@ -143,7 +175,7 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
   async function handleSubmit() {
     setApiError('');
 
-    const payload: Parameters<typeof crmApi.createTrigger>[0] = {
+    const payload = {
       name: form.name.trim(),
       event_type: form.eventType,
       is_active: form.isActive,
@@ -160,7 +192,7 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
       onSuccess();
       onClose();
     } catch {
-      setApiError('Failed to create trigger. Please try again.');
+      setApiError(`Failed to ${isEdit ? 'update' : 'create'} trigger. Please try again.`);
     }
   }
 
@@ -201,12 +233,14 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="New Automation Trigger"
+        aria-label={isEdit ? 'Edit Automation Trigger' : 'New Automation Trigger'}
         className="w-full max-w-md rounded-lg bg-card shadow-xl border border-border"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-base font-semibold">New Automation Trigger</h2>
+          <h2 className="text-base font-semibold">
+            {isEdit ? 'Edit Trigger' : 'New Automation Trigger'}
+          </h2>
           <button
             type="button"
             onClick={handleClose}
@@ -223,7 +257,6 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
           {/* ── Step 1 ─────────────────────────────────────────────────────── */}
           {step === 1 && (
             <div className="space-y-4">
-              {/* Trigger Name */}
               <div>
                 <label htmlFor="trigger-name" className="mb-1.5 block text-sm font-medium">
                   Trigger Name <span className="text-red-500">*</span>
@@ -240,7 +273,6 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
                 />
               </div>
 
-              {/* Event Type */}
               <div>
                 <label htmlFor="trigger-event" className="mb-1.5 block text-sm font-medium">
                   Event Type <span className="text-red-500">*</span>
@@ -258,13 +290,12 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
                 </select>
               </div>
 
-              {/* Active toggle */}
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium">Active when created</span>
+                <span className="text-sm font-medium">Active</span>
                 <button
                   type="button"
                   role="switch"
-                  aria-label="Active when created"
+                  aria-label="Active"
                   aria-checked={form.isActive}
                   onClick={() => setForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
                   className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring ${
@@ -292,10 +323,8 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
                 <span className="font-normal text-muted-foreground">(optional — leave empty to fire on every event)</span>
               </p>
 
-              {/* Condition rows */}
               {form.conditions.map((row, idx) => (
                 <div key={row.id}>
-                  {/* AND badge between rows */}
                   {idx > 0 && (
                     <div className="my-2 text-center">
                       <span className="rounded border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
@@ -305,7 +334,6 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
                   )}
                   <div className="flex items-start gap-2">
                     <div className="flex flex-1 gap-2">
-                      {/* Attribute */}
                       <select
                         aria-label="Attribute"
                         value={row.field}
@@ -317,7 +345,6 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
                         ))}
                       </select>
 
-                      {/* Operator */}
                       <select
                         aria-label="Operator"
                         value={row.op}
@@ -329,7 +356,6 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
                         ))}
                       </select>
 
-                      {/* Value */}
                       {operatorNeedsValue(row.op) && (
                         <div className="flex-[3]">
                           <input
@@ -350,7 +376,6 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
                       )}
                     </div>
 
-                    {/* Remove */}
                     <button
                       type="button"
                       aria-label="Remove condition"
@@ -363,7 +388,6 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
                 </div>
               ))}
 
-              {/* Add condition */}
               <button
                 type="button"
                 onClick={addCondition}
@@ -382,7 +406,6 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
             />
           )}
 
-          {/* API error */}
           {apiError && (
             <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{apiError}</p>
           )}
@@ -434,7 +457,9 @@ export function CreateTriggerModal({ open, onClose, onSuccess }: Props) {
                 onClick={handleSubmit}
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
-                {mutation.isPending ? 'Creating…' : 'Create Trigger'}
+                {mutation.isPending
+                  ? (isEdit ? 'Saving…' : 'Creating…')
+                  : (isEdit ? 'Save Changes' : 'Create Trigger')}
               </button>
             </>
           )}

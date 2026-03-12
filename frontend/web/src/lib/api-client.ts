@@ -193,6 +193,18 @@ export const crmApi = {
     });
   },
 
+  updateTrigger(
+    id: string,
+    input: { name?: string; event_type?: string; conditions?: Record<string, unknown>; actions?: StoredAction[]; is_active?: boolean },
+    ctx: AuthCtx,
+  ): Promise<PluginItemResponse<AutomationTrigger>> {
+    return request(`/api/v1/plugins/automation/triggers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+      ...ctx,
+    });
+  },
+
   // ─── Marketing ────────────────────────────────────────────────────────────
   getCampaigns(ctx: AuthCtx): Promise<PluginListResponse<Campaign>> {
     return request('/api/v1/plugins/marketing/campaigns', ctx);

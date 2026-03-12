@@ -778,8 +778,24 @@
 │   │   └── dto/create-customer.dto.ts
 │   ├── customer-care/  <span class="cm">(same pattern)</span>
 │   ├── analytics/      <span class="cm">(same pattern)</span>
-│   ├── automation/     <span class="cm">(same pattern)</span>
-│   └── marketing/      <span class="cm">(same pattern)</span>
+│   ├── marketing/      <span class="cm">(same pattern)</span>
+│   │
+│   └── automation/     <span class="cm">← Plugin phức tạp hơn: có Action System + async worker</span>
+│       ├── automation.core.ts          <span class="cm">← CRUD triggers; fireTriggerEvents(); evaluateConditions()</span>
+│       ├── automation.controller.ts    <span class="cm">← REST /triggers + GET /actions</span>
+│       ├── automation.module.ts        <span class="cm">← OnModuleInit: register 3 handlers; imports BullModule.registerQueue</span>
+│       ├── automation-action.poller.ts <span class="cm">← node-cron */5s; poll automation_action_events; enqueue to BullMQ</span>
+│       ├── automation-action.processor.ts <span class="cm">← @Processor(QUEUE_AUTOMATION_ACTIONS); executes handlers</span>
+│       ├── action-registry.ts          <span class="cm">← Map&lt;actionType, CommandHandler&gt;; register()/getHandler()</span>
+│       ├── action-catalog.ts           <span class="cm">← ACTION_CATALOG constant; getAvailableActions(enabledPlugins)</span>
+│       ├── template-engine.ts          <span class="cm">← resolveTemplate/resolveParams — {{dot.path}} substitution</span>
+│       ├── types/
+│       │   └── stored-action.types.ts  <span class="cm">← StoredAction discriminated union (WebhookCall, CustomerUpdateField, CaseCreate)</span>
+│       └── handlers/
+│           ├── command-handler.interface.ts   <span class="cm">← CommandHandler&lt;TParams&gt; { actionType; execute(ctx, params) }</span>
+│           ├── webhook-call.handler.ts        <span class="cm">← fetch() với template params</span>
+│           ├── customer-update-field.handler.ts <span class="cm">← UPDATE customers SET field=value</span>
+│           └── case-create.handler.ts         <span class="cm">← INSERT support_cases</span>
 │
 ├── <span class="ty">deps/</span>                        <span class="cm">← Dependency validation subsystem</span>
 │   ├── plugin-dependency.service.ts  <span class="cm">← validateGraph(), getMissingDeps(), getBlockingDependents()</span>
@@ -820,8 +836,30 @@
                 ├── CustomerDataModule
                 ├── CustomerCareModule       <span class="cm">← OnModuleInit: registry.register(this)</span>
                 ├── AnalyticsModule          <span class="cm">← OnModuleInit: registry.register(this)</span>
-                ├── AutomationModule         <span class="cm">← OnModuleInit: registry.register(this)</span>
-                └── MarketingModule          <span class="cm">← OnModuleInit: registry.register(this)</span></pre>
+                ├── AutomationModule         <span class="cm">← OnModuleInit: registry.register(this) + register 3 handlers</span>
+                │     imports: BullModule.registerQueue(QUEUE_AUTOMATION_ACTIONS)
+                │     providers: AutomationCore, ActionRegistry, 3×Handler,
+                │                AutomationActionPoller, AutomationActionProcessor
+                └── MarketingModule          <span class="cm">← OnModuleInit: registry.register(this)</span>
+
+
+<span class="ty">Frontend — plugin UI layer</span>
+
+  frontend/web/src/app/(plugins)/   <span class="cm">← route group, không ảnh hưởng URL</span>
+  │   layout.tsx                    <span class="cm">← shared layout: sidebar + auth guard</span>
+  ├── contacts/page.tsx             <span class="cm">← customer-data plugin UI</span>
+  ├── cases/page.tsx                <span class="cm">← customer-care plugin UI</span>
+  ├── analytics/page.tsx            <span class="cm">← analytics plugin UI</span>
+  ├── marketing/page.tsx            <span class="cm">← marketing plugin UI</span>
+  └── automation/page.tsx           <span class="cm">← automation plugin UI</span>
+
+  frontend/web/src/components/automation/
+  └── actions-step.tsx              <span class="cm">← Step 3 của create/edit modal; load action catalog từ GET /actions</span>
+
+  <span class="cm">Mỗi plugin page:</span>
+  <span class="gn">✓</span> Bọc trong &lt;PluginGate plugin="..."&gt;  <span class="cm">← ẩn UI nếu plugin chưa enabled</span>
+  <span class="gn">✓</span> Gọi API qua api-client.ts           <span class="cm">← tự gửi Authorization + X-Tenant-ID header</span>
+  <span class="rd">✗</span> Không chứa business logic           <span class="cm">← mọi rule đều ở backend</span></pre>
                 </div>
             </div>
         </div>
@@ -1061,6 +1099,41 @@
 │  await knex.raw(<span class="st">'ALTER TABLE loyalty_points ENABLE ROW LEVEL SECURITY'</span>);
 │  // npm run db:migrate
 │
+▼
+<span class="ty">⑦ (Tùy chọn) Action Handlers — nếu plugin cần async execution</span>
+│  <span class="cm">Tham khảo automation plugin làm mẫu (Command Pattern)</span>
+│
+│  <span class="cm">// 1. Implement CommandHandler</span>
+│  @Injectable()
+│  export class AwardPointsHandler implements CommandHandler&lt;AwardPointsParams&gt; {
+│    readonly actionType = <span class="st">'loyalty.award_points'</span>;
+│    async execute(ctx: ActionCommandContext, params: AwardPointsParams) { ... }
+│  }
+│
+│  <span class="cm">// 2. Khai báo trong ACTION_CATALOG (action-catalog.ts)</span>
+│  { type: <span class="st">'loyalty.award_points'</span>, requiredPlugins: [<span class="st">'loyalty-program'</span>], params: [...] }
+│
+│  <span class="cm">// 3. Register trong LoyaltyProgramModule.onModuleInit()</span>
+│  this.actionRegistry.register(this.awardPointsHandler);
+│
+│  <span class="cm">// → AutomationActionPoller sẽ tự pick up và execute qua BullMQ</span>
+│
+▼
+<span class="ty">⑧ Frontend page</span>   <span class="cm">frontend/web/src/app/(plugins)/loyalty-program/page.tsx</span>
+│
+│  export default function LoyaltyProgramPage() {
+│    return (
+│      &lt;<span class="fn">PluginGate</span> plugin=<span class="st">"loyalty-program"</span> pluginLabel=<span class="st">"Loyalty Program"</span>&gt;
+│        <span class="cm">{/* UI — gọi crmApi.xxx() từ api-client.ts */}</span>
+│      &lt;/<span class="fn">PluginGate</span>&gt;
+│    );
+│  }
+│
+│  <span class="cm">// Thêm method vào api-client.ts:</span>
+│  getLoyaltyPoints(customerId: string, ctx: AuthCtx): Promise&lt;...&gt; {
+│    return request(<span class="st">`/api/v1/plugins/loyalty-program/points/${customerId}`</span>, ctx);
+│  }
+│
 └── <span class="gn">✓ Plugin sẵn sàng — Admin bật qua PATCH /api/v1/admin/tenants/:id/plugins/loyalty-program</span>
 
 
@@ -1069,7 +1142,8 @@
   <span class="rd">✗</span> Không import fs, net, process
   <span class="rd">✗</span> Không giữ state module-level
   <span class="gn">✓</span> Mọi DB access qua ctx.db (Knex)
-  <span class="gn">✓</span> PluginInfraModule @Global → không cần re-import HookRegistryService, etc.</pre>
+  <span class="gn">✓</span> PluginInfraModule @Global → không cần re-import HookRegistryService, etc.
+  <span class="gn">✓</span> Frontend page luôn bọc trong &lt;PluginGate&gt; — không cần check thủ công</pre>
                 </div>
             </div>
         </div>

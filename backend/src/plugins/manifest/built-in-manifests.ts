@@ -53,7 +53,7 @@ export const AUTOMATION_MANIFEST: PluginManifest = {
   permissions: ['customers:read', 'customers:write', 'deals:read'],
   limits: DEFAULT_LIMITS,
   hooks: [
-    { event: 'customer.create', type: 'before', priority: 5 },
+    { event: 'customer.create', type: 'after', priority: 20 },
   ],
 };
 

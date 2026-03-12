@@ -1187,14 +1187,14 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
    • Hooks in-process, đồng bộ, không qua MQ
 
 
-<span class="ty">④ SHARED SERVICES</span> (indirect interaction)
+<span class="ty">④ SHARED DB TABLE ACCESS</span> (cross-plugin, via ctx.db)
 ─────────────────────────────────────────────
-   customer-care  ──<span class="cy">uses</span>──▶  EmailService  ◀──<span class="cy">uses</span>──  automation
-   analytics      ──<span class="cy">uses</span>──▶  CacheManager  ◀──<span class="cy">uses</span>──  marketing
+   automation  ──<span class="cy">writes to</span>──▶  support_cases table  ◀──<span class="cy">owned by</span>──  customer-care
 
-   • Plugins không biết về nhau
-   • Nhưng share cùng infrastructure services
-   • Services đảm bảo tenant isolation</pre>
+   • CaseCreateHandler (automation) ghi trực tiếp vào support_cases qua ctx.db
+   • Không gọi customer-care core — truy cập thẳng vào DB table dùng chung
+   • QueryInterceptor tự scope theo tenant_id — không cần WHERE thủ công
+   • ctx.cache (CacheManager) sẵn cho mọi plugin qua ExecutionContext</pre>
                 </div>
             </div>
 
@@ -1272,7 +1272,7 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
                 <div class="dg">
                     <div class="dg-label">plugin-dependency.service.ts</div>
                     <pre>
-<span class="ty">PluginDependencyService</span>  (src/plugins/deps/plugin-dependency.service.ts)
+<span class="ty">PluginDependencyService</span>  <span class="cm">src/plugins/deps/plugin-dependency.service.ts</span>
 <span class="cm">Injected via PLUGIN_MANIFESTS token (useValue: BUILT_IN_MANIFESTS)</span>
 
 <span class="hi">Bootstrap validation</span>  — PluginsModule.onModuleInit()
@@ -1294,7 +1294,7 @@ Plugins tương tác qua <span class="hi">4 cơ chế</span>, KHÔNG bao giờ g
       → nếu không rỗng → throw PluginDependencyError(blockingDependents: [...])
 
 
-<span class="ty">PluginDependencyError</span>  (src/common/errors/plugin-dependency.error.ts)
+<span class="ty">PluginDependencyError</span>  <span class="cm">src/plugins/deps/plugin-dependency.error.ts</span>
 
   extends AppError
   statusCode : 422 Unprocessable Entity

@@ -1,12 +1,38 @@
 'use client';
 
+import { useState } from 'react';
+import { useAuthStore } from '@/stores/auth.store';
+import { crmApi } from '@/lib/api-client';
 import type { AutomationTrigger } from '@/types/api.types';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function TriggersList({ triggers, onEdit }: { triggers: AutomationTrigger[]; onEdit: (t: AutomationTrigger) => void }) {
+export function TriggersList({
+  triggers,
+  onEdit,
+  onToggled,
+}: {
+  triggers: AutomationTrigger[];
+  onEdit: (t: AutomationTrigger) => void;
+  onToggled: () => void;
+}) {
+  const { token, tenantId } = useAuthStore();
+  const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  async function handleToggle(t: AutomationTrigger) {
+    if (togglingId) return;
+    setTogglingId(t.id);
+    try {
+      await crmApi.updateTrigger(t.id, { is_active: !t.is_active }, ctx);
+      onToggled();
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   if (triggers.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">No automation triggers found.</p>
@@ -30,15 +56,19 @@ export function TriggersList({ triggers, onEdit }: { triggers: AutomationTrigger
                 Event: <span className="font-mono">{t.event_type}</span>
               </p>
             </div>
-            <span
-              className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+            <button
+              type="button"
+              onClick={() => handleToggle(t)}
+              disabled={togglingId === t.id}
+              aria-label={t.is_active ? 'Deactivate trigger' : 'Activate trigger'}
+              className={`flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium transition-opacity disabled:opacity-50 ${
                 t.is_active
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-slate-100 text-slate-600'
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {t.is_active ? 'Active' : 'Inactive'}
-            </span>
+              {togglingId === t.id ? '…' : t.is_active ? 'Active' : 'Inactive'}
+            </button>
           </div>
           {t.actions.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">

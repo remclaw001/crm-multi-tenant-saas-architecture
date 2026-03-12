@@ -621,7 +621,7 @@
                     <h2 class="sec-t"><span>Cấu trúc tổng quan của một Plugin</span></h2>
                 </div>
                 <div class="dg">
-                    <div class="dg-label">plugin anatomy — thực tế</div>
+                    <div class="dg-label">plugin anatomy</div>
                     <pre>
 <span class="hi">Một plugin = Backend module + Frontend page</span>
 
@@ -740,7 +740,7 @@
             </div>
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">02b</span>
-                    <h2 class="sec-t"><span>Cấu trúc thực tế</span></h2>
+                    <h2 class="sec-t"><span>Cấu trúc file</span></h2>
                 </div>
 
                 <div class="dg">
@@ -1087,13 +1087,13 @@
 
             <div class="sec">
                 <div class="sec-h"><span class="sec-n">05b</span>
-                    <h2 class="sec-t"><span>Bootstrap — thực tế</span></h2>
+                    <h2 class="sec-t"><span>Module Wiring</span></h2>
                 </div>
 
                 <div class="dg">
-                    <div class="dg-label">actual bootstrap</div>
+                    <div class="dg-label">module wiring</div>
                     <pre>
-<span class="hi">Module wiring summary:</span>
+<span class="hi">Module wiring:</span>
 
   AppModule
     └── ApiModule
@@ -1102,14 +1102,16 @@
                 │     provides: PLUGIN_MANIFESTS token, PluginDependencyService,
                 │               PluginRegistryService, ExecutionContextBuilder,
                 │               HookRegistryService, SandboxService
-                ├── CustomerDataModule
-                ├── CustomerCareModule       <span class="cm">← OnModuleInit: registry.register(this)</span>
-                ├── AnalyticsModule          <span class="cm">← OnModuleInit: registry.register(this)</span>
-                ├── AutomationModule         <span class="cm">← OnModuleInit: registry.register(this) + register 3 handlers</span>
+                ├── CustomerDataModule        <span class="cm">← Core.onModuleInit: registry.register(this)</span>
+                ├── CustomerCareModule        <span class="cm">← Core.onModuleInit: registry.register + hook(after:customer.create p10)</span>
+                ├── AnalyticsModule           <span class="cm">← Core.onModuleInit: registry.register(this)</span>
+                ├── AutomationModule
                 │     imports: BullModule.registerQueue(QUEUE_AUTOMATION_ACTIONS)
                 │     providers: AutomationCore, ActionRegistry, 3×Handler,
                 │                AutomationActionPoller, AutomationActionProcessor
-                └── MarketingModule          <span class="cm">← OnModuleInit: registry.register(this)</span>
+                │     Core.onModuleInit:   <span class="cm">registry.register + hook(after:customer.create p20)</span>
+                │     Module.onModuleInit: <span class="cm">actionRegistry.register(3 handlers)</span>
+                └── MarketingModule           <span class="cm">← Core.onModuleInit: registry.register(this)</span>
 
 <span class="hi">Sau bootstrap:</span>
   registry.cores  = { customer-data, customer-care, analytics, automation, marketing }

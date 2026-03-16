@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { z } from 'zod';
+import { ResourceNotFoundError } from '../../../common/errors/domain.errors';
 
 // ── Knex mock ──────────────────────────────────────────────────────────
 const mockInsert = vi.hoisted(() => vi.fn().mockResolvedValue([1]));
-const mockInto   = vi.hoisted(() => vi.fn().mockReturnThis());
 const mockKnexFn = vi.hoisted(() => {
   const fn = vi.fn().mockReturnValue({ insert: mockInsert });
   (fn as any).raw = vi.fn((sql: string) => sql);
@@ -57,7 +57,7 @@ describe('EventRegistryService', () => {
 
   describe('emit', () => {
     it('throws for unknown event', async () => {
-      await expect(svc.emit('no.such', makeCtx(), {})).rejects.toThrow('Unknown event: no.such');
+      await expect(svc.emit('no.such', makeCtx(), {})).rejects.toThrow(ResourceNotFoundError);
     });
 
     it('throws when payload fails Zod schema', async () => {
@@ -79,6 +79,7 @@ describe('EventRegistryService', () => {
           event_name: 'customer.create',
           plugin:     'customer-data',
           status:     'pending',
+          expires_at: "NOW() + INTERVAL '7 days'",
         }),
       );
     });

@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import type { Knex } from 'knex';
 import type { IExecutionContext } from '../interfaces/execution-context.interface';
 import type { EventDefinition } from './event-definition.interface';
+import { ResourceNotFoundError } from '../../common/errors/domain.errors';
 
 const TTL_DAYS = 7;
 
@@ -17,7 +18,7 @@ export class EventRegistryService {
 
   async emit(eventName: string, ctx: IExecutionContext, data: unknown): Promise<void> {
     const def = this.definitions.get(eventName);
-    if (!def) throw new Error(`Unknown event: ${eventName}`);
+    if (!def) throw new ResourceNotFoundError(`Unknown event: ${eventName}`);
 
     const payload = def.schema.parse(data);
 

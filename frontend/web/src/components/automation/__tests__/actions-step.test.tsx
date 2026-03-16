@@ -28,6 +28,7 @@ const CATALOG: ActionDefinition[] = [
       { name: 'description', label: 'Description', type: 'template-string', required: false, hint: '{{customer.email}}' },
       { name: 'priority',    label: 'Priority',    type: 'enum',            required: true,
         options: [{ value: 'low', label: 'Low' }, { value: 'high', label: 'High' }] },
+      { name: 'notes',       label: 'Notes',       type: 'string',          required: false },
     ],
   },
 ];
@@ -38,7 +39,7 @@ const EVENT_FIELDS = [
 ];
 
 const BASE_PROPS = {
-  actions:     [{ type: 'case.create', params: { title: '', description: '', priority: 'low' } }],
+  actions:     [{ type: 'case.create', params: { title: '', description: '', priority: 'low', notes: '' } }],
   onChange:    vi.fn(),
   eventType:   'customer.create',
   eventFields: EVENT_FIELDS,
@@ -57,8 +58,10 @@ describe('ActionsStep', () => {
 
   it('renders a plain input for string/url params and select for enum params', () => {
     render(<ActionsStep {...BASE_PROPS} />);
-    // Priority is enum → select; no extra plain input for template params
+    // Priority is enum → select
     expect(screen.getByRole('combobox', { name: /priority/i })).toBeInTheDocument();
+    // Notes is a plain string param → plain textbox (no {} button)
+    expect(screen.getByRole('textbox', { name: /notes/i })).toBeInTheDocument();
   });
 
   it('hides {} button when eventFields is empty', () => {

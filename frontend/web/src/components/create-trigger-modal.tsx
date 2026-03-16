@@ -1,17 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { crmApi } from '@/lib/api-client';
 import { ActionsStep } from '@/components/automation/actions-step';
-import type { AutomationTrigger, StoredAction } from '@/types/api.types';
+import type { AutomationTrigger, StoredAction, EventField } from '@/types/api.types';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const EVENT_TYPES = ['customer.create'];
-const ATTRIBUTES = ['name', 'email', 'phone', 'company'];
 const OPERATORS = [
   { value: 'equals',       label: 'equals',       needsValue: true },
   { value: 'not_equals',   label: 'not equals',   needsValue: true },
@@ -50,7 +48,7 @@ interface Props {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function makeRow(): ConditionRow {
-  return { id: crypto.randomUUID(), field: ATTRIBUTES[0], op: OPERATORS[0].value, value: '' };
+  return { id: crypto.randomUUID(), field: '', op: OPERATORS[0].value, value: '' };
 }
 
 function operatorNeedsValue(op: string): boolean {
@@ -62,7 +60,7 @@ function conditionsToRows(conditions: Record<string, unknown>): ConditionRow[] {
   if (!and) return [];
   return and.map((c) => ({
     id: crypto.randomUUID(),
-    field: c.field ?? ATTRIBUTES[0],
+    field: c.field ?? '',
     op: c.op ?? OPERATORS[0].value,
     value: c.value ?? '',
   }));
@@ -80,7 +78,7 @@ function triggerToForm(t: AutomationTrigger): FormState {
 
 const EMPTY_FORM: FormState = {
   name: '',
-  eventType: EVENT_TYPES[0],
+  eventType: '',
   isActive: true,
   conditions: [],
   actions: [],
@@ -109,6 +107,17 @@ export function CreateTriggerModal({ open, onClose, onSuccess, trigger }: Props)
   });
 
   const mutation = isEdit ? updateMutation : createMutation;
+
+  const eventsQuery = useQuery({
+    queryKey: ['automation-events', ctx.tenantId],
+    queryFn:  () => crmApi.getAvailableEvents(ctx),
+    enabled:  open && Boolean(ctx.token && ctx.tenantId),
+  });
+  const availableEvents = eventsQuery.data?.data ?? [];
+
+  const selectedEventFields: EventField[] = availableEvents
+    .find((ev) => ev.name === form.eventType)
+    ?.fields ?? [];
 
   // Sync form when modal opens
   useEffect(() => {
@@ -281,11 +290,12 @@ export function CreateTriggerModal({ open, onClose, onSuccess, trigger }: Props)
                   id="trigger-event"
                   aria-label="Event Type"
                   value={form.eventType}
-                  onChange={(e) => setForm((prev) => ({ ...prev, eventType: e.target.value }))}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  onChange={(e) => setForm({ ...form, eventType: e.target.value })}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 >
-                  {EVENT_TYPES.map((et) => (
-                    <option key={et} value={et}>{et}</option>
+                  <option value="">— select event —</option>
+                  {availableEvents.map((ev) => (
+                    <option key={ev.name} value={ev.name}>{ev.name} — {ev.description}</option>
                   ))}
                 </select>
               </div>
@@ -340,8 +350,8 @@ export function CreateTriggerModal({ open, onClose, onSuccess, trigger }: Props)
                         onChange={(e) => updateCondition(row.id, { field: e.target.value })}
                         className="flex-[2] rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       >
-                        {ATTRIBUTES.map((a) => (
-                          <option key={a} value={a}>{a}</option>
+                        {selectedEventFields.map((f) => (
+                          <option key={f.name} value={f.name}>{f.name}</option>
                         ))}
                       </select>
 

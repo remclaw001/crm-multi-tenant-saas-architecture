@@ -14,6 +14,7 @@ import type {
   LoginResponse,
   RefreshResponse,
   ApiErrorBody,
+  AvailableEvent,
 } from '@/types/api.types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
@@ -180,6 +181,10 @@ export const crmApi = {
 
   getAvailableActions(ctx: AuthCtx): Promise<{ plugin: string; data: ActionDefinition[] }> {
     return request('/api/v1/plugins/automation/actions', ctx);
+  },
+
+  getAvailableEvents(ctx: AuthCtx): Promise<{ plugin: string; data: AvailableEvent[] }> {
+    return request('/api/v1/plugins/automation/events', ctx);
   },
 
   createTrigger(

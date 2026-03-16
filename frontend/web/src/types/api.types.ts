@@ -122,6 +122,18 @@ export interface Campaign {
   updated_at: string;
 }
 
+export interface EventField {
+  name: string;
+  type: 'string' | 'number' | 'boolean';
+}
+
+export interface AvailableEvent {
+  name:        string;
+  plugin:      string;
+  description: string;
+  fields:      EventField[];
+}
+
 export interface ApiErrorBody {
   type: string;
   title: string;

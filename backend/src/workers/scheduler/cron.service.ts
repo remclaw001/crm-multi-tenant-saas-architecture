@@ -17,9 +17,11 @@ import {
   OnApplicationBootstrap,
   OnApplicationShutdown,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue }  from 'bullmq';
+import type { Knex } from 'knex';
 import * as cron       from 'node-cron';
 import { QUEUE_EMAIL, QUEUE_WEBHOOK } from '../bullmq/queue.constants';
 import { PoolRegistry } from '../../dal/pool/PoolRegistry';
@@ -35,6 +37,7 @@ export class CronService
     @InjectQueue(QUEUE_EMAIL)   private readonly emailQueue:   Queue,
     @InjectQueue(QUEUE_WEBHOOK) private readonly webhookQueue: Queue,
     private readonly poolRegistry: PoolRegistry,
+    @Inject('KNEX_INSTANCE') private readonly knex: Knex,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -59,7 +62,21 @@ export class CronService
       })
     );
 
-    this.logger.log('CronService started (3 jobs scheduled)');
+    // ── Every 10 min — reset stuck plugin_events (queued but not processed) ──
+    this.tasks.push(
+      cron.schedule('*/10 * * * *', () => void this.resetStuckPluginEvents(), {
+        name: 'reset-stuck-plugin-events',
+      })
+    );
+
+    // ── Daily at 02:30 — purge expired plugin_events ────────────────────
+    this.tasks.push(
+      cron.schedule('30 2 * * *', () => void this.purgeExpiredPluginEvents(), {
+        name: 'purge-expired-plugin-events',
+      })
+    );
+
+    this.logger.log('CronService started (5 jobs scheduled)');
   }
 
   onApplicationShutdown(): void {
@@ -132,6 +149,31 @@ export class CronService
       );
     } catch (err) {
       this.logger.warn('cron:report-queue-depth failed', err);
+    }
+  }
+
+  private async resetStuckPluginEvents(): Promise<void> {
+    try {
+      const count = await this.knex('plugin_events')
+        .where({ status: 'queued' })
+        .where('queued_at', '<', this.knex.raw(`NOW() - INTERVAL '15 minutes'`))
+        .update({ status: 'pending', queued_at: null });
+      if (count > 0) {
+        this.logger.warn(`cron:reset-stuck-plugin-events — reset ${count} stuck row(s)`);
+      }
+    } catch (err) {
+      this.logger.error('cron:reset-stuck-plugin-events failed', err);
+    }
+  }
+
+  private async purgeExpiredPluginEvents(): Promise<void> {
+    try {
+      const count = await this.knex('plugin_events')
+        .where('expires_at', '<', this.knex.raw('NOW()'))
+        .delete();
+      this.logger.log(`cron:purge-expired-plugin-events — deleted ${count} row(s)`);
+    } catch (err) {
+      this.logger.error('cron:purge-expired-plugin-events failed', err);
     }
   }
 }

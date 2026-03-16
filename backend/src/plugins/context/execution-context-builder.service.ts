@@ -63,4 +63,33 @@ export class ExecutionContextBuilder {
       this.cacheManager,
     );
   }
+
+  async buildForWorker(
+    tenantId: string,
+    tenantTier: string,
+    requestId: string,
+  ): Promise<ExecutionContext> {
+    const enabledPlugins = await this.pluginRegistry.getEnabledPlugins(
+      tenantId,
+      this.cacheManager,
+      this.poolRegistry,
+    );
+
+    const db: IDbContext = {
+      db: this.knex,
+      transaction: (fn) => this.knex.transaction(fn),
+    };
+
+    return new ExecutionContext(
+      tenantId,
+      tenantTier,
+      {},
+      enabledPlugins,
+      'system',
+      [],
+      requestId,
+      db,
+      this.cacheManager,
+    );
+  }
 }

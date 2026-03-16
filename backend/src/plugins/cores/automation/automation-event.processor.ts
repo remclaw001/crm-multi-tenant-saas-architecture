@@ -3,7 +3,7 @@ import { Inject, Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import type { Knex } from 'knex';
 import { QUEUE_PLUGIN_EVENTS } from '../../../workers/bullmq/queue.constants';
-import { TenantContext } from '../../../dal/context/TenantContext';
+import { TenantContext, type TenantTier } from '../../../dal/context/TenantContext';
 import { AutomationCore } from './automation.core';
 import { ExecutionContextBuilder } from '../../context/execution-context-builder.service';
 
@@ -11,7 +11,7 @@ export interface PluginEventJobData {
   eventId:    string;
   eventName:  string;
   tenantId:   string;
-  tenantTier: string;
+  tenantTier: TenantTier;
   payload:    Record<string, unknown>;
 }
 

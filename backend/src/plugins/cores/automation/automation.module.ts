@@ -8,12 +8,14 @@ import { CustomerUpdateFieldHandler } from './handlers/customer-update-field.han
 import { CaseCreateHandler } from './handlers/case-create.handler';
 import { AutomationActionPoller } from './automation-action.poller';
 import { AutomationActionProcessor } from './automation-action.processor';
-import { QUEUE_AUTOMATION_ACTIONS } from '../../../workers/bullmq/queue.constants';
+import { AutomationEventProcessor } from './automation-event.processor';
+import { QUEUE_AUTOMATION_ACTIONS, QUEUE_PLUGIN_EVENTS } from '../../../workers/bullmq/queue.constants';
 
 @Module({
   imports: [
-    // Register the queue token here so AutomationActionPoller can @InjectQueue
+    // Register the queue tokens here so processors and pollers can @InjectQueue
     BullModule.registerQueue({ name: QUEUE_AUTOMATION_ACTIONS }),
+    BullModule.registerQueue({ name: QUEUE_PLUGIN_EVENTS }),
   ],
   controllers: [AutomationController],
   providers: [
@@ -24,6 +26,7 @@ import { QUEUE_AUTOMATION_ACTIONS } from '../../../workers/bullmq/queue.constant
     CaseCreateHandler,
     AutomationActionPoller,
     AutomationActionProcessor,
+    AutomationEventProcessor,
   ],
   exports: [AutomationCore, ActionRegistry],
 })

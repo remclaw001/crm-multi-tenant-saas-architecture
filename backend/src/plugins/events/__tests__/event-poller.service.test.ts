@@ -68,6 +68,7 @@ describe('EventPollerService', () => {
   it('marks rows as queued and enqueues each to BullMQ', async () => {
     await (svc as any).poll();
 
+    expect(mockWhereIn).toHaveBeenCalledWith('id', ['evt-1']);
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'queued' }),
     );

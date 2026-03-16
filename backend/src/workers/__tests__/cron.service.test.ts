@@ -35,18 +35,28 @@ describe('CronService', () => {
     mockSchedule.mockReturnValue({ stop: mockTaskStop });
     emailQueue   = makeQueue(3, 1);
     webhookQueue = makeQueue(5, 0);
+
+    // Minimal Knex chain mock for plugin_events cron methods
+    const knexBuilder: any = {
+      where: vi.fn().mockReturnThis(),
+      update: vi.fn().mockResolvedValue(0),
+      delete: vi.fn().mockResolvedValue(0),
+    };
+    const mockKnex: any = vi.fn().mockReturnValue(knexBuilder);
+    mockKnex.raw = vi.fn().mockReturnValue('NOW()');
+
     service = new CronService(emailQueue as any, webhookQueue as any, {
       acquireMetadataConnection: vi.fn(),
-    } as any);
+    } as any, mockKnex as any);
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('schedules 3 cron jobs on bootstrap', () => {
+  it('schedules 5 cron jobs on bootstrap', () => {
     service.onApplicationBootstrap();
-    expect(mockSchedule).toHaveBeenCalledTimes(3);
+    expect(mockSchedule).toHaveBeenCalledTimes(5);
   });
 
   it('schedules cleanup-sessions at 02:00 daily', () => {
@@ -64,6 +74,6 @@ describe('CronService', () => {
   it('stops all tasks on shutdown', () => {
     service.onApplicationBootstrap();
     service.onApplicationShutdown();
-    expect(mockTaskStop).toHaveBeenCalledTimes(3);
+    expect(mockTaskStop).toHaveBeenCalledTimes(5);
   });
 });

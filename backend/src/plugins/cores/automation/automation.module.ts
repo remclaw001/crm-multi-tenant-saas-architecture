@@ -15,7 +15,15 @@ import { QUEUE_AUTOMATION_ACTIONS, QUEUE_PLUGIN_EVENTS } from '../../../workers/
   imports: [
     // Register the queue tokens here so processors and pollers can @InjectQueue
     BullModule.registerQueue({ name: QUEUE_AUTOMATION_ACTIONS }),
-    BullModule.registerQueue({ name: QUEUE_PLUGIN_EVENTS }),
+    BullModule.registerQueue({
+      name: QUEUE_PLUGIN_EVENTS,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2_000 },
+        removeOnComplete: 100,
+        removeOnFail: 50,
+      },
+    }),
   ],
   controllers: [AutomationController],
   providers: [

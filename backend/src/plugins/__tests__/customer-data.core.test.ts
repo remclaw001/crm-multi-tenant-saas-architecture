@@ -34,13 +34,17 @@ const mockHookRegistry = {
   runBefore: vi.fn().mockResolvedValue(undefined),
   runAfter: vi.fn().mockResolvedValue(undefined),
 };
+const mockEventRegistry = {
+  emit: vi.fn().mockResolvedValue(undefined),
+  register: vi.fn(),
+};
 
 describe('CustomerDataCore', () => {
   let core: CustomerDataCore;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    core = new CustomerDataCore(mockRegistry as any, mockHookRegistry as any);
+    core = new CustomerDataCore(mockRegistry as any, mockHookRegistry as any, mockEventRegistry as any);
   });
 
   describe('listCustomers', () => {

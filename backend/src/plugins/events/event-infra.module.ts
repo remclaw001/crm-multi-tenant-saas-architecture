@@ -22,7 +22,15 @@ import { QUEUE_PLUGIN_EVENTS } from '../../workers/bullmq/queue.constants';
 @Global()
 @Module({
   imports: [
-    BullModule.registerQueue({ name: QUEUE_PLUGIN_EVENTS }),
+    BullModule.registerQueue({
+      name: QUEUE_PLUGIN_EVENTS,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2_000 },
+        removeOnComplete: 100,
+        removeOnFail: 50,
+      },
+    }),
   ],
   providers: [
     EventRegistryService,

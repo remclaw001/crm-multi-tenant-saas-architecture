@@ -35,29 +35,19 @@ function makeCtx(builderOverrides = {}): IExecutionContext {
 }
 
 const mockRegistry = { register: vi.fn() };
-const mockHookRegistry = { register: vi.fn(), runBefore: vi.fn(), runAfter: vi.fn() };
 
 describe('AutomationCore', () => {
   let core: AutomationCore;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    core = new AutomationCore(mockRegistry as any, mockHookRegistry as any);
+    core = new AutomationCore(mockRegistry as any);
   });
 
   describe('onModuleInit', () => {
     it('registers itself with PluginRegistryService', () => {
       core.onModuleInit();
       expect(mockRegistry.register).toHaveBeenCalledWith(core);
-    });
-
-    it('registers after:customer.create hook handler with priority 20', () => {
-      core.onModuleInit();
-      expect(mockHookRegistry.register).toHaveBeenCalledWith(
-        'automation',
-        expect.objectContaining({ event: 'customer.create', type: 'after', priority: 20 }),
-        expect.any(Function),
-      );
     });
   });
 

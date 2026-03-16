@@ -4,7 +4,6 @@ import type { IPluginCore } from '../../interfaces/plugin-core.interface';
 import type { PluginManifest } from '../../interfaces/plugin-manifest.interface';
 import type { IExecutionContext } from '../../interfaces/execution-context.interface';
 import { PluginRegistryService } from '../../registry/plugin-registry.service';
-import { HookRegistryService } from '../../hooks/hook-registry.service';
 import { ResourceNotFoundError } from '../../../common/errors/domain.errors';
 import type { StoredAction } from './types/stored-action.types';
 
@@ -42,21 +41,10 @@ export class AutomationCore implements IPluginCore, OnModuleInit {
 
   constructor(
     private readonly registry: PluginRegistryService,
-    private readonly hookRegistry: HookRegistryService,
   ) {}
 
   onModuleInit(): void {
     this.registry.register(this);
-
-    // Register after:customer.create hook (priority=20)
-    this.hookRegistry.register(
-      'automation',
-      { event: 'customer.create', type: 'after', priority: 20 },
-      async (ctx: IExecutionContext, data: unknown) => {
-        const customer = data as Record<string, unknown>;
-        await this.fireTriggerEvents(ctx, 'customer.create', { customer });
-      },
-    );
   }
 
   async listTriggers(ctx: IExecutionContext): Promise<AutomationTrigger[]> {

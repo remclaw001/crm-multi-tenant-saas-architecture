@@ -52,9 +52,7 @@ export const AUTOMATION_MANIFEST: PluginManifest = {
   dependencies: ['customer-data', 'analytics'],
   permissions: ['customers:read', 'customers:write', 'deals:read'],
   limits: DEFAULT_LIMITS,
-  hooks: [
-    { event: 'customer.create', type: 'after', priority: 20 },
-  ],
+  hooks: [],
 };
 
 export const MARKETING_MANIFEST: PluginManifest = {

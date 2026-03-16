@@ -8,12 +8,14 @@
 // Fires before/after hooks on customer.create via HookRegistryService.
 // ============================================================
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import { z } from 'zod';
 import { CUSTOMER_DATA_MANIFEST } from '../../manifest/built-in-manifests';
 import type { IPluginCore } from '../../interfaces/plugin-core.interface';
 import type { PluginManifest } from '../../interfaces/plugin-manifest.interface';
 import type { IExecutionContext } from '../../interfaces/execution-context.interface';
 import { PluginRegistryService } from '../../registry/plugin-registry.service';
 import { HookRegistryService } from '../../hooks/hook-registry.service';
+import { EventRegistryService } from '../../events/event-registry.service';
 import { ResourceNotFoundError } from '../../../common/errors/domain.errors';
 
 export interface Customer {
@@ -50,10 +52,26 @@ export class CustomerDataCore implements IPluginCore, OnModuleInit {
   constructor(
     private readonly registry: PluginRegistryService,
     private readonly hookRegistry: HookRegistryService,
+    private readonly eventRegistry: EventRegistryService,
   ) {}
 
   onModuleInit(): void {
     this.registry.register(this);
+    this.eventRegistry.register({
+      name: 'customer.create',
+      plugin: 'customer-data',
+      description: 'Fired when a new customer is created',
+      // Payload wrapped as { customer } — matches triggerContext shape in fireTriggerEvents
+      schema: z.object({
+        customer: z.object({
+          id:      z.string().uuid(),
+          name:    z.string(),
+          email:   z.string().email().nullable(),
+          phone:   z.string().nullable(),
+          company: z.string().nullable(),
+        }),
+      }),
+    });
   }
 
   async listCustomers(ctx: IExecutionContext): Promise<Customer[]> {
@@ -90,6 +108,7 @@ export class CustomerDataCore implements IPluginCore, OnModuleInit {
       .returning('*') as Customer[];
 
     await this.hookRegistry.runAfter('customer.create', ctx, customer);
+    await this.eventRegistry.emit('customer.create', ctx, { customer });
     return customer;
   }
 

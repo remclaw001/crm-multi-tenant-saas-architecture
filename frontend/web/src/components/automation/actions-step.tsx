@@ -4,11 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { crmApi } from '@/lib/api-client';
-import type { ActionDefinition, StoredAction } from '@/types/api.types';
+import { TemplateStringInput } from './template-string-input';
+import type { ActionDefinition, StoredAction, EventField } from '@/types/api.types';
 
 interface Props {
-  actions: StoredAction[];
-  onChange: (actions: StoredAction[]) => void;
+  actions:     StoredAction[];
+  onChange:    (actions: StoredAction[]) => void;
+  eventType:   string;
+  eventFields: EventField[];
 }
 
 function makeEmptyParams(def: ActionDefinition): Record<string, unknown> {
@@ -19,7 +22,7 @@ function makeEmptyParams(def: ActionDefinition): Record<string, unknown> {
   return params;
 }
 
-export function ActionsStep({ actions, onChange }: Props) {
+export function ActionsStep({ actions, onChange, eventType, eventFields }: Props) {
   const { token, tenantId } = useAuthStore();
   const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
 
@@ -29,6 +32,7 @@ export function ActionsStep({ actions, onChange }: Props) {
   });
 
   const catalog: ActionDefinition[] = data?.data ?? [];
+  const objectKey = eventType.split('.')[0];
 
   function addAction(def: ActionDefinition) {
     onChange([...actions, { type: def.type, params: makeEmptyParams(def) }]);
@@ -99,6 +103,15 @@ export function ActionsStep({ actions, onChange }: Props) {
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
+                ) : paramDef.type === 'template-string' ? (
+                  <TemplateStringInput
+                    aria-label={paramDef.label}
+                    value={(action.params[paramDef.name] as string) ?? ''}
+                    onChange={(val) => updateParam(index, paramDef.name, val)}
+                    placeholder={paramDef.hint ?? ''}
+                    eventFields={eventFields}
+                    objectKey={objectKey}
+                  />
                 ) : (
                   <input
                     aria-label={paramDef.label}

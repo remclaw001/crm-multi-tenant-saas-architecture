@@ -9,7 +9,7 @@ Action params of type `template-string` (e.g. webhook body, case title, update-f
 
 ## Solution
 
-Replace the plain `<input>` for `template-string` params with a `TemplateStringInput` component that includes an inline `{}` button. Clicking the button opens a 2-level popover: first pick an object (e.g. *Customer*), then pick a field (e.g. *name*). Clicking a field inserts `{{customer.name}}` at the cursor position in the input.
+Replace the plain `<input>` for `template-string` params with a `TemplateStringInput` component that includes an inline `{}` button. Clicking the button opens a 2-level popover: first pick an object (e.g. *Customer*), then pick a field (e.g. *name*). Clicking a field inserts `{{<objectKey>.<fieldName>}}` at the cursor position in the input.
 
 ## Scope
 
@@ -19,9 +19,11 @@ Replace the plain `<input>` for `template-string` params with a `TemplateStringI
 
 ## Data Flow
 
-`CreateTriggerModal` already fetches `availableEvents` and derives `selectedEventFields: EventField[]` and `form.eventType: string`. These are passed down to `ActionsStep` as new props, which passes them to `TemplateStringInput` for each `template-string` param.
+`CreateTriggerModal` already fetches `availableEvents` and derives `selectedEventFields: EventField[]` (lines 118–120 of `create-trigger-modal.tsx` — **this code already exists, no changes needed there**). These are passed down to `ActionsStep` as new props, which passes them to `TemplateStringInput` for each `template-string` param.
 
-The **object key** (e.g. `customer`) is derived on the frontend from `eventType.split('.')[0]`. The inserted variable is `{{<objectKey>.<fieldName>}}`.
+The **object key** (e.g. `customer`) is derived on the frontend from `eventType.split('.')[0]`. The inserted variable is `{{<objectKey>.<fieldName>}}`. This convention works because all current events are named `<entity>.<verb>` where the first segment is the variable namespace the backend template engine expects (e.g. `customer.create` → variables are `{{customer.*}}`). Future events **must** follow this same naming convention for the picker to produce correct tokens.
+
+**Stale variables:** if the user returns to step 1 and changes the event type, any `{{customer.name}}` tokens already typed into action params are not cleaned up. This is acceptable — the backend validates templates at execution time, not at save time.
 
 ## Components
 
@@ -36,19 +38,20 @@ interface Props {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  className?: string;
+  'aria-label'?: string;       // forwarded to the inner <input> for accessibility
+  className?: string;          // applied to the outer wrapper <div>
   eventFields: EventField[];   // fields for the selected event
   objectKey: string;           // e.g. "customer" — prefix for inserted variables
 }
 ```
 
 **Behaviour:**
-- Renders a `<div>` with `position: relative`, an `<input>` with `padding-right` to accommodate the button, and the `{}` button absolutely positioned inside on the right.
-- Maintains a `ref` on the input to read `selectionStart`/`selectionEnd` when inserting.
+- Renders a `<div className={className}>` with `position: relative`, an `<input>` (with `aria-label` forwarded and `padding-right` to accommodate the button), and the `{}` button absolutely positioned inside the right edge.
+- Maintains a `ref` on the `<input>` to capture `selectionStart`/`selectionEnd` at the moment `{}` is clicked (before focus shifts to the button).
 - Manages `pickerOpen: boolean` state.
-- When `eventFields` is empty, hides the `{}` button (nothing to pick).
-- On insert: splices the variable string into the current value at `selectionStart` (fallback: append to end). After insert, closes the popover and restores focus + cursor position to after the inserted token.
-- Closes popover on Escape or click-outside (via `useEffect` + `mousedown` listener on `document`).
+- When `eventFields` is empty, hides the `{}` button entirely.
+- **On insert:** replaces the range `[selectionStart, selectionEnd]` in the current value with the variable string (when `selectionStart === selectionEnd` this is a pure insert with no deletion). If `selectionStart` is `null` (browser returned null for unfocused input) → append to end. After insert, closes the popover and restores focus + places cursor immediately after the inserted token.
+- **Close triggers:** Escape key on the input or button; `mousedown` on `document` outside the component (via `useEffect`).
 
 ### `VariablePickerPopover` (`components/automation/variable-picker-popover.tsx`)
 
@@ -64,45 +67,40 @@ interface Props {
 }
 ```
 
-**States:**
-- `level: 'objects' | 'fields'` — starts at `'objects'` unless there is only 1 object group (see optimisation below).
+**Current implementation — single-level (level 1 skipped):**
 
-**Level 1 — Object list:**
-- Header: "INSERT VARIABLE"
-- Lists object groups. Currently only one group (derived from `objectKey`), displayed as e.g. "Customer".
-- Click a group → transition to level 2.
-- **Optimisation:** if `objectKey` represents only one group (always true for now), skip level 1 and open directly at level 2.
+The component always opens directly at the field list. Level 1 (object selection) is not rendered in the current implementation because there is always exactly one object group. The `level` state and level-1 scaffolding are intentionally omitted from the current implementation to keep it simple. When a future event introduces a second object group, the level-1 layer should be added at that point alongside a prop change to carry the full groups structure.
 
-**Level 2 — Field list:**
-- Header shows breadcrumb: back arrow `‹` + object name in caps.
-- Click `‹` → return to level 1.
-- Fields displayed in a 2-column grid, each cell shows field `name` (bold) and `type` (small, muted).
-- Click a field → calls `onInsert('{{customer.name}}')` and `onClose()`.
+**Field list (the only rendered level):**
+- Header: object name in caps (e.g. `CUSTOMER`). No back arrow is rendered.
+- Fields displayed in a 2-column grid; each cell shows `field.name` (bold) and `field.type` (small, muted).
+- Click a field → calls `onInsert(`\`{{${objectKey}.${field.name}}}\``)` then `onClose()`.
 
-**Positioning:** rendered below the `{}` button using `position: absolute; top: 100%; right: 0`. A `z-index` of 50 keeps it above other form content. Clipping handled by `overflow: visible` on the parent container.
+**Positioning:** `position: absolute; top: 100%; right: 0; z-index: 50` — rendered below the `{}` button. The parent wrapper has `overflow: visible` to avoid clipping.
 
 ## Modified: `ActionsStep` (`components/automation/actions-step.tsx`)
 
-**New props:**
+**Updated props interface:**
 ```ts
 interface Props {
   actions: StoredAction[];
   onChange: (actions: StoredAction[]) => void;
-  eventType: string;        // e.g. "customer.create"
+  eventType: string;         // e.g. "customer.create"
   eventFields: EventField[]; // fields for the selected event
 }
 ```
 
-`objectKey` is derived inside `ActionsStep` as `eventType.split('.')[0]`.
+`objectKey` is derived inside the component as `eventType.split('.')[0]`.
 
-For each param, the render branch changes:
+Render branch for each param:
 - `type === 'enum'` → `<select>` (unchanged)
-- `type === 'template-string'` → `<TemplateStringInput>` with `eventFields` and `objectKey`
-- all other types (`string`, `url`) → plain `<input>` (unchanged)
+- `type === 'template-string'` → `<TemplateStringInput aria-label={paramDef.label} eventFields={eventFields} objectKey={objectKey} … />`
+- all other types (`string`, `url`) → plain `<input aria-label={paramDef.label} …>` (unchanged)
 
 ## Modified: `CreateTriggerModal` (`components/create-trigger-modal.tsx`)
 
-Pass two new props to `<ActionsStep>`:
+The `selectedEventFields` derivation already exists (lines 118–120). Only change: add the two new props to the `<ActionsStep>` JSX:
+
 ```tsx
 <ActionsStep
   actions={form.actions}
@@ -112,29 +110,23 @@ Pass two new props to `<ActionsStep>`:
 />
 ```
 
-`selectedEventFields` is already computed in the modal:
-```ts
-const selectedEventFields: EventField[] = availableEvents
-  .find((ev) => ev.name === form.eventType)
-  ?.fields ?? [];
-```
-
 ## Edge Cases
 
 | Scenario | Behaviour |
 |---|---|
 | No event selected (step 1 not filled) | `eventFields = []` → `{}` button hidden |
 | Event has no fields | `eventFields = []` → `{}` button hidden |
-| Input value is empty, no cursor | Insert at position 0 (beginning) — the `selectionStart` of an unfocused input is `0` |
-| User selects text before clicking `{}` | Variable replaces the selected range (`selectionStart` to `selectionEnd`) |
+| Input not focused when `{}` clicked | `selectionStart` may be `null` → append variable to end of current value |
+| User selects text before clicking `{}` | Variable replaces selected range (`selectionStart` to `selectionEnd`); no text selected = pure insert |
 | Escape key while popover open | Closes popover, returns focus to input |
-| Click outside popover | Closes popover |
+| Click outside popover | Closes popover (`mousedown` on document) |
+| Event type changed after variables inserted | Stale `{{old.var}}` tokens left as-is; backend validates at runtime |
 
 ## Testing
 
-- **`TemplateStringInput` unit tests:** renders `{}` button when fields provided; hides `{}` when fields empty; calls `onChange` with correct inserted value at correct position; closes on Escape.
-- **`VariablePickerPopover` unit tests:** renders field grid; calls `onInsert` with correct `{{key.field}}` string; back button returns to level 1; skips level 1 when single object.
-- **`ActionsStep` unit tests:** passes `eventFields` and `objectKey` to `TemplateStringInput`; renders plain input for non-template params.
+- **`TemplateStringInput` unit tests:** renders `{}` button when fields provided; hides `{}` when fields empty; calls `onChange` with variable inserted at correct position; replaces selected range; appends when `selectionStart` is null; closes on Escape.
+- **`VariablePickerPopover` unit tests:** renders field grid; calls `onInsert` with correct `` `{{${objectKey}.${field.name}}}` `` string; no back arrow rendered (level-1 not implemented in current scope).
+- **`ActionsStep` unit tests:** passes `eventFields` and `objectKey` to `TemplateStringInput`; renders plain `<input>` for `string`/`url` params; renders `<select>` for `enum` params.
 - No new integration tests required.
 
 ## Files Changed
@@ -143,5 +135,5 @@ const selectedEventFields: EventField[] = availableEvents
 |---|---|
 | `frontend/web/src/components/automation/template-string-input.tsx` | **New** |
 | `frontend/web/src/components/automation/variable-picker-popover.tsx` | **New** |
-| `frontend/web/src/components/automation/actions-step.tsx` | Add `eventType` + `eventFields` props; swap `<input>` for `<TemplateStringInput>` |
+| `frontend/web/src/components/automation/actions-step.tsx` | Add `eventType` + `eventFields` props; swap `<input>` for `<TemplateStringInput>` on `template-string` params |
 | `frontend/web/src/components/create-trigger-modal.tsx` | Pass `eventType` + `eventFields` to `<ActionsStep>` |

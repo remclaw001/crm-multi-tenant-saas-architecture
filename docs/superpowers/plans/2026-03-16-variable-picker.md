@@ -773,9 +773,9 @@ vi.mock('@/lib/api-client', () => ({
 
 - [ ] **Step 1e: Fix pre-existing broken assertions in `create-trigger-modal.test.tsx`**
 
-The existing test file has two pre-existing broken assertions that must be fixed as part of this task (since we are already touching the file):
+The existing test file was written for an older 2-step version of the modal and has four categories of breakage that must all be fixed now since we are touching the file. Apply each fix below:
 
-**a) Active toggle aria-label mismatch** — the component uses `aria-label="Active"`, not `"Active when created"`. Find these two tests and update the `getByRole` query:
+**a) Active toggle aria-label mismatch** — component uses `aria-label="Active"`, not `"Active when created"`. Find these two tests (lines 60–69) and update the `getByRole` query:
 
 Find (appears twice):
 ```ts
@@ -786,7 +786,18 @@ Replace both with:
 screen.getByRole('switch', { name: /^active$/i })
 ```
 
-**b) Step navigation assertion** — `'advances to step 2 when Next is clicked with a name'` expects `'create trigger'` visible after one Next click, but the modal has 3 steps so one Next takes you to step 2 (which still shows "Next →", not "Create Trigger"). Fix the test to match the 3-step flow:
+**b) Event type option text** — the option renders as `"{ev.name} — {ev.description}"` (e.g. `"customer.create — Customer created"`). The existing test queries for exact name `'customer.create'` which no longer matches.
+
+Find:
+```ts
+expect(screen.getByRole('option', { name: 'customer.create' })).toBeInTheDocument();
+```
+Replace with:
+```ts
+expect(screen.getByRole('option', { name: /customer\.create/i })).toBeInTheDocument();
+```
+
+**c) Step navigation assertion** — `'advances to step 2 when Next is clicked with a name'` asserts "Create Trigger" is visible after one Next click, but step 2 shows "Next →" not "Create Trigger" in a 3-step modal.
 
 Find (around line 81):
 ```ts
@@ -795,10 +806,36 @@ expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
 ```
 Replace with:
 ```ts
-// Step 2 still has "Next →"; step 1's "Next" button text is identical so check step indicator instead
+// At step 2 "Back" appears and "Conditions" heading is visible
 expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
 expect(screen.getByText(/conditions/i)).toBeInTheDocument();
 ```
+
+**d) Submission tests only navigate one step** — all tests that submit the form do `Next` once (step 1→2) then immediately click "Create Trigger". In the 3-step modal, "Create Trigger" only appears at step 3. A second `Next` click is needed after step 2 to reach step 3. Fix every submission test (5 tests, lines ~137–210) by adding a second `fireEvent.click(screen.getByRole('button', { name: /next/i }))` between the first Next click and the "Create Trigger" click.
+
+For every test that has this pattern:
+```ts
+fireEvent.click(screen.getByRole('button', { name: /next/i }));
+// (possibly other steps like adding conditions)
+fireEvent.click(screen.getByRole('button', { name: /create trigger/i }));
+```
+
+Add a second Next click (to navigate step 2 → step 3) immediately before the "Create Trigger" click:
+```ts
+fireEvent.click(screen.getByRole('button', { name: /next/i })); // step 1 → 2
+// (possibly other steps like adding conditions)
+fireEvent.click(screen.getByRole('button', { name: /next/i })); // step 2 → 3
+fireEvent.click(screen.getByRole('button', { name: /create trigger/i }));
+```
+
+The five affected tests are:
+- `'submits with empty conditions as {}'`
+- `'submits with AND conditions when rows are filled'`
+- `'does not submit if a condition row is missing a value'`
+- `'calls onSuccess and onClose after successful submit'`
+- `'shows API error when mutateAsync throws'`
+
+> **Note:** The `ActionsStep` rendered at step 3 also calls `useQuery` (for the actions catalog). Since `mockUseQuery` is set up with events data (not actions data), `ActionsStep` will render with a dummy catalog — this is harmless as the submission tests don't interact with action buttons.
 
 - [ ] **Step 2: Run existing tests — confirm they pass after mock + assertion fixes**
 

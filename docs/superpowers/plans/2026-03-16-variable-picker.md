@@ -828,12 +828,26 @@ fireEvent.click(screen.getByRole('button', { name: /next/i })); // step 2 → 3
 fireEvent.click(screen.getByRole('button', { name: /create trigger/i }));
 ```
 
-The five affected tests are:
+The **four** submission tests that actually submit the form — add a second Next click before the "Create Trigger" click:
 - `'submits with empty conditions as {}'`
 - `'submits with AND conditions when rows are filled'`
-- `'does not submit if a condition row is missing a value'`
 - `'calls onSuccess and onClose after successful submit'`
 - `'shows API error when mutateAsync throws'`
+
+The **validation test** (`'does not submit if a condition row is missing a value'`) is different — it intentionally stays on step 2 because invalid conditions block navigation to step 3. Fix it by replacing the "Create Trigger" click with a "Next →" click (which triggers validation) and removing the "Create Trigger" assertion. The new version of this test:
+
+```ts
+it('does not submit if a condition row is missing a value', async () => {
+  render(<CreateTriggerModal {...defaultProps} />);
+  fireEvent.change(screen.getByLabelText(/trigger name/i), { target: { value: 'My Trigger' } });
+  fireEvent.click(screen.getByRole('button', { name: /next/i }));   // step 1 → 2
+  fireEvent.click(screen.getByRole('button', { name: /add condition/i }));
+  // leave value empty — do NOT fill it
+  fireEvent.click(screen.getByRole('button', { name: /next/i }));   // step 2 → stays at 2 (validation fails)
+  expect(await screen.findByText(/value is required/i)).toBeInTheDocument();
+  expect(mockMutateAsync).not.toHaveBeenCalled();
+});
+```
 
 > **Note:** The `ActionsStep` rendered at step 3 also calls `useQuery` (for the actions catalog). Since `mockUseQuery` is set up with events data (not actions data), `ActionsStep` will render with a dummy catalog — this is harmless as the submission tests don't interact with action buttons.
 

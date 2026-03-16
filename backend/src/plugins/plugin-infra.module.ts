@@ -23,6 +23,7 @@
 // ============================================================
 import { Global, Module } from '@nestjs/common';
 import { ObservabilityModule } from '../observability/observability.module';
+import { EventInfraModule } from './events/event-infra.module';
 import { PluginRegistryService } from './registry/plugin-registry.service';
 import { ExecutionContextBuilder } from './context/execution-context-builder.service';
 import { HookRegistryService } from './hooks/hook-registry.service';
@@ -37,6 +38,8 @@ import { BUILT_IN_MANIFESTS } from './manifest/built-in-manifests';
   imports: [
     // ObservabilityModule exports PrometheusService, needed by IsolatedSandboxService
     ObservabilityModule,
+    // EventInfraModule exports EventRegistryService, needed by plugin cores
+    EventInfraModule,
   ],
   providers: [
     { provide: PLUGIN_MANIFESTS, useValue: BUILT_IN_MANIFESTS },
@@ -48,6 +51,7 @@ import { BUILT_IN_MANIFESTS } from './manifest/built-in-manifests';
     IsolatedSandboxService,
   ],
   exports: [
+    EventInfraModule,
     PLUGIN_MANIFESTS,
     PluginDependencyService,
     PluginRegistryService,

@@ -18,7 +18,7 @@ export class EventRegistryService {
 
   async emit(eventName: string, ctx: IExecutionContext, data: unknown): Promise<void> {
     const def = this.definitions.get(eventName);
-    if (!def) throw new ResourceNotFoundError(`Unknown event: ${eventName}`);
+    if (!def) throw new ResourceNotFoundError('Event', eventName);
 
     const payload = def.schema.parse(data);
 

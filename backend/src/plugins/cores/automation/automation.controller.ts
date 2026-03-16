@@ -29,7 +29,8 @@ const PLUGIN_NAME = 'automation';
 // We access the inner shape by the convention key 'customer'. ZodNullable fields fall through
 // to the 'string' default — this is acceptable for the condition builder UI.
 function schemaToFields(def: EventDefinition): { name: string; type: string }[] {
-  const topShape = (def.schema as z.ZodObject<z.ZodRawShape>).shape;
+  if (!(def.schema instanceof z.ZodObject)) return [];
+  const topShape = def.schema.shape;
   // Unwrap one level using the first key (entity name, e.g. 'customer')
   const entityKey = Object.keys(topShape)[0];
   const innerShape = topShape[entityKey] instanceof z.ZodObject

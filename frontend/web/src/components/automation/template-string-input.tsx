@@ -93,7 +93,7 @@ export function TemplateStringInput({
   }
 
   return (
-    <div ref={wrapperRef} className={`relative ${className ?? ''}`}>
+    <div ref={wrapperRef} className={['relative', className].filter(Boolean).join(' ')}>
       <input
         ref={inputRef}
         type="text"
@@ -112,6 +112,7 @@ export function TemplateStringInput({
           aria-label="Insert variable"
           onMouseDown={handlePickerButtonMouseDown}
           onClick={handlePickerButtonClick}
+          onKeyDown={handleKeyDown}
           className="absolute right-1 top-1/2 -translate-y-1/2 rounded bg-accent px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-primary hover:text-primary-foreground"
         >
           {'{}'}

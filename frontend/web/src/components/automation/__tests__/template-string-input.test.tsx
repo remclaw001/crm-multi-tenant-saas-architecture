@@ -78,6 +78,20 @@ describe('TemplateStringInput', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('closes popover when Escape is pressed on the {} button', () => {
+    render(
+      <TemplateStringInput
+        value=""
+        onChange={vi.fn()}
+        eventFields={FIELDS}
+        objectKey="customer"
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /insert variable/i }));
+    fireEvent.keyDown(screen.getByRole('button', { name: /insert variable/i }), { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   // ── Variable insertion ─────────────────────────────────────────────────────
 
   it('calls onChange with variable appended when selectionStart is null (jsdom default for unfocused input)', () => {

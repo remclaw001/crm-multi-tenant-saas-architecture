@@ -413,6 +413,8 @@ export function CreateTriggerModal({ open, onClose, onSuccess, trigger }: Props)
             <ActionsStep
               actions={form.actions}
               onChange={(actions) => setForm((prev) => ({ ...prev, actions }))}
+              eventType={form.eventType}
+              eventFields={selectedEventFields}
             />
           )}
 

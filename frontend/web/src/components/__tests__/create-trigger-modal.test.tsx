@@ -3,9 +3,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CreateTriggerModal } from '../create-trigger-modal';
 
 const mockMutateAsync = vi.hoisted(() => vi.fn());
+const mockUseQuery = vi.hoisted(() => vi.fn());
 
 vi.mock('@tanstack/react-query', () => ({
   useMutation: vi.fn(() => ({ mutateAsync: mockMutateAsync, isPending: false, reset: vi.fn() })),
+  useQuery:    mockUseQuery,
 }));
 
 vi.mock('@/stores/auth.store', () => ({
@@ -13,7 +15,11 @@ vi.mock('@/stores/auth.store', () => ({
 }));
 
 vi.mock('@/lib/api-client', () => ({
-  crmApi: { createTrigger: vi.fn() },
+  crmApi: {
+    createTrigger:       vi.fn(),
+    getAvailableEvents:  vi.fn(),
+    getAvailableActions: vi.fn(),
+  },
 }));
 
 const defaultProps = {
@@ -25,6 +31,11 @@ const defaultProps = {
 describe('CreateTriggerModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseQuery.mockReturnValue({
+      data:      { data: [{ name: 'customer.create', plugin: 'customer-data', description: 'Customer created', fields: [{ name: 'name', type: 'string' }] }] },
+      isLoading: false,
+      isError:   false,
+    });
   });
 
   // ── Visibility ──────────────────────────────────────────────────────────────
@@ -59,18 +70,18 @@ describe('CreateTriggerModal', () => {
 
   it('active toggle defaults to ON', () => {
     render(<CreateTriggerModal {...defaultProps} />);
-    expect(screen.getByRole('switch', { name: /active when created/i })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('switch', { name: /^active$/i })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('active toggle can be turned off', () => {
     render(<CreateTriggerModal {...defaultProps} />);
-    fireEvent.click(screen.getByRole('switch', { name: /active when created/i }));
-    expect(screen.getByRole('switch', { name: /active when created/i })).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(screen.getByRole('switch', { name: /^active$/i }));
+    expect(screen.getByRole('switch', { name: /^active$/i })).toHaveAttribute('aria-checked', 'false');
   });
 
   it('event type dropdown has customer.create option', () => {
     render(<CreateTriggerModal {...defaultProps} />);
-    expect(screen.getByRole('option', { name: 'customer.create' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /customer\.create/i })).toBeInTheDocument();
   });
 
   // ── Step navigation ─────────────────────────────────────────────────────────
@@ -78,8 +89,9 @@ describe('CreateTriggerModal', () => {
     render(<CreateTriggerModal {...defaultProps} />);
     fireEvent.change(screen.getByLabelText(/trigger name/i), { target: { value: 'My Trigger' } });
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
-    expect(screen.getByRole('button', { name: /create trigger/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
+    // At step 2 "Back" appears and "Conditions" heading is visible
+    expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
+    expect(screen.getByText(/conditions/i)).toBeInTheDocument();
   });
 
   it('"Back" button returns to step 1', () => {
@@ -138,7 +150,8 @@ describe('CreateTriggerModal', () => {
     mockMutateAsync.mockResolvedValue({});
     render(<CreateTriggerModal {...defaultProps} />);
     fireEvent.change(screen.getByLabelText(/trigger name/i), { target: { value: 'My Trigger' } });
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next/i })); // step 1 → 2
+    fireEvent.click(screen.getByRole('button', { name: /next/i })); // step 2 → 3
     fireEvent.click(screen.getByRole('button', { name: /create trigger/i }));
     await waitFor(() =>
       expect(mockMutateAsync).toHaveBeenCalledWith(
@@ -151,16 +164,18 @@ describe('CreateTriggerModal', () => {
     mockMutateAsync.mockResolvedValue({});
     render(<CreateTriggerModal {...defaultProps} />);
     fireEvent.change(screen.getByLabelText(/trigger name/i), { target: { value: 'My Trigger' } });
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fireEvent.change(screen.getByLabelText(/event type/i), { target: { value: 'customer.create' } });
+    fireEvent.click(screen.getByRole('button', { name: /next/i })); // step 1 → 2
     fireEvent.click(screen.getByRole('button', { name: /add condition/i }));
-    fireEvent.change(screen.getByLabelText(/attribute/i), { target: { value: 'company' } });
+    fireEvent.change(screen.getByLabelText(/attribute/i), { target: { value: 'name' } });
     fireEvent.change(screen.getByLabelText(/operator/i), { target: { value: 'equals' } });
     fireEvent.change(screen.getByLabelText(/value/i), { target: { value: 'Acme' } });
+    fireEvent.click(screen.getByRole('button', { name: /next/i })); // step 2 → 3
     fireEvent.click(screen.getByRole('button', { name: /create trigger/i }));
     await waitFor(() =>
       expect(mockMutateAsync).toHaveBeenCalledWith(
         expect.objectContaining({
-          conditions: { and: [{ field: 'company', op: 'equals', value: 'Acme' }] },
+          conditions: { and: [{ field: 'name', op: 'equals', value: 'Acme' }] },
         }),
       ),
     );
@@ -169,10 +184,10 @@ describe('CreateTriggerModal', () => {
   it('does not submit if a condition row is missing a value', async () => {
     render(<CreateTriggerModal {...defaultProps} />);
     fireEvent.change(screen.getByLabelText(/trigger name/i), { target: { value: 'My Trigger' } });
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));   // step 1 → 2
     fireEvent.click(screen.getByRole('button', { name: /add condition/i }));
-    // leave value empty
-    fireEvent.click(screen.getByRole('button', { name: /create trigger/i }));
+    // leave value empty — do NOT fill it
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));   // step 2 → stays at 2 (validation fails)
     expect(await screen.findByText(/value is required/i)).toBeInTheDocument();
     expect(mockMutateAsync).not.toHaveBeenCalled();
   });
@@ -183,7 +198,8 @@ describe('CreateTriggerModal', () => {
     const onClose = vi.fn();
     render(<CreateTriggerModal open={true} onClose={onClose} onSuccess={onSuccess} />);
     fireEvent.change(screen.getByLabelText(/trigger name/i), { target: { value: 'My Trigger' } });
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next/i })); // step 1 → 2
+    fireEvent.click(screen.getByRole('button', { name: /next/i })); // step 2 → 3
     fireEvent.click(screen.getByRole('button', { name: /create trigger/i }));
     await waitFor(() => {
       expect(onSuccess).toHaveBeenCalled();
@@ -195,7 +211,8 @@ describe('CreateTriggerModal', () => {
     mockMutateAsync.mockRejectedValue(new Error('Server error'));
     render(<CreateTriggerModal {...defaultProps} />);
     fireEvent.change(screen.getByLabelText(/trigger name/i), { target: { value: 'My Trigger' } });
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    fireEvent.click(screen.getByRole('button', { name: /next/i })); // step 1 → 2
+    fireEvent.click(screen.getByRole('button', { name: /next/i })); // step 2 → 3
     fireEvent.click(screen.getByRole('button', { name: /create trigger/i }));
     expect(await screen.findByText(/failed to create trigger/i)).toBeInTheDocument();
   });

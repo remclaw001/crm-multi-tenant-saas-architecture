@@ -32,7 +32,7 @@ export class EventPollerService implements OnModuleInit, OnModuleDestroy {
       // in 'queued' status; the stuck-row recovery cron resets it to 'pending'.
       let rows: Array<{
         id: string; event_name: string; tenant_id: string;
-        tenant_tier: string; payload: string;
+        tenant_tier: string; payload: Record<string, unknown>;
       }> = [];
 
       await this.knex.transaction(async (trx) => {
@@ -65,14 +65,14 @@ export class EventPollerService implements OnModuleInit, OnModuleDestroy {
             eventName:  row.event_name,
             tenantId:   row.tenant_id,
             tenantTier: row.tenant_tier,
-            payload:    JSON.parse(row.payload) as Record<string, unknown>,
+            payload:    row.payload,
           }),
         ),
       );
 
       this.logger.debug(`[EventPoller] queued ${rows.length} event(s)`);
     } catch (err) {
-      this.logger.error('[EventPoller] poll error', err);
+      this.logger.error({ err }, '[EventPoller] poll error');
     }
   }
 }

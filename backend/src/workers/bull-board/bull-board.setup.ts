@@ -14,8 +14,9 @@ import { ExpressAdapter }       from '@bull-board/express';
 import type { Queue }           from 'bullmq';
 
 export function createBullBoardRouter(
-  emailQueue:   Queue,
-  webhookQueue: Queue,
+  emailQueue:        Queue,
+  webhookQueue:      Queue,
+  pluginEventsQueue: Queue,
 ): ReturnType<typeof ExpressAdapter.prototype.getRouter> {
   const serverAdapter = new ExpressAdapter();
   serverAdapter.setBasePath('/admin/queues');
@@ -24,6 +25,7 @@ export function createBullBoardRouter(
     queues: [
       new BullMQAdapter(emailQueue),
       new BullMQAdapter(webhookQueue),
+      new BullMQAdapter(pluginEventsQueue),
     ],
     serverAdapter,
   });

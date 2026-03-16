@@ -23,7 +23,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './gateway/filters/http-exception.filter';
 import { createBullBoardRouter } from './workers/bull-board/bull-board.setup';
-import { QUEUE_EMAIL, QUEUE_WEBHOOK } from './workers/bullmq/queue.constants';
+import { QUEUE_EMAIL, QUEUE_WEBHOOK, QUEUE_PLUGIN_EVENTS } from './workers/bullmq/queue.constants';
 import { getQueueToken } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import { config } from './config/env';
@@ -94,9 +94,10 @@ async function bootstrap() {
   // ── Bull Board queue monitoring UI ───────────────────────
   // Dev: http://localhost:<PORT>/admin/queues
   // Protected in production by adding auth middleware before this.
-  const emailQueue   = app.get<Queue>(getQueueToken(QUEUE_EMAIL));
-  const webhookQueue = app.get<Queue>(getQueueToken(QUEUE_WEBHOOK));
-  app.use('/admin/queues', createBullBoardRouter(emailQueue, webhookQueue));
+  const emailQueue        = app.get<Queue>(getQueueToken(QUEUE_EMAIL));
+  const webhookQueue      = app.get<Queue>(getQueueToken(QUEUE_WEBHOOK));
+  const pluginEventsQueue = app.get<Queue>(getQueueToken(QUEUE_PLUGIN_EVENTS));
+  app.use('/admin/queues', createBullBoardRouter(emailQueue, webhookQueue, pluginEventsQueue));
 
   // ── Enable shutdown hooks ─────────────────────────────────
   app.enableShutdownHooks();

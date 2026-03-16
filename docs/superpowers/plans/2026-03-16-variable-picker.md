@@ -632,10 +632,20 @@ Expected: all 4 tests fail (TypeScript error: `eventType`/`eventFields` props do
 
 Open `src/components/automation/actions-step.tsx`. Apply these changes:
 
-**a) Add imports at the top:**
+**a) Add imports:**
+
+Add `TemplateStringInput` import at the top of the file:
 ```tsx
 import { TemplateStringInput } from './template-string-input';
-import type { EventField } from '@/types/api.types';
+```
+
+And merge `EventField` into the existing `@/types/api.types` import (line 7). Current:
+```tsx
+import type { ActionDefinition, StoredAction } from '@/types/api.types';
+```
+Replace with:
+```tsx
+import type { ActionDefinition, StoredAction, EventField } from '@/types/api.types';
 ```
 
 **b) Update the `Props` interface** (lines 9–12):

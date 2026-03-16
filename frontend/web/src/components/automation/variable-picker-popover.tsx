@@ -19,6 +19,7 @@ export function VariablePickerPopover({ fields, objectKey, onInsert, onClose }: 
     <div
       role="dialog"
       aria-label="Insert variable"
+      aria-modal={true}
       className="absolute right-0 top-full z-50 mt-1 w-52 rounded-md border border-border bg-card shadow-lg"
     >
       <div className="border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

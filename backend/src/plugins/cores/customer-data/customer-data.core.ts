@@ -45,6 +45,13 @@ export interface UpdateCustomerInput {
   is_active?: boolean;
 }
 
+export interface ListCustomersFilter {
+  name?:    string;
+  company?: string;
+  phone?:   string;
+  status?:  'active' | 'inactive' | 'all';
+}
+
 @Injectable()
 export class CustomerDataCore implements IPluginCore, OnModuleInit {
   readonly manifest: PluginManifest = CUSTOMER_DATA_MANIFEST;
@@ -74,13 +81,24 @@ export class CustomerDataCore implements IPluginCore, OnModuleInit {
     });
   }
 
-  async listCustomers(ctx: IExecutionContext): Promise<Customer[]> {
-    return ctx.db
+  async listCustomers(ctx: IExecutionContext, filter: ListCustomersFilter = {}): Promise<Customer[]> {
+    let query = ctx.db
       .db('customers')
-      .select('id', 'tenant_id', 'name', 'email', 'phone', 'company', 'is_active', 'created_at', 'updated_at')
-      .where({ is_active: true })
-      .orderBy('created_at', 'desc')
-      .limit(100) as Promise<Customer[]>;
+      .select('id', 'tenant_id', 'name', 'email', 'phone', 'company', 'is_active', 'created_at', 'updated_at');
+
+    // Status filter — default: active only
+    if (!filter.status || filter.status === 'active') {
+      query = query.where('is_active', true);
+    } else if (filter.status === 'inactive') {
+      query = query.where('is_active', false);
+    }
+    // status === 'all' → no is_active condition
+
+    if (filter.name)    query = query.where('name',    'ilike', `%${filter.name}%`);
+    if (filter.company) query = query.where('company', 'ilike', `%${filter.company}%`);
+    if (filter.phone)   query = query.where('phone',   'ilike', `%${filter.phone}%`);
+
+    return query.orderBy('created_at', 'desc').limit(100) as Promise<Customer[]>;
   }
 
   async getCustomer(ctx: IExecutionContext, id: string): Promise<Customer> {

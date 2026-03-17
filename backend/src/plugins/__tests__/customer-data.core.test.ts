@@ -55,6 +55,57 @@ describe('CustomerDataCore', () => {
       expect(ctx.db.db).toHaveBeenCalledWith('customers');
       expect(result).toEqual(rows);
     });
+
+    it('applies is_active=true filter by default (no filter arg)', async () => {
+      const ctx = makeCtx({ limit: vi.fn().mockResolvedValue([]) });
+      await core.listCustomers(ctx);
+      expect(ctx.db._builder.where).toHaveBeenCalledWith('is_active', true);
+    });
+
+    it('applies is_active=true when status is "active"', async () => {
+      const ctx = makeCtx({ limit: vi.fn().mockResolvedValue([]) });
+      await core.listCustomers(ctx, { status: 'active' });
+      expect(ctx.db._builder.where).toHaveBeenCalledWith('is_active', true);
+    });
+
+    it('applies is_active=false when status is "inactive"', async () => {
+      const ctx = makeCtx({ limit: vi.fn().mockResolvedValue([]) });
+      await core.listCustomers(ctx, { status: 'inactive' });
+      expect(ctx.db._builder.where).toHaveBeenCalledWith('is_active', false);
+    });
+
+    it('does not filter is_active when status is "all"', async () => {
+      const ctx = makeCtx({ limit: vi.fn().mockResolvedValue([]) });
+      await core.listCustomers(ctx, { status: 'all' });
+      expect(ctx.db._builder.where).not.toHaveBeenCalledWith('is_active', true);
+      expect(ctx.db._builder.where).not.toHaveBeenCalledWith('is_active', false);
+    });
+
+    it('applies ILIKE filter for name', async () => {
+      const ctx = makeCtx({ limit: vi.fn().mockResolvedValue([]) });
+      await core.listCustomers(ctx, { name: 'nguyen' });
+      expect(ctx.db._builder.where).toHaveBeenCalledWith('name', 'ilike', '%nguyen%');
+    });
+
+    it('applies ILIKE filter for company', async () => {
+      const ctx = makeCtx({ limit: vi.fn().mockResolvedValue([]) });
+      await core.listCustomers(ctx, { company: 'acme' });
+      expect(ctx.db._builder.where).toHaveBeenCalledWith('company', 'ilike', '%acme%');
+    });
+
+    it('applies ILIKE filter for phone', async () => {
+      const ctx = makeCtx({ limit: vi.fn().mockResolvedValue([]) });
+      await core.listCustomers(ctx, { phone: '0912' });
+      expect(ctx.db._builder.where).toHaveBeenCalledWith('phone', 'ilike', '%0912%');
+    });
+
+    it('combines multiple filters with AND logic', async () => {
+      const ctx = makeCtx({ limit: vi.fn().mockResolvedValue([]) });
+      await core.listCustomers(ctx, { status: 'inactive', name: 'bob', company: 'xyz' });
+      expect(ctx.db._builder.where).toHaveBeenCalledWith('is_active', false);
+      expect(ctx.db._builder.where).toHaveBeenCalledWith('name', 'ilike', '%bob%');
+      expect(ctx.db._builder.where).toHaveBeenCalledWith('company', 'ilike', '%xyz%');
+    });
   });
 
   describe('getCustomer', () => {

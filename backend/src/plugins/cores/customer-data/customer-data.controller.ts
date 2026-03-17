@@ -51,13 +51,13 @@ export class CustomerDataController {
 
   @Get('customers')
   async listCustomers(
+    @CurrentTenant() tenant: ResolvedTenant,
+    @CurrentUser()   user: JwtClaims,
+    @Req()           req: Request & { correlationId?: string },
     @Query('name')    name?: string,
     @Query('company') company?: string,
     @Query('phone')   phone?: string,
     @Query('status')  status?: 'active' | 'inactive' | 'all',
-    @CurrentTenant() tenant: ResolvedTenant,
-    @CurrentUser()   user: JwtClaims,
-    @Req()           req: Request & { correlationId?: string },
   ) {
     const ctx = await this.buildCtx(tenant, user, req);
     const safeStatus = (['active', 'inactive', 'all'] as const).includes(status as any)

@@ -42,7 +42,13 @@ export default function ContactsPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setActiveFilter({ ...filterForm });
+    const { name, company, phone, status } = filterForm;
+    setActiveFilter({
+      status,
+      ...(name.trim()    ? { name:    name.trim()    } : {}),
+      ...(company.trim() ? { company: company.trim() } : {}),
+      ...(phone.trim()   ? { phone:   phone.trim()   } : {}),
+    });
   }
 
   function handleReset() {
@@ -82,10 +88,11 @@ export default function ContactsPage() {
           className="mb-4 flex flex-wrap items-end gap-2 rounded-md border border-border bg-muted/30 p-3"
         >
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <label htmlFor="filter-name" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Name
             </label>
             <input
+              id="filter-name"
               type="text"
               value={filterForm.name}
               onChange={(e) => setFilterForm((f) => ({ ...f, name: e.target.value }))}
@@ -95,10 +102,11 @@ export default function ContactsPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <label htmlFor="filter-company" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Company
             </label>
             <input
+              id="filter-company"
               type="text"
               value={filterForm.company}
               onChange={(e) => setFilterForm((f) => ({ ...f, company: e.target.value }))}
@@ -108,10 +116,11 @@ export default function ContactsPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <label htmlFor="filter-phone" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Phone
             </label>
             <input
+              id="filter-phone"
               type="text"
               value={filterForm.phone}
               onChange={(e) => setFilterForm((f) => ({ ...f, phone: e.target.value }))}
@@ -121,10 +130,11 @@ export default function ContactsPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <label htmlFor="filter-status" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Status
             </label>
             <select
+              id="filter-status"
               value={filterForm.status}
               onChange={(e) => {
                 const status = e.target.value as 'active' | 'inactive' | 'all';

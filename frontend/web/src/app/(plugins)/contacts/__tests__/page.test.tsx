@@ -82,7 +82,9 @@ describe('ContactsPage filter form', () => {
 
   it('changing Status dropdown triggers re-query immediately', () => {
     setup();
+    const callsBefore = mockUseQuery.mock.calls.length;
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'inactive' } });
+    expect(mockUseQuery.mock.calls.length).toBeGreaterThan(callsBefore);
     const lastCallArgs = mockUseQuery.mock.calls.at(-1)?.[0];
     expect(lastCallArgs?.queryKey).toContainEqual(expect.objectContaining({ status: 'inactive' }));
   });

@@ -64,6 +64,13 @@ interface AuthCtx {
   tenantId: string;
 }
 
+export interface CustomerFilter {
+  name?:    string;
+  company?: string;
+  phone?:   string;
+  status?:  'active' | 'inactive' | 'all';
+}
+
 export const crmApi = {
   // ─── Auth ─────────────────────────────────────────────────────────────────
   login(body: { tenantSlug: string; email: string; password: string }): Promise<LoginResponse> {
@@ -95,8 +102,20 @@ export const crmApi = {
   },
 
   // ─── Customers (customer-data plugin) ────────────────────────────────────
-  getCustomers(ctx: AuthCtx): Promise<PluginListResponse<Customer>> {
-    return request('/api/v1/plugins/customer-data/customers', ctx);
+  getCustomers(ctx: AuthCtx, filter?: CustomerFilter): Promise<PluginListResponse<Customer>> {
+    const params = new URLSearchParams();
+    const name    = filter?.name?.trim()    ?? '';
+    const company = filter?.company?.trim() ?? '';
+    const phone   = filter?.phone?.trim()   ?? '';
+    if (name)           params.set('name',    name);
+    if (company)        params.set('company', company);
+    if (phone)          params.set('phone',   phone);
+    if (filter?.status) params.set('status',  filter.status);
+    const qs = params.toString();
+    return request(
+      `/api/v1/plugins/customer-data/customers${qs ? `?${qs}` : ''}`,
+      ctx,
+    );
   },
 
   getCustomer(id: string, ctx: AuthCtx): Promise<{ plugin: string; data: Customer }> {

@@ -60,7 +60,10 @@ export class CustomerDataController {
     @Req()           req: Request & { correlationId?: string },
   ) {
     const ctx = await this.buildCtx(tenant, user, req);
-    const filter: ListCustomersFilter = { name, company, phone, status };
+    const safeStatus = (['active', 'inactive', 'all'] as const).includes(status as any)
+      ? (status as 'active' | 'inactive' | 'all')
+      : undefined;
+    const filter: ListCustomersFilter = { name, company, phone, status: safeStatus };
     const customers = await this.sandbox.execute(
       () => this.core.listCustomers(ctx, filter),
       this.core.manifest.limits.timeoutMs,

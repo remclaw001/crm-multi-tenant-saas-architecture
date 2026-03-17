@@ -46,7 +46,7 @@ export default function MarketingPage() {
           <div>
             <h1 className="text-xl font-semibold">Marketing</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {data ? `${data.count} campaigns` : 'Manage marketing campaigns'}
+              {data ? `${filtered.length} campaigns` : 'Manage marketing campaigns'}
             </p>
           </div>
           <div className="flex items-center gap-3">

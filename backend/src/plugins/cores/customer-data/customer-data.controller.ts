@@ -11,6 +11,7 @@ import {
   Req,
   UsePipes,
   ValidationPipe,
+  Query,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { CurrentTenant } from '../../../gateway/decorators/current-tenant.decorator';
@@ -22,6 +23,7 @@ import { SandboxService } from '../../sandbox/sandbox.service';
 import {
   CustomerDataCore,
   UpdateCustomerInput,
+  ListCustomersFilter,
 } from './customer-data.core';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 
@@ -49,13 +51,18 @@ export class CustomerDataController {
 
   @Get('customers')
   async listCustomers(
+    @Query('name')    name?: string,
+    @Query('company') company?: string,
+    @Query('phone')   phone?: string,
+    @Query('status')  status?: 'active' | 'inactive' | 'all',
     @CurrentTenant() tenant: ResolvedTenant,
-    @CurrentUser() user: JwtClaims,
-    @Req() req: Request & { correlationId?: string },
+    @CurrentUser()   user: JwtClaims,
+    @Req()           req: Request & { correlationId?: string },
   ) {
     const ctx = await this.buildCtx(tenant, user, req);
+    const filter: ListCustomersFilter = { name, company, phone, status };
     const customers = await this.sandbox.execute(
-      () => this.core.listCustomers(ctx),
+      () => this.core.listCustomers(ctx, filter),
       this.core.manifest.limits.timeoutMs,
     );
     return { plugin: PLUGIN_NAME, data: customers, count: customers.length };

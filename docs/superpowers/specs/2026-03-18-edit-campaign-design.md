@@ -37,7 +37,7 @@ Allow users to edit existing campaigns by clicking a campaign card on the Market
 | `src/components/campaigns-list.tsx` | **Modify** | Add `onEdit` prop + click handler on cards |
 | `src/components/edit-campaign-modal.tsx` | **Create** | New edit modal component |
 | `src/app/(plugins)/marketing/page.tsx` | **Modify** | Add `editTarget` state; wire `CampaignsList` + modal |
-| `src/components/__tests__/edit-campaign-modal.test.tsx` | **Create** | 7 tests |
+| `src/components/__tests__/edit-campaign-modal.test.tsx` | **Create** | 10 tests |
 
 ---
 
@@ -68,7 +68,7 @@ updateCampaign(
 
 ## `CampaignsList` Changes
 
-Add `onEdit` prop:
+Add `onEdit` prop. `CampaignsList` is only used in `marketing/page.tsx` — no other call sites. Make it required:
 
 ```ts
 export function CampaignsList({
@@ -99,7 +99,7 @@ interface Props {
 }
 ```
 
-Visibility is driven by `campaign !== null` — no separate `open` boolean. Return `null` immediately if `campaign` is null (after hooks).
+Visibility is driven by `campaign !== null` — no separate `open` boolean. **Declare all hooks first**, then return `null` if `campaign` is null. This satisfies React's Rules of Hooks (no conditional hook calls).
 
 **Form state:**
 ```ts
@@ -129,10 +129,11 @@ const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
 ```
 
 **Reset:** `useEffect` watching `campaign`:
-- When `campaign` becomes non-null: set form to `{ name: campaign.name, status: campaign.status, target_count: campaign.target_count > 0 ? String(campaign.target_count) : '', scheduled_at: campaign.scheduled_at ? campaign.scheduled_at.slice(0, 16) : '' }`
+- When `campaign` becomes non-null: set form to `{ name: campaign.name, status: campaign.status, target_count: campaign.target_count > 0 ? String(campaign.target_count) : '', scheduled_at: campaign.scheduled_at ? campaign.scheduled_at.slice(0, 16) : '' }`. `target_count === 0` is treated as "not set" (empty string) because 0 is the backend default for a new campaign and not a meaningful user-entered value. The `target_count` input uses `min="1"` to prevent users from typing 0.
+- **Timezone note:** `scheduled_at` is stored as UTC ISO. Slicing to 16 chars and feeding a `datetime-local` input displays the UTC time without local timezone conversion — this matches the behavior of `add-campaign-modal.tsx` (same app, same pattern). This is an acceptable simplification for this codebase.
 - When `campaign` becomes null: reset form, errors, and apiError to empty/undefined
 
-**Validation:** `name.trim()` must be non-empty — inline error `'Name is required'` below the input.
+**Validation:** `name.trim()` must be non-empty — inline error `'Name is required'` below the input. No max-length validation in the frontend (consistent with `add-campaign-modal.tsx`; the backend enforces the limit and returns an `ApiError` which the error box displays).
 
 **Submission:**
 ```ts
@@ -166,8 +167,8 @@ crmApi.updateCampaign(
 
 **Structure** (follows `add-campaign-modal.tsx`):
 - `'use client'` directive at top
-- Backdrop: `fixed inset-0 z-50 flex items-center justify-center bg-black/50`, click outside closes
-- Dialog: `role="dialog" aria-modal="true" aria-label="Edit Campaign"`, `w-full max-w-md`
+- Backdrop: `fixed inset-0 z-50 flex items-center justify-center bg-black/50`, click outside closes (via `onClick={onClose}` on the backdrop div)
+- Dialog: `role="dialog" aria-modal="true" aria-label="Edit Campaign"`, `w-full max-w-md`, with `onClick={(e) => e.stopPropagation()}` to prevent backdrop click from firing when clicking inside the dialog
 - Header: title "Edit Campaign" + X close button
 - Body: form fields with labels, `htmlFor`/`id` pairs on all inputs and the select
 - Footer: Cancel + submit button — label is `mutation.isPending ? 'Saving…' : 'Save Changes'`, disabled while pending
@@ -179,7 +180,7 @@ crmApi.updateCampaign(
 1. Add `const [editTarget, setEditTarget] = useState<Campaign | null>(null)`
 2. Pass `onEdit={(c) => setEditTarget(c)}` to `<CampaignsList>`
 3. Mount `<EditCampaignModal campaign={editTarget} onClose={() => setEditTarget(null)} onSuccess={handleSuccess} />`
-4. `handleSuccess` already calls `queryClient.invalidateQueries({ queryKey: ['campaigns', tenantId] })` — no change needed
+4. `handleSuccess` is generic — it only calls `queryClient.invalidateQueries({ queryKey: ['campaigns', tenantId] })` with no modal-specific side effects. It is safe to reuse for both the add and edit modals' `onSuccess` callbacks.
 
 ---
 
@@ -188,6 +189,8 @@ crmApi.updateCampaign(
 New test file: `src/components/__tests__/edit-campaign-modal.test.tsx`
 
 **Mocking:** Use `vi.hoisted()` for `mockMutateAsync` and `mockUseMutation` per CLAUDE.md Vitest gotcha. Export `ApiError` from the mock factory so `instanceof` works inside the component.
+
+`mockMutateAsync` is the mock for `useMutation`'s `mutateAsync`. The component calls `mutation.mutateAsync(input)` where `input` is the payload object — `crmApi.updateCampaign(id, input, ctx)` is called inside the mutation function. Tests assert `mockMutateAsync` was called with the `input` object only (not the full 3-arg API signature).
 
 **Test campaign fixture:**
 ```ts
@@ -209,8 +212,11 @@ const mockCampaign: Campaign = {
 
 1. **Returns null when `campaign` is null** — `queryByRole('dialog')` returns null
 2. **Renders all 4 fields pre-filled** — name input has `mockCampaign.name`, status select shows `mockCampaign.status`, target_count input has `'500'`, scheduled_at input has the truncated datetime string
-3. **Shows validation error on empty name** — clear name field, submit → inline error `'Name is required'` visible, `mockMutateAsync` not called
-4. **Calls `updateCampaign` with correct payload on valid submit** — assert `mockMutateAsync` called with `{ name: 'Summer Sale', status: 'draft', target_count: 500, scheduled_at: '2026-06-15T10:00' }` (or null for empty scheduled_at)
+3. **Shows validation error on empty name** — `fireEvent.change(nameInput, { target: { value: '' } })`, submit → inline error `'Name is required'` visible, `mockMutateAsync` not called
+4. **Calls `updateCampaign` with correct payload on valid submit** — assert `mockMutateAsync` called with `{ name: 'Summer Sale', status: 'draft', target_count: 500, scheduled_at: '2026-06-15T10:00' }` (the `scheduled_at` value is `mockCampaign.scheduled_at.slice(0, 16)` = `'2026-06-15T10:00'`)
 5. **Calls `onSuccess` and `onClose` after successful mutation** — both called once after `mutateAsync` resolves
 6. **Shows API error when mutation rejects with `ApiError`** — error text visible in the DOM
-7. **Form re-initializes when `campaign` prop changes** — re-render with a different campaign object → name input reflects new campaign's name
+7. **Shows generic error when mutation rejects with unknown error** — `'Failed to save. Please try again.'` visible in the DOM
+8. **Clicking backdrop calls `onClose`** — `fireEvent.click` the backdrop element directly (not the dialog); `onClose` called. The dialog has `e.stopPropagation()` so clicking inside does not trigger `onClose`.
+9. **Form re-initializes when `campaign` prop changes** — re-render with a different campaign object → name input reflects new campaign's name
+10. **target_count=0 shows empty field** — render with `mockCampaign` having `target_count: 0` → target_count input value is `''`

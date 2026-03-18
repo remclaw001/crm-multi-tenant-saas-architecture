@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { crmApi } from '@/lib/api-client';
 import { CampaignsList } from '@/components/campaigns-list';
 import { AddCampaignModal } from '@/components/add-campaign-modal';
+import { EditCampaignModal } from '@/components/edit-campaign-modal';
 import { PluginGate } from '@/components/plugin-gate';
 import type { Campaign } from '@/types/api.types';
 
@@ -23,6 +24,7 @@ export default function MarketingPage() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Campaign | null>(null);
   const ctx = { token: token ?? '', tenantId: tenantId ?? '' };
 
   const { data, isLoading, isError } = useQuery({
@@ -80,12 +82,18 @@ export default function MarketingPage() {
             Failed to load campaigns.
           </div>
         ) : (
-          <CampaignsList campaigns={filtered} />
+          <CampaignsList campaigns={filtered} onEdit={(c) => setEditTarget(c)} />
         )}
 
         <AddCampaignModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
+          onSuccess={handleSuccess}
+        />
+
+        <EditCampaignModal
+          campaign={editTarget}
+          onClose={() => setEditTarget(null)}
           onSuccess={handleSuccess}
         />
       </div>

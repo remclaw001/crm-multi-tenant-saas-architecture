@@ -19,7 +19,13 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function CampaignsList({ campaigns }: { campaigns: Campaign[] }) {
+export function CampaignsList({
+  campaigns,
+  onEdit,
+}: {
+  campaigns: Campaign[];
+  onEdit: (campaign: Campaign) => void;
+}) {
   if (campaigns.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">No campaigns found.</p>
@@ -29,7 +35,11 @@ export function CampaignsList({ campaigns }: { campaigns: Campaign[] }) {
   return (
     <div className="space-y-2">
       {campaigns.map((c) => (
-        <div key={c.id} className="rounded-lg border border-border bg-card p-4">
+        <div
+          key={c.id}
+          className="cursor-pointer rounded-lg border border-border bg-card p-4 hover:bg-accent/50"
+          onClick={() => onEdit(c)}
+        >
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">{c.name}</p>

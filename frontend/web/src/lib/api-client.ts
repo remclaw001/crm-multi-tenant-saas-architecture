@@ -251,4 +251,21 @@ export const crmApi = {
       ...ctx,
     });
   },
+
+  updateCampaign(
+    id: string,
+    input: {
+      name?: string;
+      status?: 'draft' | 'active' | 'paused' | 'completed';
+      target_count?: number;
+      scheduled_at?: string | null;
+    },
+    ctx: AuthCtx,
+  ): Promise<PluginItemResponse<Campaign>> {
+    return request(`/api/v1/plugins/marketing/campaigns/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+      ...ctx,
+    });
+  },
 };

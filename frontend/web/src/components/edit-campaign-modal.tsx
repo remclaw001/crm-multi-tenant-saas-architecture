@@ -73,10 +73,6 @@ export function EditCampaignModal({ campaign, onClose, onSuccess }: Props) {
   // All hooks declared above — safe to return null now
   if (!campaign) return null;
 
-  function handleClose() {
-    onClose();
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setApiError('');
@@ -108,7 +104,7 @@ export function EditCampaignModal({ campaign, onClose, onSuccess }: Props) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
+        if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
@@ -122,7 +118,7 @@ export function EditCampaignModal({ campaign, onClose, onSuccess }: Props) {
           <h2 className="text-base font-semibold">Edit Campaign</h2>
           <button
             type="button"
-            onClick={handleClose}
+            onClick={onClose}
             className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             aria-label="Close"
           >
@@ -227,7 +223,7 @@ export function EditCampaignModal({ campaign, onClose, onSuccess }: Props) {
           <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
             <button
               type="button"
-              onClick={handleClose}
+              onClick={onClose}
               className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
             >
               Cancel

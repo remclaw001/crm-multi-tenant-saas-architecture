@@ -17,10 +17,22 @@ vi.mock('@/stores/auth.store', () => ({
   useAuthStore: vi.fn(() => ({ token: 'tok', tenantId: 'tid' })),
 }));
 
-// Mock api-client
-vi.mock('@/lib/api-client', () => ({
-  crmApi: { createCustomer: vi.fn() },
-}));
+// Mock api-client — export ApiError so instanceof checks inside the component work
+vi.mock('@/lib/api-client', () => {
+  class MockApiError extends Error {
+    status: number;
+    body: { detail?: string; title?: string };
+    constructor(status: number, body: { detail?: string; title?: string }) {
+      super('ApiError');
+      this.status = status;
+      this.body = body;
+    }
+  }
+  return {
+    crmApi: { createCustomer: vi.fn() },
+    ApiError: MockApiError,
+  };
+});
 
 const defaultProps = {
   open: true,

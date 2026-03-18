@@ -85,9 +85,9 @@ export default function ContactsPage() {
         <form
           aria-label="Contact filters"
           onSubmit={handleSubmit}
-          className="mb-4 flex flex-wrap items-end gap-2 rounded-md border border-border bg-muted/30 p-3"
+          className="mb-4 flex items-end gap-2 rounded-md border border-border bg-muted/30 p-3"
         >
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-1 flex-col gap-1">
             <label htmlFor="filter-name" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Name
             </label>
@@ -97,11 +97,11 @@ export default function ContactsPage() {
               value={filterForm.name}
               onChange={(e) => setFilterForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="e.g. Nguyen…"
-              className="w-32 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
             />
           </div>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-1 flex-col gap-1">
             <label htmlFor="filter-company" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Company
             </label>
@@ -111,11 +111,11 @@ export default function ContactsPage() {
               value={filterForm.company}
               onChange={(e) => setFilterForm((f) => ({ ...f, company: e.target.value }))}
               placeholder="e.g. Acme…"
-              className="w-32 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
             />
           </div>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-1 flex-col gap-1">
             <label htmlFor="filter-phone" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Phone
             </label>
@@ -125,7 +125,7 @@ export default function ContactsPage() {
               value={filterForm.phone}
               onChange={(e) => setFilterForm((f) => ({ ...f, phone: e.target.value }))}
               placeholder="e.g. 0912…"
-              className="w-28 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
             />
           </div>
 
